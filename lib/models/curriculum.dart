@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../theme/app_colors.dart' show amber, coral, sky, teal, violet, violetDark;
+import 'meta_task.dart';
 
 class LessonSpec {
   final String title;
@@ -622,3 +623,15 @@ const chapters = <ChapterSpec>[
     ],
   ),
 ];
+
+/// Spark-lecke leképezése a tanterv `LessonSpec` alakjára.
+///
+/// A `const chapters` változatlanul a tartalék tanterv; ez csak akkor
+/// fut, ha a Meta-válasz élő (nem-fallback). A technika-tipp a
+/// `MetaTask.explanation` mezőből jön (loci / képi társítás / kulcsszó).
+LessonSpec lessonFromMetaTask(MetaTask task) {
+  final title = task.prompt.isEmpty ? 'Meta-lecke' : task.prompt;
+  final detail =
+      task.explanation.isEmpty ? 'AI-gyakorlat' : task.explanation;
+  return LessonSpec(title, detail, HugeIcons.strokeRoundedBrain01);
+}

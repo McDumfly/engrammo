@@ -55,6 +55,8 @@ class CloudSync {
       final rating = await MemoryStore.loadBattleRating();
       final avatar = await MemoryStore.loadAvatarOpts(const {});
       final streak = await MemoryStore.loadStreakState();
+      final fsrs = await MemoryStore.loadFsrsCards();
+      final meta = await MemoryStore.loadMetaCache();
       await doc.set({
         'displayName': profile.displayName,
         'username': profile.username,
@@ -71,6 +73,8 @@ class CloudSync {
         'streakHistory': [
           for (final d in streak.history) d.toIso8601String(),
         ],
+        'fsrsCards': fsrs,
+        'metaCache': meta,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     } catch (e) {
@@ -144,6 +148,19 @@ class CloudSync {
           streak: streak,
           bestStreak: best,
           engrams: engrams,
+        );
+      }
+
+      final fsrsCloud = data['fsrsCards'];
+      if (fsrsCloud is Map && fsrsCloud.isNotEmpty) {
+        await MemoryStore.saveFsrsCardsWithoutNotify(
+          fsrsCloud.map((k, v) => MapEntry(k.toString(), v.toString())),
+        );
+      }
+      final metaCloud = data['metaCache'];
+      if (metaCloud is Map && metaCloud.isNotEmpty) {
+        await MemoryStore.saveMetaCacheWithoutNotify(
+          metaCloud.map((k, v) => MapEntry(k.toString(), v.toString())),
         );
       }
 

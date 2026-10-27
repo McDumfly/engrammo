@@ -363,4 +363,97 @@ class MemoryStore {
     if (strongest >= 0 && strongest < kindCount) return strongest;
     return 0;
   }
+
+  // ── FSRS-lite kártyák + Meta-gyorsítótár (best-effort, offline) ──
+
+  static const _fsrsCardsKey = 'fsrs_cards_v1';
+  static const _metaCacheKey = 'meta_cache_v1';
+
+  /// FSRS-kártyák száma legfeljebb ennyi lehet helyben.
+  static const int fsrsCap = 200;
+
+  /// Meta-válaszok gyorsítótára legfeljebb ennyi kulcsot őriz.
+  static const int metaCacheCap = 40;
+
+  static Future<void> saveFsrsCards(
+    Map<String, String> byCardIdJson,
+  ) async {
+    await saveFsrsCardsWithoutNotify(byCardIdJson);
+    _notifyChanged();
+  }
+
+  static Future<void> saveFsrsCardsWithoutNotify(
+    Map<String, String> byCardIdJson,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final entries = byCardIdJson.entries.toList();
+      final capped =
+          entries.length > fsrsCap
+              ? entries.sublist(entries.length - fsrsCap)
+              : entries;
+      await prefs.setStringList(_fsrsCardsKey, [
+        for (final e in capped) '${e.key}=${e.value}',
+      ]);
+    } catch (_) {
+      // Hiba esetén marad a memóriabeli állapot.
+    }
+  }
+
+  static Future<Map<String, String>> loadFsrsCards() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getStringList(_fsrsCardsKey);
+      if (raw == null || raw.isEmpty) return {};
+      final map = <String, String>{};
+      for (final e in raw) {
+        final i = e.indexOf('=');
+        if (i <= 0) continue;
+        map[e.substring(0, i)] = e.substring(i + 1);
+      }
+      return map;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  static Future<void> saveMetaCache(Map<String, String> entries) async {
+    await saveMetaCacheWithoutNotify(entries);
+    _notifyChanged();
+  }
+
+  static Future<void> saveMetaCacheWithoutNotify(
+    Map<String, String> entries,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = entries.entries.toList();
+      final capped =
+          list.length > metaCacheCap
+              ? list.sublist(list.length - metaCacheCap)
+              : list;
+      await prefs.setStringList(_metaCacheKey, [
+        for (final e in capped) '${e.key}=${e.value}',
+      ]);
+    } catch (_) {
+      // A gyorsítótár csak gyorsítás: hiba esetén eldobjuk.
+    }
+  }
+
+  static Future<Map<String, String>> loadMetaCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getStringList(_metaCacheKey);
+      if (raw == null || raw.isEmpty) return {};
+      final map = <String, String>{};
+      for (final e in raw) {
+        final i = e.indexOf('=');
+        if (i <= 0) continue;
+        map[e.substring(0, i)] = e.substring(i + 1);
+      }
+      return map;
+    } catch (_) {
+      return {};
+    }
+  }
 }

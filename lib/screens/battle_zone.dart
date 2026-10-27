@@ -12,9 +12,11 @@ import '../widgets/app_buttons.dart';
 import '../models/battle_invites.dart';
 import '../models/battle_rating.dart';
 import '../models/collectibles.dart' show engram;
+import '../models/meta_task.dart';
 import 'friend_profile.dart';
 import 'memory_profile.dart' show ink, violet, teal, amber, memoryKinds;
 import '../services/memory_store.dart';
+import '../services/meta_ai_service.dart';
 
 enum BattleMode { duel, team }
 
@@ -22,6 +24,19 @@ enum BattleMode { duel, team }
 /// A profil `memoryLevel` képletével egyezik (`~/ 10 + 1`),
 /// csak átlag helyett egy típus pontszámából számol.
 int memoryLevelForScore(int score) => (score ~/ 10) + 1;
+
+/// Opcionális AI-kihívófeladat a párbajhoz (best-effort).
+///
+/// Élő Meta-válasz esetén annak tartalma, különben egy helyi
+/// tartalék duelpár (`_pastMatches` stílusában). A meglévő
+/// `_pastMatches` lista változatlanul megmarad.
+Future<MetaTask> aiDuelTask(int kind, {int difficulty = 2}) {
+  const kinds = ['sensory', 'working', 'spatial', 'visual', 'episodic', 'semantic'];
+  final k = (kind >= 0 && kind < kinds.length) ? kinds[kind] : 'duel';
+  return MetaAIService.generateTask(
+    MetaTaskRequest(kind: k, difficulty: difficulty),
+  );
+}
 
 class BattleZonePage extends StatelessWidget {
   const BattleZonePage({super.key});

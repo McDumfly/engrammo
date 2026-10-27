@@ -7,7 +7,9 @@ import 'package:hugeicons/hugeicons.dart';
 import '../widgets/app_buttons.dart';
 import '../services/app_feedback.dart';
 import '../models/collectibles.dart' show engram;
+import '../models/meta_task.dart';
 import '../services/memory_store.dart';
+import '../services/meta_ai_service.dart';
 
 class MemoryKind {
   final String name;
@@ -276,6 +278,79 @@ List<_Task> _buildTasks(BuildContext context) {
   ];
 }
 
+/// Meta-feladat leképezése a szintmérő `_Task` alakjára.
+///
+/// A helyi `_buildTasks` marad az offline tartalék; ez csak akkor fut,
+/// ha a `MetaAIService.generateTask` élő (nem-fallback) választ adott.
+// ignore: library_private_types_in_public_api
+_Task metaTaskToAssessmentTask(
+  BuildContext context,
+  MetaTask task,
+  int kind,
+) {
+  final correct = task.correct.clamp(0, task.options.length - 1);
+  return _Task(
+    kind: kind,
+    stimulusTitle: task.prompt.isEmpty ? 'Figyelj!' : task.prompt,
+    stimulus: _stimulusBox(
+      context,
+      child: Text(
+        task.items.isEmpty ? '···' : task.items.join('   '),
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+          color: context.inkText,
+          letterSpacing: 3,
+        ),
+      ),
+    ),
+    question: task.question.isEmpty ? 'Mi volt a helyes?' : task.question,
+    options:
+        task.options.isEmpty ? const ['···'] : List<String>.of(task.options),
+    correct: task.options.isEmpty ? 0 : correct,
+  );
+}
+
+/// Szintmérő-feladatok Meta-forrásból, helyi tartalékkal.
+///
+/// Sorrend: sensory, working, spatial, visual, episodic, semantic.
+/// Minden fajtára egy `MetaAIService.generateTask` hívás fut; ahol a
+/// válasz `fallback`, ott a mai `_buildTasks` adott eleme marad.
+// ignore: library_private_types_in_public_api
+Future<List<_Task>> loadAssessmentTasks(BuildContext context) async {
+  const kinds = ['sensory', 'working', 'spatial', 'visual', 'episodic', 'semantic'];
+  // A contextet csak itt, az await-ek előtt használjuk: a helyi
+  // tartalék most épül fel, az élő találatokat utána képezzük le.
+  final local = _buildTasks(context);
+  final kindsForTask = [
+    for (var i = 0; i < local.length; i++) kinds[i % kinds.length],
+  ];
+  final fetched = <MetaTask?>[];
+  for (final kind in kindsForTask) {
+    try {
+      fetched.add(
+        await MetaAIService.generateTask(
+          MetaTaskRequest(kind: kind, difficulty: 2),
+        ),
+      );
+    } catch (_) {
+      fetched.add(null);
+    }
+  }
+  final out = <_Task>[];
+  for (var i = 0; i < local.length; i++) {
+    final task = fetched[i];
+    if (task == null || task.fallback) {
+      out.add(local[i]);
+    } else {
+      // ignore: use_build_context_synchronously
+      out.add(metaTaskToAssessmentTask(context, task, local[i].kind));
+    }
+  }
+  return out;
+}
+
 class MemoryAssessmentPage extends StatefulWidget {
   const MemoryAssessmentPage({super.key});
 
@@ -284,6 +359,19 @@ class MemoryAssessmentPage extends StatefulWidget {
 }
 
 class _MemoryAssessmentPageState extends State<MemoryAssessmentPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Best-effort élő Meta-hívás a szintmérő képernyőn: a válasz
+    // naplózódik (`MetaAIService.lastCalls`), a UI addig is a helyi
+    // `_buildTasks` tartalékkal rajzol, így offline sem törik meg.
+    unawaited(
+      MetaAIService.generateTask(
+        const MetaTaskRequest(kind: 'sensory', difficulty: 2),
+      ),
+    );
+  }
+
   List<_Task> get _tasks => _buildTasks(context);
   int _step = 0;
   bool _revealed = false;

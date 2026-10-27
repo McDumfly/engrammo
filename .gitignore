@@ -56,3 +56,18 @@ ios/Runner/GoogleService-Info.plist
 macos/Runner/GoogleService-Info.plist
 lib/firebase_options.dart
 firebase.json
+
+# Meta AI kulcs és mintája: soha nem megy gitre.
+.env
+.env.json
+.env.example
+
+# Belső feljegyzések: helyi segédletek, soha nem mennek gitre, mert
+# személyes / projektspecifikus adatot tartalmaznak (iskola, lakhely,
+# projekt-azonosítók). A fájlok a gépen maradnak, csak a git nem látja őket.
+MEMORY.md
+FIREBASE_SETUP.md
+docs/
+
+# Távoli segéd cuccai: képernyőképek, csatolmányok, soha nem mennek gitre.
+.muse_remote_attachments/

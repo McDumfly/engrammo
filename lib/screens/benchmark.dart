@@ -7,7 +7,9 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../widgets/app_buttons.dart';
+import '../models/meta_task.dart';
 import '../services/app_feedback.dart';
+import '../services/meta_ai_service.dart';
 import 'benchmark_stats.dart' show BenchmarkDetailPage;
 import 'memory_profile.dart' show violet, violetDark, teal, amber, coral, sky;
 
@@ -43,6 +45,74 @@ class BenchmarkStore {
 
   static int get level => xp ~/ 120 + 1;
   static double get levelProgress => (xp % 120) / 120;
+}
+
+/// Meta-csatlakozók a négy helyi generátorhoz.
+///
+/// Mindegyik ugyanazt a mintát követi: egy `MetaAIService.generateTask`
+/// hívás az adott `kind`-ra, siker esetén az élő tartalom, hiba vagy
+/// `fallback` esetén a mai helyi generátor eredménye. A meglévő
+/// játékoldalak változatlanok; ezeket az új kihívó- és napi feladatok
+/// hívják majd.
+class BenchmarkMeta {
+  static Future<String> numberStimulus(int digits) async {
+    try {
+      final task = await MetaAIService.generateTask(
+        MetaTaskRequest(kind: 'number', difficulty: digits.clamp(1, 9)),
+      );
+      if (!task.fallback && task.items.isNotEmpty) return task.items.first;
+    } catch (_) {
+      // Helyi tartalék alább.
+    }
+    return NumberGamePage.make(digits);
+  }
+
+  static Future<String> wordStimulus() async {
+    try {
+      final task = await MetaAIService.generateTask(
+        const MetaTaskRequest(kind: 'verbal', difficulty: 2),
+      );
+      if (!task.fallback && task.items.isNotEmpty) return task.items.first;
+    } catch (_) {
+      // Helyi tartalék alább.
+    }
+    return VerbalGamePage.pickFresh();
+  }
+
+  static Future<List<int>> sequenceStimulus(int length) async {
+    try {
+      final task = await MetaAIService.generateTask(
+        MetaTaskRequest(kind: 'sequence', difficulty: length.clamp(1, 5)),
+      );
+      if (!task.fallback && task.items.isNotEmpty) {
+        return [
+          for (final e in task.items) int.tryParse(e) ?? 0,
+        ];
+      }
+    } catch (_) {
+      // Helyi tartalék alább.
+    }
+    return SequenceGamePage.make(length);
+  }
+
+  static Future<Set<int>> visualPattern(int size, int count) async {
+    try {
+      final task = await MetaAIService.generateTask(
+        const MetaTaskRequest(kind: 'visual', difficulty: 2),
+      );
+      if (!task.fallback && task.items.isNotEmpty) {
+        final cells = <int>{};
+        for (final e in task.items) {
+          final v = int.tryParse(e);
+          if (v != null && v >= 0 && v < size) cells.add(v);
+        }
+        if (cells.isNotEmpty) return cells;
+      }
+    } catch (_) {
+      // Helyi tartalék alább.
+    }
+    return VisualGamePage.makePattern(size, count);
+  }
 }
 
 class _GameDef {
@@ -402,6 +472,12 @@ Widget _resultBox(
 class SequenceGamePage extends StatefulWidget {
   const SequenceGamePage({super.key});
 
+  /// Helyi tartalék a Meta-híváshoz (tesztelhető, UI nélkül).
+  static List<int> make(int length) {
+    final n = length.clamp(1, 12);
+    return [for (var i = 0; i < n; i++) _rnd.nextInt(9)];
+  }
+
   @override
   State<SequenceGamePage> createState() => _SequenceGamePageState();
 }
@@ -552,6 +628,16 @@ class _SequenceGamePageState extends State<SequenceGamePage> {
 
 class NumberGamePage extends StatefulWidget {
   const NumberGamePage({super.key});
+
+  /// Helyi tartalék a Meta-híváshoz (tesztelhető, UI nélkül).
+  static String make(int digits) {
+    final n = digits.clamp(1, 12);
+    final sb = StringBuffer('${1 + _rnd.nextInt(9)}');
+    for (var i = 1; i < n; i++) {
+      sb.write(_rnd.nextInt(10));
+    }
+    return sb.toString();
+  }
 
   @override
   State<NumberGamePage> createState() => _NumberGamePageState();
@@ -774,6 +860,9 @@ const _wordPool = [
 class VerbalGamePage extends StatefulWidget {
   const VerbalGamePage({super.key});
 
+  /// Helyi tartalék a Meta-híváshoz (tesztelhető, UI nélkül).
+  static String pickFresh() => _wordPool[_rnd.nextInt(_wordPool.length)];
+
   @override
   State<VerbalGamePage> createState() => _VerbalGamePageState();
 }
@@ -940,6 +1029,17 @@ class _VerbalGamePageState extends State<VerbalGamePage> {
 
 class VisualGamePage extends StatefulWidget {
   const VisualGamePage({super.key});
+
+  /// Helyi tartalék a Meta-híváshoz (tesztelhető, UI nélkül).
+  static Set<int> makePattern(int size, int count) {
+    final s = size.clamp(2, 25);
+    final c = count.clamp(1, s - 1);
+    final out = <int>{};
+    while (out.length < c) {
+      out.add(_rnd.nextInt(s));
+    }
+    return out;
+  }
 
   @override
   State<VisualGamePage> createState() => _VisualGamePageState();
