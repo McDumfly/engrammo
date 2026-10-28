@@ -147,7 +147,10 @@ class FsrsScheduler {
   /// Esedékes kártyák kiválogatása és rendezése (legkorábbi elöl).
   static List<FsrsCard> dueCards(Iterable<FsrsCard> cards, [DateTime? now]) {
     final n = now ?? DateTime.now();
-    final due = [for (final c in cards) if (!c.due.isAfter(n)) c];
+    final due = [
+      for (final c in cards)
+        if (!c.due.isAfter(n)) c,
+    ];
     due.sort((a, b) => a.due.compareTo(b.due));
     return due;
   }

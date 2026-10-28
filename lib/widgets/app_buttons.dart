@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+
 import '../services/app_feedback.dart';
+
 import 'package:hugeicons/hugeicons.dart';
 
-import '../theme/app_colors.dart' show coral, violet;
+import '../theme/app_colors.dart' show coral, blue;
 import '../theme/app_theme.dart';
 
 /// AZ APP GOMBSZABÁLYA (döntés, 2026-10, végleges: pill + lapos).
@@ -18,7 +20,8 @@ import '../theme/app_theme.dart';
 ///    (memóriatípus-választó, vissza, beállítás, megosztás,
 ///    avatar-pipa) tudatosan körök, nem kimaradt munka.
 /// 2. Lapos: minden gomb direkt lapos, nincs 3D-s alsó sáv. A vastag
-///    alsó árnyéksáv Duolingo-védjegy, ezért direkt nem használjuk sehol.
+///    alsó árnyéksáv idegen márkajegy lenne, ezért direkt nem
+///    használjuk sehol.
 /// 3. Készlet:
 ///    - [EngramButton]: nagy CTA (teljes szélesség, 60 magas).
 ///    - [EngramMiniButton]: kis inline akció (Invite, Watch, ...).
@@ -29,6 +32,9 @@ import '../theme/app_theme.dart';
 /// 5. Nem gomb → nem gombforma: kártyák, panelek, dialógusok,
 ///    inputmezők, jelvények (badge-ek), progress-sávok,
 ///    játéktábla-cellák maradnak a saját 8-24-es radiusszal.
+/// 6. Rezgés: a gombok maguktól adnak egy könnyű rezgést, a kezelő
+///    ehhez már nem rezegtet. Ha a kezelő saját, erősebb jelzést
+///    ad, a gomb `haptic: false`-t kap — egy koppintás, egy rezgés.
 ///
 /// - [EngramButtonVariant.primary]: app-kék lapos pill gomb (fő cselekvés).
 /// - [EngramButtonVariant.secondary]: fehér lapos pill gomb (mellékes cselekvés).
@@ -50,6 +56,11 @@ class EngramButton extends StatelessWidget {
   /// Ha meg van adva, az [icon]-t figyelmen kívül hagyja.
   final Widget? leading;
 
+  /// Koppintáskor a gomb ad egy könnyű rezgést. Ha a kezelő saját,
+  /// erősebb visszajelzést ad (pl. medium találatjelzés), tedd
+  /// `false`-ra, hogy ne legyen dupla rezgés.
+  final bool haptic;
+
   const EngramButton({
     super.key,
     required this.label,
@@ -58,6 +69,7 @@ class EngramButton extends StatelessWidget {
     this.isLoading = false,
     this.icon,
     this.leading,
+    this.haptic = true,
   });
 
   bool get _disabled => onPressed == null && !isLoading;
@@ -65,13 +77,11 @@ class EngramButton extends StatelessWidget {
   Color _top(BuildContext context) {
     if (_disabled) {
       // Sötétben sötét lap, világosban a régi szürke.
-      return context.isDark
-          ? context.faintBg
-          : const Color(0xFFD7E0EC);
+      return context.isDark ? context.faintBg : const Color(0xFFD7E0EC);
     }
     switch (variant) {
       case EngramButtonVariant.primary:
-        return violet;
+        return blue;
       case EngramButtonVariant.secondary:
         return context.cardBg;
       case EngramButtonVariant.danger:
@@ -94,7 +104,7 @@ class EngramButton extends StatelessWidget {
     return GestureDetector(
       onTap: tappable
           ? () {
-              AppFeedback.light();
+              if (haptic) AppFeedback.light();
               onPressed?.call();
             }
           : null,
@@ -166,12 +176,17 @@ class EngramMiniButton extends StatelessWidget {
   // kompatibilitása miatt maradt meg a paraméter.
   final Color? shadowColor;
 
+  /// Koppintáskor a gomb ad egy könnyű rezgést. Ha a kezelő saját
+  /// visszajelzést ad, tedd `false`-ra, hogy ne legyen dupla rezgés.
+  final bool haptic;
+
   const EngramMiniButton({
     super.key,
     required this.label,
     required this.onTap,
     this.background,
     this.shadowColor,
+    this.haptic = true,
   });
 
   @override
@@ -184,7 +199,7 @@ class EngramMiniButton extends StatelessWidget {
       onTap: disabled
           ? null
           : () {
-              AppFeedback.light();
+              if (haptic) AppFeedback.light();
               onTap?.call();
             },
       child: Container(
@@ -221,11 +236,16 @@ class EngramBackButton extends StatelessWidget {
   final bool boxed;
   final List<List<dynamic>> icon;
 
+  /// Koppintáskor a gomb ad egy könnyű rezgést. Ha a kezelő saját
+  /// visszajelzést ad, tedd `false`-ra, hogy ne legyen dupla rezgés.
+  final bool haptic;
+
   const EngramBackButton({
     super.key,
     this.onPressed,
     this.boxed = false,
     this.icon = HugeIcons.strokeRoundedArrowLeft01,
+    this.haptic = true,
   });
 
   const EngramBackButton.close({
@@ -233,12 +253,13 @@ class EngramBackButton extends StatelessWidget {
     this.onPressed,
     this.boxed = true,
     this.icon = HugeIcons.strokeRoundedCancel01,
+    this.haptic = true,
   });
 
   @override
   Widget build(BuildContext context) {
     void tap() {
-      AppFeedback.light();
+      if (haptic) AppFeedback.light();
       if (onPressed != null) {
         onPressed!();
       } else {
@@ -253,10 +274,7 @@ class EngramBackButton extends StatelessWidget {
       strokeWidth: 2.5,
     );
     if (!boxed) {
-      return IconButton(
-        icon: glyph,
-        onPressed: tap,
-      );
+      return IconButton(icon: glyph, onPressed: tap);
     }
     return GestureDetector(
       onTap: tap,
@@ -279,7 +297,7 @@ class EngramBackButton extends StatelessWidget {
 /// memóriatípus-választó) — 1:1-es pill, tehát geometriailag kör.
 ///
 /// Alapból kártya-színű, keretes — töltött változathoz add meg
-/// a [background]-ot (pl. violet pipa): ilyenkor keret nélkül,
+/// a [background]-ot (pl. blue pipa): ilyenkor keret nélkül,
 /// fehér ikonnal jelenik meg ugyanabban a lapos kör formában.
 /// [isLoading] esetén töltőpötty forog az ikon helyén.
 class EngramIconButton extends StatelessWidget {
@@ -293,6 +311,10 @@ class EngramIconButton extends StatelessWidget {
   final Color? shadowColor;
   final bool isLoading;
 
+  /// Koppintáskor a gomb ad egy könnyű rezgést. Ha a kezelő saját
+  /// visszajelzést ad, tedd `false`-ra, hogy ne legyen dupla rezgés.
+  final bool haptic;
+
   const EngramIconButton({
     super.key,
     required this.icon,
@@ -302,6 +324,7 @@ class EngramIconButton extends StatelessWidget {
     this.foreground,
     this.shadowColor,
     this.isLoading = false,
+    this.haptic = true,
   });
 
   @override
@@ -311,17 +334,20 @@ class EngramIconButton extends StatelessWidget {
     final top =
         background ??
         (disabled
-            ? (context.isDark
-                ? context.faintBg
-                : const Color(0xFFD7E0EC))
+            ? (context.isDark ? context.faintBg : const Color(0xFFD7E0EC))
             : context.cardBg);
     final glyphColor =
-        foreground ?? (disabled ? Colors.white : filled ? Colors.white : context.inkText);
+        foreground ??
+        (disabled
+            ? Colors.white
+            : filled
+            ? Colors.white
+            : context.inkText);
     return GestureDetector(
       onTap: disabled
           ? null
           : () {
-              AppFeedback.light();
+              if (haptic) AppFeedback.light();
               onTap?.call();
             },
       child: Container(
@@ -330,9 +356,7 @@ class EngramIconButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: top,
           shape: BoxShape.circle,
-          border: filled
-              ? null
-              : Border.all(color: context.hairline, width: 2),
+          border: filled ? null : Border.all(color: context.hairline, width: 2),
         ),
         alignment: Alignment.center,
         child: isLoading

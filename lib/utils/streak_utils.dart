@@ -8,6 +8,18 @@ import 'dart:math';
 /// sosem számít jövőbeli napnak.
 DateTime _day(DateTime d) => DateTime(d.year, d.month, d.day);
 
+/// Naptári napok különbsége DST-biztosan: hány napot kell [b]-hez
+/// adni, hogy [a] napját kapjuk (tegnap→ma = 1).
+///
+/// A sima `difference().inDays` az óraátállításkor megcsúszik (a
+/// 23 órás nap 0-nak, a 25 órás 1-nél többnek látszana), ezért
+/// mindkét napot UTC-éjfélre vetítjük, ahol minden nap 24 óra.
+int dayDiff(DateTime a, DateTime b) {
+  final x = DateTime.utc(a.year, a.month, a.day);
+  final y = DateTime.utc(b.year, b.month, b.day);
+  return x.difference(y).inDays;
+}
+
 /// Egy naptár-bejegyzés dátummá alakítása. A helyi tároló
 /// ISO-stringeket ír, de a `DateTime`-ot, milliszekundum-számot
 /// és timestamp-szerű térképet is elfogadja — különben null.
@@ -32,7 +44,8 @@ DateTime? parseStreakDate(Object? entry) {
     if (seconds is num) {
       final nanos = entry['nanoseconds'] ?? entry['_nanoseconds'] ?? 0;
       final millis =
-          seconds.toInt() * 1000 + ((nanos is num ? nanos.toInt() : 0) ~/ 1000000);
+          seconds.toInt() * 1000 +
+          ((nanos is num ? nanos.toInt() : 0) ~/ 1000000);
       try {
         return _day(DateTime.fromMillisecondsSinceEpoch(millis));
       } catch (_) {
@@ -42,9 +55,7 @@ DateTime? parseStreakDate(Object? entry) {
     final millis = entry['millisecondsSinceEpoch'];
     if (millis is num) {
       try {
-        return _day(
-          DateTime.fromMillisecondsSinceEpoch(millis.toInt()),
-        );
+        return _day(DateTime.fromMillisecondsSinceEpoch(millis.toInt()));
       } catch (_) {
         return null;
       }
@@ -88,13 +99,13 @@ int currentRunLength({
   final t = _day(today);
   final days = history.map(_day).toSet().toList()..sort();
   final last = days.last;
-  final gap = t.difference(last).inDays;
+  final gap = dayDiff(t, last);
   // Jövőbeli utolsó nap vagy 2+ napos szakadás: nincs élő szakasz.
   if (gap < 0 || gap > 1) return 0;
   var run = 1;
   var cursor = last;
   for (var i = days.length - 2; i >= 0; i--) {
-    if (cursor.difference(days[i]).inDays == 1) {
+    if (dayDiff(cursor, days[i]) == 1) {
       run++;
       cursor = days[i];
     } else {
@@ -112,7 +123,7 @@ int maxRunLength(List<DateTime> history) {
   var best = 1;
   var run = 1;
   for (var i = 1; i < days.length; i++) {
-    if (days[i].difference(days[i - 1]).inDays == 1) {
+    if (dayDiff(days[i], days[i - 1]) == 1) {
       run++;
       best = max(best, run);
     } else {
@@ -171,9 +182,7 @@ bool streakGraceExpired({
   required DateTime today,
   required int maxMissedDays,
 }) {
-  final t = DateTime(today.year, today.month, today.day);
-  final l = DateTime(lastDay.year, lastDay.month, lastDay.day);
-  return t.difference(l).inDays > maxMissedDays + 1;
+  return dayDiff(today, lastDay) > maxMissedDays + 1;
 }
 
 /// Nap-azonosító a napi gyorsítótárhoz: a nap dátuma (pl. "2026-09-07").

@@ -71,8 +71,7 @@ class _MaskedFillHugeIcon extends StatelessWidget {
       // Z-vel nem zarhato, mert csak a masodik reszt
       // zarna vissza. Helyette a negy sarokpont kozott
       // negyszoget toltunk ki: ez a rud belseje.
-      final isDumbbellRod =
-          d.contains('7.73438') && d.contains('10.2344');
+      final isDumbbellRod = d.contains('7.73438') && d.contains('10.2344');
       final forceClose =
           !closed && tag == 'path' && d.length > 80 && !isDumbbellRod;
       if (isDumbbellRod) {
@@ -143,11 +142,7 @@ class _MaskedFillHugeIcon extends StatelessWidget {
       dimension: size,
       // A string innen már gyorsítótárból jön, azonos stringre a
       // flutter_svg sem parse-ol újra (loader-key alapú cache).
-      child: SvgPicture.string(
-        _cachedSvg(),
-        width: size,
-        height: size,
-      ),
+      child: SvgPicture.string(_cachedSvg(), width: size, height: size),
     );
   }
 }
@@ -261,16 +256,23 @@ class _SynapseNavBarState extends State<SynapseNavBar>
     i = i.clamp(0, n - 1);
     pos = pos.clamp(0.0, (n - 1).toDouble());
     final now = DateTime.now();
-    final dt =
-        now.difference(_lastDragTime).inMicroseconds / 1000000.0;
+    final dt = now.difference(_lastDragTime).inMicroseconds / 1000000.0;
     if (dt > 0.008) {
       final v = (pos - _lastDragPos) / dt;
       _dragVelocity = _dragVelocity * 0.7 + v.clamp(-12.0, 12.0) * 0.3;
       _lastDragPos = pos;
       _lastDragTime = now;
     }
+    final prevTarget = _dragTarget;
     _dragTarget = i;
     _dragPos = pos;
+    // Végighúzáskor minden újonnan érintett ikon egyet rezeg. Az első,
+    // még az aktuális ikonon belüli előnézet néma marad; a gyors
+    // átsiklást az AppFeedback rés-ablaka fogja vissza duplázódás
+    // helyett ritmikus kattogássá.
+    if (prevTarget != i && (prevTarget != null || i != widget.index)) {
+      AppFeedback.select();
+    }
     _ensureGooRunning();
     setState(() {});
   }
@@ -316,9 +318,7 @@ class _SynapseNavBarState extends State<SynapseNavBar>
     final scheme = Theme.of(context).colorScheme;
     final n = widget.tabs.length;
     const gap = SynapseNavBar.itemGap;
-    final rowW = n <= 0
-        ? 0.0
-        : n * SynapseNavBar.buttonSize + (n - 1) * gap;
+    final rowW = n <= 0 ? 0.0 : n * SynapseNavBar.buttonSize + (n - 1) * gap;
     return SafeArea(
       top: false,
       child: Container(
@@ -328,10 +328,7 @@ class _SynapseNavBarState extends State<SynapseNavBar>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 8,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               decoration: BoxDecoration(
                 color: scheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(999),
@@ -365,16 +362,20 @@ class _SynapseNavBarState extends State<SynapseNavBar>
                 onHorizontalDragUpdate: (d) {
                   final cellW =
                       SynapseNavBar.buttonSize + SynapseNavBar.itemGap;
-                  final pos = (d.localPosition.dx / cellW - 0.5)
-                      .clamp(0.0, (widget.tabs.length - 1).toDouble());
+                  final pos = (d.localPosition.dx / cellW - 0.5).clamp(
+                    0.0,
+                    (widget.tabs.length - 1).toDouble(),
+                  );
                   _previewDragTarget(_dragIndexFromX(d.localPosition.dx), pos);
                 },
                 onHorizontalDragEnd: (d) {
                   final v = d.velocity.pixelsPerSecond.dx;
                   if (_dragTarget == null && v.abs() > 200) {
                     final n = widget.tabs.length;
-                    final flick =
-                        (widget.index + (v < 0 ? 1 : -1)).clamp(0, n - 1);
+                    final flick = (widget.index + (v < 0 ? 1 : -1)).clamp(
+                      0,
+                      n - 1,
+                    );
                     _dragTarget = flick;
                   }
                   _commitDragTarget();
@@ -540,14 +541,12 @@ class _NavIconStage extends StatelessWidget {
         final liquid = flying
             ? (0.45 * stretch * distF + flingStretch).clamp(0.0, 0.8)
             : dragStretch;
-        final wobble =
-            (isDragging || flying) ? goo.value * 2 * math.pi : 0.0;
+        final wobble = (isDragging || flying) ? goo.value * 2 * math.pi : 0.0;
         final blobActive = isDragging || flying;
         final blobS = liquid.clamp(0.0, 0.8);
         final blobScaleX = 1 + blobS;
         final blobScaleY = (1 - 0.38 * blobS).clamp(0.62, 1.0);
-        final blobWobbleAmp =
-            blobActive ? 0.055 + 0.05 * blobS : 0.0;
+        final blobWobbleAmp = blobActive ? 0.055 + 0.05 * blobS : 0.0;
         final blobCy = SynapseNavBar.buttonSize / 2;
         return Stack(
           children: [
@@ -583,9 +582,7 @@ class _NavIconStage extends StatelessWidget {
                 active: blobActive,
               ),
               child: IgnorePointer(
-                child: RepaintBoundary(
-                  child: _scaledRow(filledIcons, pos),
-                ),
+                child: RepaintBoundary(child: _scaledRow(filledIcons, pos)),
               ),
             ),
           ],
@@ -608,7 +605,8 @@ Path buildLiquidBlobPath({
   final points = <Offset>[];
   for (var k = 0; k < segments; k++) {
     final theta = k / segments * 2 * math.pi;
-    final wob = 1 +
+    final wob =
+        1 +
         wobbleAmp * math.sin(3 * theta + wobble) +
         (active ? 0.02 * math.sin(5 * theta - wobble * 1.4) : 0);
     points.add(

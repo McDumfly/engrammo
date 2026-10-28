@@ -38,15 +38,16 @@ void main() {
       expect(seg.masks, isEmpty);
     });
 
-    test('minden hívás naplózódik modellnévvel és fallback jelöléssel', () async {
-      await MetaAIService.generateTask(
-        const MetaTaskRequest(kind: 'verbal'),
-      );
-      expect(MetaAIService.lastCalls, isNotEmpty);
-      final first = MetaAIService.lastCalls.first;
-      expect(first.model, MetaAIService.taskModel);
-      expect(first.fallback, isTrue);
-    });
+    test(
+      'minden hívás naplózódik modellnévvel és fallback jelöléssel',
+      () async {
+        await MetaAIService.generateTask(const MetaTaskRequest(kind: 'verbal'));
+        expect(MetaAIService.lastCalls, isNotEmpty);
+        final first = MetaAIService.lastCalls.first;
+        expect(first.model, MetaAIService.taskModel);
+        expect(first.fallback, isTrue);
+      },
+    );
   });
 
   group('Benchmark helyi tartalékok', () {

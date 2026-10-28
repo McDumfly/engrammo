@@ -85,9 +85,7 @@ class BenchmarkMeta {
         MetaTaskRequest(kind: 'sequence', difficulty: length.clamp(1, 5)),
       );
       if (!task.fallback && task.items.isNotEmpty) {
-        return [
-          for (final e in task.items) int.tryParse(e) ?? 0,
-        ];
+        return [for (final e in task.items) int.tryParse(e) ?? 0];
       }
     } catch (_) {
       // Helyi tartalék alább.
@@ -98,7 +96,7 @@ class BenchmarkMeta {
   static Future<Set<int>> visualPattern(int size, int count) async {
     try {
       final task = await MetaAIService.generateTask(
-        const MetaTaskRequest(kind: 'visual', difficulty: 2),
+        const MetaTaskRequest(kind: 'pattern', difficulty: 2),
       );
       if (!task.fallback && task.items.isNotEmpty) {
         final cells = <int>{};
@@ -172,12 +170,12 @@ final _games = <_GameDef>[
     bestLabel: 'level',
   ),
   _GameDef(
-    id: 'chimp',
-    title: 'Chimp test',
+    id: 'order',
+    title: 'Number order',
     subtitle: 'Numbers in order, from memory!',
     icon: HugeIcons.strokeRoundedBrain01,
     tint: amber,
-    build: () => const ChimpGamePage(),
+    build: () => const NumberOrderGamePage(),
     bestLabel: 'numbers',
   ),
 ];
@@ -195,64 +193,64 @@ class _BenchmarkHubPageState extends State<BenchmarkHubPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
-            top: false,
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
-              children: [
-                const SizedBox(height: 12),
-                Text(
-                  'Test yourself',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 28,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Pick a challenge and beat your best!',
-                  style: TextStyle(color: context.mutedText, fontSize: 14),
-                ),
-                const SizedBox(height: 16),
-                for (final g in _games) ...[
-                  _BenchmarkCard(
-                    def: g,
-                    onTap: () async {
-                      AppFeedback.light();
-                      await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => BenchmarkDetailPage(
-                            gameId: g.id,
-                            title: g.title,
-                            subtitle: g.subtitle,
-                            tint: g.tint,
-                            bestLabel: g.bestLabel,
-                            higherIsBetter: true,
-                            best: BenchmarkStore.best[g.id],
-                            attempts: List.of(
-                              BenchmarkStore.attempts[g.id] ?? const <int>[],
-                            ),
-                            buildGame: g.build,
-                            loadBest: () => BenchmarkStore.best[g.id],
-                            loadAttempts: () => List.of(
-                              BenchmarkStore.attempts[g.id] ?? const <int>[],
-                            ),
-                          ),
-                        ),
-                      );
-                      if (mounted) setState(() {});
-                    },
-                  ),
-                  const SizedBox(height: 10),
-                ],
-                Text(
-                  'Tip: every game earns XP. Replay to beat your record!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: context.mutedText, fontSize: 13),
-                ),
-              ],
+        top: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
+          children: [
+            const SizedBox(height: 12),
+            Text(
+              'Test yourself',
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontWeight: FontWeight.bold,
+                fontSize: 28,
+              ),
             ),
-          ),
+            const SizedBox(height: 4),
+            Text(
+              'Pick a challenge and beat your best!',
+              style: TextStyle(color: context.mutedText, fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            for (final g in _games) ...[
+              _BenchmarkCard(
+                def: g,
+                onTap: () async {
+                  AppFeedback.light();
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => BenchmarkDetailPage(
+                        gameId: g.id,
+                        title: g.title,
+                        subtitle: g.subtitle,
+                        tint: g.tint,
+                        bestLabel: g.bestLabel,
+                        higherIsBetter: true,
+                        best: BenchmarkStore.best[g.id],
+                        attempts: List.of(
+                          BenchmarkStore.attempts[g.id] ?? const <int>[],
+                        ),
+                        buildGame: g.build,
+                        loadBest: () => BenchmarkStore.best[g.id],
+                        loadAttempts: () => List.of(
+                          BenchmarkStore.attempts[g.id] ?? const <int>[],
+                        ),
+                      ),
+                    ),
+                  );
+                  if (mounted) setState(() {});
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
+            Text(
+              'Tip: every game earns XP. Replay to beat your record!',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: context.mutedText, fontSize: 13),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1180,14 +1178,14 @@ class _VisualGamePageState extends State<VisualGamePage> {
   }
 }
 
-class ChimpGamePage extends StatefulWidget {
-  const ChimpGamePage({super.key});
+class NumberOrderGamePage extends StatefulWidget {
+  const NumberOrderGamePage({super.key});
 
   @override
-  State<ChimpGamePage> createState() => _ChimpGamePageState();
+  State<NumberOrderGamePage> createState() => _NumberOrderGamePageState();
 }
 
-class _ChimpGamePageState extends State<ChimpGamePage> {
+class _NumberOrderGamePageState extends State<NumberOrderGamePage> {
   int _count = 3;
   List<int> _cells = [];
   int _next = 1;
@@ -1218,7 +1216,7 @@ class _ChimpGamePageState extends State<ChimpGamePage> {
       _next++;
       if (_next > _count) {
         BenchmarkStore.submit(
-          'chimp',
+          'order',
           _count,
           higherIsBetter: true,
           xpGain: 8 + _count * 3,
@@ -1232,7 +1230,7 @@ class _ChimpGamePageState extends State<ChimpGamePage> {
       }
     } else {
       BenchmarkStore.submit(
-        'chimp',
+        'order',
         _count - 1,
         higherIsBetter: true,
         xpGain: 5,
@@ -1245,7 +1243,7 @@ class _ChimpGamePageState extends State<ChimpGamePage> {
   Widget build(BuildContext context) {
     return _gameScaffold(
       context: context,
-      title: 'Chimp test',
+      title: 'Number order',
       counter: '$_count numbers • next: $_next',
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
@@ -1254,7 +1252,9 @@ class _ChimpGamePageState extends State<ChimpGamePage> {
             _resultBox(
               context,
               title: '${_count - 1} numbers!',
-              detail: _count >= 7 ? 'Chimp level! Chimps average around 9…' : 'After the first tap everything disappears — trust your memory!',
+              detail: _count >= 7
+                  ? 'Excellent ordered recall — 7+ from memory is strong!'
+                  : 'After the first tap everything disappears — trust your memory!',
               onRetry: () => setState(() {
                 _count = 3;
                 _deal();

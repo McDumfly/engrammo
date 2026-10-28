@@ -38,19 +38,18 @@ abstract final class StreakRestore {
     if (days.isEmpty || days.last.isAfter(t)) return null;
 
     final todayDone = days.last == t;
-    final prev =
-        todayDone
-            ? (days.length < 2 ? null : days[days.length - 2])
-            : days.last;
+    final prev = todayDone
+        ? (days.length < 2 ? null : days[days.length - 2])
+        : days.last;
     if (prev == null) return null;
 
-    final missed = t.difference(prev).inDays - 1;
+    final missed = dayDiff(t, prev) - 1;
     if (missed < 1 || missed > maxMissedDays) return null;
 
     // A szakadás előtti összefüggő szakasz hossza.
     var run = 1;
     for (var i = days.indexOf(prev); i > 0; i--) {
-      if (days[i].difference(days[i - 1]).inDays == 1) {
+      if (dayDiff(days[i], days[i - 1]) == 1) {
         run++;
       } else {
         break;
@@ -70,8 +69,9 @@ abstract final class StreakRestore {
 
   /// A pótolt napok napkulcsai ("2026-10-05").
   /// Tiszta függvény, tesztelhető.
-  static List<String> restoreDayKeys(RestorePlan plan) =>
-      [for (final d in plan.filledDays) dayId(d)];
+  static List<String> restoreDayKeys(RestorePlan plan) => [
+    for (final d in plan.filledDays) dayId(d),
+  ];
 
   /// Törött-e a széria (visszaállítható szakadás van a naptárban)?
   /// Tiszta függvény, tesztelhető.

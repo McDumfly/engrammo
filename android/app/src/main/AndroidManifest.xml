@@ -1,10 +1,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Meta AI hálózati hívásokhoz kell (best-effort, offline módban elhagyható). -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- No auto-backup: the Meta API key lives in SharedPreferences and
+         must never leave the device via cloud backup. Signed-in users
+         restore from Firestore; guests keep device-local data. -->
     <application
         android:label="engrammo"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"

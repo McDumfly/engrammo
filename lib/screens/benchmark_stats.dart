@@ -3,8 +3,7 @@ import 'package:hugeicons/hugeicons.dart';
 
 import '../theme/app_theme.dart';
 import '../services/app_feedback.dart';
-import '../theme/app_colors.dart'
-    show ink, violet, violetDark, trail, amber;
+import '../theme/app_colors.dart' show ink, blue, blueDark, trail, orange;
 
 /// Részletező képernyő egy benchmark feladathoz.
 ///
@@ -81,7 +80,7 @@ _CommunityData _communityFor(String id) {
         ['1–3', '4–5', '6–7', '8–9', '10+'],
         [0, 0, 0, 0, 0],
       );
-    case 'chimp':
+    case 'order':
       return const _CommunityData(
         '—',
         ['3–4', '5–6', '7–8', '9–10', '11+'],
@@ -112,7 +111,7 @@ int? _bucketFor(String id, int best) {
       if (best <= 8) return 2;
       if (best <= 10) return 3;
       return 4;
-    case 'chimp':
+    case 'order':
       if (best <= 4) return 0;
       if (best <= 6) return 1;
       if (best <= 8) return 2;
@@ -210,7 +209,10 @@ class _LineChartPainter extends CustomPainter {
         ..shader = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [fillColor.withValues(alpha: 0.45), fillColor.withValues(alpha: 0.05)],
+          colors: [
+            fillColor.withValues(alpha: 0.45),
+            fillColor.withValues(alpha: 0.05),
+          ],
         ).createShader(Rect.fromLTWH(0, top, size.width, h)),
     );
     canvas.drawPath(
@@ -243,7 +245,13 @@ class _LineChartPainter extends CustomPainter {
         textDirection: TextDirection.ltr,
       )..layout();
       final p = pt(entry.$1);
-      tp.paint(canvas, Offset((p.dx - tp.width / 2).clamp(0, size.width - tp.width), top + h + 6));
+      tp.paint(
+        canvas,
+        Offset(
+          (p.dx - tp.width / 2).clamp(0, size.width - tp.width),
+          top + h + 6,
+        ),
+      );
     }
   }
 
@@ -329,7 +337,7 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
                     child: CustomPaint(
                       painter: _LineChartPainter(
                         values: [for (final v in _attempts) v.toDouble()],
-                        lineColor: violetDark,
+                        lineColor: blueDark,
                         fillColor: trail,
                         gridColor: context.hairline,
                         labelColor: context.mutedText,
@@ -393,7 +401,7 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
                                       ? 4
                                       : 110 * community.percents[i] / maxP,
                                   decoration: BoxDecoration(
-                                    color: youBucket == i ? amber : violet,
+                                    color: youBucket == i ? orange : blue,
                                     borderRadius: const BorderRadius.vertical(
                                       top: Radius.circular(8),
                                     ),
@@ -415,7 +423,9 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
                           community.buckets[i],
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            color: youBucket == i ? context.inkText : context.mutedText,
+                            color: youBucket == i
+                                ? context.inkText
+                                : context.mutedText,
                             fontWeight: youBucket == i
                                 ? FontWeight.bold
                                 : FontWeight.w600,
@@ -439,13 +449,13 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
                         width: 36,
                         height: 36,
                         decoration: BoxDecoration(
-                          color: violet.withValues(alpha: 0.14),
+                          color: blue.withValues(alpha: 0.14),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         alignment: Alignment.center,
                         child: const HugeIcon(
                           icon: HugeIcons.strokeRoundedUserGroup,
-                          color: violetDark,
+                          color: blueDark,
                           size: 20,
                           strokeWidth: 2.0,
                         ),
@@ -456,7 +466,10 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
                           _best == null
                               ? 'Play once and your bar lights up here against the average of ${community.averageLabel}.'
                               : 'Your best ${_best!} ${widget.bestLabel} vs the ${community.averageLabel} average.',
-                          style: TextStyle(color: context.inkText, fontSize: 13),
+                          style: TextStyle(
+                            color: context.inkText,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ],
@@ -469,9 +482,8 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
           GestureDetector(
             onTap: () async {
               AppFeedback.light();
-              await Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => widget.buildGame()),
-              );
+              await Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (_) => widget.buildGame()));
               if (mounted &&
                   (widget.loadAttempts != null || widget.loadBest != null)) {
                 setState(() {
@@ -485,11 +497,11 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 15),
               decoration: BoxDecoration(
-                color: violet,
+                color: blue,
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
-                    color: violetDark.withValues(alpha: 0.5),
+                    color: blueDark.withValues(alpha: 0.5),
                     offset: const Offset(0, 4),
                   ),
                 ],
@@ -633,15 +645,12 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
             value,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: violetDark,
+              color: blueDark,
               fontWeight: FontWeight.bold,
               fontSize: 15,
             ),
           ),
-          Text(
-            sub,
-            style: TextStyle(color: context.mutedText, fontSize: 11),
-          ),
+          Text(sub, style: TextStyle(color: context.mutedText, fontSize: 11)),
         ],
       ),
     );
@@ -698,13 +707,13 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: violet.withValues(alpha: 0.12),
+        color: blue.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(99),
       ),
       child: Text(
         text,
         style: TextStyle(
-          color: context.isDark ? violet : violetDark,
+          color: context.isDark ? blue : blueDark,
           fontWeight: FontWeight.bold,
           fontSize: 11,
         ),
@@ -744,7 +753,7 @@ List<List<dynamic>> _iconFor(String id) {
       return HugeIcons.strokeRoundedNotebook01;
     case 'visual':
       return HugeIcons.strokeRoundedEye;
-    case 'chimp':
+    case 'order':
       return HugeIcons.strokeRoundedBrain01;
     default:
       return HugeIcons.strokeRoundedTimer01;

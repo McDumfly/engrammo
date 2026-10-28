@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
-import '../theme/app_colors.dart' show amber;
+import '../theme/app_colors.dart' show orange;
 
 /// The single collectible currency of the app.
 ///
@@ -28,7 +28,7 @@ const engram = CollectibleKind(
   name: 'Engram',
   tagline: 'A stored memory trace',
   icon: HugeIcons.strokeRoundedBrainCircuit,
-  color: amber,
+  color: orange,
 );
 
 const collectibles = <CollectibleKind>[engram];

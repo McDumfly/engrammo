@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
@@ -7,10 +10,31 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Release signing: put your keystore details in android/key.properties
+// (gitignored — never commit it). Without that file the debug keys are
+// used so `flutter run --release` keeps working, but store uploads
+// require a real signing config.
+val keystoreProperties = Properties().apply {
+    val f = rootProject.file("key.properties")
+    if (f.exists()) FileInputStream(f).use { load(it) }
+}
+
 android {
     namespace = "com.engrammo.engrammo"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
+
+    signingConfigs {
+        create("release") {
+            val storeFilePath = keystoreProperties.getProperty("storeFile")
+            if (storeFilePath != null) {
+                storeFile = file(storeFilePath)
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -34,9 +58,13 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Real keys when android/key.properties exists, debug keys
+            // otherwise (local `--release` runs only, never for upload).
+            val hasReleaseKeys =
+                keystoreProperties.getProperty("storeFile") != null
+            signingConfig = signingConfigs.getByName(
+                if (hasReleaseKeys) "release" else "debug",
+            )
         }
     }
 }

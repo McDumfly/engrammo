@@ -4,7 +4,7 @@ import 'package:hugeicons/hugeicons.dart';
 import '../theme/app_theme.dart';
 import 'app_buttons.dart';
 import '../services/app_feedback.dart';
-import '../theme/app_colors.dart' show amber, coral;
+import '../theme/app_colors.dart' show orange, coral;
 import '../models/collectibles.dart' show engram;
 import '../utils/streak_restore.dart';
 
@@ -95,10 +95,9 @@ class StreakRestoreDialog extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color:
-                    affordable
-                        ? amber.withValues(alpha: 0.12)
-                        : coral.withValues(alpha: 0.10),
+                color: affordable
+                    ? orange.withValues(alpha: 0.12)
+                    : coral.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(99),
                 border: Border.all(color: context.hairline),
               ),
@@ -107,7 +106,7 @@ class StreakRestoreDialog extends StatelessWidget {
                 children: [
                   HugeIcon(
                     icon: engram.icon,
-                    color: affordable ? amber : coral,
+                    color: affordable ? orange : coral,
                     size: 18,
                     strokeWidth: 2.0,
                   ),
@@ -158,39 +157,36 @@ Future<bool> confirmStreakRestore(
   final cost = StreakRestore.streakRestoreCost(plan.missedDays);
   final confirmed = await showDialog<bool>(
     context: context,
-    builder:
-        (ctx) => AlertDialog(
-          backgroundColor: context.cardBg,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: Text(
-            'Restore streak?',
-            style: TextStyle(color: context.inkText, fontWeight: FontWeight.w800),
-          ),
-          content: Text(
-            '${plan.missedDays == 1 ? '1 missed day' : '${plan.missedDays} missed days'}'
-            ' for $cost engrams. Your streak will be'
-            ' ${plan.restoredStreak} days.',
-            style: TextStyle(color: context.mutedText),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                AppFeedback.light();
-                Navigator.pop(ctx, false);
-              },
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                AppFeedback.light();
-                Navigator.pop(ctx, true);
-              },
-              child: const Text('Restore'),
-            ),
-          ],
+    builder: (ctx) => AlertDialog(
+      backgroundColor: context.cardBg,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(
+        'Restore streak?',
+        style: TextStyle(color: context.inkText, fontWeight: FontWeight.w800),
+      ),
+      content: Text(
+        '${plan.missedDays == 1 ? '1 missed day' : '${plan.missedDays} missed days'}'
+        ' for $cost engrams. Your streak will be'
+        ' ${plan.restoredStreak} days.',
+        style: TextStyle(color: context.mutedText),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            AppFeedback.light();
+            Navigator.pop(ctx, false);
+          },
+          child: const Text('Cancel'),
         ),
+        FilledButton(
+          onPressed: () {
+            AppFeedback.light();
+            Navigator.pop(ctx, true);
+          },
+          child: const Text('Restore'),
+        ),
+      ],
+    ),
   );
   return confirmed == true;
 }

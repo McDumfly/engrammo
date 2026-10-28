@@ -6,7 +6,7 @@
 /// generátorok maradnak a tartalék (`fallback: true`).
 class MetaTaskRequest {
   /// Feladattípus: sensory, working, spatial, visual, episodic, semantic,
-  /// sequence, number, verbal, chimp, duel.
+  /// sequence, number, verbal, order, duel.
   final String kind;
 
   /// Nehézség 1..5 skálán.
@@ -88,6 +88,25 @@ class MetaTask {
   /// Magyarázat a tanulási útvonalhoz (mnemotechnika-tipp).
   final String explanation;
 
+  /// Validált paradigma-azonosító (`validated_tasks.dart` registry).
+  /// Minden feladat — AI-s és helyi — ezt viseli; üres csak kézzel
+  /// épített, registry-n kívüli feladatoknál lehet (teszt, vész-tartalék).
+  final String paradigm;
+
+  /// A paradigma forrása (tanulmány-hivatkozás, UI-felirathoz).
+  final String source;
+
+  /// Rendezett loci-állomások a térbeli (loci) feladatokhoz: az [items]
+  /// ugyanilyen sorrendben ültetett szavak. Élő SAM 3.1 szegmentálásból
+  /// vagy a helyi útvonalból jön (`palace_drill.dart`); üres más
+  /// feladattípusoknál.
+  final List<String> stations;
+
+  /// Muse-kép URL-je a térbeli/vizuális ingerekhez. Üres offline
+  /// módban — ilyenkor a leírás alapján a tanuló alkotja meg a képet
+  /// (kettős kódolás-gyakorlat, Paivio).
+  final String imageUrl;
+
   /// Melyik modell adta ("local" offline tartaléknál).
   final String model;
 
@@ -104,6 +123,10 @@ class MetaTask {
     required this.options,
     required this.correct,
     this.explanation = '',
+    this.paradigm = '',
+    this.source = '',
+    this.stations = const [],
+    this.imageUrl = '',
     this.model = 'local',
     required this.createdAt,
     this.fallback = true,
@@ -116,6 +139,10 @@ class MetaTask {
     List<String>? options,
     int? correct,
     String? explanation,
+    String? paradigm,
+    String? source,
+    List<String>? stations,
+    String? imageUrl,
     String? model,
     DateTime? createdAt,
     bool? fallback,
@@ -127,6 +154,10 @@ class MetaTask {
       options: options ?? List<String>.of(this.options),
       correct: correct ?? this.correct,
       explanation: explanation ?? this.explanation,
+      paradigm: paradigm ?? this.paradigm,
+      source: source ?? this.source,
+      stations: stations ?? List<String>.of(this.stations),
+      imageUrl: imageUrl ?? this.imageUrl,
       model: model ?? this.model,
       createdAt: createdAt ?? this.createdAt,
       fallback: fallback ?? this.fallback,
@@ -140,6 +171,10 @@ class MetaTask {
     'options': options,
     'correct': correct,
     'explanation': explanation,
+    'paradigm': paradigm,
+    'source': source,
+    'stations': stations,
+    'imageUrl': imageUrl,
     'model': model,
     'createdAt': createdAt.toIso8601String(),
     'fallback': fallback,
@@ -158,6 +193,12 @@ class MetaTask {
       ],
       correct: (json['correct'] as num?)?.toInt() ?? 0,
       explanation: (json['explanation'] as String?) ?? '',
+      paradigm: (json['paradigm'] as String?) ?? '',
+      source: (json['source'] as String?) ?? '',
+      stations: [
+        for (final e in (json['stations'] as List? ?? const [])) e.toString(),
+      ],
+      imageUrl: (json['imageUrl'] as String?) ?? '',
       model: (json['model'] as String?) ?? 'local',
       createdAt: created ?? DateTime.fromMillisecondsSinceEpoch(0),
       fallback: (json['fallback'] as bool?) ?? true,
@@ -174,6 +215,10 @@ class MetaTask {
           _listEq(options, other.options) &&
           correct == other.correct &&
           explanation == other.explanation &&
+          paradigm == other.paradigm &&
+          source == other.source &&
+          _listEq(stations, other.stations) &&
+          imageUrl == other.imageUrl &&
           model == other.model &&
           createdAt == other.createdAt &&
           fallback == other.fallback;
@@ -186,6 +231,10 @@ class MetaTask {
     Object.hashAll(options),
     correct,
     explanation,
+    paradigm,
+    source,
+    Object.hashAll(stations),
+    imageUrl,
     model,
     createdAt,
     fallback,

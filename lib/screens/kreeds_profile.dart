@@ -7,6 +7,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../widgets/app_buttons.dart';
+import 'auth_screen.dart';
 import 'avatar_selection_screen.dart';
 import '../models/avatar_traits.dart';
 import '../models/battle_rating.dart';
@@ -17,7 +18,15 @@ import '../services/memory_store.dart';
 import 'settings_screen.dart';
 
 import '../models/collectibles.dart' show engram;
-import 'memory_profile.dart' show ink, violet, teal, amber, coral, memoryKinds;
+import 'memory_profile.dart'
+    show
+        ink,
+        violet,
+        teal,
+        amber,
+        coral,
+        memoryKinds,
+        MemoryAssessmentIntroPage;
 
 class KreedsProfilePage extends StatefulWidget {
   const KreedsProfilePage({super.key});
@@ -42,6 +51,14 @@ class _KreedsProfilePageState extends State<KreedsProfilePage> {
   List<int> scores = const [0, 0, 0, 0, 0, 0];
   List<bool> weekDone = const [false, false, false, false, false, false, false];
 
+  /// False until the first finished assessment: the profile shows a
+  /// take-assessment call-to-action instead of a fake "Sensory 0%".
+  bool hasScores = false;
+
+  /// Interview verdict (test + interview legs combined), when known.
+  /// Preferred over raw max-score for the displayed dominant type.
+  int? verdictKind;
+
   @override
   void initState() {
     super.initState();
@@ -50,14 +67,7 @@ class _KreedsProfilePageState extends State<KreedsProfilePage> {
           if (!mounted) return;
           setState(() => battleRating = rating);
         });
-    MemoryStore.loadScores().then((saved) {
-      if (!mounted || saved == null || saved.isEmpty) return;
-      final fixed = List<int>.generate(
-        memoryKinds.length,
-        (i) => i < saved.length ? saved[i].clamp(0, 100) : 0,
-      );
-      setState(() => scores = fixed);
-    });
+    _reloadScores();
     MemoryStore.loadStreakState()
         .then((s) {
           if (!mounted) return;
@@ -67,7 +77,10 @@ class _KreedsProfilePageState extends State<KreedsProfilePage> {
           final done = List<bool>.generate(7, (i) {
             final day = today.subtract(Duration(days: 6 - i));
             return s.history.any(
-              (h) => h.year == day.year && h.month == day.month && h.day == day.day,
+              (h) =>
+                  h.year == day.year &&
+                  h.month == day.month &&
+                  h.day == day.day,
             );
           });
           setState(() {
@@ -97,7 +110,42 @@ class _KreedsProfilePageState extends State<KreedsProfilePage> {
     });
   }
 
+  /// Scores reloaded on entry and every time the user returns
+  /// from the assessment, so the result appears immediately.
+  Future<void> _reloadScores() async {
+    final saved = await MemoryStore.loadScores();
+    final verdict = await MemoryStore.loadDominantKind();
+    if (!mounted) return;
+    if (saved == null || saved.isEmpty) {
+      setState(() {
+        hasScores = false;
+        verdictKind = verdict;
+      });
+      return;
+    }
+    final fixed = List<int>.generate(
+      memoryKinds.length,
+      (i) => i < saved.length ? saved[i].clamp(0, 100) : 0,
+    );
+    setState(() {
+      scores = fixed;
+      hasScores = true;
+      verdictKind = verdict;
+    });
+  }
+
+  void _openAssessment() {
+    AppFeedback.light();
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute(builder: (_) => const MemoryAssessmentIntroPage()),
+        )
+        .then((_) => _reloadScores());
+  }
+
   int get bestIndex {
+    final v = verdictKind;
+    if (v != null && v >= 0 && v < scores.length) return v;
     var best = 0;
     for (var i = 1; i < scores.length; i++) {
       if (scores[i] > scores[best]) best = i;
@@ -137,6 +185,12 @@ class _KreedsProfilePageState extends State<KreedsProfilePage> {
     );
   }
 
+  void _openSignIn() {
+    AppFeedback.light();
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const AuthScreen()));
+  }
+
   // A rezgést az EngramIconButton / EngramButton adja belülről
   // ([app_buttons.dart]), ezért itt már nem rezgünk duplán.
   void _share() {}
@@ -150,74 +204,95 @@ class _KreedsProfilePageState extends State<KreedsProfilePage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: CustomScrollView(
-            physics: const ClampingScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(
-                child: SafeArea(
-                  bottom: false,
-                  child: _TopBar(
-                    onSettingsTap: () {
-                      AppFeedback.light();
-                      _openSettings();
-                    },
-                  ),
-                ),
+        physics: const ClampingScrollPhysics(),
+        slivers: [
+          SliverToBoxAdapter(
+            child: SafeArea(
+              bottom: false,
+              child: _TopBar(
+                onSettingsTap: () {
+                  AppFeedback.light();
+                  _openSettings();
+                },
               ),
-              SliverToBoxAdapter(
-                child: _Hero(
-                  displayName: displayName.isEmpty ? 'New learner' : displayName,
-                  username: username.isEmpty ? 'new_learner' : username,
-                  streak: streak,
-                  following: 0,
-                  followers: 0,
-                  avatarOpts: avatarOpts,
-                  onAvatarTap: _openAvatarEditor,
-                  onShareTap: _share,
-                  onAddFriendTap: _addFriend,
-                ),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-                sliver: SliverToBoxAdapter(
-                  child: _MemoryIdentityCard(
-                    kindName: memoryKinds[best].name,
-                    kindModule: memoryKinds[best].module,
-                    kindIcon: memoryKinds[best].icon,
-                    kindTint: memoryKinds[best].tint,
-                    score: scores[best],
-                    level: level,
-                  ),
-                ),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                sliver: SliverToBoxAdapter(child: _TypeBars(scores: scores)),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                sliver: SliverToBoxAdapter(
-                  child: _QuickPills(
-                    streak: streak,
-                    xp: xp,
-                    battleRating: battleRating,
-                    leagueName: leagueName,
-                    leagueRank: leagueRank,
-                  ),
-                ),
-              ),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                sliver: SliverToBoxAdapter(
-                  child: _WeekCard(weekDone: weekDone, streak: streak),
-                ),
-              ),
-              const SliverPadding(
-                padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
-                sliver: SliverToBoxAdapter(child: _MemoryBadges()),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 120)),
-            ],
+            ),
           ),
+          // Vendég / névtelen felhasználó: barátságos bejelentkezési
+          // kártya a profil tetején. Nem blokkol: a profil alatta
+          // teljes értékűen látszik és használható.
+          SliverToBoxAdapter(
+            child: ListenableBuilder(
+              listenable: authService,
+              builder: (context, _) {
+                if (!authService.needsAccountNudge) {
+                  return const SizedBox.shrink();
+                }
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
+                  child: ProfileSignInNudge(onTap: _openSignIn),
+                );
+              },
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: _Hero(
+              displayName: displayName.isEmpty ? 'New learner' : displayName,
+              username: username.isEmpty ? 'new_learner' : username,
+              streak: streak,
+              following: 0,
+              followers: 0,
+              avatarOpts: avatarOpts,
+              onAvatarTap: _openAvatarEditor,
+              onShareTap: _share,
+              onAddFriendTap: _addFriend,
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+            sliver: SliverToBoxAdapter(
+              child: hasScores
+                  ? _MemoryIdentityCard(
+                      kindName: memoryKinds[best].name,
+                      kindModule: memoryKinds[best].module,
+                      kindIcon: memoryKinds[best].icon,
+                      kindTint: memoryKinds[best].tint,
+                      score: scores[best],
+                      level: level,
+                      onRetake: _openAssessment,
+                    )
+                  : _AssessmentCtaCard(onTap: _openAssessment),
+            ),
+          ),
+          if (hasScores)
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              sliver: SliverToBoxAdapter(child: _TypeBars(scores: scores)),
+            ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            sliver: SliverToBoxAdapter(
+              child: _QuickPills(
+                streak: streak,
+                xp: xp,
+                battleRating: battleRating,
+                leagueName: leagueName,
+                leagueRank: leagueRank,
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            sliver: SliverToBoxAdapter(
+              child: _WeekCard(weekDone: weekDone, streak: streak),
+            ),
+          ),
+          const SliverPadding(
+            padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
+            sliver: SliverToBoxAdapter(child: _MemoryBadges()),
+          ),
+          const SliverToBoxAdapter(child: SizedBox(height: 120)),
+        ],
+      ),
     );
   }
 }
@@ -315,63 +390,59 @@ class _Hero extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
       child: Column(
         children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              GestureDetector(
-                onTap: () {
-                  AppFeedback.light();
-                  onAvatarTap();
-                },
-                child: RepaintBoundary(
+          // Egyetlen koppintózóna az avatar + ceruza körül: a ceruza
+          // átfed az avatarral, két érzékelő duplán sülne el.
+          GestureDetector(
+            onTap: () {
+              AppFeedback.light();
+              onAvatarTap();
+            },
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                RepaintBoundary(
                   child: _StaticRing(
                     child: _AvatarFace(opts: avatarOpts, size: 108),
                   ),
                 ),
-              ),
-              Positioned(
-                top: 2,
-                right: -2,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: context.cardBg,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: context.hairline, width: 2),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const HugeIcon(
-                        icon: HugeIcons.strokeRoundedFire,
-                        color: coral,
-                        size: 15,
-                        strokeWidth: 2.2,
-                      ),
-                      const SizedBox(width: 3),
-                      Text(
-                        '$streak',
-                        style: const TextStyle(
+                Positioned(
+                  top: 2,
+                  right: -2,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: context.cardBg,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: context.hairline, width: 2),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const HugeIcon(
+                          icon: HugeIcons.strokeRoundedFire,
                           color: coral,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 13,
+                          size: 15,
+                          strokeWidth: 2.2,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 3),
+                        Text(
+                          '$streak',
+                          style: const TextStyle(
+                            color: coral,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              Positioned(
-                bottom: 4,
-                right: 0,
-                child: GestureDetector(
-                  onTap: () {
-                    AppFeedback.light();
-                    onAvatarTap();
-                  },
+                Positioned(
+                  bottom: 4,
+                  right: 0,
                   child: Container(
                     width: 38,
                     height: 38,
@@ -412,8 +483,8 @@ class _Hero extends StatelessWidget {
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 12),
           Text(
@@ -707,6 +778,132 @@ class _StaticRing extends StatelessWidget {
   }
 }
 
+/// Empty state before the first assessment: tapping opens it.
+/// Bejelentkezési kártya a profil tetejére, ha nincs megmaradó
+/// fiók (helyi vendég vagy névtelen Firebase-felhasználó).
+/// Nem blokkol: alatta a profil teljes értékűen használható.
+class ProfileSignInNudge extends StatelessWidget {
+  final VoidCallback onTap;
+  const ProfileSignInNudge({super.key, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: teal.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: teal, width: 2),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: teal.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              alignment: Alignment.center,
+              child: const HugeIcon(
+                icon: HugeIcons.strokeRoundedUserAdd01,
+                color: teal,
+                size: 26,
+                strokeWidth: 2,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Save your progress',
+                    style: TextStyle(
+                      color: context.inkText,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Sign in to sync scores, streak and avatar to any device.',
+                    style: TextStyle(color: context.mutedText, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: teal, size: 26),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AssessmentCtaCard extends StatelessWidget {
+  final VoidCallback onTap;
+  const _AssessmentCtaCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: violet.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: violet, width: 2),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: violet.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              alignment: Alignment.center,
+              child: const HugeIcon(
+                icon: HugeIcons.strokeRoundedBrain01,
+                color: violet,
+                size: 26,
+                strokeWidth: 2,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Discover your memory type',
+                    style: TextStyle(
+                      color: context.inkText,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '12 quick tasks • about 3 min',
+                    style: TextStyle(color: context.mutedText, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: violet, size: 26),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _MemoryIdentityCard extends StatelessWidget {
   final String kindName;
   final String kindModule;
@@ -714,6 +911,7 @@ class _MemoryIdentityCard extends StatelessWidget {
   final Color kindTint;
   final int score;
   final int level;
+  final VoidCallback onRetake;
   const _MemoryIdentityCard({
     required this.kindName,
     required this.kindModule,
@@ -721,6 +919,7 @@ class _MemoryIdentityCard extends StatelessWidget {
     required this.kindTint,
     required this.score,
     required this.level,
+    required this.onRetake,
   });
 
   @override
@@ -821,6 +1020,32 @@ class _MemoryIdentityCard extends StatelessWidget {
                     color: context.inkText,
                     fontWeight: FontWeight.w800,
                     fontSize: 14,
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: onRetake,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const HugeIcon(
+                        icon: HugeIcons.strokeRoundedRefresh,
+                        color: violet,
+                        size: 16,
+                        strokeWidth: 2.2,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Retake',
+                        style: TextStyle(
+                          color: violet,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -1152,7 +1377,8 @@ class _MemoryBadges extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Sample data. TODO: Firebase wiring pending — the real win list comes from here.
+    // Sample data until the leaderboard backend lands — the real win
+    // list will be read from the user's cloud document here.
     const tournamentTitles = [_TournamentTitle(2026, 4)];
     final badges = [
       (HugeIcons.strokeRoundedFire, coral, '7-day\nstreak'),

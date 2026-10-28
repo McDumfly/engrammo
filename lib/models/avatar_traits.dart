@@ -54,9 +54,17 @@ abstract final class AvatarTraits {
       TraitOption('Flat (natural)', 'flatNatural', 'Flat (natural)'),
       TraitOption('Frown (natural)', 'frownNatural', 'Frown (natural)'),
       TraitOption('Excited', 'raisedExcited', 'Excited'),
-      TraitOption('Excited (natural)', 'raisedExcitedNatural', 'Excited (natural)'),
+      TraitOption(
+        'Excited (natural)',
+        'raisedExcitedNatural',
+        'Excited (natural)',
+      ),
       TraitOption('Sad concerned', 'sadConcerned', 'Sad concerned'),
-      TraitOption('Sad concerned (natural)', 'sadConcernedNatural', 'Sad concerned (natural)'),
+      TraitOption(
+        'Sad concerned (natural)',
+        'sadConcernedNatural',
+        'Sad concerned (natural)',
+      ),
       TraitOption('Unibrow (natural)', 'unibrowNatural', 'Unibrow (natural)'),
       TraitOption('Up-down', 'upDown', 'Up-down'),
       TraitOption('Up-down (natural)', 'upDownNatural', 'Up-down (natural)'),
@@ -88,9 +96,17 @@ abstract final class AvatarTraits {
       TraitOption('Side part', 'sides', 'Side part'),
       TraitOption('Straight 1', 'straight01', 'Straight 1'),
       TraitOption('Straight 2', 'straight02', 'Straight 2'),
-      TraitOption('Straight with strand', 'straightAndStrand', 'Straight with strand'),
+      TraitOption(
+        'Straight with strand',
+        'straightAndStrand',
+        'Straight with strand',
+      ),
       TraitOption('Caesar', 'theCaesar', 'Caesar'),
-      TraitOption('Caesar with side part', 'theCaesarAndSidePart', 'Caesar with side part'),
+      TraitOption(
+        'Caesar with side part',
+        'theCaesarAndSidePart',
+        'Caesar with side part',
+      ),
       TraitOption('Turban', 'turban', 'Turban'),
       TraitOption('Winter hat 2', 'winterHat02', 'Winter hat 2'),
       TraitOption('Winter hat 3', 'winterHat03', 'Winter hat 3'),
@@ -107,8 +123,16 @@ abstract final class AvatarTraits {
     ],
     'clothes': [
       TraitOption('Blazer and shirt', 'blazerAndShirt', 'Blazer and shirt'),
-      TraitOption('Blazer and sweater', 'blazerAndSweater', 'Blazer and sweater'),
-      TraitOption('Collar and sweater', 'collarAndSweater', 'Collar and sweater'),
+      TraitOption(
+        'Blazer and sweater',
+        'blazerAndSweater',
+        'Blazer and sweater',
+      ),
+      TraitOption(
+        'Collar and sweater',
+        'collarAndSweater',
+        'Collar and sweater',
+      ),
       TraitOption('Graphic shirt', 'graphicShirt', 'Graphic shirt'),
       TraitOption('Hoodie', 'hoodie', 'Hoodie'),
       TraitOption('Overalls', 'overall', 'Overalls'),
@@ -500,20 +524,35 @@ abstract final class AvatarTraits {
 
 String avatarTraitGroupLabel(String groupKey) {
   switch (groupKey) {
-    case 'skinColor': return 'Skin';
-    case 'eyes': return 'Eyes';
-    case 'mouth': return 'Mouth';
-    case 'eyebrows': return 'Brows';
-    case 'top': return 'Hair';
-    case 'hairColor': return 'Hair color';
-    case 'hatColor': return 'Hat color';
-    case 'facialHair': return 'Beard';
-    case 'facialHairColor': return 'Beard color';
-    case 'clothes': return 'Outfit';
-    case 'clothesColor': return 'Outfit color';
-    case 'clothesGraphic': return 'Print';
-    case 'accessories': return 'Extras';
-    case 'accessoriesColor': return 'Extras color';
-    default: return groupKey;
+    case 'skinColor':
+      return 'Skin';
+    case 'eyes':
+      return 'Eyes';
+    case 'mouth':
+      return 'Mouth';
+    case 'eyebrows':
+      return 'Brows';
+    case 'top':
+      return 'Hair';
+    case 'hairColor':
+      return 'Hair color';
+    case 'hatColor':
+      return 'Hat color';
+    case 'facialHair':
+      return 'Beard';
+    case 'facialHairColor':
+      return 'Beard color';
+    case 'clothes':
+      return 'Outfit';
+    case 'clothesColor':
+      return 'Outfit color';
+    case 'clothesGraphic':
+      return 'Print';
+    case 'accessories':
+      return 'Extras';
+    case 'accessoriesColor':
+      return 'Extras color';
+    default:
+      return groupKey;
   }
 }

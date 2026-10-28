@@ -18,8 +18,7 @@ void main() {
     CloudSync.currentUid = null;
   });
 
-  test('backend nélkül: belépés hibát dob, az app mégis továbbmegy',
-      () async {
+  test('backend nélkül: belépés hibát dob, az app mégis továbbmegy', () async {
     expect(authService.backendAvailable, isFalse);
     expect(authService.signedIn, isFalse);
     // Nincs kapu: offline az app egyből használható.
@@ -40,6 +39,23 @@ void main() {
     expect(authService.signedIn, isFalse);
   });
 
+  test('backend nélkül: vendég-folytatás helyi módban megy tovább', () async {
+    expect(authService.backendAvailable, isFalse);
+    await authService.continueAsGuest();
+    // Nincs Firebase, így névtelen munkamenet helyett helyi vendég.
+    expect(authService.guestMode, isTrue);
+    expect(authService.signedIn, isFalse);
+    expect(authService.showApp, isTrue);
+  });
+
+  test('friss állapot: nincs névtelen és nincs megmaradó fiók', () {
+    expect(authService.signedIn, isFalse);
+    expect(authService.isAnonymous, isFalse);
+    expect(authService.isPermanentAccount, isFalse);
+    // Backend nélkül nincs kit bejelentkezésre buzdítani.
+    expect(authService.needsAccountNudge, isFalse);
+  });
+
   test('felhő-szinkron kijelentkezve csendben nem csinál semmit', () async {
     // Nem dobhat: offline / kijelentkezve ez no-op.
     await CloudSync.pushNow();
@@ -47,7 +63,9 @@ void main() {
     await CloudSync.pullToLocal('nincs-ilyen-uid');
   });
 
-  testWidgets('AuthScreen: belépés + regisztráció + Google-gomb', (tester) async {
+  testWidgets('AuthScreen: belépés + regisztráció + Google-gomb', (
+    tester,
+  ) async {
     await tester.pumpWidget(const MaterialApp(home: AuthScreen()));
     await tester.pumpAndSettle();
 

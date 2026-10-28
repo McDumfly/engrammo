@@ -61,6 +61,8 @@ class FriendProfilePage extends StatelessWidget {
                 icon: invited
                     ? HugeIcons.strokeRoundedCheckmarkCircle02
                     : HugeIcons.strokeRoundedSwords,
+                // A kezelő adja a jelzést (light/medium), a gomb nem rezeg rá.
+                haptic: false,
                 onPressed: _toggleInvite,
               ),
               const SizedBox(height: 10),
@@ -69,7 +71,11 @@ class FriendProfilePage extends StatelessWidget {
                     ? '${friend.name} has your invite. They can accept it from their battles inbox.'
                     : 'Send ${friend.name} a 1v1 invite with your current game mode.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: context.mutedText, fontSize: 12, height: 1.45),
+                style: TextStyle(
+                  color: context.mutedText,
+                  fontSize: 12,
+                  height: 1.45,
+                ),
               ),
             ],
           );
@@ -104,7 +110,10 @@ class _HeroCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: violet.withValues(alpha: 0.14),
-                  border: Border.all(color: violet.withValues(alpha: 0.4), width: 2),
+                  border: Border.all(
+                    color: violet.withValues(alpha: 0.4),
+                    width: 2,
+                  ),
                 ),
                 child: Text(
                   friend.name.characters.first,

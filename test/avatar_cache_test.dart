@@ -11,15 +11,18 @@ void main() {
     expect(DicebearGenerator.cacheKey(a), DicebearGenerator.cacheKey(b));
   });
 
-  test('masodik generalas mar memoria-cachebol jon, ujraszamolas nelkul', () async {
-    SharedPreferences.setMockInitialValues({});
-    final opts = DicebearGenerator.withoutBackground(AvatarTraits.defaults());
-    final first = await DicebearGenerator.generateAvatarSvgAsync(opts);
-    expect(first, isNotEmpty);
-    expect(DicebearGenerator.cachedSvg(opts), first);
-    final second = await DicebearGenerator.generateAvatarSvgAsync(opts);
-    expect(second, first);
-  });
+  test(
+    'masodik generalas mar memoria-cachebol jon, ujraszamolas nelkul',
+    () async {
+      SharedPreferences.setMockInitialValues({});
+      final opts = DicebearGenerator.withoutBackground(AvatarTraits.defaults());
+      final first = await DicebearGenerator.generateAvatarSvgAsync(opts);
+      expect(first, isNotEmpty);
+      expect(DicebearGenerator.cachedSvg(opts), first);
+      final second = await DicebearGenerator.generateAvatarSvgAsync(opts);
+      expect(second, first);
+    },
+  );
 
   test('avatar beallitasok mentese es visszatoltese korbeir', () async {
     SharedPreferences.setMockInitialValues({});

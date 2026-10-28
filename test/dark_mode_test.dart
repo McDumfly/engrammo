@@ -9,16 +9,26 @@ void main() {
       expect(dark.brightness, Brightness.dark);
       expect(dark.cardColor, AppTheme.darkCard);
       expect(dark.scaffoldBackgroundColor, AppTheme.darkScaffold);
-      expect(ThemeData.estimateBrightnessForColor(AppTheme.darkCard),
-          Brightness.dark);
-      expect(ThemeData.estimateBrightnessForColor(AppTheme.darkInput),
-          Brightness.dark);
-      expect(ThemeData.estimateBrightnessForColor(AppTheme.darkWash),
-          Brightness.dark);
-      expect(ThemeData.estimateBrightnessForColor(AppTheme.darkFaint),
-          Brightness.dark);
-      expect(ThemeData.estimateBrightnessForColor(AppTheme.darkBorder),
-          Brightness.dark);
+      expect(
+        ThemeData.estimateBrightnessForColor(AppTheme.darkCard),
+        Brightness.dark,
+      );
+      expect(
+        ThemeData.estimateBrightnessForColor(AppTheme.darkInput),
+        Brightness.dark,
+      );
+      expect(
+        ThemeData.estimateBrightnessForColor(AppTheme.darkWash),
+        Brightness.dark,
+      );
+      expect(
+        ThemeData.estimateBrightnessForColor(AppTheme.darkFaint),
+        Brightness.dark,
+      );
+      expect(
+        ThemeData.estimateBrightnessForColor(AppTheme.darkBorder),
+        Brightness.dark,
+      );
     });
 
     test('Világos téma felületei változatlanok', () {
@@ -30,8 +40,7 @@ void main() {
 
     // Külön tesztek: a tesztkeret egy teszten belül nem frissíti
     // a már felpumpált MaterialApp témamód-váltását.
-    testWidgets('A ThemeCtx sötét módban sötét felületeket ad',
-        (tester) async {
+    testWidgets('A ThemeCtx sötét módban sötét felületeket ad', (tester) async {
       Color? darkCard;
       Color? darkHairline;
       await tester.pumpWidget(
@@ -50,14 +59,16 @@ void main() {
       );
       expect(darkCard, AppTheme.darkCard);
       expect(darkHairline, AppTheme.darkBorder);
+      expect(ThemeData.estimateBrightnessForColor(darkCard!), Brightness.dark);
       expect(
-          ThemeData.estimateBrightnessForColor(darkCard!), Brightness.dark);
-      expect(ThemeData.estimateBrightnessForColor(darkHairline!),
-          Brightness.dark);
+        ThemeData.estimateBrightnessForColor(darkHairline!),
+        Brightness.dark,
+      );
     });
 
-    testWidgets('A ThemeCtx világos módban a régi fehér felületeket adja',
-        (tester) async {
+    testWidgets('A ThemeCtx világos módban a régi fehér felületeket adja', (
+      tester,
+    ) async {
       Color? lightCard;
       Color? lightHairline;
       await tester.pumpWidget(

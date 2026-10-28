@@ -1365,7 +1365,8 @@ class _BracketSeed extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const gold = Color(0xFFFFC400);
-    // TODO(backend): a belépett user csapatát emeljük ki, ha megjön az identitás.
+    // NOTE: sample bracket until the leaderboard backend lands — then
+    // highlight the signed-in user's team here.
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
