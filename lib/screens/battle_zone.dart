@@ -14,16 +14,18 @@ import '../models/battle_rating.dart';
 import '../models/collectibles.dart' show engram;
 import '../models/meta_task.dart';
 import 'friend_profile.dart';
-import 'memory_profile.dart' show ink, violet, teal, amber, memoryKinds;
+import 'memory_profile.dart'
+    show ink, violet, teal, amber, memoryKinds, MemoryAssessmentIntroPage;
 import '../services/memory_store.dart';
 import '../services/meta_ai_service.dart';
 
 enum BattleMode { duel, team }
 
 /// Memóriaszint egyetlen típus 0–100-as pontszámából.
-/// A profil `memoryLevel` képletével egyezik (`~/ 10 + 1`),
+/// A profil `levelForScores` képletével egyezik (`~/ 10 + 1`),
 /// csak átlag helyett egy típus pontszámából számol.
-int memoryLevelForScore(int score) => (score ~/ 10) + 1;
+/// Tartományon kívüli pontszám 1–11 közé vágódik.
+int memoryLevelForScore(int score) => (score.clamp(0, 100) ~/ 10) + 1;
 
 /// Opcionális AI-kihívófeladat a párbajhoz (best-effort).
 ///
@@ -31,7 +33,14 @@ int memoryLevelForScore(int score) => (score ~/ 10) + 1;
 /// tartalék duelpár (`_pastMatches` stílusában). A meglévő
 /// `_pastMatches` lista változatlanul megmarad.
 Future<MetaTask> aiDuelTask(int kind, {int difficulty = 2}) {
-  const kinds = ['sensory', 'working', 'spatial', 'visual', 'episodic', 'semantic'];
+  const kinds = [
+    'sensory',
+    'working',
+    'spatial',
+    'visual',
+    'episodic',
+    'semantic',
+  ];
   final k = (kind >= 0 && kind < kinds.length) ? kinds[kind] : 'duel';
   return MetaAIService.generateTask(
     MetaTaskRequest(kind: k, difficulty: difficulty),
@@ -77,10 +86,6 @@ class _BattleZoneViewState extends State<BattleZoneView> {
   int _kind = 0;
   int _rating = BattleRating.startingRating;
   List<int>? _scores;
-  bool _searching = false;
-  bool _found = false;
-  int _elapsed = 0;
-  Timer? _timer;
   final _friendSearch = TextEditingController();
   String _friendQuery = '';
 
@@ -153,139 +158,111 @@ class _BattleZoneViewState extends State<BattleZoneView> {
   }
 
   void _pickKind(int kind) {
-    if (_searching) return;
     setState(() => _kind = kind);
     unawaited(MemoryStore.saveBattleKind(kind));
   }
 
+  /// Live matchmaking needs the online backend, so the arena offers
+  /// honest practice instead: the memory assessment trains the same
+  /// skills the battles will measure.
+  void _openPractice() {
+    AppFeedback.medium();
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const MemoryAssessmentIntroPage()),
+    );
+  }
+
   @override
   void dispose() {
-    _timer?.cancel();
     _friendSearch.dispose();
     super.dispose();
-  }
-
-  void _startSearch() {
-    AppFeedback.medium();
-    setState(() {
-      _searching = true;
-      _found = false;
-      _elapsed = 0;
-    });
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (!mounted) return;
-      setState(() => _elapsed++);
-      if (_elapsed >= 4) {
-        t.cancel();
-        if (!mounted) return;
-        AppFeedback.heavy();
-        setState(() => _found = true);
-      }
-    });
-  }
-
-  void _cancelSearch() {
-    AppFeedback.light();
-    _timer?.cancel();
-    setState(() {
-      _searching = false;
-      _found = false;
-      _elapsed = 0;
-    });
-  }
-
-  String get _elapsedLabel {
-    final m = _elapsed ~/ 60;
-    final s = (_elapsed % 60).toString().padLeft(2, '0');
-    return '$m:$s';
   }
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
-          top: false,
-          bottom: false,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
-            children: [
-              const SizedBox(height: 20),
-              _ratingHero(),
-              const SizedBox(height: 16),
-              _modeCards(),
-              const SizedBox(height: 16),
-              _gameModeSection(),
-              const SizedBox(height: 12),
-              _matchCard(),
-              const SizedBox(height: 12),
-              _friendBattleCard(),
-              const SizedBox(height: 12),
-              _statsRow(),
-              const SizedBox(height: 20),
-              _sectionTitle(
-                'Previous matches',
-                'Tap a match to see every round',
-              ),
-              const SizedBox(height: 10),
-              for (var i = 0; i < _pastMatches.length; i++) ...[
-                _PastMatchRow(
-                  match: _pastMatches[i],
-                  onTap: () => _showMatchDetail(_pastMatches[i]),
-                ),
-                if (i < _pastMatches.length - 1) const SizedBox(height: 8),
-              ],
-              const SizedBox(height: 20),
-              _sectionTitle('Live duels', 'Watch and learn from the best'),
-              const SizedBox(height: 10),
-              const _LiveBattleRow(
-                mode: '1v1',
-                title: 'Zsófi vs Marci',
-                task: 'Digit-span duel · round 2',
-                viewers: 86,
-              ),
-              const SizedBox(height: 8),
-              const _LiveBattleRow(
-                mode: '2v2',
-                title: 'Nóra + Levi vs Dávid + Petra',
-                task: 'Image-pair relay · final round',
-                viewers: 132,
-              ),
-              const SizedBox(height: 8),
-              const _LiveBattleRow(
-                mode: '1v1',
-                title: 'Léna vs Gergő',
-                task: 'Loci sprint · round 1',
-                viewers: 41,
-              ),
-              const SizedBox(height: 20),
-              _sectionTitle(
-                'How it works',
-                'Three steps, measured every round',
-              ),
-              const SizedBox(height: 10),
-              _StepRow(
-                index: '01',
-                title: 'Matched opponents',
-                body:
-                    'Matchmaking looks within ±${BattleRating.matchWindow} points. In squads, the two players\' average counts.',
-              ),
-              const SizedBox(height: 8),
-              const _StepRow(
-                index: '02',
-                title: 'Three short tasks',
-                body: 'Digit span, image pairs, loci excerpt. Both sides get the same tasks at the same time, on the clock.',
-              ),
-              const SizedBox(height: 8),
-              const _StepRow(
-                index: '03',
-                title: 'Winner takes points',
-                body: 'Win and your score goes up, lose and it goes down — never below 0. Draws split the difference.',
-              ),
-              const SizedBox(height: 12),
-              _fairPlayCard(),
-            ],
+      top: false,
+      bottom: false,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+        children: [
+          const SizedBox(height: 20),
+          _ratingHero(),
+          const SizedBox(height: 16),
+          _modeCards(),
+          const SizedBox(height: 16),
+          _gameModeSection(),
+          const SizedBox(height: 12),
+          _matchCard(),
+          const SizedBox(height: 12),
+          _friendBattleCard(),
+          const SizedBox(height: 12),
+          _statsRow(),
+          const SizedBox(height: 20),
+          _sectionTitle(
+            'Previous matches',
+            'Sample history — yours will appear here',
           ),
-        );
+          const SizedBox(height: 10),
+          for (var i = 0; i < _pastMatches.length; i++) ...[
+            _PastMatchRow(
+              match: _pastMatches[i],
+              onTap: () => _showMatchDetail(_pastMatches[i]),
+            ),
+            if (i < _pastMatches.length - 1) const SizedBox(height: 8),
+          ],
+          const SizedBox(height: 20),
+          _sectionTitle(
+            'Live duels',
+            'Sample — live arena needs the online backend',
+          ),
+          const SizedBox(height: 10),
+          const _LiveBattleRow(
+            mode: '1v1',
+            title: 'Zsófi vs Marci',
+            task: 'Digit-span duel · round 2',
+            viewers: 86,
+          ),
+          const SizedBox(height: 8),
+          const _LiveBattleRow(
+            mode: '2v2',
+            title: 'Nóra + Levi vs Dávid + Petra',
+            task: 'Image-pair relay · final round',
+            viewers: 132,
+          ),
+          const SizedBox(height: 8),
+          const _LiveBattleRow(
+            mode: '1v1',
+            title: 'Léna vs Gergő',
+            task: 'Loci sprint · round 1',
+            viewers: 41,
+          ),
+          const SizedBox(height: 20),
+          _sectionTitle('How it works', 'Three steps, measured every round'),
+          const SizedBox(height: 10),
+          _StepRow(
+            index: '01',
+            title: 'Matched opponents',
+            body:
+                'Matchmaking looks within ±${BattleRating.matchWindow} points. In squads, the two players\' average counts.',
+          ),
+          const SizedBox(height: 8),
+          const _StepRow(
+            index: '02',
+            title: 'Three short tasks',
+            body: 'Digit span, image pairs, loci excerpt. Both sides get the same tasks at the same time, on the clock.',
+          ),
+          const SizedBox(height: 8),
+          const _StepRow(
+            index: '03',
+            title: 'Winner takes points',
+            body: 'Win and your score goes up, lose and it goes down — never below 0. Draws split the difference.',
+          ),
+          const SizedBox(height: 12),
+          _fairPlayCard(),
+        ],
+      ),
+    );
   }
 
   Widget _ratingHero() {
@@ -365,7 +342,6 @@ class _BattleZoneViewState extends State<BattleZoneView> {
               title: '1v1 Duel',
               body: 'You against one opponent with a similar score.',
               onTap: () {
-                if (_searching) return;
                 setState(() => _mode = BattleMode.duel);
               },
             ),
@@ -379,7 +355,6 @@ class _BattleZoneViewState extends State<BattleZoneView> {
               title: '2v2 Squad',
               body: 'Two-player squads, alternating tasks.',
               onTap: () {
-                if (_searching) return;
                 setState(() => _mode = BattleMode.team);
               },
             ),
@@ -397,7 +372,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
         _sectionTitle('Game mode', 'The memory type you battle in'),
         const SizedBox(height: 10),
         GestureDetector(
-          onTap: _searching ? null : _openKindPicker,
+          onTap: _openKindPicker,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
@@ -658,9 +633,25 @@ class _BattleZoneViewState extends State<BattleZoneView> {
             ],
           ),
           const SizedBox(height: 12),
-          if (!_searching) _searchButton(),
-          if (_searching && !_found) _searchingState(),
-          if (_searching && _found) _foundState(),
+          // Honest offline state: no fake opponents, no fake countdown.
+          // Live matchmaking arrives with the leaderboard backend; until
+          // then the arena points at real practice.
+          Text(
+            'Live matchmaking is offline — the online arena arrives with '
+            'the leaderboard backend. Train the same skills meanwhile:',
+            style: TextStyle(color: context.mutedText, fontSize: 13),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _openPractice,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              child: const Text('PRACTICE ASSESSMENT'),
+            ),
+          ),
         ],
       ),
     );
@@ -777,7 +768,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
                 return Padding(
                   padding: EdgeInsets.symmetric(vertical: 12),
                   child: Text(
-                    'No friend matches that name yet.',
+                    'No friends yet — invites arrive with the online backend.',
                     style: TextStyle(color: context.mutedText, fontSize: 13),
                   ),
                 );
@@ -808,155 +799,20 @@ class _BattleZoneViewState extends State<BattleZoneView> {
     );
   }
 
-  Widget _searchButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: _startSearch,
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-        ),
-        child: Text(
-          _mode == BattleMode.duel ? 'FIND OPPONENT' : 'FIND SQUAD + OPPONENTS',
-        ),
-      ),
-    );
-  }
-
-  Widget _searchingState() {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(99),
-                child: LinearProgressIndicator(
-                  minHeight: 8,
-                  backgroundColor: context.hairline,
-                  valueColor: AlwaysStoppedAnimation<Color>(violet),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              'Searching… $_elapsedLabel',
-              style: TextStyle(
-                color: context.inkText,
-                fontWeight: FontWeight.w800,
-                fontSize: 13,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton(
-            onPressed: _cancelSearch,
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-            ),
-            child: const Text('CANCEL'),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _foundState() {
-    final foe = _mode == BattleMode.duel
-        ? 'Nóra (1,512)'
-        : 'Nóra + Levi (1,505)';
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: context.washBg,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: violet.withValues(alpha: 0.4)),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'You ($_rating)',
-                  textAlign: TextAlign.right,
-                  style: TextStyle(
-                    color: context.inkText,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 10),
-                child: Text(
-                  'VS',
-                  style: TextStyle(
-                    color: violet,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  foe,
-                  style: TextStyle(
-                    color: context.inkText,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: _cancelSearch,
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-                child: const Text('WITHDRAW'),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () {
-                  AppFeedback.heavy();
-                },
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-                child: const Text('ENTER'),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
   Widget _statsRow() {
+    // Honest zeros: no matches have been played through this client yet.
     return const Row(
       children: [
         Expanded(
-          child: _StatCard(value: '34', label: 'Matches'),
+          child: _StatCard(value: '0', label: 'Matches'),
         ),
         SizedBox(width: 10),
         Expanded(
-          child: _StatCard(value: '62%', label: 'Win rate'),
+          child: _StatCard(value: '–', label: 'Win rate'),
         ),
         SizedBox(width: 10),
         Expanded(
-          child: _StatCard(value: '9', label: 'Best streak'),
+          child: _StatCard(value: '–', label: 'Best streak'),
         ),
       ],
     );
@@ -1080,15 +936,15 @@ class _BattleZoneViewState extends State<BattleZoneView> {
           ElevatedButton(
             onPressed: () {
               Navigator.of(context).pop();
-              if (_searching) return;
               setState(() {
                 _mode = match.duel ? BattleMode.duel : BattleMode.team;
                 _kind = match.kind;
               });
               unawaited(MemoryStore.saveBattleKind(match.kind));
-              _startSearch();
+              // No live arena yet: a rematch opens honest practice.
+              _openPractice();
             },
-            child: const Text('REMATCH'),
+            child: const Text('PRACTICE'),
           ),
         ],
       ),
@@ -1366,9 +1222,8 @@ class _LiveBattleRow extends StatelessWidget {
           EngramMiniButton(
             label: 'Watch',
             background: ink,
-            onTap: () {
-              AppFeedback.light();
-            },
+            // A rezgést a gomb adja.
+            onTap: () {},
           ),
         ],
       ),
@@ -1575,85 +1430,99 @@ class _FriendInviteRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final invited = battleInvites.isInvited(friend.name);
-    return GestureDetector(
-      onTap: onOpenProfile,
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: invited ? context.washBg : context.softBg,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: invited ? violet.withValues(alpha: 0.5) : context.hairline,
-            width: invited ? 2 : 1.5,
-          ),
+    // A meghívó gomb NINCS a profilnyitó koppintózónában: egymásba
+    // ágyazva mindkettő elsülne (dupla rezgés + akaratlan profilnyitás).
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: invited ? context.washBg : context.softBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: invited ? violet.withValues(alpha: 0.5) : context.hairline,
+          width: invited ? 2 : 1.5,
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: violet.withValues(alpha: 0.14),
-              ),
-              child: Text(
-                friend.name.characters.first,
-                style: const TextStyle(
-                  color: violet,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onOpenProfile,
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          friend.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: context.inkText,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 14,
-                          ),
-                        ),
+                  Container(
+                    width: 38,
+                    height: 38,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: violet.withValues(alpha: 0.14),
+                    ),
+                    child: Text(
+                      friend.name.characters.first,
+                      style: const TextStyle(
+                        color: violet,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
                       ),
-                      if (friend.online) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Color(0xFF22C55E),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                friend.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: context.inkText,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                            if (friend.online) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Color(0xFF22C55E),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${friend.xp} XP · ${friend.streak}-day streak',
+                          style: TextStyle(
+                            color: context.mutedText,
+                            fontSize: 11,
                           ),
                         ),
                       ],
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${friend.xp} XP · ${friend.streak}-day streak',
-                    style: TextStyle(color: context.mutedText, fontSize: 11),
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 8),
-            EngramMiniButton(
-              label: invited ? 'INVITED' : 'INVITE',
-              background: invited ? violet : ink,
-              onTap: _toggle,
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 8),
+          EngramMiniButton(
+            label: invited ? 'INVITED' : 'INVITE',
+            background: invited ? violet : ink,
+            // A kezelő (_toggle) adja a jelzést, a gomb nem rezeg rá.
+            haptic: false,
+            onTap: _toggle,
+          ),
+        ],
       ),
     );
   }

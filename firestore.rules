@@ -1,0 +1,12 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Mindenki csak a saját users/{uid} dokumentumát írhatja/olvashatja.
+    // Új fiók első belépéskor üresen indul: a kliens a helyi nullás
+    // állapotot tölti fel kiindulásnak (merge-írás).
+    match /users/{userId} {
+      allow read, write: if request.auth != null
+        && request.auth.uid == userId;
+    }
+  }
+}

@@ -41,7 +41,11 @@ void main() {
         isFalse,
       );
       expect(
-        StreakRestore.isStreakBroken(stored: 5, history: const [], today: today),
+        StreakRestore.isStreakBroken(
+          stored: 5,
+          history: const [],
+          today: today,
+        ),
         isFalse,
       );
     });
@@ -119,7 +123,10 @@ void main() {
     test('három kihagyott nap már nem állítható vissza', () {
       final history = [d(2026, 9, 7), d(2026, 9, 8)];
       expect(
-        StreakRestore.planStreakRestore(history: history, today: d(2026, 9, 12)),
+        StreakRestore.planStreakRestore(
+          history: history,
+          today: d(2026, 9, 12),
+        ),
         isNull,
       );
     });
@@ -127,11 +134,17 @@ void main() {
     test('élő széria: nincs terv', () {
       final history = [d(2026, 9, 10), d(2026, 9, 11)];
       expect(
-        StreakRestore.planStreakRestore(history: history, today: d(2026, 9, 12)),
+        StreakRestore.planStreakRestore(
+          history: history,
+          today: d(2026, 9, 12),
+        ),
         isNull,
       );
       expect(
-        StreakRestore.planStreakRestore(history: history, today: d(2026, 9, 11)),
+        StreakRestore.planStreakRestore(
+          history: history,
+          today: d(2026, 9, 11),
+        ),
         isNull,
       );
     });

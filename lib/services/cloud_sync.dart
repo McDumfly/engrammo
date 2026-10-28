@@ -9,7 +9,7 @@ import 'memory_store.dart';
 ///
 /// Mezők: displayName, username, email, scores, battleKind,
 /// battleRating, avatarOpts, darkMode, haptics, streak, bestStreak,
-/// engrams, streakHistory, updatedAt.
+/// engrams, streakHistory, chapterProgress, onboardingDone, updatedAt.
 ///
 /// Minden metódus best-effort: backend vagy net nélkül csendben
 /// visszatér, az app offline tovább megy a helyi mentéssel.
@@ -51,17 +51,23 @@ class CloudSync {
     try {
       final profile = await MemoryStore.loadProfile();
       final scores = await MemoryStore.loadScores();
+      final dominant = await MemoryStore.loadDominantKind();
+      final dominantMeta = await MemoryStore.loadDominantMeta();
       final kind = await MemoryStore.loadBattleKind();
       final rating = await MemoryStore.loadBattleRating();
       final avatar = await MemoryStore.loadAvatarOpts(const {});
       final streak = await MemoryStore.loadStreakState();
       final fsrs = await MemoryStore.loadFsrsCards();
       final meta = await MemoryStore.loadMetaCache();
+      final chapterProgress = await MemoryStore.loadChapterProgress();
+      final onboardingDone = await MemoryStore.loadOnboardingDone();
       await doc.set({
         'displayName': profile.displayName,
         'username': profile.username,
         'email': profile.email,
         'scores': scores ?? const [],
+        'dominantKind': dominant ?? -1,
+        'dominantMeta': dominantMeta,
         'battleKind': kind ?? -1,
         'battleRating': rating,
         'avatarOpts': avatar,
@@ -70,11 +76,11 @@ class CloudSync {
         'streak': streak.streak,
         'bestStreak': streak.bestStreak,
         'engrams': streak.engrams,
-        'streakHistory': [
-          for (final d in streak.history) d.toIso8601String(),
-        ],
+        'streakHistory': [for (final d in streak.history) d.toIso8601String()],
         'fsrsCards': fsrs,
         'metaCache': meta,
+        'chapterProgress': chapterProgress,
+        'onboardingDone': onboardingDone,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     } catch (e) {
@@ -111,8 +117,20 @@ class CloudSync {
 
       final scores = data['scores'];
       if (scores is List && scores.isNotEmpty) {
-        await MemoryStore.saveScoresWithoutNotify(
-          [for (final s in scores) (s as num?)?.toInt() ?? 0],
+        await MemoryStore.saveScoresWithoutNotify([
+          for (final s in scores) (s as num?)?.toInt() ?? 0,
+        ]);
+      }
+      final dominant = data['dominantKind'];
+      if (dominant is int && dominant >= 0) {
+        final meta = data['dominantMeta'];
+        final rationale =
+            meta is Map ? (meta['rationale']?.toString() ?? '') : '';
+        final ai = meta is Map && meta['source']?.toString() == 'ai';
+        await MemoryStore.saveDominantKindWithoutNotify(
+          dominant,
+          rationale: rationale,
+          ai: ai,
         );
       }
       final kind = data['battleKind'];
@@ -142,7 +160,10 @@ class CloudSync {
       final streak = (data['streak'] as num?)?.toInt();
       final best = (data['bestStreak'] as num?)?.toInt();
       final engrams = (data['engrams'] as num?)?.toInt();
-      if (streak != null || best != null || engrams != null || history.isNotEmpty) {
+      if (streak != null ||
+          best != null ||
+          engrams != null ||
+          history.isNotEmpty) {
         await MemoryStore.saveStreakStateDirect(
           history: history.isEmpty ? null : history,
           streak: streak,
@@ -162,6 +183,24 @@ class CloudSync {
         await MemoryStore.saveMetaCacheWithoutNotify(
           metaCloud.map((k, v) => MapEntry(k.toString(), v.toString())),
         );
+      }
+      final chaptersCloud = data['chapterProgress'];
+      if (chaptersCloud is Map && chaptersCloud.isNotEmpty) {
+        // Maximum-összefésülés a helyivel: egy régebbi felhő-állapot
+        // soha nem ronthatja le az újabb helyi csillagokat.
+        final parsed = await MemoryStore.loadChapterProgress();
+        chaptersCloud.forEach((k, v) {
+          final key = k.toString();
+          final stars = (v as num?)?.toInt() ?? 0;
+          final kept = parsed[key] ?? 0;
+          final next = stars.clamp(0, 3);
+          parsed[key] = next > kept ? next : kept;
+        });
+        await MemoryStore.saveChapterProgressWithoutNotify(parsed);
+      }
+      final onboardingCloud = data['onboardingDone'];
+      if (onboardingCloud == true) {
+        await MemoryStore.saveOnboardingDone();
       }
 
       final dark = data['darkMode'];

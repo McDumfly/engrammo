@@ -6,9 +6,12 @@ import 'package:flutter/services.dart';
 import 'firebase_options.dart';
 import 'services/app_settings.dart';
 import 'services/auth_service.dart';
+import 'services/env_loader.dart';
+import 'services/memory_store.dart';
 import 'theme/app_theme.dart';
 import 'screens/auth_screen.dart';
 import 'screens/learning_path.dart';
+import 'screens/onboarding.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +38,9 @@ Future<void> main() async {
     }
     if (kDebugMode) debugPrint('Firebase init részletek: $e');
   }
+  // A `.env` beolvasása az első képkocka előtt, hogy sima
+  // `flutter run` esetén is éljen a gitignore-olt kulcs.
+  await EnvLoader.load();
   // Mentett téma + hangok visszatöltése az első képkocka előtt.
   await appSettings.load();
   // Belépési állapot + felhő-lehúzás az első képkocka előtt.
@@ -63,21 +69,21 @@ class MyApp extends StatelessWidget {
           systemNavigationBarColor: Colors.transparent,
           statusBarIconBrightness: dark ? Brightness.light : Brightness.dark,
           statusBarBrightness: dark ? Brightness.dark : Brightness.light,
-          systemNavigationBarIconBrightness:
-              dark ? Brightness.light : Brightness.dark,
+          systemNavigationBarIconBrightness: dark
+              ? Brightness.light
+              : Brightness.dark,
           systemNavigationBarContrastEnforced: false,
           systemStatusBarContrastEnforced: false,
         );
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: overlay,
           child: MaterialApp(
-          title: 'Engrammo',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.light(),
-          darkTheme: AppTheme.dark(),
-          themeMode:
-              appSettings.darkMode ? ThemeMode.dark : ThemeMode.light,
-          home: const _AuthGate(),
+            title: 'Engrammo',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.light(),
+            darkTheme: AppTheme.dark(),
+            themeMode: appSettings.darkMode ? ThemeMode.dark : ThemeMode.light,
+            home: const _AuthGate(),
           ),
         );
       },
@@ -95,9 +101,62 @@ class _AuthGate extends StatelessWidget {
     return ListenableBuilder(
       listenable: authService,
       builder: (context, _) {
-        if (authService.showApp) return const LearningPathPage();
+        if (authService.showApp) return const _StartRouter();
         return const AuthScreen();
       },
     );
+  }
+}
+
+/// Induló útválasztó: első belépéskor (nincs szintmérő-eredmény és
+/// az onboarding sincs pipálva) a bemutató + szintmérő jön fel,
+/// egyébként egyből a tanulási útvonal.
+class _StartRouter extends StatefulWidget {
+  const _StartRouter();
+
+  @override
+  State<_StartRouter> createState() => _StartRouterState();
+}
+
+class _StartRouterState extends State<_StartRouter> {
+  bool _ready = false;
+  bool _needsOnboarding = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolve();
+  }
+
+  Future<void> _resolve() async {
+    var needs = false;
+    try {
+      final scores = await MemoryStore.loadScores();
+      final done = await MemoryStore.loadOnboardingDone();
+      needs = (scores == null || scores.isEmpty) && !done;
+    } catch (_) {
+      needs = false;
+    }
+    if (!mounted) return;
+    setState(() {
+      _needsOnboarding = needs;
+      _ready = true;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_ready) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (_needsOnboarding) {
+      return OnboardingPage(
+        onDone: () {
+          if (!mounted) return;
+          setState(() => _needsOnboarding = false);
+        },
+      );
+    }
+    return const LearningPathPage();
   }
 }

@@ -66,10 +66,11 @@ void main() {
       final late = card(due: now.subtract(const Duration(days: 2)));
       final early = card(due: now.subtract(const Duration(days: 5)));
       final future = card(due: now.add(const Duration(days: 1)));
-      final due = FsrsScheduler.dueCards(
-        [late.copyWith(cardId: 'late'), early.copyWith(cardId: 'early'), future],
-        now,
-      );
+      final due = FsrsScheduler.dueCards([
+        late.copyWith(cardId: 'late'),
+        early.copyWith(cardId: 'early'),
+        future,
+      ], now);
       expect(due.map((c) => c.cardId).toList(), ['early', 'late']);
     });
   });

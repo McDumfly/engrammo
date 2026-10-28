@@ -62,6 +62,11 @@ firebase.json
 .env.json
 .env.example
 
+# Android release-aláírás: a keystore és a jelszavai soha nem mennek gitre.
+android/key.properties
+android/app/*.jks
+android/app/*.keystore
+
 # Belső feljegyzések: helyi segédletek, soha nem mennek gitre, mert
 # személyes / projektspecifikus adatot tartalmaznak (iskola, lakhely,
 # projekt-azonosítók). A fájlok a gépen maradnak, csak a git nem látja őket.

@@ -12,6 +12,8 @@ import '../widgets/google_g_logo.dart';
 /// Email+jelszó (bejelentkezés és regisztráció), Google-belépés és
 /// fiók nélküli folytatás. Backend nélkül az [AuthGate] eleve nem ezt
 /// mutatja; ha mégis ide jutna, a gombok hibaüzenetet adnak.
+/// A profil bejelentkezési kártyájáról útvonalként is nyitható:
+/// ilyenkor sikeres belépés után visszalép a profilra.
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
 
@@ -59,15 +61,16 @@ class _AuthScreenState extends State<AuthScreen> {
     }
     try {
       if (_register) {
-        await authService.registerWithEmail(
-          _nameCtrl.text,
-          email,
-          password,
-        );
+        await authService.registerWithEmail(_nameCtrl.text, email, password);
       } else {
         await authService.signInWithEmail(email, password);
       }
       AppFeedback.medium();
+      // Útvonalként nyitva (profilkártya): vissza a profilra.
+      // Kapuként (gyökér) a canPop hamis, a kapu magától vált.
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
     } catch (e) {
       _fail(e);
     }
@@ -81,6 +84,9 @@ class _AuthScreenState extends State<AuthScreen> {
     try {
       await authService.signInWithGoogle();
       AppFeedback.medium();
+      if (mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
     } catch (e) {
       // A felhasználó által megszakított Google-folyamat nem hiba.
       final msg = '$e';
@@ -196,8 +202,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       label: authService.busy
                           ? 'PLEASE WAIT…'
                           : (_register ? 'CREATE ACCOUNT' : 'SIGN IN'),
-                      onPressed:
-                          authService.busy ? null : () => _submit(),
+                      onPressed: authService.busy ? null : () => _submit(),
                       isLoading: authService.busy,
                     ),
                     if (!_register) ...[
@@ -245,7 +250,14 @@ class _AuthScreenState extends State<AuthScreen> {
                     TextButton(
                       onPressed: authService.busy
                           ? null
-                          : () => authService.continueAsGuest(),
+                          : () async {
+                              await authService.continueAsGuest();
+                              if (!context.mounted) return;
+                              // Útvonalként nyitva: vissza oda, ahonnan jött.
+                              if (Navigator.of(context).canPop()) {
+                                Navigator.of(context).pop();
+                              }
+                            },
                       child: Text(
                         'Continue without account',
                         style: TextStyle(
@@ -281,8 +293,22 @@ class _Segment extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Expanded(child: _segBtn(context, 'Sign in', !register, () => onChanged(false))),
-          Expanded(child: _segBtn(context, 'Register', register, () => onChanged(true))),
+          Expanded(
+            child: _segBtn(
+              context,
+              'Sign in',
+              !register,
+              () => onChanged(false),
+            ),
+          ),
+          Expanded(
+            child: _segBtn(
+              context,
+              'Register',
+              register,
+              () => onChanged(true),
+            ),
+          ),
         ],
       ),
     );

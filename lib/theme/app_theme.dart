@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart' show ink, line, muted, violet;
+import 'app_colors.dart' show ink, line, muted, blue;
 
 /// Az app egyetlen közös témája.
 ///
-/// - Szín: minden gomb az app kékjét (violet) használja alapként.
-/// - Betű: egyetlen betűtípus fut végig az appban, a Nunito
-///   (helyi asset, `assets/fonts/`). Kerek, játékos forma a
-///   Duolingo-világ rokona, de szövegbetűként is modern és komoly,
-///   magyar ékezetekkel. Direkt nincs sehol egyedi `fontFamily`,
+/// - Szín: minden gomb az app kékjét (blue) használja alapként.
+/// - Betű: egyetlen betűtípus fut végig az appban, a Lexend
+///   (helyi asset, `assets/fonts/`). Olvashatóságra és tanulásra
+///   tervezett, barátságos, mégis modern és komoly betű, magyar
+///   ékezetekkel. Direkt nincs sehol egyedi `fontFamily`,
 ///   hogy ne csússzon szét a tipográfia — a családot csak ez a
 ///   téma adja meg, minden felirat örökli.
 ///
@@ -22,8 +22,8 @@ class AppTheme {
   /// teljesen lekerekített pill (Stadium) és direkt lapos —
   /// nincs 3D-s alsó sáv.
   ///
-  /// A vastag alsó árnyéksáv Duolingo-védjegy, ezért direkt nem
-  /// használjuk sehol. Ezért minden gombtípus [buttonShape] formát
+  /// A vastag alsó árnyéksáv idegen márkajegy lenne, ezért direkt
+  /// nem használjuk sehol. Ezért minden gombtípus [buttonShape] formát
   /// kap világos és sötét módban is, és ezentúl mindig ez az
   /// alapértelmezett: új gombhoz nem kell `shape`-et írni.
   /// A lapos készletet az `app_buttons.dart` adja ([EngramButton]
@@ -38,8 +38,8 @@ class AppTheme {
   /// input, játéktábla-cella, progress-sáv) nem tartozik ide.
   static const OutlinedBorder buttonShape = StadiumBorder();
 
-  /// Az app betűcsaládja (pubspec `fonts`: Nunito, 400–900).
-  static const String fontFamily = 'Nunito';
+  /// Az app betűcsaládja (pubspec `fonts`: Lexend, változó 100–900).
+  static const String fontFamily = 'Lexend';
 
   /// Sötét téma: sötétkék háttér, világos feliratok, sötét kártyák.
   ///
@@ -56,20 +56,21 @@ class AppTheme {
   static const darkOnSurfaceVariant = Color(0xFF9DACC4);
 
   static ThemeData dark() {
-    final scheme = ColorScheme.fromSeed(
-      seedColor: violet,
-      brightness: Brightness.dark,
-      primary: violet,
-      secondary: const Color(0xFF14B8A6),
-      tertiary: const Color(0xFFFF9500),
-      surface: darkScaffold,
-    ).copyWith(
-      onSurface: darkOnSurface,
-      onSurfaceVariant: darkOnSurfaceVariant,
-      surfaceContainerHigh: darkCard,
-      surfaceContainerHighest: darkInput,
-      outlineVariant: darkBorder,
-    );
+    final scheme =
+        ColorScheme.fromSeed(
+          seedColor: blue,
+          brightness: Brightness.dark,
+          primary: blue,
+          secondary: const Color(0xFF14B8A6),
+          tertiary: const Color(0xFFFF9500),
+          surface: darkScaffold,
+        ).copyWith(
+          onSurface: darkOnSurface,
+          onSurfaceVariant: darkOnSurfaceVariant,
+          surfaceContainerHigh: darkCard,
+          surfaceContainerHighest: darkInput,
+          outlineVariant: darkBorder,
+        );
 
     const heavy = TextStyle(fontWeight: FontWeight.w900, fontSize: 15);
     const firm = TextStyle(fontWeight: FontWeight.w800, fontSize: 14);
@@ -77,15 +78,12 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      primaryColor: violet,
+      primaryColor: blue,
       fontFamily: fontFamily,
       scaffoldBackgroundColor: darkScaffold,
       cardColor: darkCard,
       canvasColor: darkScaffold,
-      dividerTheme: const DividerThemeData(
-        color: darkBorder,
-        thickness: 1.5,
-      ),
+      dividerTheme: const DividerThemeData(color: darkBorder, thickness: 1.5),
       dialogTheme: const DialogThemeData(backgroundColor: darkCard),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: darkCard,
@@ -109,7 +107,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: violet, width: 2),
+          borderSide: const BorderSide(color: blue, width: 2),
         ),
       ),
       appBarTheme: const AppBarTheme(
@@ -118,9 +116,7 @@ class AppTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
       ),
-      bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: darkCard,
-      ),
+      bottomSheetTheme: const BottomSheetThemeData(backgroundColor: darkCard),
       // Az appban sehol nincs koppintási hullám (splash/ripple).
       splashFactory: NoSplash.splashFactory,
       splashColor: Colors.transparent,
@@ -129,7 +125,7 @@ class AppTheme {
       focusColor: Colors.transparent,
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: violet,
+          backgroundColor: blue,
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
@@ -141,7 +137,7 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: violet,
+          backgroundColor: blue,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
           shape: buttonShape,
@@ -163,7 +159,7 @@ class AppTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: violet,
+          foregroundColor: blue,
           textStyle: firm,
           overlayColor: Colors.transparent,
           splashFactory: NoSplash.splashFactory,
@@ -184,7 +180,7 @@ class AppTheme {
         splashRadius: 0,
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: violet,
+        backgroundColor: blue,
         foregroundColor: Colors.white,
         elevation: 0,
         shape: StadiumBorder(),
@@ -195,8 +191,8 @@ class AppTheme {
   static ThemeData light() {
     final scheme =
         ColorScheme.fromSeed(
-          seedColor: violet,
-          primary: violet,
+          seedColor: blue,
+          primary: blue,
           secondary: const Color(0xFF14B8A6),
           tertiary: const Color(0xFFFF9500),
           surface: Colors.white,
@@ -213,24 +209,21 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      primaryColor: violet,
+      primaryColor: blue,
       fontFamily: fontFamily,
       scaffoldBackgroundColor: Colors.white,
       dividerTheme: const DividerThemeData(color: line, thickness: 1.5),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: const Color(0xFFF4F8FE),
-        hintStyle: const TextStyle(
-          color: muted,
-          fontWeight: FontWeight.w600,
-        ),
+        hintStyle: const TextStyle(color: muted, fontWeight: FontWeight.w600),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: line, width: 2),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: violet, width: 2),
+          borderSide: const BorderSide(color: blue, width: 2),
         ),
       ),
       // Az appban sehol nincs koppintási hullám (splash/ripple):
@@ -242,7 +235,7 @@ class AppTheme {
       focusColor: Colors.transparent,
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: violet,
+          backgroundColor: blue,
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
@@ -254,7 +247,7 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: violet,
+          backgroundColor: blue,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
           shape: buttonShape,
@@ -276,7 +269,7 @@ class AppTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: violet,
+          foregroundColor: blue,
           textStyle: firm,
           overlayColor: Colors.transparent,
           splashFactory: NoSplash.splashFactory,
@@ -297,7 +290,7 @@ class AppTheme {
         splashRadius: 0,
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: violet,
+        backgroundColor: blue,
         foregroundColor: Colors.white,
         elevation: 0,
         shape: StadiumBorder(),
@@ -321,17 +314,13 @@ extension ThemeCtx on BuildContext {
 
   Color get cardBg => isDark ? AppTheme.darkCard : Colors.white;
 
-  Color get softBg =>
-      isDark ? AppTheme.darkInput : const Color(0xFFF4F8FE);
+  Color get softBg => isDark ? AppTheme.darkInput : const Color(0xFFF4F8FE);
 
-  Color get washBg =>
-      isDark ? AppTheme.darkWash : const Color(0xFFEFF6FF);
+  Color get washBg => isDark ? AppTheme.darkWash : const Color(0xFFEFF6FF);
 
-  Color get faintBg =>
-      isDark ? AppTheme.darkFaint : const Color(0xFFF1F5FA);
+  Color get faintBg => isDark ? AppTheme.darkFaint : const Color(0xFFF1F5FA);
 
-  Color get hairline =>
-      isDark ? AppTheme.darkBorder : const Color(0xFFDEE9F7);
+  Color get hairline => isDark ? AppTheme.darkBorder : const Color(0xFFDEE9F7);
 
   /// Világos módban a régi halványkék keretek, sötétben a sötét keret.
   Color get washBorder =>

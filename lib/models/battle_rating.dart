@@ -19,10 +19,7 @@ class BattleRating {
   static const int kFactor = 32;
 
   /// Esély a [player] szemszögéből [opponent] ellen (0..1).
-  static double expectedScore({
-    required int player,
-    required int opponent,
-  }) {
+  static double expectedScore({required int player, required int opponent}) {
     return 1 / (1 + math.pow(10, (opponent - player) / 400));
   }
 

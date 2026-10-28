@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+
 import '../theme/app_theme.dart';
-import '../services/app_feedback.dart';
+
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../widgets/app_buttons.dart';
-import '../theme/app_colors.dart' show ink, muted, violet, violetDark;
+import '../theme/app_colors.dart' show ink, muted, blue, blueDark;
 import '../models/avatar_traits.dart';
 import '../services/dicebear_generator.dart';
 
-// TODO: Firebase wiring pending - load saved avatar on init.
+// NOTE: avatar persistence flows through MemoryStore (local) + CloudSync
+// (users/{uid}.avatarOpts) via initialOpts/onSaved — no direct Firestore
+// calls needed on this screen.
 class AvatarBackgroundOption {
   final String id;
   final String label;
@@ -136,10 +139,8 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
     _opts = Map<String, String>.of(
       widget.initialOpts ?? AvatarTraits.defaults(),
     );
-    // TODO: Firebase wiring pending - load saved avatar:
-    // final user = FirebaseAuth.instance.currentUser;
-    // final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-    // _opts = AvatarTraits.fromFirestore(doc.data()?['avatarOptions']);
+    // The saved avatar arrives via widget.initialOpts (loaded from
+    // MemoryStore by the caller, synced from Firestore on sign-in).
     _refireBatch();
   }
 
@@ -196,13 +197,8 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
   Future<void> _save() async {
     setState(() => _isSaving = true);
     try {
-      // TODO: Firebase wiring pending - persist to Firestore:
-      // final user = FirebaseAuth.instance.currentUser;
-      // final avatarUrl = AvatarTraits.buildDicebearUrl(_opts);
-      // await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-      //   'avatarOptions': _opts,
-      //   'avatar_url': avatarUrl,
-      // });
+      // Persisted by the caller via MemoryStore.saveAvatarOpts, which
+      // also pushes to Firestore when signed in (CloudSync hook).
       widget.onSaved?.call(Map<String, String>.of(_opts));
       if (mounted) Navigator.pop(context);
     } finally {
@@ -226,16 +222,9 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
         child: Column(
           children: [
             _Header(
-              onClose: () {
-                AppFeedback.light();
-                Navigator.pop(context);
-              },
-              onSave: _isSaving
-                  ? null
-                  : () {
-                      AppFeedback.light();
-                      _save();
-                    },
+              // A rezgést a fejléc gombjai adják (vissza + pipa).
+              onClose: () => Navigator.pop(context),
+              onSave: _isSaving ? null : () => _save(),
               isSaving: _isSaving,
             ),
             Expanded(
@@ -256,18 +245,14 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
                       ),
                     ),
                     const SizedBox(height: 14),
-                    _SectionRail(
-                      active: _section,
-                      onPick: _pickSection,
-                    ),
+                    _SectionRail(active: _section, onPick: _pickSection),
                     const SizedBox(height: 12),
                     if (sec.colorKey != null)
                       _ColorStrip(
                         title: '${sec.label} color',
-                        values:
-                            AvatarTraits.traits[sec.colorKey!]!
-                                .map((e) => e.value)
-                                .toList(),
+                        values: AvatarTraits.traits[sec.colorKey!]!
+                            .map((e) => e.value)
+                            .toList(),
                         selected: _opts[sec.colorKey!],
                         onPick: (v) {
                           setState(() => _opts[sec.colorKey!] = v);
@@ -290,9 +275,7 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
                             ? _opts['backgroundColor']
                             : _opts[sec.traitKey!],
                         onPick: (v) {
-                          setState(
-                            () => _opts[sec.traitKey!] = v,
-                          );
+                          setState(() => _opts[sec.traitKey!] = v);
                           _refireBatch();
                         },
                       )
@@ -322,10 +305,8 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
             ),
             _BottomBar(
               isSaving: _isSaving,
-              onSave: () {
-                AppFeedback.light();
-                _save();
-              },
+              // A rezgést az EngramButton adja.
+              onSave: () => _save(),
             ),
           ],
         ),
@@ -357,9 +338,7 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       child: Row(
         children: [
-          EngramBackButton.close(
-            onPressed: onClose,
-          ),
+          EngramBackButton.close(onPressed: onClose),
           Expanded(
             child: Column(
               children: [
@@ -389,9 +368,9 @@ class _Header extends StatelessWidget {
             icon: HugeIcons.strokeRoundedTick02,
             onTap: onSave,
             size: 52,
-            background: isSaving ? context.mutedText : violet,
+            background: isSaving ? context.mutedText : blue,
             foreground: Colors.white,
-            shadowColor: isSaving ? context.hairline : violetDark,
+            shadowColor: isSaving ? context.hairline : blueDark,
             isLoading: isSaving,
           ),
         ],
@@ -445,7 +424,9 @@ class _Stage extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(26),
                 child: CustomPaint(
-                  painter: _DotsPainter(dot: Colors.white.withValues(alpha: 0.35)),
+                  painter: _DotsPainter(
+                    dot: Colors.white.withValues(alpha: 0.35),
+                  ),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 450),
                     curve: Curves.easeOut,
@@ -470,8 +451,7 @@ class _Stage extends StatelessWidget {
                                     return const Padding(
                                       padding: EdgeInsets.only(bottom: 24),
                                       child: HugeIcon(
-                                        icon: HugeIcons
-                                            .strokeRoundedUserCircle,
+                                        icon: HugeIcons.strokeRoundedUserCircle,
                                         size: 150,
                                         color: Colors.white,
                                         strokeWidth: 1.6,
@@ -577,7 +557,7 @@ class _SectionRail extends StatelessWidget {
                     bottom: 0,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: sel ? violetDark : context.hairline,
+                        color: sel ? blueDark : context.hairline,
                         borderRadius: BorderRadius.circular(18),
                       ),
                     ),
@@ -589,10 +569,10 @@ class _SectionRail extends StatelessWidget {
                     bottom: 4,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: sel ? violet : context.cardBg,
+                        color: sel ? blue : context.cardBg,
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(
-                          color: sel ? violet : context.hairline,
+                          color: sel ? blue : context.hairline,
                           width: 2,
                         ),
                       ),
@@ -691,7 +671,7 @@ class _ColorStrip extends StatelessWidget {
                         bottom: 0,
                         child: Container(
                           decoration: BoxDecoration(
-                            color: sel ? violetDark : context.hairline,
+                            color: sel ? blueDark : context.hairline,
                             borderRadius: BorderRadius.circular(14),
                           ),
                         ),
@@ -706,7 +686,7 @@ class _ColorStrip extends StatelessWidget {
                             color: _c(v),
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
-                              color: sel ? violet : Colors.white,
+                              color: sel ? blue : Colors.white,
                               width: sel ? 3 : 2,
                             ),
                           ),
@@ -819,7 +799,7 @@ class _BigSwatchGrid extends StatelessWidget {
                     bottom: 0,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: sel ? violetDark : context.hairline,
+                        color: sel ? blueDark : context.hairline,
                         borderRadius: BorderRadius.circular(18),
                       ),
                     ),
@@ -834,7 +814,7 @@ class _BigSwatchGrid extends StatelessWidget {
                         color: _c(v),
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(
-                          color: sel ? violet : Colors.white,
+                          color: sel ? blue : Colors.white,
                           width: sel ? 3 : 2,
                         ),
                       ),
@@ -872,8 +852,7 @@ class _OptionGrid extends StatelessWidget {
     required this.onPick,
   });
 
-  String _label(TraitOption o) =>
-      o.labelEn.isNotEmpty ? o.labelEn : o.label;
+  String _label(TraitOption o) => o.labelEn.isNotEmpty ? o.labelEn : o.label;
 
   @override
   Widget build(BuildContext context) {
@@ -905,7 +884,7 @@ class _OptionGrid extends StatelessWidget {
                     bottom: 0,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: sel ? violetDark : context.hairline,
+                        color: sel ? blueDark : context.hairline,
                         borderRadius: BorderRadius.circular(20),
                       ),
                     ),
@@ -920,7 +899,7 @@ class _OptionGrid extends StatelessWidget {
                         color: context.cardBg,
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: sel ? violet : context.hairline,
+                          color: sel ? blue : context.hairline,
                           width: sel ? 3 : 2,
                         ),
                       ),
@@ -946,8 +925,8 @@ class _OptionGrid extends StatelessWidget {
                                         (svg != null && svg.isEmpty)) {
                                       return const Center(
                                         child: HugeIcon(
-                                          icon: HugeIcons
-                                              .strokeRoundedUserCircle,
+                                          icon:
+                                              HugeIcons.strokeRoundedUserCircle,
                                           size: 40,
                                           color: Colors.white,
                                           strokeWidth: 2.0,
@@ -961,14 +940,18 @@ class _OptionGrid extends StatelessWidget {
                                           height: 18,
                                           child: CircularProgressIndicator(
                                             strokeWidth: 2,
-                                            color: violet,
+                                            color: blue,
                                           ),
                                         ),
                                       );
                                     }
                                     return Padding(
-                                      padding:
-                                          const EdgeInsets.fromLTRB(4, 6, 4, 0),
+                                      padding: const EdgeInsets.fromLTRB(
+                                        4,
+                                        6,
+                                        4,
+                                        0,
+                                      ),
                                       child: SvgPicture.string(
                                         svg,
                                         fit: BoxFit.contain,
@@ -1065,8 +1048,7 @@ class _GraphicStrip extends StatelessWidget {
                     label,
                     style: TextStyle(
                       color: sel ? Colors.white : context.mutedText,
-                      fontWeight:
-                          sel ? FontWeight.w800 : FontWeight.w600,
+                      fontWeight: sel ? FontWeight.w800 : FontWeight.w600,
                       fontSize: 13,
                     ),
                   ),
@@ -1121,7 +1103,7 @@ class _ForgeLoader extends StatelessWidget {
             SizedBox(
               width: 40,
               height: 40,
-              child: CircularProgressIndicator(color: violet),
+              child: CircularProgressIndicator(color: blue),
             ),
             SizedBox(height: 16),
             Text(

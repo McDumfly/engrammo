@@ -3,16 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets(
-      'League header adds no extra status-bar space when embedded',
-      (WidgetTester tester) async {
+  testWidgets('League header adds no extra status-bar space when embedded', (
+    WidgetTester tester,
+  ) async {
     // A valós beágyazás: felül a közös sáv, alatta a liga oldal.
     await tester.pumpWidget(
       MaterialApp(
         home: MediaQuery(
-          data: const MediaQueryData(
-            padding: EdgeInsets.only(top: 44),
-          ),
+          data: const MediaQueryData(padding: EdgeInsets.only(top: 44)),
           child: const Scaffold(
             body: Column(
               children: [
