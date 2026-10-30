@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../services/meta_ai_service.dart';
 
-/// Verseny-demó megfigyelhetőség: utolsó Meta-hívások listája.
-///
-/// Best-effort: üres állapotban egy mondatos magyarázatot mutat
-/// (nincs API-kulcs / még nem futott hívás). Nem dob hibát offline.
 class MetaCallLogView extends StatelessWidget {
   const MetaCallLogView({super.key});
 
@@ -17,10 +14,7 @@ class MetaCallLogView extends StatelessWidget {
         final calls =
             snapshot.data ?? MetaAIService.lastCalls;
         if (calls.isEmpty) {
-          return const Text(
-            'Még nem futott Meta-hívás. Offline módban a helyi '
-            'generátorok adják a tartalmat.',
-          );
+          return Text(tr('metalog_empty'));
         }
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -30,8 +24,8 @@ class MetaCallLogView extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Text(
                   '${c.at.toIso8601String()} • ${c.model} • '
-                  '${c.kind} • ${c.success ? "ok" : "hiba"} • '
-                  '${c.fallback ? "fallback" : "élő"}'
+                  '${c.kind} • ${c.success ? tr('metalog_ok') : tr('metalog_error')} • '
+                  '${c.fallback ? tr('metalog_fallback') : tr('metalog_live')}'
                   '${c.note.isEmpty ? "" : " • ${c.note}"}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),

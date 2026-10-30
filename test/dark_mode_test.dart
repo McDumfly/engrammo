@@ -38,8 +38,6 @@ void main() {
       expect(light.scaffoldBackgroundColor, Colors.white);
     });
 
-    // Külön tesztek: a tesztkeret egy teszten belül nem frissíti
-    // a már felpumpált MaterialApp témamód-váltását.
     testWidgets('A ThemeCtx sötét módban sötét felületeket ad', (tester) async {
       Color? darkCard;
       Color? darkHairline;

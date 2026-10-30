@@ -1,11 +1,7 @@
-/// English coach content for every curriculum section.
-///
-/// Direct tone, short sentences, one technique per section. Each entry
-/// names the study it comes from so every lesson is traceable to
-/// research (full bibliography in `docs/RESEARCH.md`).
 library;
 
-/// One coach card: what to do, how to do it, and why it works.
+import '../l10n/lesson_content_hu.dart';
+
 class CoachContent {
   final String title;
   final String intro;
@@ -21,7 +17,6 @@ class CoachContent {
   });
 }
 
-/// Coach content keyed by "chapter-section".
 const coachContent = <String, CoachContent>{
   '0-0': CoachContent(
     title: 'The Attention Gate',
@@ -66,14 +61,15 @@ const coachContent = <String, CoachContent>{
     ],
     why:
         'Selective attention is trainable: practiced filtering protects '
-        'encoding, and training in noise transfers to noisy real life.',
+        'encoding. How much noisy-room practice helps daily life varies '
+        'person to person — no promise either way.',
     source: 'Naveh-Benjamin et al. (2005); Robison & Unsworth (2015)',
   ),
   '1-0': CoachContent(
     title: 'Digit Chunks',
     intro:
-        'Nobody remembers 12 separate digits. Champions remember 4 images. '
-        'Chunking turns an impossible string into a short story.',
+        'Few people hold 12 separate digits. Trained chunkers hold 4 '
+        'images instead. Chunking turns a hard string into a short story.',
     steps: [
       'Split digits into groups of 3: 491-625-830.',
       'Turn each group into one vivid image or word.',
@@ -96,8 +92,9 @@ const coachContent = <String, CoachContent>{
     ],
     why:
         'Pre-learned image codes plus ordered places convert random '
-        'sequences into narratable scenes. All card records use this.',
-    source: 'Competition PAO system; championship disciplines survey',
+        'sequences into narratable scenes. Card-record holders report '
+        'using palace plus PAO systems.',
+    source: 'PAO system survey; memory-sport discipline formats',
   ),
   '1-2': CoachContent(
     title: 'Working Memory Gym',
@@ -118,8 +115,8 @@ const coachContent = <String, CoachContent>{
   '2-0': CoachContent(
     title: 'Your First Palace',
     intro:
-        'This is the big one. Memory champions memorize decks in seconds '
-        'with this exact method: put each item in a familiar place, then '
+        'This is the big one. Memory competitors memorize long lists '
+        'with this same method: put each item in a familiar place, then '
         'walk through and pick them up.',
     steps: [
       'Pick a route you know cold: your home, front door to bedroom.',
@@ -127,9 +124,9 @@ const coachContent = <String, CoachContent>{
       'Place ONE bizarre, moving image per station and walk it twice.',
     ],
     why:
-        'The method of loci hijacks your navigation brain — a huge, '
-        'ancient system — for lists. Six weeks of training rewires '
-        'beginner brains toward the athlete pattern.',
+        'The method of loci routes lists through your navigation brain — '
+        'a huge, ancient system. In Dresler et al. (2017), six weeks of '
+        'loci training shifted beginners toward the athlete pattern.',
     source: 'Maguire et al. (2003); Dresler et al. (2017, Neuron)',
   ),
   '2-1': CoachContent(
@@ -143,23 +140,25 @@ const coachContent = <String, CoachContent>{
       'Review by walking forward only — backwards walks blur order.',
     ],
     why:
-        'Distinct loci prevent interference between items. Virtual '
-        'palaces boost retention ~30% over flat lists in beginners.',
+        'Distinct loci prevent interference between items. In Krokos '
+        "et al.'s study, virtual palaces lifted retention ~30% over "
+        'flat lists in beginners.',
     source: 'Krokos et al. VR palace study; Wagner et al. (2021)',
   ),
   '2-2': CoachContent(
     title: 'Palace Exam',
     intro:
-        'Time to prove it. Long route, full list, one clean walk — no '
-        'peeking, no skipping. Champions are made on exam day.',
+        'Time to test it. Long route, full list, one clean walk — no '
+        'peeking, no skipping. Review day shows what your system can do.',
     steps: [
       'Encode slowly: 10 seconds per station beats rushing.',
       'Close your eyes and walk the whole route before answering.',
       'Missed one? Strengthen that station image and walk again.',
     ],
     why:
-        'Retrieval practice beats re-study by a wide margin, and the '
-        'advantage grows with delay. Test yourself, do not re-read.',
+        'In the studies, retrieval practice beats re-study by a wide '
+        'margin, and the advantage grows with delay. Test yourself, '
+        'do not re-read.',
     source: 'Roediger & Karpicke (2006); Rowland (2014) meta-analysis',
   ),
   '3-0': CoachContent(
@@ -189,7 +188,7 @@ const coachContent = <String, CoachContent>{
     ],
     why:
         'Distinctive items pop out of memory (the Von Restorff '
-        'effect). Interactive images beat lonely ones every time.',
+        'effect). Interactive images usually beat lonely ones.',
     source: 'Von Restorff (1933); Wollen et al. bizarre-imagery work',
   ),
   '3-2': CoachContent(
@@ -219,8 +218,9 @@ const coachContent = <String, CoachContent>{
       'Retell the story start to finish, out loud if you can.',
     ],
     why:
-        'Narrative chaining adds order plus meaning. Elaborative '
-        'encoding (rich sentences) beats shallow repetition clearly.',
+        'Narrative chaining adds order plus meaning. In the studies, '
+        'elaborative encoding (rich sentences) beats shallow '
+        'repetition clearly.',
     source: 'Craik & Tulving (1975); elaborative-encoding literature',
   ),
   '4-1': CoachContent(
@@ -249,14 +249,15 @@ const coachContent = <String, CoachContent>{
       'Recall the same walk first thing in the morning.',
     ],
     why:
-        'Vocabulary learned in the evening is forgotten far less than '
-        'morning learning. A night between sessions halves relearning.',
+        'In the lab studies, evening-learned vocabulary was forgotten far '
+        'less than morning learning, and a night between sessions roughly '
+        'halved relearning. Individual results vary.',
     source: 'Gais et al. (2006); Mazza et al. (2016)',
   ),
   '5-0': CoachContent(
     title: 'Baker Breaker',
     intro:
-        'Why is "baker" easy but "Mr. Baker" impossible? Same sound — but '
+        'Why is "baker" easy but "Mr. Baker" so hard? Same sound — but '
         'one has meaning and an image. Give every name both.',
     steps: [
       'Spot one standout facial feature first.',
@@ -264,8 +265,9 @@ const coachContent = <String, CoachContent>{
       'Stick the picture ONTO the feature and make it interact.',
     ],
     why:
-        'The 3-step face-name mnemonic lifted recall from 42% to 79% '
-        '— one of the largest effects in memory training.',
+        'In the lab study, the 3-step face-name mnemonic lifted recall '
+        'from 42% to 79% — a very large effect (d ≈ 2.4). Your results '
+        'depend on practice.',
     source: 'Morris et al. face-name mnemonic (d ≈ 2.4)',
   ),
   '5-1': CoachContent(
@@ -279,8 +281,9 @@ const coachContent = <String, CoachContent>{
       'Test yourself both directions, with feedback every time.',
     ],
     why:
-        'The keyword method beat rote study 72% to 46%, with '
-        'retention lasting years given brief reviews.',
+        'In the lab studies, the keyword method averaged 72% against 46% '
+        'for rote study, with retention lasting years given brief reviews. '
+        'Your results depend on practice.',
     source: 'Atkinson & Raugh (1975); Beaton et al. (1995)',
   ),
   '5-2': CoachContent(
@@ -294,15 +297,16 @@ const coachContent = <String, CoachContent>{
       'Explain it in your own words before moving on.',
     ],
     why:
-        'Semantic, self-explained encoding crushes shallow rehearsal. '
-        'Time on task alone does not explain it — depth does.',
+        'In the studies, semantic, self-explained encoding beats shallow '
+        'rehearsal clearly. Time on task alone does not explain it — '
+        'depth does.',
     source: 'Craik & Tulving (1975); Chi et al. (1994)',
   ),
   '6-0': CoachContent(
-    title: 'Palace Masterclass',
+    title: 'Palace Workshop',
     intro:
-        'You know the basics. Now train like a competitor: fixed routes, '
-        'timed encoding, zero skipped stations.',
+        'You know the basics. Now you practice the competitor format: '
+        'fixed routes, timed encoding, every station walked.',
     steps: [
       'Use one dedicated competition palace per drill.',
       'Encode on a timer — pressure is part of the skill.',
@@ -314,7 +318,7 @@ const coachContent = <String, CoachContent>{
     source: 'Maguire et al. (2003); Dresler et al. (2017)',
   ),
   '6-1': CoachContent(
-    title: 'Number Systems Pro',
+    title: 'Number Systems Lab',
     intro:
         'Two-digit images, chained three at a time into Person-Action-'
         'Object scenes. Six digits per station. That is how 80-digit '
@@ -330,9 +334,9 @@ const coachContent = <String, CoachContent>{
     source: 'Ericsson & Kintsch (1995) LTWM; PAO system survey',
   ),
   '6-2': CoachContent(
-    title: 'Name & Word Lab Pro',
+    title: 'Name & Word Lab',
     intro:
-        'Competition names and words come fast and never repeat. Speed '
+        'Timed names and words come fast and rarely repeat. Speed '
         'plus the 3-step method plus keyword chains — all at once.',
     steps: [
       'Feature first, image second, interaction third — in seconds.',
@@ -340,16 +344,16 @@ const coachContent = <String, CoachContent>{
       'Review with expanding gaps: 1 min, 5 min, 30 min.',
     ],
     why:
-        'Expanding retrieval schedules were first proven on names '
-        'and faces. Spaced retrieval is the highest-utility strategy.',
+        'Expanding retrieval schedules were first shown on names '
+        'and faces. Reviews rate spaced retrieval among the '
+        'highest-utility strategies.',
     source: 'Landauer & Bjork (1978); Dunlosky et al. (2013)',
   ),
   '7-0': CoachContent(
     title: 'Speed Numbers Final',
     intro:
         'Eighty digits. Seconds ticking. This is the international '
-        'sprint-final format — and you are ready because your systems are '
-        'automatic.',
+        'sprint-final format — your systems get their timed test here.',
     steps: [
       'Encode in fixed 6-digit PAO scenes, no hesitation.',
       'Trust your palace: walk it once, commit, move on.',
@@ -357,8 +361,9 @@ const coachContent = <String, CoachContent>{
     ],
     why:
         'Speed events separate automatic systems from improvised ones. '
-        'World-class: 80 digits perfect in 13.5 seconds.',
-    source: 'International sprint records (2025)',
+        'For reference, the listed 2025 best is 80 digits in about '
+        '13.5 seconds — years of training away.',
+    source: 'International sprint record tables (2025)',
   ),
   '7-1': CoachContent(
     title: 'Speed Cards Final',
@@ -371,26 +376,28 @@ const coachContent = <String, CoachContent>{
       'Recall in order, station by station, no jumping.',
     ],
     why:
-        'The world record is 12.74 seconds for a full deck. Every '
-        'record holder uses palace + PAO. No exceptions.',
-    source: 'World-record tables; card-memorization survey',
+        'The listed deck record is about 12.7 seconds (2025 tables). '
+        'Surveyed record holders report palace plus PAO systems — '
+        'a format to practice, not a target for this month.',
+    source: 'Record tables (2025); card-memorization survey',
   ),
   '7-2': CoachContent(
     title: 'Palace Marathon',
     intro:
-        'Twenty-seven items in one walk was the lab milestone. You go '
-        'past it: fifty, then a hundred. This is supermemory.',
+        'Twenty-seven items in one walk was the lab milestone. You '
+        'practice past it: fifty, then a hundred. One pass is the '
+        'foundation — lasting skill needs spaced review over many months '
+        'plus walks with your own lists.',
     steps: [
       'Chain multiple palaces into one grand route.',
       'Place review walks the same evening and next morning.',
       'Keep every station image fresh — revisit, do not rebuild.',
     ],
     why:
-        'Long-list palace walks with spaced review show durable '
-        'gains at 4+ months. Consolidation does the heavy lifting.',
+        'In Dresler et al. (2017), lab trainees who practiced this way '
+        'kept gains at 4 months. Your results depend on continued review.',
     source: 'Dresler et al. (2017); Wagner et al. (2021)',
   ),
-  // ── Deep paths: chapters 8-29, one entry per section ──
   '8-0': CoachContent(
     title: 'Rhythm Codes',
     intro:
@@ -553,23 +560,25 @@ const coachContent = <String, CoachContent>{
     ],
     why:
         'Shadowing forces continuous encoding plus immediate production, '
-        'the strongest known loop for auditory memory.',
+        'a demanding loop that interpreters train daily.',
     source: 'MacLeod et al. (2010); interpreter-training literature',
   ),
   '11-2': CoachContent(
-    title: 'Golden Ear Exam',
+    title: 'Golden Ear Review',
     intro:
         'Everything at once: names in noise, long sequences, delayed '
-        'recall. Pass this and your hearing memory is supermemory.',
+        'recall. Pass this and you have practiced the full listening '
+        'stack on trained material — keep it with weekly review and '
+        'real conversations.',
     steps: [
       'Settle your attention before each trial starts.',
       'Encode with your full stack: rhythm, image, route, tag.',
       'Recall in order, commit, and move to the next trial.',
     ],
     why:
-        'Exam pressure tests automaticity: trained systems hold up, '
-        'improvised ones collapse. Yours are trained now.',
-    source: 'Competition sprint formats; Dresler et al. (2017)',
+        'Review pressure tests automaticity: practiced systems hold up, '
+        'improvised ones wobble. Then retest on fresh items next week.',
+    source: 'Timed sprint formats; Dresler et al. (2017)',
   ),
   '12-0': CoachContent(
     title: 'Major 00-19',
@@ -657,9 +666,9 @@ const coachContent = <String, CoachContent>{
       'Recall station by station, never jumping.',
     ],
     why:
-        'Palace plus PAO is the universal card method: every record '
-        'holder uses it, with zero exceptions.',
-    source: 'World-record tables; card-memorization survey',
+        'Palace plus PAO is the standard card method: surveyed record '
+        'holders report using it.',
+    source: 'Record tables (2025); card-memorization survey',
   ),
   '14-0': CoachContent(
     title: 'Running Totals',
@@ -703,7 +712,8 @@ const coachContent = <String, CoachContent>{
     ],
     why:
         'Dual-task practice trains executive coordination itself. Honest '
-        'note: drills improve at drills — but this one transfers best.',
+        'note: drills improve at drills first — everyday benefit varies '
+        'person to person, with no promise either way.',
     source: 'Baddeley & Hitch (1974); Melby-Lervåg et al. (2016)',
   ),
   '15-0': CoachContent(
@@ -814,7 +824,7 @@ const coachContent = <String, CoachContent>{
   '17-1': CoachContent(
     title: 'Multi-Palace Chain',
     intro:
-        'One hundred stations across chained palaces. This is champion '
+        'One hundred stations across chained palaces. This is long '
         'distance — the same scale as international long events.',
     steps: [
       'Chain three rested palaces with strong bridges.',
@@ -827,10 +837,11 @@ const coachContent = <String, CoachContent>{
     source: 'Dresler et al. (2017); Wagner et al. (2021)',
   ),
   '17-2': CoachContent(
-    title: 'Supermemory Walk',
+    title: 'Grand Walk',
     intro:
         'One hundred words, one walk, recalled the next morning. Pass '
-        'this and you hold genuine spatial supermemory.',
+        'this and you can run a 100-station walk on practiced routes — '
+        'new routes and lasting skill need more walks over more weeks.',
     steps: [
       'Encode the evening before, slowly and cleanly.',
       'Sleep on it — consolidation does half the work.',
@@ -838,7 +849,7 @@ const coachContent = <String, CoachContent>{
     ],
     why:
         'Sleep consolidates spatial learning powerfully. Evening '
-        'encoding plus morning recall is the perfect test.',
+        'encoding plus morning recall is a searching test of it.',
     source: 'Gais, Lucas & Born (2006); Dresler et al. (2017)',
   ),
   '18-0': CoachContent(
@@ -943,7 +954,7 @@ const coachContent = <String, CoachContent>{
     ],
     why:
         'Spatial filing plus ordered tours is loci applied to images — '
-        'the highest-volume visual method known.',
+        'the standard high-volume visual method.',
     source: 'Maguire et al. (2003); Krokos et al. VR study',
   ),
   '20-1': CoachContent(
@@ -957,8 +968,8 @@ const coachContent = <String, CoachContent>{
       'Log which pictures faded and re-encode them.',
     ],
     why:
-        'Spaced retrieval is the highest-utility learning strategy '
-        'known. Pictures obey it like everything else.',
+        'Reviews rate spaced retrieval among the highest-utility '
+        'learning strategies. Pictures obey it like everything else.',
     source: 'Dunlosky et al. (2013); Landauer & Bjork (1978)',
   ),
   '20-2': CoachContent(
@@ -988,8 +999,8 @@ const coachContent = <String, CoachContent>{
     ],
     why:
         'Fixed-pace encoding prevents both rushing and dawdling. '
-        'World-class image events are won on pacing.',
-    source: 'Competition image-event formats',
+        'Timed image events are usually won on pacing.',
+    source: 'Timed image-event formats',
   ),
   '21-1': CoachContent(
     title: 'Abstract Finals',
@@ -1002,30 +1013,31 @@ const coachContent = <String, CoachContent>{
       'Reconstruct from memory before checking.',
     ],
     why:
-        'Effortful reconstruction under difficulty builds the strongest '
+        'Effortful reconstruction under difficulty builds strong '
         'traces. Desirable difficulty, fully loaded.',
     source: 'Bjork (1994); Paivio & Desrochers (1979)',
   ),
   '21-2': CoachContent(
-    title: 'Gallery Exam',
+    title: 'Gallery Review',
     intro:
         'Fifty pictures, hostile twins, next-day recall. Pass this and '
-        'your visual memory is supermemory — honestly earned.',
+        'you have finished the visual foundation on practiced pictures '
+        '— honestly earned, and honestly kept only with review.',
     steps: [
       'Encode the full archive the evening before.',
       'Sleep, then recall blind the next morning.',
       'Tour in order; mark and repair any blur.',
     ],
     why:
-        'Volume plus delay plus interference is the complete test. '
-        'Nothing about this exam is improvised anymore.',
+        'Volume plus delay plus interference is the full review. '
+        'Nothing about this set is improvised anymore.',
     source: 'Standing (1973); Dresler et al. (2017)',
   ),
   '22-0': CoachContent(
     title: 'Week Replay',
     intro:
         'A full week, day by day, backwards. Evening replay is the '
-        'cheapest supermemory habit ever measured.',
+        'simplest durable-memory habit in the literature.',
     steps: [
       'Each evening, replay the day backwards first.',
       'Extend one more day back every evening.',
@@ -1062,8 +1074,9 @@ const coachContent = <String, CoachContent>{
       'Review intentions each morning, score each night.',
     ],
     why:
-        'Implementation intentions ("when X, I do Y") multiply '
-        'follow-through — one of the sturdiest effects around.',
+        'In the studies, implementation intentions ("when X, I do Y") '
+        'sharply raised follow-through — a well-replicated effect. '
+        'Your results depend on practice.',
     source: 'Gollwitzer (1999) implementation intentions',
   ),
   '23-0': CoachContent(
@@ -1088,7 +1101,7 @@ const coachContent = <String, CoachContent>{
         'episodic binding: speaker plus content plus order.',
     steps: [
       'Tag each line with its speaker as you listen.',
-      'Replay key quotes verbatim right after.',
+      'Replay key quotes word-for-word right after.',
       'Reconstruct the full exchange the same evening.',
     ],
     why:
@@ -1099,8 +1112,8 @@ const coachContent = <String, CoachContent>{
   '23-2': CoachContent(
     title: 'Order Keeper',
     intro:
-        'Twelve steps, exact order, zero swaps. Procedures are pure '
-        'sequence — chaining plus loci keeps them perfect.',
+        'Twelve steps in order, practiced until steady. Procedures are '
+        'pure sequence — chaining plus loci keeps them ordered.',
     steps: [
       'Chain steps with actions, one link each.',
       'Anchor the chain on a short route for long lists.',
@@ -1138,7 +1151,7 @@ const coachContent = <String, CoachContent>{
     ],
     why:
         'Morning retrieval both measures consolidation and strengthens '
-        'it — testing is treatment, not just diagnosis.',
+        'it — testing builds memory, not just measures it.',
     source: 'Roediger & Karpicke (2006); Mazza et al. (2016)',
   ),
   '24-2': CoachContent(
@@ -1152,8 +1165,8 @@ const coachContent = <String, CoachContent>{
       'Retire only material recalled perfectly twice.',
     ],
     why:
-        'Expanding retrieval schedules were first proven decades ago '
-        'and remain the durability champions.',
+        'Expanding retrieval schedules were first shown decades ago '
+        'and remain the durability standard.',
     source: 'Landauer & Bjork (1978); Dunlosky et al. (2013)',
   ),
   '25-0': CoachContent(
@@ -1174,8 +1187,8 @@ const coachContent = <String, CoachContent>{
   '25-1': CoachContent(
     title: 'Milestone Exam',
     intro:
-        'Twenty life milestones with exact dates. Autobiographical '
-        'memory at this level feels like time travel.',
+        'Twenty life milestones in dated order. Autobiographical '
+        'recall at this level feels like time travel.',
     steps: [
       'List milestones, then date each one exactly.',
       'Attach one vivid scene per milestone.',
@@ -1183,22 +1196,23 @@ const coachContent = <String, CoachContent>{
     ],
     why:
         'Dated, scene-rich milestones form a self-reference scaffold — '
-        'the stickiest encoding known.',
+        'among the stickiest encodings studied.',
     source: 'Rogers, Kuiper & Kirker (1977) self-reference',
   ),
   '25-2': CoachContent(
-    title: 'Supermemory Journal',
+    title: 'Life Journal Review',
     intro:
-        'Any day, any detail, on demand — plus verbatim conversations '
-        'and a full season in order. The episodic crown.',
+        'Practiced days in detail, on demand — plus quoted conversations '
+        'and a full season in order. The episodic review.',
     steps: [
       'Take random dates and rebuild those days fully.',
-      'Quote week-old conversations verbatim.',
+      'Quote week-old conversations from memory.',
       'Walk a full season start to finish.',
     ],
     why:
-        'Random-date recall proves the archive is indexed, not just '
-        'rehearsed. That is genuine episodic supermemory.',
+        'Random-date recall shows the archive is indexed on practiced '
+        'dates, not just rehearsed. Keep the daily replay going to '
+        'keep it that way.',
     source: 'Tulving (1972); Gais et al. (2006)',
   ),
   '26-0': CoachContent(
@@ -1280,7 +1294,7 @@ const coachContent = <String, CoachContent>{
     title: 'Two-Way Chains',
     intro:
         'Knowing a word one way is half-knowing it. Bidirectional '
-        'recall closes the loop — no weak direction left.',
+        'recall closes the loop — both directions practiced.',
     steps: [
       'Test foreign-to-native first, then reverse.',
       'Drill the weak direction twice as much.',
@@ -1309,23 +1323,23 @@ const coachContent = <String, CoachContent>{
   '28-1': CoachContent(
     title: 'Speech Skeletons',
     intro:
-        'Fifteen minutes on stage, zero notes. A loci skeleton holds '
-        'your talk points in perfect order.',
+        'A fifteen-minute talk from a loci skeleton. Placed points '
+        'hold your talk in order — after rehearsal.',
     steps: [
       'Place one talk point per station.',
       'Picture each point as a scene, not words.',
       'Rehearse by walking, never by reading.',
     ],
     why:
-        'Loci-based speeches resist blanking: the next station always '
+        'Loci-based speeches resist blanking: the next station usually '
         'cues the next point. Orators knew this.',
     source: 'Classical rhetoric (method of loci); Wagner et al. (2021)',
   ),
   '28-2': CoachContent(
     title: 'Number Facts',
     intro:
-        'Dates, constants, figures — exact, every time. Peg numbers to '
-        'images and quantities stop slipping.',
+        'Dates, constants, figures — steady and exact on practiced '
+        'sets. Peg numbers to images and quantities stop slipping.',
     steps: [
       'Convert each figure with your Major codes.',
       'Stick the image onto the fact it belongs to.',
@@ -1339,7 +1353,7 @@ const coachContent = <String, CoachContent>{
   '29-0': CoachContent(
     title: 'Name Sprint',
     intro:
-        'Twenty names in five minutes — competition distance. Steady '
+        'Twenty names in five minutes — long distance. Steady '
         '3-step rhythm, no panic, no skips.',
     steps: [
       'Work faces in order at a fixed pace.',
@@ -1347,58 +1361,349 @@ const coachContent = <String, CoachContent>{
       'Write the sheet from memory once, commit.',
     ],
     why:
-        'Fixed-pace 3-step runs are exactly how name events are won. '
-        'Systems beat nerves.',
-    source: 'Competition name-event formats; Morris et al.',
+        'Fixed-pace 3-step runs are how timed name events are usually '
+        'won. Systems beat nerves.',
+    source: 'Timed name-event formats; Morris et al.',
   ),
   '29-1': CoachContent(
     title: 'Word Blitz',
     intro:
-        'Fifty words in fifteen minutes, verbatim. The championship '
+        'Fifty words in fifteen minutes, word-for-word. The long '
         'round — everything you learned, at speed.',
     steps: [
       'Keyword every word on first sight.',
       'Chain as you go; review the chain twice.',
-      'Recall in order, exact words only.',
+      'Recall in order, careful wording.',
     ],
     why:
-        'Championship word rounds reward automatic keywords plus '
-        'chained order. Both are trained now.',
-    source: 'Competition word-event formats; Atkinson & Raugh (1975)',
+        'Long word rounds reward automatic keywords plus '
+        'chained order. Both are practiced now.',
+    source: 'Timed word-event formats; Atkinson & Raugh (1975)',
   ),
   '29-2': CoachContent(
-    title: 'Supermemory Exam',
+    title: 'Final Review',
     intro:
         'Names plus words, delayed a day, under noise. Pass this and '
-        'your semantic memory is supermemory. Crown it.',
+        'you have finished the semantic foundation on trained sheets — '
+        'crown it with a retest next week, on new sheets.',
     steps: [
       'Encode mixed sheets the evening before.',
       'Recall blind the next day, in noise.',
       'Repair every miss, then re-test once.',
     ],
     why:
-        'Mixed, delayed, noisy recall is the complete semantic test. '
-        'Passing it means the skill is yours.',
+        'Mixed, delayed, noisy recall is the full semantic review. '
+        'Passing it means the method works for you on trained '
+        'material — new names always need fresh encoding.',
     source: 'Dresler et al. (2017); Dunlosky et al. (2013)',
+  ),
+  '30-0': CoachContent(
+    title: 'Live Voices',
+    intro:
+        'Same attention gate, real people. Three to five names at actual '
+        'meetings, with spelling asked and greetings repeated back.',
+    steps: [
+      'Full focus on each introduction; no inner rehearsal.',
+      'Repeat each name back in your greeting.',
+      'Next day, write the names from memory and check.',
+    ],
+    why:
+        'Real introductions carry noise, nerves, and speed — the exact '
+        'conditions the lab drills simplify. Practice meets them here.',
+    source: 'Craik et al. (1996)',
+  ),
+  '30-1': CoachContent(
+    title: 'Own Errands by Ear',
+    intro:
+        'Your real errand list, heard once and said back aloud. Rhythm '
+        'groups it; sealed paper checks it at the till.',
+    steps: [
+      'Have someone read your errands once; say them back aloud.',
+      'Group in rhythm and replay once before leaving.',
+      'Recall at the till before opening the sealed list.',
+    ],
+    why:
+        'Saying lists aloud plus rhythmic grouping holds heard items. '
+        'The sealed list turns shopping into scored recall.',
+    source: 'MacLeod et al. (2010); Purnell-Webb & Speelman (2008)',
+  ),
+  '30-2': CoachContent(
+    title: 'Evening Sound Log',
+    intro:
+        'Three evenings of replaying the names and numbers you heard '
+        'that day. Short sessions, written hard recalls, sleep after.',
+    steps: [
+      'Replay the day sounds in order before sleep.',
+      'Say each name and number once, aloud if you can.',
+      'Log the three hardest recalls each night.',
+    ],
+    why:
+        'Evening review plus sleep keeps more than morning study, and '
+        'the log shows which sounds need a second pass.',
+    source: 'Gais, Lucas & Born (2006)',
+  ),
+  '31-0': CoachContent(
+    title: 'Numbers You Dial',
+    intro:
+        'Two phone numbers you actually use, chunked into images and '
+        'dialed from memory for a week. Real digits, real payoff.',
+    steps: [
+      'Chunk each number in threes; image each chunk.',
+      'Link chunks into one scene per number.',
+      'Recall each morning before checking the contacts.',
+    ],
+    why:
+        'Chunked images turn long strings into short scenes. Daily '
+        'morning recall spaces the repetitions for free.',
+    source: 'Miller (1956); Ericsson, Chase & Faloon (1980)',
+  ),
+  '31-1': CoachContent(
+    title: 'Sealed-List Shopping',
+    intro:
+        'Four then eight items, sealed in your pocket, recalled at the '
+        'till. The paper list is the answer key, not a crutch.',
+    steps: [
+      'Image the list in groups of three as short scenes.',
+      'Walk the scenes once before entering the shop.',
+      'Recall everything at the till, then open the paper.',
+    ],
+    why:
+        'Retrieval at the till — not re-reading in the aisle — builds '
+        'the recall path you will use next time.',
+    source: 'Cowan (2001); Roediger & Karpicke (2006)',
+  ),
+  '31-2': CoachContent(
+    title: 'Dates That Matter',
+    intro:
+        'Five birthdays or anniversaries fixed with face-linked images, '
+        'quizzed by a friend in random order.',
+    steps: [
+      'Image each date with its person photo or face cue.',
+      'Recall all five each evening for a week.',
+      'Ask someone to quiz you shuffled; fix misses same night.',
+    ],
+    why:
+        'Face-linked date images reuse the paired-associate path on '
+        'material you will actually be asked about.',
+    source: 'Ericsson & Kintsch (1995)',
+  ),
+  '32-0': CoachContent(
+    title: 'Your Home Route',
+    intro:
+        'Ten stations in your real home, door to bedroom, walked blind. '
+        'This route becomes your default palace for own lists.',
+    steps: [
+      'Write 10 stations in strict order on paper.',
+      'Walk twice naming stations, no items yet.',
+      'Place 10 words, one moving scene each, and re-walk.',
+    ],
+    why:
+        'A known route in fixed order removes the order problem: the '
+        'walk carries the sequence, images carry the items.',
+    source: 'Dresler et al. (2017)',
+  ),
+  '32-1': CoachContent(
+    title: 'Your Street Route',
+    intro:
+        'Fifteen distinct outdoor spots you pass often. Sharp spots '
+        'only — similar stations blur into each other.',
+    steps: [
+      'Walk and pick 15 sharp, distinct spots in order.',
+      'Name each in two words; write the full order.',
+      'Place 15 study or work items along the walk.',
+    ],
+    why:
+        'Distinct loci cut interference between items. Outdoor routes '
+        'stay stable for years once fixed.',
+    source: 'Maguire et al. (2003)',
+  ),
+  '32-2': CoachContent(
+    title: 'Two Routes, Twenty Items',
+    intro:
+        'A real 20-item list of yours split across both routes, walked '
+        'in the evening and recalled in writing next morning.',
+    steps: [
+      'Split 10 home plus 10 street; one scene per station.',
+      'Evening walk of both routes before sleep.',
+      'Morning written recall; re-walk only the misses.',
+    ],
+    why:
+        'Evening encoding plus morning recall uses sleep between reps. '
+        'Teaching the walk once more locks the order.',
+    source: 'Wagner et al. (2021); Mazza et al. (2016)',
+  ),
+  '33-0': CoachContent(
+    title: 'Work Tasks Pictured',
+    intro:
+        'Six abstract tasks turned into big moving pictures on room '
+        'corners, recalled at noon against your list.',
+    steps: [
+      'Picture each abstract task as one concrete scene.',
+      'Make it big, bright, and moving; attach to a corner.',
+      'At noon, list all six from the pictures, then check.',
+    ],
+    why:
+        'Concrete pictures give abstract tasks a second code. Noon '
+        'recall tests the pictures, not the paper.',
+    source: 'Paivio dual-coding; Shepard (1967)',
+  ),
+  '33-1': CoachContent(
+    title: 'Photo Holds Overnight',
+    intro:
+        'One busy photo studied once, six details recalled next day. '
+        'Exaggerated tags keep similar details apart.',
+    steps: [
+      'Name six details aloud in one viewing.',
+      'Exaggerate one feature per detail on purpose.',
+      'Rebuild the photo from memory next day before checking.',
+    ],
+    why:
+        'Overnight detail recall trains durable picture traces. Fresh '
+        'photos each round keep the test honest.',
+    source: 'Standing (1973)',
+  ),
+  '33-2': CoachContent(
+    title: 'Meeting Strips',
+    intro:
+        'Five meeting points imaged as said and linked into one strip, '
+        'replayed next morning against the minutes.',
+    steps: [
+      'Image each point the moment you hear it.',
+      'Link 1→2→3→4→5 with small actions.',
+      'Replay the strip before leaving, again next morning.',
+    ],
+    why:
+        'Linked images carry both items and order out of meetings. The '
+        'minutes are the answer key.',
+    source: 'Von Restorff (1933)',
+  ),
+  '34-0': CoachContent(
+    title: 'Study Chains',
+    intro:
+        'Ten study terms as one silly adventure, retold aloud the next '
+        'day. One chain only — branches snap.',
+    steps: [
+      'Chain 1→2→3 in order with actions, never branches.',
+      'Retell the story aloud right after building it.',
+      'Retell next morning; note where the chain broke.',
+    ],
+    why:
+        'Narrative chaining adds order plus meaning to bare terms. The '
+        'break point shows which link needs a stronger scene.',
+    source: 'Craik & Tulving (1975)',
+  ),
+  '34-1': CoachContent(
+    title: 'Seven Nights Logged',
+    intro:
+        'Seven evenings of backward day replay with a short log. Day 8 '
+        'recalls day 1 from cue words only.',
+    steps: [
+      'Replay each day backwards, scene by scene.',
+      'Pause on faces, numbers, and exact words.',
+      'Log the three hardest recalls every night.',
+    ],
+    why:
+        'Expecting the nightly replay changes what the day encodes. '
+        'The log turns evenings into spaced retrieval.',
+    source: 'Wilhelm et al. (2011); Gais et al. (2006)',
+  ),
+  '34-2': CoachContent(
+    title: 'Retold Aloud',
+    intro:
+        'One article read once like a short movie, retold aloud same '
+        'evening and again next day. Listener marks the skips.',
+    steps: [
+      'Read once, no re-reading, scenes playing as you go.',
+      'Retell who did what with numbers, aloud.',
+      'Next-day retell; compare which skips stayed skipped.',
+    ],
+    why:
+        'Same-evening plus next-day retells beat re-reading by a wide '
+        'margin, and the gap grows with delay.',
+    source: 'Roediger & Karpicke (2006); Rowland (2014)',
+  ),
+  '35-0': CoachContent(
+    title: 'Names at Events',
+    intro:
+        'Five real names at one gathering with the 3-step method, two '
+        'hellos by name later, full list next day.',
+    steps: [
+      'Feature first, hook image second, interaction third.',
+      'Greet two people by name before leaving.',
+      'List all five from the features next day.',
+    ],
+    why:
+        'Real events add the pressure app sheets skip. Greeting by name '
+        'is the scored rep.',
+    source: 'Morris et al. face-name mnemonic',
+  ),
+  '35-1': CoachContent(
+    title: 'Two Weeks of Words',
+    intro:
+        'Twenty words you actually need, two a day with keyword scenes, '
+        'tested both directions daily for two weeks.',
+    steps: [
+      'Two new words daily, each with one keyword scene.',
+      'Test foreign→meaning and back every day with feedback.',
+      'Review misses same evening and next morning.',
+    ],
+    why:
+        'Daily two-way testing with feedback keeps keyword pairs alive. '
+        'Day-14 shuffled test shows what held.',
+    source: 'Atkinson & Raugh (1975); Beaton et al. (1995)',
+  ),
+  '35-2': CoachContent(
+    title: 'Talks and Facts Out',
+    intro:
+        'A real 5-point talk from a loci skeleton plus 10 own facts in '
+        'rooms. Listener repeats the points; stations get called.',
+    steps: [
+      'Place talk points on stations; walk twice the night before.',
+      'Deliver with no notes; note where you paused.',
+      'File 10 own facts; answer them at random stations.',
+    ],
+    why:
+        'Talks and facts share one skill: ordered points on a walk. '
+        'Listener checks keep the scoring honest.',
+    source: 'Dresler et al. (2017); Chi et al. (1994)',
   ),
 };
 
-/// Coach content for a section, with a safe fallback.
-CoachContent coachFor(int chapter, int section) {
-  return coachContent['$chapter-$section'] ??
-      const CoachContent(
-        title: 'Memory Drill',
-        intro:
-            'Encode with full attention, then pull it back from memory. '
-            'Retrieval is the workout.',
-        steps: [
-          'Study the items once, with full focus.',
-          'Hide them and recall everything.',
-          'Check, fix errors, recall once more.',
-        ],
-        why:
-            'Testing beats re-studying, and feedback roughly doubles the '
-            'gain.',
-        source: 'Rowland (2014) meta-analysis',
-      );
+CoachContent coachFor(int chapter, int section, [String locale = 'en']) {
+  if (locale == 'hu') {
+    return coachContentHu['$chapter-$section'] ?? _coachFallbackHu;
+  }
+  return coachContent['$chapter-$section'] ?? _coachFallbackEn;
 }
+
+const _coachFallbackEn = CoachContent(
+  title: 'Memory Drill',
+  intro:
+      'Encode with full attention, then pull it back from memory. '
+      'Retrieval is the workout.',
+  steps: [
+    'Study the items once, with full focus.',
+    'Hide them and recall everything.',
+    'Check, fix errors, recall once more.',
+  ],
+  why:
+      'Testing beats re-studying, and feedback roughly doubles the '
+      'gain.',
+  source: 'Rowland (2014) meta-analysis',
+);
+
+const _coachFallbackHu = CoachContent(
+  title: 'Memóriagyakorlat',
+  intro:
+      'Véss be teljes figyelemmel, aztán húzd vissza emlékezetből. '
+      'A felidézés az edzés.',
+  steps: [
+    'Tanulmányozd egyszer a tételeket, teljes fókusszal.',
+    'Rejtsd el őket, és idézz fel mindent.',
+    'Ellenőrizz, javítsd a hibákat, idézd fel még egyszer.',
+  ],
+  why:
+      'A tesztelés veri az újratanulást, a visszajelzés pedig nagyjából '
+      'megduplázza a nyereséget.',
+  source: 'Rowland (2014) meta-analysis',
+);

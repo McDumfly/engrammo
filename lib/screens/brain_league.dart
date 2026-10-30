@@ -5,7 +5,10 @@ import '../services/app_feedback.dart';
 
 import 'package:hugeicons/hugeicons.dart';
 
-import '../models/battle_invites.dart';
+import '../l10n/app_localizations.dart';
+import '../models/battle_match.dart' show battleDateLabelIn;
+import '../services/bot_arena_store.dart';
+import '../widgets/ai_help_button.dart';
 import 'friend_profile.dart';
 
 import 'memory_profile.dart' show violet, violetDark, teal, amber, coral, sky;
@@ -84,7 +87,7 @@ const brainTiers = [
   ),
   BrainTier(
     'Sage III',
-    'Masterful memory',
+    'Masterful practice',
     Color(0xFFB14BFF),
     HugeIcons.strokeRoundedBrain03,
     18,
@@ -98,21 +101,21 @@ const brainTiers = [
   ),
   BrainTier(
     'Genius II',
-    'Master of connections',
+    'Master of combos',
     Color(0xFF6D28D9),
     HugeIcons.strokeRoundedBrainCircuit,
     22,
   ),
   BrainTier(
     'Genius III',
-    'Unmatched memory talent',
+    'Unmatched league form',
     Color(0xFF4C1D95),
     HugeIcons.strokeRoundedBrainCircuit,
     24,
   ),
   BrainTier(
     'Quantum Mind',
-    'Engram-fast, almost limitless recall',
+    'Engram-fast, relentless practice',
     Color(0xFF2E4BFF),
     HugeIcons.strokeRoundedAtom01,
     26,
@@ -126,31 +129,39 @@ const brainTiers = [
   ),
 ];
 
-/// A profil a ligát mindig innen olvassa, hogy ne tudjon
-/// nem létező liganév bekerülni (pl. a korábbi kézzel írt "Gold").
-/// Friss fiók az első ligában kezd.
-String get myBrainTierName => brainTiers.first.name;
+String brainTierName(int index, [String locale = 'en']) =>
+    trFor(locale, 'blg_tier_${index.clamp(0, brainTiers.length - 1)}_name');
 
-/// A saját helyezés a heti táblán (a profil 4. kártyája ezt mutatja).
-/// Backend nélkül 0 = még nincs rangsorolás.
-int get myLeagueRank => 0;
+String brainTierTagline(int index, [String locale = 'en']) =>
+    trFor(locale, 'blg_tier_${index.clamp(0, brainTiers.length - 1)}_tag');
+
+String get myBrainTierName => botArena.cachedTierName(
+  brainTierName(0, AppLocalizations.localeCode),
+);
+
+int get myLeagueRank => botArena.cachedRank;
 
 class _Rival {
   final String name;
   final int xp;
   final int streak;
-  const _Rival(this.name, this.xp, this.streak);
+  final bool isMe;
+  final String? botId;
+  const _Rival(this.name, this.xp, this.streak, {this.isMe = false, this.botId});
 }
 
-/// Friss fióknál üres: a ranglista a backendre (Firestore/leaderboard)
-/// kerül, mock nevek és pontszámok nélkül.
-const _rivals = <_Rival>[];
-
-/// Friss fióknál üres: a barátlista a backendre kerül.
-const _friends = <_Rival>[];
+List<_Rival> _leagueRivals() {
+  final season = botArena.season;
+  if (season == null) return const [];
+  return [
+    for (final e in season.sorted)
+      _Rival(e.name, e.xp, e.streak, isMe: e.isMe, botId: e.isBot ? e.id : null),
+  ];
+}
 
 class BrainLeaguePage extends StatefulWidget {
-  const BrainLeaguePage({super.key});
+  final int initialTab;
+  const BrainLeaguePage({super.key, this.initialTab = 0});
 
   @override
   State<BrainLeaguePage> createState() => _BrainLeaguePageState();
@@ -162,21 +173,43 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
   late final PageController _tiers;
   late final ScrollController _listScroll;
 
-  // Friss fiók az első ligában kezd; a magasabb ligák zároltak,
-  // amíg a backend nem sorolja feljebb.
-  int get _myTier => 0;
+  int get _myTier => botArena.cachedTierIndex.clamp(0, brainTiers.length - 1);
   int _selected = 0;
 
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 2, vsync: this);
+    _tabs = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTab.clamp(0, 1),
+    );
     _tiers = PageController(viewportFraction: 0.3, initialPage: _myTier);
     _listScroll = ScrollController();
+    _selected = _myTier;
+    botArena.addListener(_refreshArena);
+    botArena.ensureLoaded().then((_) {
+      if (!mounted) return;
+      _refreshArena();
+    });
+  }
+
+  void _refreshArena() {
+    if (!mounted) return;
+    botArena.setCachedTierName(
+      brainTierName(_myTier, AppLocalizations.localeCode),
+    );
+    setState(() {
+      if (_selected == 0 && _myTier != 0 && _tiers.hasClients) {
+        _tiers.jumpToPage(_myTier);
+      }
+      _selected = _selected.clamp(0, brainTiers.length);
+    });
   }
 
   @override
   void dispose() {
+    botArena.removeListener(_refreshArena);
     _tabs.dispose();
     _tiers.dispose();
     _listScroll.dispose();
@@ -195,13 +228,10 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
   @override
   Widget build(BuildContext context) {
     final daysLeft = 8 - DateTime.now().weekday;
-    final meta = brainTiers[_selected.clamp(0, brainTiers.length - 1)];
     final locked = _selected > _myTier && !_isTournament;
     final isTop = !locked && _isTop;
     final isTournament = !locked && _isTournament;
-    // A lap mindig beágyazva fut a közös StatsTopBar alatt, ami már
-    // SafeArea-ban van: a váz és a fejléc sem számolhat újra
-    // státuszsáv-helyet, különben nagy üres sáv marad felül.
+    final rivals = _leagueRivals();
     return Scaffold(
       primary: false,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -212,7 +242,7 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
         scrolledUnderElevation: 0,
         automaticallyImplyLeading: false,
         title: Text(
-          'Leaderboard',
+          tr('blg_title'),
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.bold,
@@ -220,6 +250,10 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
           ),
         ),
         centerTitle: true,
+        actions: const [
+          AiHelpButton(topic: AiHelpTopics.league),
+          SizedBox(width: 12),
+        ],
         bottom: TabBar(
           controller: _tabs,
           dividerColor: Colors.transparent,
@@ -228,9 +262,9 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
           labelColor: Theme.of(context).colorScheme.onSurface,
           unselectedLabelColor: context.mutedText,
           labelStyle: const TextStyle(fontWeight: FontWeight.w800),
-          tabs: const [
-            Tab(text: 'League'),
-            Tab(text: 'Friends'),
+          tabs: [
+            Tab(text: tr('blg_tab_league')),
+            Tab(text: tr('blg_tab_friends')),
           ],
         ),
       ),
@@ -250,7 +284,12 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
                           Text(
                             locked
                                 ? '???'
-                                : (isTournament ? 'Tournament' : meta.name),
+                                : (isTournament
+                                      ? tr('blg_tournament')
+                                      : brainTierName(
+                                          _selected,
+                                          AppLocalizations.localeCode,
+                                        )),
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.onSurface,
                               fontWeight: FontWeight.w900,
@@ -261,35 +300,20 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
                           if (!locked)
                             Text(
                               isTournament
-                                  ? 'The top 8 play for the title'
-                                  : meta.tagline,
+                                  ? tr('blg_tournament_sub')
+                                  : brainTierTagline(
+                                      _selected,
+                                      AppLocalizations.localeCode,
+                                    ),
                               style: TextStyle(
                                 color: context.mutedText,
                                 fontSize: 13,
                               ),
                             ),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              HugeIcon(
-                                icon: HugeIcons.strokeRoundedClock01,
-                                color: context.mutedText,
-                                size: 15,
-                                strokeWidth: 2,
-                              ),
-                              const SizedBox(width: 5),
-                              Text(
-                                (isTop || isTournament)
-                                    ? '$daysLeft days until the weekly tournament'
-                                    : '$daysLeft days left this week',
-                                style: TextStyle(
-                                  color: context.mutedText,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 12,
-                                  letterSpacing: 0.4,
-                                ),
-                              ),
-                            ],
+                          const SizedBox(height: 8),
+                          _SeasonCountdownChip(
+                            daysLeft: daysLeft,
+                            rank: myLeagueRank,
                           ),
                         ],
                       ),
@@ -336,85 +360,258 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
                   if (locked)
                     const SliverToBoxAdapter(child: _LockedCard())
                   else if (isTournament)
-                    const SliverToBoxAdapter(child: _TournamentCard())
-                  else if (_rivals.isEmpty)
+                    SliverToBoxAdapter(
+                      child: _TournamentCard(qualifiers: rivals),
+                    )
+                  else if (rivals.isEmpty)
                     const SliverToBoxAdapter(child: _EmptyBoard())
                   else if (isTop)
                     SliverList.builder(
-                      itemCount: _rivals.length + 1,
+                      itemCount: rivals.length + 1,
                       itemBuilder: (context, slot) {
                         if (slot == 20) return const _ZoneDivider(up: false);
                         final row = slot > 20 ? slot - 1 : slot;
-                        final rival = _rivals[row];
+                        final rival = rivals[row];
                         final rank = row + 1;
                         return _BoardRow(
                           key: ValueKey('league-$rank'),
                           rank: rank,
                           rival: rival,
-                          isMe: false,
+                          isMe: rival.isMe,
                         );
                       },
                     )
                   else
                     SliverList.builder(
-                      itemCount: _rivals.length + 2,
+                      itemCount: rivals.length + 2,
                       itemBuilder: (context, slot) {
                         if (slot == 10) return const _ZoneDivider(up: true);
                         if (slot == 21) return const _ZoneDivider(up: false);
                         final row = slot > 21
                             ? slot - 2
                             : (slot > 10 ? slot - 1 : slot);
-                        final rival = _rivals[row];
+                        final rival = rivals[row];
                         final rank = row + 1;
                         return _BoardRow(
                           key: ValueKey('league-$rank'),
                           rank: rank,
                           rival: rival,
-                          isMe: false,
+                          isMe: rival.isMe,
                         );
                       },
                     ),
                   const SliverToBoxAdapter(child: SizedBox(height: 120)),
                 ],
               ),
-              _friends.isEmpty
-                  ? const Center(child: _EmptyBoard())
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
-                      itemCount: _friends.length,
-                      itemBuilder: (context, i) {
-                        final f = _friends[i];
-                        return GestureDetector(
-                          onTap: () {
-                            AppFeedback.light();
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => FriendProfilePage(
-                                  friend: BattleFriend(
-                                    name: f.name,
-                                    xp: f.xp,
-                                    streak: f.streak,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                          child: _BoardRow(
-                            key: ValueKey('friend-$i'),
-                            rank: i + 1,
-                            rival: f,
-                            isMe: false,
-                          ),
-                        );
-                      },
-                    ),
+              const _FriendsTab(),
             ],
           ),
     );
   }
 }
 
-/// Üres ranglista-állapot backend nélkül: nincs mock sor.
+class _FriendsTab extends StatelessWidget {
+  const _FriendsTab();
+
+  void _openBot(BuildContext context, String botId) {
+    final bot = botArena.botById(botId);
+    if (bot == null) return;
+    AppFeedback.light();
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => FriendProfilePage(
+          friend: botArena.botToFriend(bot),
+          botId: bot.id,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: botArena,
+      builder: (context, _) {
+        final friends = botArena.friendBots();
+        final suggestions = botArena.suggestions();
+        final feed = botArena.feed;
+        if (!botArena.hasSeason && friends.isEmpty) {
+          return const Center(child: _EmptyBoard());
+        }
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(0, 16, 0, 120),
+          children: [
+            _FriendsSectionTitle(
+              title: tr('blg_suggest_title'),
+              subtitle: tr('blg_suggest_sub'),
+            ),
+            for (var i = 0; i < suggestions.length; i++)
+              GestureDetector(
+                onTap: () => _openBot(context, suggestions[i].id),
+                child: _BoardRow(
+                  key: ValueKey('suggest-${suggestions[i].id}'),
+                  rank: i + 1,
+                  rival: _Rival(
+                    suggestions[i].name,
+                    suggestions[i].xp,
+                    suggestions[i].streak,
+                  ),
+                  isMe: false,
+                ),
+              ),
+            _FriendsSectionTitle(
+              title: tr('blg_friends_n', {'n': friends.length}),
+              subtitle: friends.isEmpty
+                  ? tr('blg_friends_empty_sub')
+                  : tr('blg_friends_sub'),
+            ),
+            if (friends.isEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                child: Text(
+                  tr('blg_no_friends'),
+                  style: TextStyle(color: context.mutedText, fontSize: 13),
+                ),
+              ),
+            for (var i = 0; i < friends.length; i++)
+              GestureDetector(
+                onTap: () => _openBot(context, friends[i].id),
+                child: _BoardRow(
+                  key: ValueKey('friend-${friends[i].id}'),
+                  rank: i + 1,
+                  rival: _Rival(
+                    friends[i].name,
+                    friends[i].xp,
+                    friends[i].streak,
+                  ),
+                  isMe: false,
+                ),
+              ),
+            _FriendsSectionTitle(
+              title: tr('blg_activity'),
+              subtitle: tr('blg_activity_sub'),
+            ),
+            if (feed.isEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                child: Text(
+                  tr('blg_no_feed'),
+                  style: TextStyle(color: context.mutedText, fontSize: 13),
+                ),
+              ),
+            for (final event in feed.take(20))
+              Container(
+                margin: const EdgeInsets.fromLTRB(20, 4, 20, 4),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: context.cardBg,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: context.hairline, width: 1.5),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      event.text,
+                      style: TextStyle(
+                        color: context.inkText,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      battleDateLabelIn(
+                        AppLocalizations.localeCode,
+                        event.at,
+                      ),
+                      style: TextStyle(
+                        color: context.mutedText,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _FriendsSectionTitle extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  const _FriendsSectionTitle({required this.title, required this.subtitle});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 10, 20, 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+              fontWeight: FontWeight.w900,
+              fontSize: 16,
+            ),
+          ),
+          Text(
+            subtitle,
+            style: TextStyle(color: context.mutedText, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SeasonCountdownChip extends StatelessWidget {
+  final int daysLeft;
+  final int rank;
+  const _SeasonCountdownChip({required this.daysLeft, required this.rank});
+
+  @override
+  Widget build(BuildContext context) {
+    final label = rank > 0
+        ? tr('blg_days_rank', {'d': daysLeft, 'r': rank})
+        : tr('blg_days_left', {'d': daysLeft});
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: violet.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(color: violet.withValues(alpha: 0.45)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const HugeIcon(
+            icon: HugeIcons.strokeRoundedClock01,
+            color: violetDark,
+            size: 14,
+            strokeWidth: 2.2,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: violetDark,
+              fontWeight: FontWeight.w800,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _EmptyBoard extends StatelessWidget {
   const _EmptyBoard();
 
@@ -426,7 +623,7 @@ class _EmptyBoard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'No scores yet',
+            tr('blg_empty_title'),
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w900,
@@ -435,7 +632,7 @@ class _EmptyBoard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Play games and your results will appear here.',
+            tr('blg_empty_body'),
             textAlign: TextAlign.center,
             style: TextStyle(color: context.mutedText, fontSize: 13),
           ),
@@ -491,10 +688,6 @@ class _TournamentTierCellState extends State<_TournamentTierCell>
               height: size + 24,
               child: AnimatedBuilder(
               animation: _ctrl,
-              // A statikus kör a child-ben épül fel egyszer; képkockánként
-              // csak a vékony orbit-csík festődik újra. Az árnyék is
-              // statikus: az animált blurRadius minden tickben új
-              // raszterréteget kényszerített volna ki Androidon.
               child: Container(
                 width: size,
                 height: size,
@@ -543,7 +736,7 @@ class _TournamentTierCellState extends State<_TournamentTierCell>
             ),
             const SizedBox(height: 6),
             Text(
-              'Tournament',
+              tr('blg_tournament'),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -574,7 +767,6 @@ class _TierCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final meta = brainTiers[index];
     return GestureDetector(
       onTap: onTap,
       child: AnimatedOpacity(
@@ -588,7 +780,9 @@ class _TierCell extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              locked ? '???' : meta.name,
+              locked
+                  ? '???'
+                  : brainTierName(index, AppLocalizations.localeCode),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -817,7 +1011,7 @@ class _ZoneDivider extends StatelessWidget {
               border: Border.all(color: color.withValues(alpha: 0.5)),
             ),
             child: Text(
-              up ? 'Promotion zone' : 'Relegation zone',
+              up ? tr('blg_promo') : tr('blg_releg'),
               style: TextStyle(
                 color: up ? const Color(0xFF0B7E72) : const Color(0xFFB3261E),
                 fontWeight: FontWeight.w800,
@@ -933,8 +1127,8 @@ class _BoardRow extends StatelessWidget {
                           color: violet,
                           borderRadius: BorderRadius.circular(99),
                         ),
-                        child: const Text(
-                          'You',
+                        child: Text(
+                          tr('blg_you'),
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w900,
@@ -955,11 +1149,25 @@ class _BoardRow extends StatelessWidget {
                     ),
                     const SizedBox(width: 3),
                     Text(
-                      '${rival.streak}-day streak',
+                      tr('blg_streak', {'n': rival.streak}),
                       style: TextStyle(color: context.mutedText, fontSize: 11),
                     ),
                   ],
                 ),
+                if (isMe && botArena.rewards.totalBonusXp > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      tr('blg_bonus', {
+                        'n': botArena.rewards.totalBonusXp,
+                      }),
+                      style: const TextStyle(
+                        color: Color(0xFF16A34A),
+                        fontWeight: FontWeight.w800,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -985,13 +1193,14 @@ class _BoardRow extends StatelessWidget {
 }
 
 class _TournamentCard extends StatelessWidget {
-  const _TournamentCard();
+  final List<_Rival> qualifiers;
+  const _TournamentCard({this.qualifiers = const []});
 
   @override
   Widget build(BuildContext context) {
     const gold = Color(0xFFFFC400);
     const deep = Color(0xFF0B1026);
-    final qualifiers = _rivals.take(8).toList();
+    final eight = qualifiers.take(8).toList();
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
       child: Container(
@@ -1031,22 +1240,22 @@ class _TournamentCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 10),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Tournament',
-                        style: TextStyle(
+                        tr('blg_tournament'),
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w900,
                           fontSize: 16,
                         ),
                       ),
-                      SizedBox(height: 2),
+                      const SizedBox(height: 2),
                       Text(
-                        'No promotion here — you play for the title',
-                        style: TextStyle(
+                        tr('blg_tourn_sub'),
+                        style: const TextStyle(
                           color: Color(0xFFB9C0D8),
                           fontSize: 12,
                         ),
@@ -1063,8 +1272,8 @@ class _TournamentCard extends StatelessWidget {
                     color: gold,
                     borderRadius: BorderRadius.circular(99),
                   ),
-                  child: const Text(
-                    'TOP 8',
+                  child: Text(
+                    tr('blg_top8'),
                     style: TextStyle(
                       color: deep,
                       fontWeight: FontWeight.w900,
@@ -1075,8 +1284,8 @@ class _TournamentCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            const Text(
-              'At the end of the week the top 8 decide the champion in a knockout bracket. Quarterfinal, semifinal, final.',
+            Text(
+              tr('blg_tourn_body'),
               style: TextStyle(
                 color: Color(0xFFD6DBEC),
                 fontSize: 12,
@@ -1084,7 +1293,7 @@ class _TournamentCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            _TournamentBracket(qualifiers: qualifiers),
+            _TournamentBracket(qualifiers: eight),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
@@ -1093,34 +1302,32 @@ class _TournamentCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(color: gold.withValues(alpha: 0.5)),
               ),
-              child: const Row(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  HugeIcon(
+                  const HugeIcon(
                     icon: HugeIcons.strokeRoundedTrophy,
                     color: gold,
                     size: 20,
                     strokeWidth: 2,
                   ),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Winner's reward",
-                          style: TextStyle(
+                          tr('blg_reward'),
+                          style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w900,
                             fontSize: 13,
                           ),
                         ),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
-                          'The champion earns a "2026 tournament winner" badge on their profile. '
-                          'Further wins don\'t add a new badge — the multiplier grows instead: '
-                          '"2x 2026 tournament winner".',
-                          style: TextStyle(
+                          tr('blg_reward_body'),
+                          style: const TextStyle(
                             color: Color(0xFFD6DBEC),
                             fontSize: 12,
                             height: 1.4,
@@ -1152,17 +1359,15 @@ class _TournamentBracket extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Backend nélkül nincs kitöltött ág: üres állapotot mutatunk.
     if (qualifiers.length < 8) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 8),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
         child: Text(
-          'No tournament field yet — play league games to qualify.',
-          style: TextStyle(color: Color(0xFFB9C0D8), fontSize: 12),
+          tr('blg_no_field'),
+          style: const TextStyle(color: Color(0xFFB9C0D8), fontSize: 12),
         ),
       );
     }
-    // Seeded draw: 1v8, 4v5, 2v7, 3v6.
     final qf = [
       [qualifiers[0], qualifiers[7]],
       [qualifiers[3], qualifiers[4]],
@@ -1178,7 +1383,7 @@ class _TournamentBracket extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _BracketRoundColumn(
-            title: 'Quarterfinal',
+            title: tr('blg_qf'),
             children: [
               for (var i = 0; i < 4; i++) ...[
                 _BracketMatch(
@@ -1194,24 +1399,24 @@ class _TournamentBracket extends StatelessWidget {
           ),
           _BracketLinks(left: qfCenters, right: sfCenters),
           _BracketRoundColumn(
-            title: 'Semifinal',
-            children: const [
-              SizedBox(height: 36),
-              _BracketMatch.tbd(label: 'SF 1'),
-              SizedBox(height: 104),
-              _BracketMatch.tbd(label: 'SF 2'),
-              SizedBox(height: 36),
+            title: tr('blg_sf'),
+            children: [
+              const SizedBox(height: 36),
+              _BracketMatch.tbd(label: tr('blg_sf1')),
+              const SizedBox(height: 104),
+              _BracketMatch.tbd(label: tr('blg_sf2')),
+              const SizedBox(height: 36),
             ],
           ),
           _BracketLinks(left: sfCenters, right: [finalCenter]),
           _BracketRoundColumn(
-            title: 'Final',
-            children: const [
-              SizedBox(height: 120),
-              _BracketMatch.tbd(label: 'Final'),
-              SizedBox(height: 8),
-              _ChampionCard(),
-              SizedBox(height: 56),
+            title: tr('blg_final'),
+            children: [
+              const SizedBox(height: 120),
+              _BracketMatch.tbd(label: tr('blg_final')),
+              const SizedBox(height: 8),
+              const _ChampionCard(),
+              const SizedBox(height: 56),
             ],
           ),
         ],
@@ -1271,7 +1476,6 @@ class _BracketLinks extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Offset by the round header (label + gap) above the columns.
     const headerOffset = 22.0 + 8;
     return Padding(
       padding: const EdgeInsets.only(top: headerOffset),
@@ -1305,7 +1509,6 @@ class _BracketLinksPainter extends CustomPainter {
         ..lineTo(midX, yB)
         ..lineTo(0, yB);
       canvas.drawPath(path, paint);
-      // Outgoing stub to the next round's match center.
       canvas.drawLine(Offset(midX, yR), Offset(size.width, yR), paint);
     }
   }
@@ -1365,8 +1568,6 @@ class _BracketSeed extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const gold = Color(0xFFFFC400);
-    // NOTE: sample bracket until the leaderboard backend lands — then
-    // highlight the signed-in user's team here.
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
@@ -1387,7 +1588,7 @@ class _BracketSeed extends StatelessWidget {
           if (seed != null) const SizedBox(width: 6),
           Expanded(
             child: Text(
-              team?.name ?? (label ?? 'TBD'),
+              team?.name ?? (label ?? tr('blg_tbd')),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -1426,19 +1627,19 @@ class _ChampionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: gold.withValues(alpha: 0.7)),
       ),
-      child: const Row(
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          HugeIcon(
+          const HugeIcon(
             icon: HugeIcons.strokeRoundedTrophy,
             color: gold,
             size: 18,
             strokeWidth: 2,
           ),
-          SizedBox(width: 6),
+          const SizedBox(width: 6),
           Text(
-            'Champion',
-            style: TextStyle(
+            tr('blg_champion'),
+            style: const TextStyle(
               color: gold,
               fontWeight: FontWeight.w900,
               fontSize: 12,
@@ -1476,7 +1677,7 @@ class _LockedCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'This league is still locked',
+            tr('blg_locked_title'),
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface,
@@ -1486,7 +1687,7 @@ class _LockedCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Earn more XP, climb higher, and the next mind tier unlocks.',
+            tr('blg_locked_body'),
             textAlign: TextAlign.center,
             style: TextStyle(color: context.mutedText, fontSize: 13),
           ),

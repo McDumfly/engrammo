@@ -1,53 +1,70 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'firebase_options.dart';
+import 'models/battle_invites.dart';
 import 'services/app_settings.dart';
 import 'services/auth_service.dart';
+import 'services/bot_arena_store.dart';
 import 'services/env_loader.dart';
 import 'services/memory_store.dart';
+import 'services/meta_ai_service.dart';
 import 'theme/app_theme.dart';
+import 'widgets/connectivity_gate.dart';
 import 'screens/auth_screen.dart';
 import 'screens/learning_path.dart';
 import 'screens/onboarding.dart';
+import 'screens/profile_setup.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Firebase: a `flutterfire configure` által legenerált
-  // firebase_options.dart + natív fájlok (google-services.json,
-  // GoogleService-Info.plist) alapján inicializál. Ha valamelyik
-  // hiányzik vagy a platform nem támogatott, az app offline
-  // módban indul tovább, nem omlik össze.
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
   } catch (e) {
-    // Linuxon (vagy más nem konfigurált platformon) a
-    // currentPlatform dobhat: ilyenkor a natív konfiggal próbálkozunk.
     if (e is UnsupportedError) {
       try {
         await Firebase.initializeApp();
       } catch (e2) {
-        debugPrint('Firebase init kihagyva (nincs konfig): $e2');
+        debugPrint('Firebase init skipped (no config): $e2');
       }
     } else {
-      debugPrint('Firebase init kihagyva (nincs konfig): $e');
+      debugPrint('Firebase init skipped (no config): $e');
     }
-    if (kDebugMode) debugPrint('Firebase init részletek: $e');
+    if (kDebugMode) debugPrint('Firebase init details: $e');
   }
-  // A `.env` beolvasása az első képkocka előtt, hogy sima
-  // `flutter run` esetén is éljen a gitignore-olt kulcs.
   await EnvLoader.load();
-  // Mentett téma + hangok visszatöltése az első képkocka előtt.
+  await MetaAIService.persistLaunchKeyIfPresent();
   await appSettings.load();
-  // Belépési állapot + felhő-lehúzás az első képkocka előtt.
   await authService.init();
-  // Az app a rendszer sávok (állapotsor, alsó navigáció) mögé is
-  // kirajzol, így lent nem marad átlátszatlan fehér rendszersáv.
+  // The offline arena (bots, league season, friends) warms up once here so
+  // every tab shows live data. It never throws and degrades to empty boards.
+  unawaited(botArena.ensureLoaded());
+  unawaited(battleInvites.ensureLoaded());
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  // The global default is transparent too, so no route can bring back a
+  // thin dark divider line above the bottom exit strip.
+  final dark = appSettings.darkMode;
+  SystemChrome.setSystemUIOverlayStyle(
+    SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+      statusBarIconBrightness: dark ? Brightness.light : Brightness.dark,
+      statusBarBrightness: dark ? Brightness.dark : Brightness.light,
+      systemNavigationBarIconBrightness: dark
+          ? Brightness.light
+          : Brightness.dark,
+      systemNavigationBarDividerColor: Colors.transparent,
+      systemNavigationBarContrastEnforced: false,
+      systemStatusBarContrastEnforced: false,
+    ),
+  );
   runApp(const MyApp());
 }
 
@@ -56,13 +73,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // A beállítás-váltás azonnal újratölti a témát az egész appban.
     return ListenableBuilder(
       listenable: appSettings,
       builder: (context, _) {
-        // Átlátszó rendszersávok: az alsó navigációs sáv az app
-        // háttérszínét mutatja, nem egy külön fehér csíkot. Sötét
-        // módban világos, világosban sötét ikonokkal.
         final dark = appSettings.darkMode;
         final overlay = SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
@@ -72,6 +85,7 @@ class MyApp extends StatelessWidget {
           systemNavigationBarIconBrightness: dark
               ? Brightness.light
               : Brightness.dark,
+          systemNavigationBarDividerColor: Colors.transparent,
           systemNavigationBarContrastEnforced: false,
           systemStatusBarContrastEnforced: false,
         );
@@ -83,7 +97,14 @@ class MyApp extends StatelessWidget {
             theme: AppTheme.light(),
             darkTheme: AppTheme.dark(),
             themeMode: appSettings.darkMode ? ThemeMode.dark : ThemeMode.light,
-            home: const _AuthGate(),
+            locale: Locale(appSettings.languageCode),
+            supportedLocales: const [Locale('en'), Locale('hu')],
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            home: const ConnectivityGate(child: _AuthGate()),
           ),
         );
       },
@@ -91,8 +112,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-/// Belépési kapu: backenddel és kijelentkezve a belépőképernyőt
-/// mutatja, egyébként (belépve, vendégként vagy offline) az appot.
 class _AuthGate extends StatelessWidget {
   const _AuthGate();
 
@@ -108,9 +127,6 @@ class _AuthGate extends StatelessWidget {
   }
 }
 
-/// Induló útválasztó: első belépéskor (nincs szintmérő-eredmény és
-/// az onboarding sincs pipálva) a bemutató + szintmérő jön fel,
-/// egyébként egyből a tanulási útvonal.
 class _StartRouter extends StatefulWidget {
   const _StartRouter();
 
@@ -121,25 +137,58 @@ class _StartRouter extends StatefulWidget {
 class _StartRouterState extends State<_StartRouter> {
   bool _ready = false;
   bool _needsOnboarding = false;
+  bool _needsSetup = false;
+  bool _resolving = false;
 
   @override
   void initState() {
     super.initState();
+    authService.addListener(_onAuthChanged);
+    _resolve();
+  }
+
+  @override
+  void dispose() {
+    authService.removeListener(_onAuthChanged);
+    super.dispose();
+  }
+
+  void _onAuthChanged() {
+    if (!_ready || _resolving) return;
     _resolve();
   }
 
   Future<void> _resolve() async {
+    if (_resolving) return;
+    _resolving = true;
     var needs = false;
+    var setup = false;
     try {
+      final uid = authService.user?.uid;
+      if (authService.isPermanentAccount && uid != null) {
+        final done = await MemoryStore.isProfileSetupDone(uid);
+        if (!done) {
+          final profile = await MemoryStore.loadProfile();
+          if (profile.displayName.trim().isNotEmpty &&
+              profile.username.trim().isNotEmpty) {
+            await MemoryStore.markProfileSetupDone(uid);
+          } else {
+            setup = true;
+          }
+        }
+      }
       final scores = await MemoryStore.loadScores();
       final done = await MemoryStore.loadOnboardingDone();
       needs = (scores == null || scores.isEmpty) && !done;
     } catch (_) {
       needs = false;
     }
+    _resolving = false;
     if (!mounted) return;
+    if (_ready && _needsOnboarding == needs && _needsSetup == setup) return;
     setState(() {
       _needsOnboarding = needs;
+      _needsSetup = setup;
       _ready = true;
     });
   }
@@ -148,6 +197,14 @@ class _StartRouterState extends State<_StartRouter> {
   Widget build(BuildContext context) {
     if (!_ready) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (_needsSetup) {
+      return ProfileSetupScreen(
+        onDone: () {
+          if (!mounted) return;
+          setState(() => _needsSetup = false);
+        },
+      );
     }
     if (_needsOnboarding) {
       return OnboardingPage(

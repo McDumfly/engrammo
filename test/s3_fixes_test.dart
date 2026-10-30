@@ -11,11 +11,6 @@ import 'package:engrammo/utils/streak_utils.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Regression pins for the finish-pass bug-fix batch.
-///
-/// Covers: star max-merge, level clamp, full-palette chip guard, blank
-/// verdict guard, strict task parsing, DST-safe streak math, the engram
-/// earning loop, battle rating invariants and the single-currency rule.
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -114,7 +109,6 @@ void main() {
   group('parseTaskContent rejects bad correct', () {
     const req = MetaTaskRequest(kind: 'working', difficulty: 2);
 
-    // backward-span items: 3-7 single digits.
     test('out-of-range correct falls back to local', () {
       final high = MetaAIService.parseTaskContent(
         '{"prompt":"P","items":["3","7","1"],"question":"Q?",'
@@ -153,8 +147,6 @@ void main() {
 
   group('streak calendar math', () {
     test('dayDiff is DST-safe', () {
-      // 2026-03-29 and 2026-10-25 are EU DST transitions; passes in
-      // any tz, discriminates in Europe/Budapest.
       expect(dayDiff(DateTime(2026, 3, 30), DateTime(2026, 3, 29)), 1);
       expect(dayDiff(DateTime(2026, 10, 26), DateTime(2026, 10, 25)), 1);
       expect(dayDiff(DateTime(2026, 10, 10), DateTime(2026, 10, 8)), 2);

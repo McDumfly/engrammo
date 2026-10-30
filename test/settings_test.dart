@@ -11,7 +11,6 @@ void main() {
   });
 
   tearDown(() async {
-    // A globális példányt tiszta állapotban hagyjuk a többi tesztnek.
     await appSettings.setDarkMode(false);
     await appSettings.setHaptics(true);
   });
@@ -38,7 +37,7 @@ void main() {
     expect(AppFeedback.enabled, isTrue);
     await appSettings.setHaptics(false);
     expect(AppFeedback.enabled, isFalse);
-    await AppFeedback.light(); // nem dobhat hibát némítva sem
+    await AppFeedback.light();
     await appSettings.setHaptics(true);
     expect(AppFeedback.enabled, isTrue);
   });

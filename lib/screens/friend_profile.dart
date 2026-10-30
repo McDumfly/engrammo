@@ -1,20 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
+import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
 import '../services/app_feedback.dart';
 import '../models/battle_invites.dart';
+import '../services/bot_arena_store.dart';
+import '../services/memory_store.dart';
+import 'battle_duel_page.dart';
 import 'memory_profile.dart' show violet, violetDark, teal;
 
-/// A friend's public profile.
-///
-/// Opened from the leaderboard "Friends" tab. Besides the usual stats it
-/// offers the "Invite to battle" action, which shares its state with the
-/// Battle Zone friend search through [battleInvites].
 class FriendProfilePage extends StatelessWidget {
   final BattleFriend friend;
-  const FriendProfilePage({super.key, required this.friend});
+  final String? botId;
+  const FriendProfilePage({super.key, required this.friend, this.botId});
 
   void _toggleInvite() {
     if (battleInvites.isInvited(friend.name)) {
@@ -44,40 +45,106 @@ class FriendProfilePage extends StatelessWidget {
           ),
         ),
         centerTitle: true,
+        actions: const [
+          AiHelpButton(topic: AiHelpTopics.battle),
+          SizedBox(width: 12),
+        ],
       ),
       body: ListenableBuilder(
         listenable: battleInvites,
         builder: (context, _) {
-          final invited = battleInvites.isInvited(friend.name);
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-            children: [
-              _HeroCard(friend: friend),
-              const SizedBox(height: 12),
-              _StatsRow(friend: friend),
-              const SizedBox(height: 16),
-              EngramButton(
-                label: invited ? 'INVITED — TAP TO CANCEL' : 'INVITE TO BATTLE',
-                icon: invited
-                    ? HugeIcons.strokeRoundedCheckmarkCircle02
-                    : HugeIcons.strokeRoundedSwords,
-                // A kezelő adja a jelzést (light/medium), a gomb nem rezeg rá.
-                haptic: false,
-                onPressed: _toggleInvite,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                invited
-                    ? '${friend.name} has your invite. They can accept it from their battles inbox.'
-                    : 'Send ${friend.name} a 1v1 invite with your current game mode.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: context.mutedText,
-                  fontSize: 12,
-                  height: 1.45,
-                ),
-              ),
-            ],
+          return ListenableBuilder(
+            listenable: botArena,
+            builder: (context, _) {
+              final live = botId == null
+                  ? null
+                  : botArena.botById(botId!);
+              final shown = live == null
+                  ? friend
+                  : botArena.botToFriend(live);
+              final invited = battleInvites.isInvited(shown.name);
+              final added = live != null && botArena.isFriend(live.id);
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                children: [
+                  _HeroCard(friend: shown),
+                  if (live != null) ...[
+                    const SizedBox(height: 8),
+                    _BotTierLine(
+                      tier: live.tierLabel,
+                      rating: live.rating,
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  _StatsRow(friend: shown),
+                  const SizedBox(height: 16),
+                  EngramButton(
+                    label: invited
+                        ? tr('friend_withdraw')
+                        : tr('friend_challenge'),
+                    icon: invited
+                        ? HugeIcons.strokeRoundedCheckmarkCircle02
+                        : HugeIcons.strokeRoundedSwords,
+                    haptic: false,
+                    onPressed: _toggleInvite,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    invited
+                        ? tr('friend_got', {'name': shown.name})
+                        : tr('friend_send', {'name': shown.name}),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: context.mutedText,
+                      fontSize: 12,
+                      height: 1.45,
+                    ),
+                  ),
+                  if (live != null) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          AppFeedback.medium();
+                          final kind = await MemoryStore.resolveBattleKind(6);
+                          if (!context.mounted) return;
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => BattleDuelPage.duel(
+                                opponent: live,
+                                kind: kind,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Text(tr('friend_now')),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () {
+                          if (added) {
+                            AppFeedback.light();
+                            botArena.removeFriend(live.id);
+                          } else {
+                            AppFeedback.medium();
+                            botArena.addFriend(live.id);
+                          }
+                        },
+                        child: Text(
+                          added ? tr('friend_remove') : tr('friend_add'),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _CompareCard(botId: live.id),
+                  ],
+                ],
+              );
+            },
           );
         },
       ),
@@ -159,7 +226,7 @@ class _HeroCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(99),
             ),
             child: Text(
-              friend.online ? 'Online now' : 'Offline',
+              friend.online ? tr('friend_online') : tr('friend_offline'),
               style: TextStyle(
                 color: friend.online
                     ? const Color(0xFF15803D)
@@ -187,8 +254,8 @@ class _StatsRow extends StatelessWidget {
           child: _StatTile(
             icon: HugeIcons.strokeRoundedStar,
             color: violet,
-            value: '${friend.xp} XP',
-            label: 'Total XP',
+            value: tr('friend_xp', {'n': friend.xp}),
+            label: tr('friend_total_xp'),
           ),
         ),
         const SizedBox(width: 10),
@@ -196,20 +263,155 @@ class _StatsRow extends StatelessWidget {
           child: _StatTile(
             icon: HugeIcons.strokeRoundedFire,
             color: const Color(0xFFF97316),
-            value: '${friend.streak}-day',
-            label: 'Streak',
+            value: tr('friend_streak_value', {'n': friend.streak}),
+            label: tr('friend_streak'),
           ),
         ),
         const SizedBox(width: 10),
-        const Expanded(
+        Expanded(
           child: _StatTile(
             icon: HugeIcons.strokeRoundedSwords,
             color: teal,
             value: '1v1',
-            label: 'Battle',
+            label: tr('friend_battle'),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _BotTierLine extends StatelessWidget {
+  final String tier;
+  final int rating;
+  const _BotTierLine({required this.tier, required this.rating});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: violet.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(99),
+          ),
+          child: Text(
+            tr('friend_tier', {'tier': tier, 'rating': rating}),
+            style: const TextStyle(
+              color: violetDark,
+              fontWeight: FontWeight.w800,
+              fontSize: 12,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CompareCard extends StatelessWidget {
+  final String botId;
+  const _CompareCard({required this.botId});
+
+  @override
+  Widget build(BuildContext context) {
+    final bot = botArena.botById(botId);
+    if (bot == null) return const SizedBox.shrink();
+    final me = botArena.headToHead(bot.name);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.cardBg,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: context.hairline, width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            tr('friend_you_vs', {'name': bot.name}),
+            style: TextStyle(
+              color: context.inkText,
+              fontWeight: FontWeight.w900,
+              fontSize: 15,
+            ),
+          ),
+          const SizedBox(height: 10),
+          _CompareRow(
+            label: tr('friend_score'),
+            me: '${botArena.playerRating}',
+            foe: '${bot.rating}',
+          ),
+          _CompareRow(
+            label: tr('friend_total_xp'),
+            me: '${botArena.totalXp}',
+            foe: '${bot.xp}',
+          ),
+          _CompareRow(
+            label: tr('friend_streak'),
+            me: tr('friend_streak_value', {'n': botArena.playerStreak}),
+            foe: tr('friend_streak_value', {'n': bot.streak}),
+          ),
+          _CompareRow(
+            label: tr('friend_h2h'),
+            me: tr('friend_record', {'w': me.wins, 'd': me.draws}),
+            foe: tr('friend_foe_wins', {'l': me.losses}),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompareRow extends StatelessWidget {
+  final String label;
+  final String me;
+  final String foe;
+  const _CompareRow({
+    required this.label,
+    required this.me,
+    required this.foe,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(color: context.mutedText, fontSize: 12),
+            ),
+          ),
+          Text(
+            me,
+            style: TextStyle(
+              color: context.inkText,
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              ':',
+              style: TextStyle(color: context.mutedText, fontSize: 13),
+            ),
+          ),
+          Text(
+            foe,
+            style: TextStyle(
+              color: context.inkText,
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

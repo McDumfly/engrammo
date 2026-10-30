@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../l10n/app_localizations.dart';
 import '../services/app_feedback.dart';
 import '../services/memory_store.dart';
 import '../theme/app_theme.dart';
+import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
+import '../widgets/honesty_sheet.dart';
 import 'memory_profile.dart';
 
-/// First-launch onboarding: short, English, direct.
-///
-/// It teaches the 5 core techniques up front (so every later lesson
-/// has something to build on), busts the photographic-memory myth,
-/// then hands the user to the 12-item assessment that determines
-/// their level and dominant memory type.
 class OnboardingPage extends StatefulWidget {
   final VoidCallback onDone;
   const OnboardingPage({super.key, required this.onDone});
@@ -22,49 +19,74 @@ class OnboardingPage extends StatefulWidget {
 }
 
 class _Primer {
-  final String title;
-  final String body;
-  final String source;
+  final String titleKey;
+  final String bodyKey;
+  final String? sourceKey;
+  final String? source;
   final List<List<dynamic>> icon;
-  const _Primer(this.title, this.body, this.source, this.icon);
+  const _Primer(
+    this.titleKey,
+    this.bodyKey,
+    this.icon, {
+    this.sourceKey,
+    this.source,
+  });
 }
 
 const _primers = [
   _Primer(
-    'Memory Palace',
-    'Pick a route you know — your home. Put one vivid image at each '
-        'stop, then walk the route to recall. This single method wins '
-        'memory championships.',
-    'Maguire et al. 2003; Dresler et al. 2017',
+    'onboarding_palace_title',
+    'onboarding_palace_body',
     HugeIcons.strokeRoundedCastle01,
+    source: 'Maguire et al. 2003; Dresler et al. 2017',
   ),
   _Primer(
-    'Chunking',
-    'Your mind holds ~4 chunks, but a chunk can be huge. Turn '
-        '491625 into two images instead of six digits and it fits.',
-    'Miller 1956; Cowan 2001',
+    'onboarding_chunking_title',
+    'onboarding_chunking_body',
     HugeIcons.strokeRoundedLayers01,
+    source: 'Miller 1956; Cowan 2001',
   ),
   _Primer(
-    'Vivid Images',
-    'Pictures stick twice as well as words. Make every item big, '
-        'bright, moving — and let items interact with each other.',
-    'Paivio dual-coding; Standing 1973',
+    'onboarding_vivid_title',
+    'onboarding_vivid_body',
     HugeIcons.strokeRoundedEye,
+    source: 'Paivio dual-coding; Standing 1973',
   ),
   _Primer(
-    'Keyword Hook',
-    'Foreign word? Find a native word that sounds like it, picture '
-        'the two interacting. Recall jumps from 46% to 72%.',
-    'Atkinson & Raugh 1975',
+    'onboarding_keyword_title',
+    'onboarding_keyword_body',
     HugeIcons.strokeRoundedTranslate,
+    source: 'Atkinson & Raugh 1975',
   ),
   _Primer(
-    'Spaced Retrieval',
-    'Test yourself, spaced out, instead of re-reading. It is the '
-        'highest-utility study strategy ever measured.',
-    'Dunlosky et al. 2013; Cepeda et al. 2008',
+    'onboarding_spaced_title',
+    'onboarding_spaced_body',
     HugeIcons.strokeRoundedTimer01,
+    source: 'Dunlosky et al. 2013; Cepeda et al. 2008',
+  ),
+  _Primer(
+    'onboarding_goals_title',
+    'onboarding_goals_body',
+    HugeIcons.strokeRoundedTarget01,
+    sourceKey: 'onboarding_goals_source',
+  ),
+  _Primer(
+    'onboarding_station_title',
+    'onboarding_station_body',
+    HugeIcons.strokeRoundedDumbbell01,
+    sourceKey: 'onboarding_station_source',
+  ),
+  _Primer(
+    'onboarding_stars_title',
+    'onboarding_stars_body',
+    HugeIcons.strokeRoundedStar,
+    sourceKey: 'onboarding_stars_source',
+  ),
+  _Primer(
+    'onboarding_help_title',
+    'onboarding_help_body',
+    HugeIcons.strokeRoundedBubbleChatQuestion,
+    sourceKey: 'onboarding_help_source',
   ),
 ];
 
@@ -104,7 +126,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   void _next() {
-    // A rezgést az EngramButton adja, itt már nem rezgünk duplán.
     _pages.nextPage(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOut,
@@ -137,12 +158,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     ),
                   ),
                   const SizedBox(width: 12),
+                  const AiHelpButton(topic: AiHelpTopics.assessment),
+                  const SizedBox(width: 4),
                   GestureDetector(
                     onTap: _skip,
                     child: Padding(
                       padding: const EdgeInsets.all(6),
                       child: Text(
-                        'Skip',
+                        tr('onboarding_skip'),
                         style: TextStyle(
                           color: context.mutedText,
                           fontWeight: FontWeight.bold,
@@ -172,9 +195,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         EngramButton(
-                          label: _busy ? 'OPENING…' : 'FIND MY MEMORY TYPE',
+                          label: _busy
+                              ? tr('onboarding_opening')
+                              : tr('onboarding_find_my_type'),
                           isLoading: _busy,
-                          // A kezelő adja a medium jelzést, a gomb nem rezeg rá.
                           haptic: false,
                           onPressed: _busy ? null : _startAssessment,
                         ),
@@ -185,7 +209,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                             child: Padding(
                               padding: const EdgeInsets.all(8),
                               child: Text(
-                                'Skip for now',
+                                tr('onboarding_skip_for_now'),
                                 style: TextStyle(
                                   color: context.mutedText,
                                   fontWeight: FontWeight.bold,
@@ -197,7 +221,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         ),
                       ],
                     )
-                  : EngramButton(label: 'NEXT', onPressed: _next),
+                  : EngramButton(
+                      label: tr('onboarding_next'),
+                      onPressed: _next,
+                    ),
             ),
           ],
         ),
@@ -210,7 +237,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
       children: [
         Text(
-          'Your memory is trainable.',
+          tr('onboarding_welcome_title'),
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.w900,
@@ -220,9 +247,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         ),
         const SizedBox(height: 12),
         Text(
-          'Memory champions are not born. Their brains look ordinary — '
-          'they just use 2,500-year-old techniques. You are about to '
-          'learn all of them.',
+          tr('onboarding_welcome_body'),
           style: TextStyle(color: context.inkText, fontSize: 16, height: 1.5),
         ),
         const SizedBox(height: 16),
@@ -233,11 +258,30 @@ class _OnboardingPageState extends State<OnboardingPage> {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: context.washBorder, width: 2),
           ),
-          child: Text(
-            'One honest note: photographic memory is a myth — it has '
-            'never been proven. What you get instead is better: trained '
-            'supermemory that actually works.',
-            style: TextStyle(color: context.inkText, fontSize: 14, height: 1.5),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                tr('onboarding_honest_note'),
+                style: TextStyle(
+                  color: context.inkText,
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: () => showHonestySheet(context),
+                child: Text(
+                  tr('onboarding_honesty_link'),
+                  style: const TextStyle(
+                    color: Color(0xFF45A3FF),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -266,7 +310,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         ),
         const SizedBox(height: 16),
         Text(
-          p.title,
+          tr(p.titleKey),
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.w900,
@@ -275,12 +319,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
         ),
         const SizedBox(height: 10),
         Text(
-          p.body,
+          tr(p.bodyKey),
           style: TextStyle(color: context.inkText, fontSize: 16, height: 1.5),
         ),
         const SizedBox(height: 16),
         Text(
-          p.source,
+          p.sourceKey == null ? p.source! : tr(p.sourceKey!),
           style: TextStyle(
             color: context.mutedText,
             fontStyle: FontStyle.italic,
@@ -296,7 +340,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
       children: [
         Text(
-          'First, find your type.',
+          tr('onboarding_cta_title'),
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.w900,
@@ -306,9 +350,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         ),
         const SizedBox(height: 12),
         Text(
-          'A 12-task checkup — 2 quick probes for each of your 6 memory '
-          'types. About 3 minutes. Then your training path adapts to '
-          'your strongest type.',
+          tr('onboarding_cta_body'),
           style: TextStyle(color: context.inkText, fontSize: 16, height: 1.5),
         ),
       ],

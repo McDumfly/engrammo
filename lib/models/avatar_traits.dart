@@ -343,6 +343,48 @@ abstract final class AvatarTraits {
     'winterHat04',
     'winterHat1',
   ];
+  static const List<String> hatVariants = [
+    'hat',
+    'hijab',
+    'turban',
+    'winterHat1',
+    'winterHat02',
+    'winterHat03',
+    'winterHat04',
+  ];
+
+  static const List<String> hairVariants = [
+    'shortFlat',
+    'bigHair',
+    'bob',
+    'bun',
+    'curly',
+    'curvy',
+    'dreads',
+    'dreads01',
+    'dreads02',
+    'frida',
+    'frizzle',
+    'fro',
+    'froBand',
+    'longButNotTooLong',
+    'miaWallace',
+    'shaggy',
+    'shaggyMullet',
+    'shavedSides',
+    'shortCurly',
+    'shortRound',
+    'shortWaved',
+    'sides',
+    'straight01',
+    'straight02',
+    'straightAndStrand',
+    'theCaesar',
+    'theCaesarAndSidePart',
+  ];
+
+  static bool isHat(String? top) => hatVariants.contains(top);
+
   static const List<String> facialHairVariants = [
     'none',
     'beardLight',

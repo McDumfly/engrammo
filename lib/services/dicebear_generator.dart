@@ -8,9 +8,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 class DicebearGenerator {
   static final Map<String, String> _svgCache = {};
 
-  /// Stabil gyorsitotar-kulcs: fuggetlen a map beszurasi sorrendjetol.
-  /// A profiloldal es a szerkeszto mashogy epitheti fel ugyanazt
-  /// az opt-mapet, a kulcsnak megis egyeznie kell.
   static String cacheKey(Map<String, String> opts) {
     final keys = opts.keys.toList()..sort();
     return keys.map((k) => '$k=${opts[k]}').join('&');
@@ -19,7 +16,6 @@ class DicebearGenerator {
   static const _prefsPrefix = 'avatar_svg_v1::';
   static const _prefsIndexKey = 'avatar_svg_keys_v1';
 
-  /// Ennyi SVG tarolodik lemezcache-ben legfeljebb (LRU).
   static const int persistedCap = 40;
 
   static String _prefsKey(String key) => '$_prefsPrefix$key';
@@ -30,13 +26,9 @@ class DicebearGenerator {
     return copy;
   }
 
-  /// Azonnali, szinkron memoriatalalat — ezzel rajzol a profiloldal
-  /// uj latogatasnal is, ujrageneralas es villanas nelkul.
   static String? cachedSvg(Map<String, String> opts) {
     final hit = _svgCache[cacheKey(opts)];
     if (hit != null) return hit;
-    // Kompatibilitas a regi (beszurasi sorrend fuggo) kulcsokkal:
-    // egyszer meg kiszolgaljuk, es at is koltoztetjuk az uj kulcs ala.
     final legacy = _svgCache[opts.toString()];
     if (legacy != null) {
       _svgCache[cacheKey(opts)] = legacy;
@@ -75,7 +67,6 @@ class DicebearGenerator {
         for (final k in index)
           if (k != key) k,
       ];
-      // LRU-levagas: a felesleg file-jait is toroljuk.
       if (next.length > persistedCap) {
         for (final k in next.sublist(persistedCap)) {
           await prefs.remove(_prefsKey(k));
@@ -89,7 +80,6 @@ class DicebearGenerator {
         ),
       );
     } catch (_) {
-      // A lemezcache csak gyorsitas: hiba eseten csendben eldobjuk.
     }
   }
 
@@ -101,7 +91,6 @@ class DicebearGenerator {
       return mem;
     }
 
-    // Ujrainditas utan is cachebol: eloszor a lemez, csak utoljara szamol.
     final persisted = await _loadPersisted(key);
     if (persisted != null) {
       _svgCache[key] = persisted;
@@ -115,9 +104,6 @@ class DicebearGenerator {
     return svgString;
   }
 
-  /// Generates many avatars in ONE isolate with ONE style parse.
-  /// Opening a tab fires dozens of previews — without batching each of
-  /// them would spawn its own isolate and re-parse the whole style.
   static Future<Map<String, String>> generateManyAsync(
     List<Map<String, String>> allOpts,
   ) async {
@@ -136,7 +122,6 @@ class DicebearGenerator {
       }
     }
     if (missing.isEmpty) return result;
-    // Amit a lemezcache mar tud, azt nem szamoljuk ujra.
     final prefs = await _prefs();
     final rest = <Map<String, String>>[];
     final restKeys = <String>[];
@@ -179,14 +164,12 @@ class DicebearGenerator {
   }
 
   static String _svgWithStyle(Style style, Map<String, String> opts) {
-    // Build a strictly validated map for DiceBear
     final Map<String, Object> dicebearOptions = {};
 
     if (opts['skinColor'] != null) {
       dicebearOptions['skinColor'] = [opts['skinColor']!];
     }
 
-    // Map internal short keys to exact DiceBear 'Variant' keys
     if (opts['eyes'] != null) {
       dicebearOptions['eyesVariant'] = [opts['eyes']!];
     }
@@ -206,7 +189,6 @@ class DicebearGenerator {
       dicebearOptions['clothesGraphicVariant'] = [opts['clothesGraphic']!];
     }
 
-    // Map colors
     if (opts['hairColor'] != null) {
       dicebearOptions['hairColor'] = [opts['hairColor']!];
     }
@@ -223,14 +205,11 @@ class DicebearGenerator {
       dicebearOptions['accessoriesColor'] = [opts['accessoriesColor']!];
     }
 
-    // Background behind everything. Only opaque values are passed —
-    // 'transparent' (the default) keeps the current behavior untouched.
     final bg = opts['backgroundColor'];
     if (bg != null && bg.isNotEmpty && bg != 'transparent') {
       dicebearOptions['backgroundColor'] = [bg];
     }
 
-    // Handle 'none' conditions strictly via Probabilities
     if (opts['facialHair'] == 'none') {
       dicebearOptions['facialHairProbability'] = 0;
     } else if (opts['facialHair'] != null) {

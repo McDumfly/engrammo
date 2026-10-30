@@ -1,9 +1,7 @@
 import 'package:flutter/foundation.dart';
 
-/// A friend you can invite to a battle.
-///
-/// Shared by the leaderboard "Friends" tab, the friend profile page and
-/// the Battle Zone friend search, so all three see the same people.
+import '../services/memory_store.dart';
+
 class BattleFriend {
   final String name;
   final int xp;
@@ -17,12 +15,8 @@ class BattleFriend {
   });
 }
 
-/// Friss fióknál üres: a barátlista a backendre (Firestore) kerül,
-/// mock nevek nélkül. Amíg nincs backend, a kereső üres állapotot mutat.
 const battleFriends = <BattleFriend>[];
 
-/// Case-insensitive substring search on friend names.
-/// Empty/blank query returns the full list in order.
 List<BattleFriend> filterBattleFriends(
   String query, [
   List<BattleFriend> source = battleFriends,
@@ -35,12 +29,10 @@ List<BattleFriend> filterBattleFriends(
   ];
 }
 
-/// In-memory outgoing battle invites, keyed by friend name.
-///
-/// One shared instance ([battleInvites]) keeps the Battle Zone list and
-/// every friend profile page in sync.
 class BattleInviteStore extends ChangeNotifier {
   final Set<String> _invited = {};
+  Future<void>? _loading;
+  Future<void> _persistQueue = Future.value();
 
   bool isInvited(String name) => _invited.contains(name);
 
@@ -48,17 +40,45 @@ class BattleInviteStore extends ChangeNotifier {
 
   int get inviteCount => _invited.length;
 
-  /// Returns true when this call actually added a new invite.
+  /// Loads persisted invites once. Never throws.
+  Future<void> ensureLoaded() {
+    final pending = _loading;
+    if (pending != null) return pending;
+    final future = refresh();
+    _loading = future;
+    return future;
+  }
+
+  /// Reloads invites from local storage (already refreshed by a cloud pull).
+  Future<void> refresh() async {
+    try {
+      final saved = await MemoryStore.loadBattleInvites();
+      _invited
+        ..clear()
+        ..addAll(saved);
+    } catch (_) {
+    } finally {
+      try {
+        notifyListeners();
+      } catch (_) {}
+    }
+  }
+
   bool invite(String name) {
     final added = _invited.add(name);
-    if (added) notifyListeners();
+    if (added) {
+      notifyListeners();
+      _persist();
+    }
     return added;
   }
 
-  /// Returns true when a pending invite was removed.
   bool withdraw(String name) {
     final removed = _invited.remove(name);
-    if (removed) notifyListeners();
+    if (removed) {
+      notifyListeners();
+      _persist();
+    }
     return removed;
   }
 
@@ -66,6 +86,24 @@ class BattleInviteStore extends ChangeNotifier {
     if (_invited.isEmpty) return;
     _invited.clear();
     notifyListeners();
+    _persist();
+  }
+
+  void _persist() {
+    _persistQueue = _persistQueue.then((_) => _saveNow());
+  }
+
+  Future<void> _saveNow() async {
+    try {
+      await MemoryStore.saveBattleInvites(Set.of(_invited));
+    } catch (_) {}
+  }
+
+  @visibleForTesting
+  void resetForTest() {
+    _invited.clear();
+    _loading = null;
+    _persistQueue = Future.value();
   }
 }
 

@@ -8,7 +8,6 @@ void main() {
     });
 
     test('a profilképlettel egyezik a példa pontszámokon', () {
-      // kreeds_profile példa: [55, 61, 74, 86, 68, 48].
       expect(memoryLevelForScore(55), 6);
       expect(memoryLevelForScore(61), 7);
       expect(memoryLevelForScore(74), 8);

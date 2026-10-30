@@ -1,51 +1,12 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart' show ink, line, muted, blue;
+import 'app_colors.dart' show blueDark, coral, coralDark, ink, line, muted, blue;
 
-/// Az app egyetlen közös témája.
-///
-/// - Szín: minden gomb az app kékjét (blue) használja alapként.
-/// - Betű: egyetlen betűtípus fut végig az appban, a Lexend
-///   (helyi asset, `assets/fonts/`). Olvashatóságra és tanulásra
-///   tervezett, barátságos, mégis modern és komoly betű, magyar
-///   ékezetekkel. Direkt nincs sehol egyedi `fontFamily`,
-///   hogy ne csússzon szét a tipográfia — a családot csak ez a
-///   téma adja meg, minden felirat örökli.
-///
-/// Sötét módban minden felület sötét: a kártyák, beviteli mezők,
-/// ikon-dobozok és elválasztók a lenti sötét palettából jönnek, nem
-/// marad fehér folt. A képernyők a [ThemeCtx] kiterjesztésen
-/// (`context.cardBg`, `context.inkText` stb.) keresztül kérdezik le
-/// a színeket, így világos módban pontosan a régi külső marad.
 class AppTheme {
-  /// Döntés (2026-10, végleges: pill + lapos): minden gomb
-  /// teljesen lekerekített pill (Stadium) és direkt lapos —
-  /// nincs 3D-s alsó sáv.
-  ///
-  /// A vastag alsó árnyéksáv idegen márkajegy lenne, ezért direkt
-  /// nem használjuk sehol. Ezért minden gombtípus [buttonShape] formát
-  /// kap világos és sötét módban is, és ezentúl mindig ez az
-  /// alapértelmezett: új gombhoz nem kell `shape`-et írni.
-  /// A lapos készletet az `app_buttons.dart` adja ([EngramButton]
-  /// nagy CTA, [EngramMiniButton] kis inline akció,
-  /// [EngramIconButton]/[EngramBackButton] ikon-only kör) —
-  /// új kódban mindig ezeket használd. Az ikon-only kör tudatos
-  /// kivétel (1:1-es pill, egyetlen ikon oválisban szétcsúszna),
-  /// ezért a memóriatípus-választó is kör marad. Más kivétel
-  /// nincs: TextButton szöveges link marad, de minden nyomható
-  /// gomb (dialógus-actions, FloatingActionButton is) pill.
-  /// Nem gomb (kártya, badge,
-  /// input, játéktábla-cella, progress-sáv) nem tartozik ide.
   static const OutlinedBorder buttonShape = StadiumBorder();
 
-  /// Az app betűcsaládja (pubspec `fonts`: Lexend, változó 100–900).
   static const String fontFamily = 'Lexend';
 
-  /// Sötét téma: sötétkék háttér, világos feliratok, sötét kártyák.
-  ///
-  /// Minden, ami világos módban fehér vagy halványkék felület
-  /// (kártya, input-mező, kijelölt sor, zárolt sor, elválasztó),
-  /// sötét módban ennek a palettának a megfelelő tagját kapja.
   static const darkScaffold = Color(0xFF101A2C);
   static const darkCard = Color(0xFF1B2740);
   static const darkInput = Color(0xFF24334D);
@@ -117,7 +78,6 @@ class AppTheme {
         scrolledUnderElevation: 0,
       ),
       bottomSheetTheme: const BottomSheetThemeData(backgroundColor: darkCard),
-      // Az appban sehol nincs koppintási hullám (splash/ripple).
       splashFactory: NoSplash.splashFactory,
       splashColor: Colors.transparent,
       highlightColor: Colors.transparent,
@@ -125,7 +85,7 @@ class AppTheme {
       focusColor: Colors.transparent,
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: blue,
+          backgroundColor: blueDark,
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
@@ -137,7 +97,7 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: blue,
+          backgroundColor: blueDark,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
           shape: buttonShape,
@@ -180,7 +140,7 @@ class AppTheme {
         splashRadius: 0,
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: blue,
+        backgroundColor: blueDark,
         foregroundColor: Colors.white,
         elevation: 0,
         shape: StadiumBorder(),
@@ -197,8 +157,6 @@ class AppTheme {
           tertiary: const Color(0xFFFF9500),
           surface: Colors.white,
         ).copyWith(
-          // A háttéren ülő címsorok ezeket használják, így világos
-          // módban pontosan a régi színeket kapják.
           onSurface: ink,
           onSurfaceVariant: muted,
         );
@@ -226,8 +184,6 @@ class AppTheme {
           borderSide: const BorderSide(color: blue, width: 2),
         ),
       ),
-      // Az appban sehol nincs koppintási hullám (splash/ripple):
-      // minden érintés azonnali, fény- és hullámeffekt nélkül.
       splashFactory: NoSplash.splashFactory,
       splashColor: Colors.transparent,
       highlightColor: Colors.transparent,
@@ -235,7 +191,7 @@ class AppTheme {
       focusColor: Colors.transparent,
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: blue,
+          backgroundColor: blueDark,
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
@@ -247,7 +203,7 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: blue,
+          backgroundColor: blueDark,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
           shape: buttonShape,
@@ -269,7 +225,7 @@ class AppTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: blue,
+          foregroundColor: blueDark,
           textStyle: firm,
           overlayColor: Colors.transparent,
           splashFactory: NoSplash.splashFactory,
@@ -290,7 +246,7 @@ class AppTheme {
         splashRadius: 0,
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: blue,
+        backgroundColor: blueDark,
         foregroundColor: Colors.white,
         elevation: 0,
         shape: StadiumBorder(),
@@ -299,16 +255,6 @@ class AppTheme {
   }
 }
 
-/// Témakövető felületszínek: minden képernyő ezeken keresztül kéri le
-/// a háttereket, szövegeket és elválasztókat, így sötét módban semmi
-/// nem marad fehérre égetve, világos módban pedig a régi külső marad.
-///
-/// - [cardBg]: kártyák, lapok, dialógusok háttere.
-/// - [softBg]: beviteli mezők és ikondobozok kitöltése.
-/// - [washBg]: kijelölt/aktív halványkék sávok.
-/// - [faintBg]: zárolt/inaktív halvány sávok, csík-háttér.
-/// - [hairline]: 2px-es keretek, elválasztók.
-/// - [inkText]/[mutedText]: elsődleges/másodlagos feliratok.
 extension ThemeCtx on BuildContext {
   bool get isDark => Theme.of(this).brightness == Brightness.dark;
 
@@ -322,7 +268,6 @@ extension ThemeCtx on BuildContext {
 
   Color get hairline => isDark ? AppTheme.darkBorder : const Color(0xFFDEE9F7);
 
-  /// Világos módban a régi halványkék keretek, sötétben a sötét keret.
   Color get washBorder =>
       isDark ? AppTheme.darkBorder : const Color(0xFFD2E6FC);
 
@@ -332,4 +277,6 @@ extension ThemeCtx on BuildContext {
   Color get inkText => Theme.of(this).colorScheme.onSurface;
 
   Color get mutedText => Theme.of(this).colorScheme.onSurfaceVariant;
+
+  Color get dangerText => isDark ? coral : coralDark;
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import 'app_buttons.dart';
 import '../services/app_feedback.dart';
@@ -8,12 +9,6 @@ import '../theme/app_colors.dart' show orange, coral;
 import '../models/collectibles.dart' show engram;
 import '../utils/streak_restore.dart';
 
-/// Széria-visszaállítás dialógus a kreeds-app
-/// `StreakRestorePrompt` mintájára, Engrammo-stílusban.
-///
-/// Törött láng, visszaállított szériaszám, fix 450 engram ár
-/// és egyenleg-pill. Kevés engramnál a főgomb inaktív, a felirat
-/// megmondja, hogy játékkal gyűjthető.
 class StreakRestoreDialog extends StatelessWidget {
   final RestorePlan plan;
   final int engrams;
@@ -56,7 +51,7 @@ class StreakRestoreDialog extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Streak restore',
+              tr('streak_title'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontWeight: FontWeight.w800,
@@ -75,7 +70,7 @@ class StreakRestoreDialog extends StatelessWidget {
               ),
             ),
             Text(
-              'DAY STREAK',
+              tr('streak_day_streak'),
               style: TextStyle(
                 color: context.mutedText,
                 fontWeight: FontWeight.w800,
@@ -85,9 +80,8 @@ class StreakRestoreDialog extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              '${plan.missedDays == 1 ? '1 missed day' : '${plan.missedDays} missed days'}'
-              ' filled for $cost engrams — your streak continues'
-              ' at ${plan.restoredStreak} days.',
+              '${plan.missedDays == 1 ? tr('streak_missed_one') : tr('streak_missed_many', {'n': plan.missedDays})}'
+              ' ${tr('streak_body', {'cost': cost, 'days': plan.restoredStreak})}',
               textAlign: TextAlign.center,
               style: TextStyle(color: context.mutedText, fontSize: 14),
             ),
@@ -112,7 +106,7 @@ class StreakRestoreDialog extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    '$engrams engrams',
+                    tr('streak_balance', {'n': engrams}),
                     style: TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 14,
@@ -124,20 +118,20 @@ class StreakRestoreDialog extends StatelessWidget {
             ),
             if (!affordable) ...[
               const SizedBox(height: 8),
-              const Text(
-                'Not enough engrams yet — play more to collect them.',
+              Text(
+                tr('streak_poor'),
                 textAlign: TextAlign.center,
-                style: TextStyle(color: coral, fontSize: 13),
+                style: const TextStyle(color: coral, fontSize: 13),
               ),
             ],
             const SizedBox(height: 20),
             EngramButton(
-              label: 'Restore for $cost engrams',
+              label: tr('streak_restore_for', {'cost': cost}),
               onPressed: affordable ? onRestore : null,
             ),
             const SizedBox(height: 10),
             EngramButton(
-              label: 'Later',
+              label: tr('streak_later'),
               variant: EngramButtonVariant.secondary,
               onPressed: onLater,
             ),
@@ -148,8 +142,6 @@ class StreakRestoreDialog extends StatelessWidget {
   }
 }
 
-/// Visszaállítás-megerősítés a széria-képernyő mintájára:
-/// költség + pótolt napok + visszaállított hossz egy kérdésben.
 Future<bool> confirmStreakRestore(
   BuildContext context,
   RestorePlan plan,
@@ -161,13 +153,12 @@ Future<bool> confirmStreakRestore(
       backgroundColor: context.cardBg,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: Text(
-        'Restore streak?',
+        tr('streak_confirm_title'),
         style: TextStyle(color: context.inkText, fontWeight: FontWeight.w800),
       ),
       content: Text(
-        '${plan.missedDays == 1 ? '1 missed day' : '${plan.missedDays} missed days'}'
-        ' for $cost engrams. Your streak will be'
-        ' ${plan.restoredStreak} days.',
+        '${plan.missedDays == 1 ? tr('streak_missed_one') : tr('streak_missed_many', {'n': plan.missedDays})}'
+        ' ${tr('streak_confirm_body', {'cost': cost, 'days': plan.restoredStreak})}',
         style: TextStyle(color: context.mutedText),
       ),
       actions: [
@@ -176,14 +167,14 @@ Future<bool> confirmStreakRestore(
             AppFeedback.light();
             Navigator.pop(ctx, false);
           },
-          child: const Text('Cancel'),
+          child: Text(tr('common_cancel')),
         ),
         FilledButton(
           onPressed: () {
             AppFeedback.light();
             Navigator.pop(ctx, true);
           },
-          child: const Text('Restore'),
+          child: Text(tr('streak_restore')),
         ),
       ],
     ),

@@ -35,7 +35,6 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: KreedsProfilePage()));
     await tester.pumpAndSettle();
 
-    // Offline nincs mire buzdítani: a profil kártya nélkül nyílik.
     expect(find.text('Save your progress'), findsNothing);
     expect(find.byType(ProfileSignInNudge), findsNothing);
   });

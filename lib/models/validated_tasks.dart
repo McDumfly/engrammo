@@ -1,49 +1,44 @@
-/// Registry of validated memory paradigms behind every task.
-///
-/// Every drill in the app — lessons, benchmark, battle, assessment
-/// fallbacks — is a small, faithful instance of one published paradigm
-/// below. The AI never invents task formats: it only fills the stimulus
-/// slots inside the paradigm's fixed procedure ([paradigmPrompt]), and
-/// [validateTask] rejects any answer that breaks the structure, so the
-/// caller falls back to the deterministic local generator
-/// ([localValidatedTask]) running the same paradigm.
-///
-/// Bibliography: `docs/RESEARCH.md` section 8.
 library;
 
 import 'dart:math';
 
+import '../l10n/app_localizations.dart';
+import 'item_banks.dart'
+    show
+        dayEventPoolFor,
+        faceNameBankFor,
+        foreignWordBankFor,
+        poemBankFor,
+        prospectiveBankFor,
+        spareCategoriesFor,
+        spareStoriesFor;
 import 'meta_task.dart';
 import 'palace_drill.dart'
-    show concreteNouns, drillItemCount, localPalaceTask, localPictureTask;
+    show
+        allConcreteNounsFor,
+        drillItemCount,
+        localPalaceTask,
+        localPictureTask;
 
-/// Fixed procedure + response format of one validated paradigm.
 class ParadigmSpec {
-  /// Stable id stamped on every [MetaTask] (`task.paradigm`).
   final String id;
 
-  /// Short UI label, e.g. "Backward digit span".
-  final String display;
+  final String displayKey;
 
-  /// What the learner does (fixed procedure, also sent to the AI).
   final String procedure;
 
-  /// Stimulus rules the AI must obey (slot-filling only).
   final String stimulusRule;
 
-  /// Response rules the AI must obey (always 4 options, 1 correct).
   final String responseRule;
 
-  /// Study citation shown under the stimulus.
   final String source;
 
-  /// Allowed stimulus item counts (AI answers outside fail validation).
   final int minItems;
   final int maxItems;
 
   const ParadigmSpec({
     required this.id,
-    required this.display,
+    required this.displayKey,
     required this.procedure,
     required this.stimulusRule,
     required this.responseRule,
@@ -51,15 +46,18 @@ class ParadigmSpec {
     required this.minItems,
     required this.maxItems,
   });
+
+  String get displayName => tr(displayKey);
+
+  String get display => enText(displayKey);
 }
 
 const _fourOptions =
     'Offer exactly 4 options, all different, exactly one correct.';
 
-/// Backward digit span (WAIS): hear digits, report them reversed.
 const ParadigmSpec backwardSpanSpec = ParadigmSpec(
   id: 'backward-span',
-  display: 'Backward digit span',
+  displayKey: 'paradigm_backward_span',
   procedure:
       'Show single digits, then ask for the FULL order REVERSED. '
       'The correct option is the reversed sequence.',
@@ -70,24 +68,55 @@ const ParadigmSpec backwardSpanSpec = ParadigmSpec(
   maxItems: 7,
 );
 
-/// Echoic / immediate probe (Peterson & Peterson): brief look, one probe.
-const ParadigmSpec echoicProbeSpec = ParadigmSpec(
-  id: 'echoic-probe',
-  display: 'Echoic probe',
+const ParadigmSpec iconicProbeSpec = ParadigmSpec(
+  id: 'iconic-probe',
+  displayKey: 'paradigm_iconic_probe',
   procedure:
       'Show digits briefly once, then probe ONE position '
       '(e.g. "What was the 3rd digit?").',
   stimulusRule: 'Items are single digits (0-9), no two adjacent equal.',
   responseRule: '$_fourOptions Options are single digits.',
-  source: 'Peterson & Peterson 1959; Baddeley & Hitch 1974',
+  source: 'Sperling 1960; Luck & Vogel 1997',
   minItems: 3,
   maxItems: 7,
 );
 
-/// Chunked number recognition (Ericsson): one long number, recognize it.
+const ParadigmSpec echoicProbeSpec = ParadigmSpec(
+  id: 'echoic-probe',
+  displayKey: 'paradigm_iconic_probe',
+  procedure:
+      'Show digits briefly once, then probe ONE position '
+      '(e.g. "What was the 3rd digit?").',
+  stimulusRule: 'Items are single digits (0-9), no two adjacent equal.',
+  responseRule: '$_fourOptions Options are single digits.',
+  source: 'Sperling 1960; Luck & Vogel 1997',
+  minItems: 3,
+  maxItems: 7,
+);
+
+const ParadigmSpec brownPetersonSpec = ParadigmSpec(
+  id: 'brown-peterson',
+  displayKey: 'paradigm_interference',
+  procedure:
+      'Show ONE consonant trigram (e.g. XJR), run a count-backwards-by-3 '
+      'distractor for the stated seconds, then ask for the trigram.',
+  stimulusRule:
+      'Items hold exactly one trigram: 3 distinct uppercase consonants '
+      '(no vowels, no repeats).',
+  responseRule: '$_fourOptions Options are single trigrams.',
+  source: 'Peterson & Peterson 1959; Brown 1958',
+  minItems: 1,
+  maxItems: 1,
+);
+
+int brownPetersonDelay(int difficulty) {
+  const delays = [3, 3, 6, 9, 18];
+  return delays[difficulty.clamp(1, 5) - 1];
+}
+
 const ParadigmSpec chunkSpanSpec = ParadigmSpec(
   id: 'chunk-span',
-  display: 'Chunked number recall',
+  displayKey: 'paradigm_chunk_span',
   procedure:
       'Show ONE multi-digit number, then ask which number was shown. '
       'Lures differ in 1-2 digits only, so chunking is required.',
@@ -98,10 +127,9 @@ const ParadigmSpec chunkSpanSpec = ParadigmSpec(
   maxItems: 1,
 );
 
-/// Method-of-loci drill (Dresler training loop in miniature).
 const ParadigmSpec lociDrillSpec = ParadigmSpec(
   id: 'loci-drill',
-  display: 'Method-of-loci walk',
+  displayKey: 'paradigm_loci',
   procedure:
       'Ordered, distinct stations of ONE familiar route; one concrete '
       'imageable word per station. Probe: which word sits at one station.',
@@ -114,10 +142,9 @@ const ParadigmSpec lociDrillSpec = ParadigmSpec(
   maxItems: 8,
 );
 
-/// Picture recognition after one viewing (Shepard / Standing).
 const ParadigmSpec pictureRecallSpec = ParadigmSpec(
   id: 'picture-recall',
-  display: 'Picture recall',
+  displayKey: 'paradigm_picture',
   procedure:
       'Name ONE everyday scene and its visible details; probe asks which '
       'detail was in the scene (1 present + 3 absent from other scenes).',
@@ -128,24 +155,22 @@ const ParadigmSpec pictureRecallSpec = ParadigmSpec(
   maxItems: 8,
 );
 
-/// Visual pattern span on a 3x3 grid (change-detection family).
 const ParadigmSpec patternSpanSpec = ParadigmSpec(
   id: 'pattern-span',
-  display: 'Visual pattern span',
+  displayKey: 'paradigm_pattern',
   procedure:
       'Light up cells of a 3x3 grid (indices 0-8, row by row), then ask '
       'which set was lit.',
   stimulusRule: 'Items are distinct cell indices 0-8.',
   responseRule: '$_fourOptions Options are index sets joined with ",".',
-  source: 'Luck & Vogel 1997; Corsi 1972 spatial-span family',
+  source: 'Luck & Vogel 1997; Cowan 2001',
   minItems: 2,
   maxItems: 6,
 );
 
-/// Story recall (WMS Logical Memory): single reading, cued detail.
 const ParadigmSpec storyRecallSpec = ParadigmSpec(
   id: 'story-recall',
-  display: 'Story recall',
+  displayKey: 'paradigm_story',
   procedure:
       'Show ONE short story sentence once; probe asks one concrete detail '
       'from it (who / how many / what besides X).',
@@ -156,10 +181,9 @@ const ParadigmSpec storyRecallSpec = ParadigmSpec(
   maxItems: 2,
 );
 
-/// Category exemplar (Rosch / Battig norms): name the member.
 const ParadigmSpec categoryExemplarSpec = ParadigmSpec(
   id: 'category-exemplar',
-  display: 'Category exemplar',
+  displayKey: 'paradigm_category',
   procedure:
       'Name a category; probe asks which option is a member. Hard lures '
       'are lookalikes from a neighboring category.',
@@ -170,10 +194,9 @@ const ParadigmSpec categoryExemplarSpec = ParadigmSpec(
   maxItems: 1,
 );
 
-/// Cued paired associates (retrieval-practice loop): cue -> target.
 const ParadigmSpec pairedAssociateSpec = ParadigmSpec(
   id: 'paired-associate',
-  display: 'Paired associates',
+  displayKey: 'paradigm_paired',
   procedure:
       'Show a cue→target word pair once; probe shows the cue and asks '
       'for its target. Pure retrieval practice.',
@@ -184,11 +207,87 @@ const ParadigmSpec pairedAssociateSpec = ParadigmSpec(
   maxItems: 1,
 );
 
-/// Registry lookup by paradigm id (UI captions for stamped tasks).
+const ParadigmSpec faceNameSpec = ParadigmSpec(
+  id: 'face-name',
+  displayKey: 'paradigm_face',
+  procedure:
+      'Show ONE face feature plus its name hook once; probe names the '
+      'feature and asks which surname goes with it.',
+  stimulusRule:
+      'Items hold one "feature → Name (hook)" pair; features name one '
+      'distinct facial feature, names are single surnames.',
+  responseRule: '$_fourOptions Options are single surnames.',
+  source: 'Morris et al. face-name mnemonic; McWeeny et al. 1987',
+  minItems: 1,
+  maxItems: 1,
+);
+
+const ParadigmSpec keywordPairSpec = ParadigmSpec(
+  id: 'keyword-pair',
+  displayKey: 'paradigm_keyword',
+  procedure:
+      'Show ONE foreign word with its keyword hook and meaning once; '
+      'probe shows the foreign word and asks for its meaning.',
+  stimulusRule:
+      'Items hold one "foreign (keyword) → meaning" triple of single '
+      'imageable words.',
+  responseRule: '$_fourOptions Options are single meanings.',
+  source: 'Atkinson & Raugh 1975; Beaton et al. 1995',
+  minItems: 1,
+  maxItems: 1,
+);
+
+const ParadigmSpec prospectiveCueSpec = ParadigmSpec(
+  id: 'prospective-cue',
+  displayKey: 'paradigm_prospective',
+  procedure:
+      'Show ONE "WHEN cue → THEN action" plan once; probe names the '
+      'WHEN cue and asks for the THEN action.',
+  stimulusRule:
+      'Items hold one "WHEN cue → THEN action" pair of short everyday '
+      'phrases; lures are other plausible actions.',
+  responseRule: '$_fourOptions Options are short action phrases.',
+  source: 'Gollwitzer (1999); Einstein & McDaniel (1990)',
+  minItems: 1,
+  maxItems: 1,
+);
+
+const ParadigmSpec poemChunkSpec = ParadigmSpec(
+  id: 'poem-chunk',
+  displayKey: 'paradigm_poem',
+  procedure:
+      'Show ONE two-line verse chunk once; probe shows line 1 and asks '
+      'for line 2.',
+  stimulusRule:
+      'Items hold one "line 1 / line 2" pair of short verse lines; '
+      'lures are other verse lines.',
+  responseRule: '$_fourOptions Options are single verse lines.',
+  source: 'Rubin (1995); Roediger & Karpicke (2006)',
+  minItems: 1,
+  maxItems: 1,
+);
+
+const ParadigmSpec dayReplaySpec = ParadigmSpec(
+  id: 'day-replay',
+  displayKey: 'paradigm_day',
+  procedure:
+      'Show 3-5 ordered everyday events once; probe names one event '
+      'and asks what came right AFTER it.',
+  stimulusRule:
+      'Items are ordered distinct everyday events, same order, no '
+      'repeats; the probed event is never the last one.',
+  responseRule: '$_fourOptions Options are single events.',
+  source: 'Gais, Lucas & Born (2006); Wilhelm et al. (2011)',
+  minItems: 3,
+  maxItems: 5,
+);
+
 ParadigmSpec specForId(String id) {
+  if (id == 'echoic-probe') return iconicProbeSpec;
   for (final spec in [
     backwardSpanSpec,
-    echoicProbeSpec,
+    iconicProbeSpec,
+    brownPetersonSpec,
     chunkSpanSpec,
     lociDrillSpec,
     pictureRecallSpec,
@@ -196,14 +295,17 @@ ParadigmSpec specForId(String id) {
     storyRecallSpec,
     categoryExemplarSpec,
     pairedAssociateSpec,
+    faceNameSpec,
+    keywordPairSpec,
+    prospectiveCueSpec,
+    poemChunkSpec,
+    dayReplaySpec,
   ]) {
     if (spec.id == id) return spec;
   }
-  return echoicProbeSpec;
+  return iconicProbeSpec;
 }
 
-/// Paradigm for a task kind (unknown kinds fall back to echoic probe,
-/// the same digit-row drill the old default generator produced).
 ParadigmSpec specForKind(String kind) {
   switch (kind) {
     case 'working':
@@ -225,26 +327,38 @@ ParadigmSpec specForKind(String kind) {
       return categoryExemplarSpec;
     case 'verbal':
       return pairedAssociateSpec;
+    case 'face':
+      return faceNameSpec;
+    case 'foreign':
+      return keywordPairSpec;
+    case 'prospective':
+      return prospectiveCueSpec;
+    case 'poem':
+      return poemChunkSpec;
+    case 'replay':
+      return dayReplaySpec;
+    case 'interference':
+      return brownPetersonSpec;
     case 'sensory':
     default:
-      return echoicProbeSpec;
+      return iconicProbeSpec;
   }
 }
 
-/// Stimulus size the local generator uses for [kind] at [difficulty].
 int itemCountFor(String kind, int difficulty) {
   final d = difficulty.clamp(1, 5);
   switch (specForKind(kind).id) {
     case 'backward-span':
+    case 'iconic-probe':
     case 'echoic-probe':
       return 2 + d;
     case 'chunk-span':
-      // 4 (Cowan ~4 limit) → 6 (2 chunks of 3) → 9 (3×3, Miller 7±2
-      // ceiling) → 12 → 15 (multi-chunk training range, Ericsson et al.).
       return [4, 6, 9, 12, 15][d - 1];
     case 'loci-drill':
     case 'picture-recall':
       return drillItemCount(d);
+    case 'day-replay':
+      return [3, 3, 4, 4, 5][d - 1];
     case 'pattern-span':
       return d + 1;
     default:
@@ -252,8 +366,6 @@ int itemCountFor(String kind, int difficulty) {
   }
 }
 
-/// Paradigm constraint block sent to the AI: fill the slots, never
-/// change the procedure or the response format.
 String paradigmPrompt(MetaTaskRequest req) {
   final spec = specForKind(req.kind);
   final n = itemCountFor(req.kind, req.difficulty);
@@ -262,17 +374,17 @@ String paradigmPrompt(MetaTaskRequest req) {
       : spec.minItems == spec.maxItems
       ? 'Show exactly ${spec.minItems} item(s).'
       : 'Show exactly $n items.';
-  return 'PARADIGM "${spec.id}" (${spec.display}). Procedure: '
-      '${spec.procedure} ${spec.stimulusRule} $size ${spec.responseRule} '
+  final extra = spec.id == 'brown-peterson'
+      ? 'Distractor before recall: count backwards by 3 from 100 for '
+          '${brownPetersonDelay(req.difficulty)} seconds. '
+      : '';
+  return 'PARADIGM "${spec.id}" (${enText(spec.displayKey)}). Procedure: '
+      '${spec.procedure} ${spec.stimulusRule} $size $extra'
+      '${spec.responseRule} '
       'Do NOT invent another format, do NOT ask anything else, do NOT add '
       'keys. Echo the paradigm id in "paradigm".';
 }
 
-/// Structural violations of [task] against the paradigm of [req].
-///
-/// This checks the fixed procedure (counts, shapes, formats), not the
-/// semantic truth of the stimulus — a wrong-but-wellformed AI answer is
-/// still caught by [MetaTask.correct] pointing at the intended option.
 List<String> validateTask(MetaTaskRequest req, MetaTask task) {
   final spec = specForKind(req.kind);
   final bad = <String>[];
@@ -289,10 +401,27 @@ List<String> validateTask(MetaTaskRequest req, MetaTask task) {
     bad.add('items outside ${spec.minItems}-${spec.maxItems}');
   }
   if (task.items.any((e) => e.trim().isEmpty)) bad.add('empty item');
-  final digitKinds = {'backward-span', 'echoic-probe'};
+  final digitKinds = {'backward-span', 'iconic-probe', 'echoic-probe'};
   if (digitKinds.contains(spec.id)) {
     if (task.items.any((e) => !RegExp(r'^\d$').hasMatch(e.trim()))) {
       bad.add('items must be single digits');
+    }
+  }
+  if (spec.id == 'brown-peterson') {
+    final trigram = RegExp(r'^[BCDFGHJKLMNPQRSTVWXYZ]{3}$');
+    bool wellformed(String s) {
+      final t = s.trim().toUpperCase();
+      return trigram.hasMatch(t) &&
+          t[0] != t[1] &&
+          t[1] != t[2] &&
+          t[0] != t[2];
+    }
+
+    if (task.items.length != 1 || !wellformed(task.items.first)) {
+      bad.add('item must be one CCC trigram (distinct consonants)');
+    }
+    if (task.options.any((o) => !wellformed(o))) {
+      bad.add('options must be trigrams');
     }
   }
   if (spec.id == 'chunk-span') {
@@ -317,6 +446,11 @@ List<String> validateTask(MetaTaskRequest req, MetaTask task) {
       task.stations.length != task.items.length) {
     bad.add('stations must match items one by one');
   }
+  if (spec.id == 'day-replay') {
+    if (task.items.map((e) => e.trim()).toSet().length != task.items.length) {
+      bad.add('day events must be distinct');
+    }
+  }
   return bad;
 }
 
@@ -329,7 +463,8 @@ int _seedHash(String seed) {
   return h;
 }
 
-String _ordinal(int k) {
+String _ordinal(int k, [String locale = 'en']) {
+  if (locale == 'hu') return '$k.';
   if (k == 1) return '1st';
   if (k == 2) return '2nd';
   if (k == 3) return '3rd';
@@ -346,140 +481,63 @@ List<String> _digits(Random rnd, int n) {
   return out;
 }
 
-/// Fixed story bank: one-reading sentences with one cued detail each
-/// (Logical-Memory style idea units, matched difficulty).
-const _stories = [
-  (
-    story: 'On Monday Peter mailed 3 letters and a small parcel at the post office.',
-    question: 'What did Peter mail besides the parcel?',
-    correct: '3 letters',
-    lures: ['2 letters', '4 postcards', 'A newspaper'],
-  ),
-  (
-    story: 'In the evening Nora cooked fish soup and baked a round loaf for her guests.',
-    question: 'What did Nora bake for her guests?',
-    correct: 'A round loaf',
-    lures: ['A pie', 'Two baguettes', 'A chocolate cake'],
-  ),
-  (
-    story: 'At dawn the old ferry carried 12 cars and a red fire truck across the river.',
-    question: 'What crossed the river besides the cars?',
-    correct: 'A red fire truck',
-    lures: ['A blue bus', 'A police car', 'An ambulance'],
-  ),
-  (
-    story: 'After lunch the twins borrowed 2 bikes and a green tent from their uncle.',
-    question: 'What did the twins borrow besides the tent?',
-    correct: '2 bikes',
-    lures: ['3 bikes', 'A canoe', 'A guitar'],
-  ),
-  (
-    story: 'Before the storm Anna closed 5 windows and fed the black cat on the porch.',
-    question: 'What did Anna do besides closing the windows?',
-    correct: 'Fed the black cat',
-    lures: ['Fed the white dog', 'Locked the gate', 'Lit a lantern'],
-  ),
-  (
-    story: 'At noon the museum guide showed 40 pupils a golden mask from Egypt.',
-    question: 'What did the guide show the pupils?',
-    correct: 'A golden mask',
-    lures: ['A silver sword', 'A marble statue', 'An old map'],
-  ),
-];
-
-/// Fixed category bank with prototype answers and neighbor-category lures
-/// (Battig & Montague / Van Overschelde norms family).
-const _categories = [
-  (
-    category: 'Fruits',
-    correct: 'Apple',
-    lures: ['Carrot', 'Potato', 'Onion'],
-  ),
-  (
-    category: 'Vegetables',
-    correct: 'Carrot',
-    lures: ['Apple', 'Pear', 'Grape'],
-  ),
-  (
-    category: 'Mammals',
-    correct: 'Dolphin',
-    lures: ['Shark', 'Penguin', 'Crocodile'],
-  ),
-  (
-    category: 'Birds',
-    correct: 'Penguin',
-    lures: ['Bat', 'Butterfly', 'Bee'],
-  ),
-  (
-    category: 'Tools',
-    correct: 'Hammer',
-    lures: ['Nail', 'Flowerpot', 'Candle'],
-  ),
-  (
-    category: 'Musical instruments',
-    correct: 'Violin',
-    lures: ['Radio', 'Ladder', 'Mirror'],
-  ),
-  (
-    category: 'Vehicles',
-    correct: 'Bicycle',
-    lures: ['Stroller', 'Swing', 'Tent'],
-  ),
-  (
-    category: 'Furniture',
-    correct: 'Bookshelf',
-    lures: ['Carpet', 'Lamp', 'Curtain'],
-  ),
-];
-
-/// Deterministic local task inside the paradigm of [req].
-///
-/// Same [req.seed] always yields the same task, so lessons are stable
-/// and tests are reproducible. An empty seed draws fresh randomness
-/// (benchmark sparring, battle duels).
 MetaTask localValidatedTask(MetaTaskRequest req) {
   final spec = specForKind(req.kind);
   final seed = req.seed.isEmpty ? 'fresh:${DateTime.now().microsecondsSinceEpoch}:${req.kind}' : req.seed;
-  // Spatial / visual lessons keep their dedicated drill builders, which
-  // already implement the loci and picture paradigms (stamped below).
   if (spec.id == 'loci-drill') {
-    return localPalaceTask(difficulty: req.difficulty, seed: seed).copyWith(
-      paradigm: spec.id,
-      source: spec.source,
-    );
+    return localPalaceTask(
+      difficulty: req.difficulty,
+      seed: seed,
+      locale: req.locale,
+    ).copyWith(paradigm: spec.id, source: spec.source);
   }
   if (spec.id == 'picture-recall') {
-    return localPictureTask(difficulty: req.difficulty, seed: seed).copyWith(
-      paradigm: spec.id,
-      source: spec.source,
-    );
+    return localPictureTask(
+      difficulty: req.difficulty,
+      seed: seed,
+      locale: req.locale,
+    ).copyWith(paradigm: spec.id, source: spec.source);
   }
   final rnd = Random(_seedHash('${spec.id}:$seed'));
   final now = DateTime.now();
   switch (spec.id) {
     case 'backward-span':
-      return _backwardSpan(rnd, req, spec, now);
+      return _backwardSpan(rnd, req, spec, now, req.locale);
     case 'chunk-span':
-      return _chunkSpan(rnd, req, spec, now);
+      return _chunkSpan(rnd, req, spec, now, req.locale);
     case 'pattern-span':
-      return _patternSpan(rnd, req, spec, now);
+      return _patternSpan(rnd, req, spec, now, req.locale);
     case 'story-recall':
-      return _storyRecall(rnd, spec, now);
+      return _storyRecall(rnd, spec, now, req.locale);
     case 'category-exemplar':
-      return _categoryExemplar(rnd, spec, now);
+      return _categoryExemplar(rnd, spec, now, req.locale);
     case 'paired-associate':
-      return _pairedAssociate(rnd, spec, now);
+      return _pairedAssociate(rnd, spec, now, req.locale);
+    case 'face-name':
+      return _faceName(rnd, spec, now, req.locale);
+    case 'keyword-pair':
+      return _keywordPair(rnd, spec, now, req.locale);
+    case 'prospective-cue':
+      return _prospectiveCue(rnd, spec, now, req.locale);
+    case 'poem-chunk':
+      return _poemChunk(rnd, spec, now, req.locale);
+    case 'day-replay':
+      return _dayReplay(rnd, req, spec, now, req.locale);
+    case 'brown-peterson':
+      return _brownPeterson(rnd, req, spec, now, req.locale);
+    case 'iconic-probe':
     case 'echoic-probe':
     default:
-      return _echoicProbe(rnd, req, spec, now);
+      return _iconicProbe(rnd, req, spec, now, req.locale);
   }
 }
 
-MetaTask _echoicProbe(
+MetaTask _iconicProbe(
   Random rnd,
   MetaTaskRequest req,
   ParadigmSpec spec,
   DateTime now,
+  String locale,
 ) {
   final n = itemCountFor(req.kind, req.difficulty);
   final digits = _digits(rnd, n);
@@ -492,14 +550,52 @@ MetaTask _echoicProbe(
   }
   options.shuffle(rnd);
   return MetaTask(
-    prompt: 'Memorize these digits — one quick look!',
+    prompt: trFor(locale, 'task_iconic_prompt'),
     items: digits,
-    question: 'What was the ${_ordinal(k + 1)} digit?',
+    question: trFor(locale, 'task_iconic_q', {
+      'ord': _ordinal(k + 1, locale),
+    }),
     options: options,
     correct: options.indexOf(answer),
-    explanation:
-        'Say the row aloud once, then probe it — immediate recall with a '
-        'brief look is the echoic paradigm. (Peterson & Peterson 1959)',
+    explanation: trFor(locale, 'task_iconic_expl'),
+    paradigm: spec.id,
+    source: spec.source,
+    createdAt: now,
+  );
+}
+
+const _consonants = 'BCDFGHJKLMNPQRSTVWXYZ';
+
+String _trigram(Random rnd) {
+  final pool = _consonants.split('')..shuffle(rnd);
+  return pool.take(3).join();
+}
+
+MetaTask _brownPeterson(
+  Random rnd,
+  MetaTaskRequest req,
+  ParadigmSpec spec,
+  DateTime now,
+  String locale,
+) {
+  final delay = brownPetersonDelay(req.difficulty);
+  final trigram = _trigram(rnd);
+  final options = <String>[trigram];
+  while (options.length < 4) {
+    final lure = _trigram(rnd);
+    if (!options.contains(lure)) options.add(lure);
+  }
+  options.shuffle(rnd);
+  return MetaTask(
+    prompt: trFor(locale, 'task_peterson_prompt', {
+      'tri': trigram,
+      'n': delay,
+    }),
+    items: [trigram],
+    question: trFor(locale, 'task_peterson_q'),
+    options: options,
+    correct: options.indexOf(trigram),
+    explanation: trFor(locale, 'task_peterson_expl'),
     paradigm: spec.id,
     source: spec.source,
     createdAt: now,
@@ -511,12 +607,12 @@ MetaTask _backwardSpan(
   MetaTaskRequest req,
   ParadigmSpec spec,
   DateTime now,
+  String locale,
 ) {
   final n = itemCountFor(req.kind, req.difficulty);
   final digits = _digits(rnd, n);
   final reversed = digits.reversed.join('-');
   final options = <String>[reversed];
-  // Deterministic lure family: forward, two swaps, rotation.
   String join(List<String> l) => l.join('-');
   final rev = digits.reversed.toList();
   final lures = <String>[
@@ -535,15 +631,12 @@ MetaTask _backwardSpan(
   }
   options.shuffle(rnd);
   return MetaTask(
-    prompt: 'Hold these digits, then reverse them!',
+    prompt: trFor(locale, 'task_backward_prompt'),
     items: digits,
-    question: 'What is the full order REVERSED?',
+    question: trFor(locale, 'task_backward_q'),
     options: options,
     correct: options.indexOf(reversed),
-    explanation:
-        'Hold the whole set first, then work backwards one item at a '
-        'time. Backward span taxes the central executive. '
-        '(Baddeley & Hitch 1974)',
+    explanation: trFor(locale, 'task_backward_expl'),
     paradigm: spec.id,
     source: spec.source,
     createdAt: now,
@@ -555,6 +648,7 @@ MetaTask _chunkSpan(
   MetaTaskRequest req,
   ParadigmSpec spec,
   DateTime now,
+  String locale,
 ) {
   final len = itemCountFor(req.kind, req.difficulty);
   String fresh() {
@@ -569,7 +663,6 @@ MetaTask _chunkSpan(
   final options = <String>[num];
   while (options.length < 4) {
     final chars = num.split('');
-    // Mutate 1-2 positions so only chunking carries the recall.
     for (var m = 0; m < (len > 8 ? 2 : 1); m++) {
       final at = rnd.nextInt(len);
       chars[at] = '${rnd.nextInt(10)}';
@@ -579,14 +672,12 @@ MetaTask _chunkSpan(
   }
   options.shuffle(rnd);
   return MetaTask(
-    prompt: 'Memorize this number!',
+    prompt: trFor(locale, 'task_chunk_prompt'),
     items: [num],
-    question: 'Which number did you see?',
+    question: trFor(locale, 'task_chunk_q'),
     options: options,
     correct: options.indexOf(num),
-    explanation:
-        'Chunk it in threes and turn each chunk into one image — $len '
-        'digits are just a few chunks. (Miller 1956; Ericsson et al. 1980)',
+    explanation: trFor(locale, 'task_chunk_expl', {'n': len}),
     paradigm: spec.id,
     source: spec.source,
     createdAt: now,
@@ -598,6 +689,7 @@ MetaTask _patternSpan(
   MetaTaskRequest req,
   ParadigmSpec spec,
   DateTime now,
+  String locale,
 ) {
   final count = itemCountFor(req.kind, req.difficulty);
   final cells = <int>{};
@@ -616,58 +708,69 @@ MetaTask _patternSpan(
   }
   options.shuffle(rnd);
   return MetaTask(
-    prompt: 'Memorize the lit cells!',
+    prompt: trFor(locale, 'task_pattern_prompt'),
     items: cells.map((c) => '$c').toList(),
-    question: 'Which cells were lit?',
+    question: trFor(locale, 'task_pattern_q'),
     options: options,
     correct: options.indexOf(correct),
-    explanation:
-        'See the lit cells as ONE shape, not separate dots — visual '
-        'working memory holds about 4 objects. (Luck & Vogel 1997)',
+    explanation: trFor(locale, 'task_pattern_expl'),
     paradigm: spec.id,
     source: spec.source,
     createdAt: now,
   );
 }
 
-MetaTask _storyRecall(Random rnd, ParadigmSpec spec, DateTime now) {
-  final s = _stories[rnd.nextInt(_stories.length)];
+MetaTask _storyRecall(
+  Random rnd,
+  ParadigmSpec spec,
+  DateTime now,
+  String locale,
+) {
+  final bank = spareStoriesFor(locale);
+  final s = bank[rnd.nextInt(bank.length)];
   final options = <String>[s.correct, ...s.lures]..shuffle(rnd);
   return MetaTask(
-    prompt: 'Read carefully, just once!',
-    items: [s.story],
+    prompt: trFor(locale, 'task_story_prompt'),
+    items: [s.text],
     question: s.question,
     options: options,
     correct: options.indexOf(s.correct),
-    explanation:
-        'Replay the scene as a short movie while you read — elaborated '
-        'stories stick. (Craik & Tulving 1975)',
+    explanation: trFor(locale, 'task_story_expl'),
     paradigm: spec.id,
     source: spec.source,
     createdAt: now,
   );
 }
 
-MetaTask _categoryExemplar(Random rnd, ParadigmSpec spec, DateTime now) {
-  final c = _categories[rnd.nextInt(_categories.length)];
+MetaTask _categoryExemplar(
+  Random rnd,
+  ParadigmSpec spec,
+  DateTime now,
+  String locale,
+) {
+  final bank = spareCategoriesFor(locale);
+  final c = bank[rnd.nextInt(bank.length)];
   final options = <String>[c.correct, ...c.lures]..shuffle(rnd);
   return MetaTask(
-    prompt: 'Think about the meaning!',
+    prompt: trFor(locale, 'task_cat_prompt'),
     items: [c.category],
-    question: 'Which one is this?',
+    question: trFor(locale, 'task_cat_q'),
     options: options,
     correct: options.indexOf(c.correct),
-    explanation:
-        'Name what makes the prototype a member — meaning webs beat rote '
-        'lists. (Rosch 1975)',
+    explanation: trFor(locale, 'task_cat_expl'),
     paradigm: spec.id,
     source: spec.source,
     createdAt: now,
   );
 }
 
-MetaTask _pairedAssociate(Random rnd, ParadigmSpec spec, DateTime now) {
-  final pool = List<String>.of(concreteNouns)..shuffle(rnd);
+MetaTask _pairedAssociate(
+  Random rnd,
+  ParadigmSpec spec,
+  DateTime now,
+  String locale,
+) {
+  final pool = List<String>.of(allConcreteNounsFor(locale))..shuffle(rnd);
   final cue = pool[0];
   final target = pool[1];
   final options = <String>[target];
@@ -676,14 +779,136 @@ MetaTask _pairedAssociate(Random rnd, ParadigmSpec spec, DateTime now) {
   }
   options.shuffle(rnd);
   return MetaTask(
-    prompt: 'Learn this pair: $cue goes with $target!',
+    prompt: trFor(locale, 'task_paired_prompt', {
+      'cue': cue,
+      'target': target,
+    }),
     items: ['$cue → $target'],
-    question: 'What went with "$cue"?',
+    question: trFor(locale, 'task_paired_q', {'cue': cue}),
     options: options,
     correct: options.indexOf(target),
-    explanation:
-        'Link cue and target in ONE bizarre interacting image, then test '
-        'yourself — retrieval beats re-study. (Karpicke & Roediger 2008)',
+    explanation: trFor(locale, 'task_paired_expl'),
+    paradigm: spec.id,
+    source: spec.source,
+    createdAt: now,
+  );
+}
+
+MetaTask _faceName(
+  Random rnd,
+  ParadigmSpec spec,
+  DateTime now,
+  String locale,
+) {
+  final bank = faceNameBankFor(locale);
+  final e = bank[rnd.nextInt(bank.length)];
+  final options = <String>[e.name, ...e.lures]..shuffle(rnd);
+  return MetaTask(
+    prompt: trFor(locale, 'task_face_prompt'),
+    items: ['${e.feature} → ${e.name} (${e.hook})'],
+    question: trFor(locale, 'task_face_q', {'feature': e.feature}),
+    options: options,
+    correct: options.indexOf(e.name),
+    explanation: trFor(locale, 'task_face_expl'),
+    paradigm: spec.id,
+    source: spec.source,
+    createdAt: now,
+  );
+}
+
+MetaTask _keywordPair(
+  Random rnd,
+  ParadigmSpec spec,
+  DateTime now,
+  String locale,
+) {
+  final bank = foreignWordBankFor(locale);
+  final e = bank[rnd.nextInt(bank.length)];
+  final options = <String>[e.meaning, ...e.lures]..shuffle(rnd);
+  return MetaTask(
+    prompt: trFor(locale, 'task_keyword_prompt', {'foreign': e.foreign}),
+    items: ['${e.foreign} (${e.keyword}) → ${e.meaning}'],
+    question: trFor(locale, 'task_keyword_q', {'foreign': e.foreign}),
+    options: options,
+    correct: options.indexOf(e.meaning),
+    explanation: trFor(locale, 'task_keyword_expl'),
+    paradigm: spec.id,
+    source: spec.source,
+    createdAt: now,
+  );
+}
+
+MetaTask _prospectiveCue(
+  Random rnd,
+  ParadigmSpec spec,
+  DateTime now,
+  String locale,
+) {
+  final bank = prospectiveBankFor(locale);
+  final e = bank[rnd.nextInt(bank.length)];
+  final options = <String>[e.then, ...e.lures]..shuffle(rnd);
+  return MetaTask(
+    prompt: trFor(locale, 'task_prosp_prompt'),
+    items: [
+      trFor(locale, 'task_prosp_item', {'when': e.when, 'then': e.then}),
+    ],
+    question: trFor(locale, 'task_prosp_q', {'when': e.when}),
+    options: options,
+    correct: options.indexOf(e.then),
+    explanation: trFor(locale, 'task_prosp_expl'),
+    paradigm: spec.id,
+    source: spec.source,
+    createdAt: now,
+  );
+}
+
+MetaTask _poemChunk(
+  Random rnd,
+  ParadigmSpec spec,
+  DateTime now,
+  String locale,
+) {
+  final bank = poemBankFor(locale);
+  final e = bank[rnd.nextInt(bank.length)];
+  final options = <String>[e.line2, ...e.lures]..shuffle(rnd);
+  return MetaTask(
+    prompt: trFor(locale, 'task_poem_prompt'),
+    items: ['${e.line1}\n${e.line2}'],
+    question: trFor(locale, 'task_poem_q', {'line': e.line1}),
+    options: options,
+    correct: options.indexOf(e.line2),
+    explanation: trFor(locale, 'task_poem_expl'),
+    paradigm: spec.id,
+    source: spec.source,
+    createdAt: now,
+  );
+}
+
+MetaTask _dayReplay(
+  Random rnd,
+  MetaTaskRequest req,
+  ParadigmSpec spec,
+  DateTime now,
+  String locale,
+) {
+  final n = itemCountFor(req.kind, req.difficulty);
+  final pool = List<String>.of(dayEventPoolFor(locale))..shuffle(rnd);
+  final day = pool.take(n).toList();
+  final at = rnd.nextInt(n - 1);
+  final answer = day[at + 1];
+  final options = <String>[answer];
+  for (final e in pool) {
+    if (options.length >= 4) break;
+    if (e != answer && !options.contains(e)) options.add(e);
+  }
+  options.shuffle(rnd);
+  return MetaTask(
+    prompt: trFor(locale, 'task_day_prompt'),
+    items: day,
+    question: trFor(locale, 'task_day_q', {'event': day[at]}),
+    options: options,
+    correct: options.indexOf(answer),
+    explanation: trFor(locale, 'task_day_expl'),
     paradigm: spec.id,
     source: spec.source,
     createdAt: now,

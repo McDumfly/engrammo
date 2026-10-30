@@ -1,47 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/app_localizations.dart';
 import '../services/app_feedback.dart';
 
 import 'package:hugeicons/hugeicons.dart';
 
-import '../theme/app_colors.dart' show coral, blue;
+import '../theme/app_colors.dart' show blueDark, coralDark;
 import '../theme/app_theme.dart';
 
-/// AZ APP GOMBSZABÁLYA (döntés, 2026-10, végleges: pill + lapos).
-/// Minden fontos gomb ebből a fájlból jön, új kódban mindig ezeket használd.
-/// A Material-gombok (Elevated/Filled/Outlined) a pill formát témából
-/// kapják ([AppTheme.buttonShape]), ezért új gombhoz soha nem kell
-/// `shape`-et írni.
-///
-/// 1. Forma: minden feliratos gomb teljesen lekerekített pill
-///    (Stadium, nem szögletes). Az ikon-only gombok körok —
-///    ez geometriailag ugyanaz (1:1-es pill): egyetlen ikon
-///    ovális pillben szétcsúszna, ezért a fejléc-ikonok
-///    (memóriatípus-választó, vissza, beállítás, megosztás,
-///    avatar-pipa) tudatosan körök, nem kimaradt munka.
-/// 2. Lapos: minden gomb direkt lapos, nincs 3D-s alsó sáv. A vastag
-///    alsó árnyéksáv idegen márkajegy lenne, ezért direkt nem
-///    használjuk sehol.
-/// 3. Készlet:
-///    - [EngramButton]: nagy CTA (teljes szélesség, 60 magas).
-///    - [EngramMiniButton]: kis inline akció (Invite, Watch, ...).
-///    - [EngramIconButton] / [EngramBackButton]: ikon-only, lapos kör.
-/// 4. Kivétel kettő: TextButton szöveges link (nincs háttere),
-///    és az ikon-only kör (1. pont). Dialógus-actions és
-///    FloatingActionButton is pill.
-/// 5. Nem gomb → nem gombforma: kártyák, panelek, dialógusok,
-///    inputmezők, jelvények (badge-ek), progress-sávok,
-///    játéktábla-cellák maradnak a saját 8-24-es radiusszal.
-/// 6. Rezgés: a gombok maguktól adnak egy könnyű rezgést, a kezelő
-///    ehhez már nem rezegtet. Ha a kezelő saját, erősebb jelzést
-///    ad, a gomb `haptic: false`-t kap — egy koppintás, egy rezgés.
-///
-/// - [EngramButtonVariant.primary]: app-kék lapos pill gomb (fő cselekvés).
-/// - [EngramButtonVariant.secondary]: fehér lapos pill gomb (mellékes cselekvés).
-/// - [EngramButtonVariant.danger]: piros lapos pill gomb (törlés, kilépés).
-/// - `onPressed: null` esetén mindegyikből szürke, nyomhatatlan
-///   (disabled) állapot lesz.
-/// - [isLoading] esetén töltőpötty forog a felirat helyén.
 enum EngramButtonVariant { primary, secondary, danger }
 
 class EngramButton extends StatelessWidget {
@@ -51,15 +17,13 @@ class EngramButton extends StatelessWidget {
   final bool isLoading;
   final dynamic icon;
 
-  /// Egyedi bevezető widget az [icon] helyett — pl. a színes Google „G"
-  /// logó, ami nem HugeIcon, ezért nem fér bele az [icon] paraméterbe.
-  /// Ha meg van adva, az [icon]-t figyelmen kívül hagyja.
   final Widget? leading;
 
-  /// Koppintáskor a gomb ad egy könnyű rezgést. Ha a kezelő saját,
-  /// erősebb visszajelzést ad (pl. medium találatjelzés), tedd
-  /// `false`-ra, hogy ne legyen dupla rezgés.
   final bool haptic;
+
+  final double height;
+
+  final String? semanticsLabel;
 
   const EngramButton({
     super.key,
@@ -70,22 +34,23 @@ class EngramButton extends StatelessWidget {
     this.icon,
     this.leading,
     this.haptic = true,
+    this.height = 60,
+    this.semanticsLabel,
   });
 
   bool get _disabled => onPressed == null && !isLoading;
 
   Color _top(BuildContext context) {
     if (_disabled) {
-      // Sötétben sötét lap, világosban a régi szürke.
       return context.isDark ? context.faintBg : const Color(0xFFD7E0EC);
     }
     switch (variant) {
       case EngramButtonVariant.primary:
-        return blue;
+        return blueDark;
       case EngramButtonVariant.secondary:
         return context.cardBg;
       case EngramButtonVariant.danger:
-        return coral;
+        return coralDark;
     }
   }
 
@@ -101,84 +66,165 @@ class EngramButton extends StatelessWidget {
     final tappable = !_disabled && !isLoading;
     final top = _top(context);
     final labelColor = _label(context);
-    return GestureDetector(
-      onTap: tappable
-          ? () {
-              if (haptic) AppFeedback.light();
-              onPressed?.call();
-            }
-          : null,
-      child: Container(
-        height: 60,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: top,
-          borderRadius: BorderRadius.circular(999),
-          border: variant == EngramButtonVariant.secondary && !_disabled
-              ? Border.all(color: context.hairline, width: 2)
-              : null,
-        ),
-        alignment: Alignment.center,
-        child: isLoading
-            ? SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: labelColor,
-                ),
-              )
-            : Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (leading != null) ...[
-                    leading!,
-                    const SizedBox(width: 8),
-                  ] else if (icon != null) ...[
-                    HugeIcon(
-                      icon: icon,
-                      color: labelColor,
-                      size: 22,
-                      strokeWidth: 2.2,
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                  Flexible(
-                    child: Text(
-                      label,
-                      style: TextStyle(
-                        color: labelColor,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 17,
-                        letterSpacing: 0.5,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+    final minTap = height < 48 ? 48.0 : height;
+    return Semantics(
+      button: true,
+      enabled: tappable,
+      label: semanticsLabel ?? label,
+      child: GestureDetector(
+        onTap: tappable
+            ? () {
+                if (haptic) AppFeedback.light();
+                onPressed?.call();
+              }
+            : null,
+        child: Container(
+          height: minTap,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: top,
+            borderRadius: BorderRadius.circular(999),
+            border: variant == EngramButtonVariant.secondary && !_disabled
+                ? Border.all(color: context.hairline, width: 2)
+                : null,
+          ),
+          alignment: Alignment.center,
+          child: isLoading
+              ? SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: labelColor,
                   ),
-                ],
-              ),
+                )
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (leading != null) ...[
+                      leading!,
+                      const SizedBox(width: 8),
+                    ] else if (icon != null) ...[
+                      HugeIcon(
+                        icon: icon,
+                        color: labelColor,
+                        size: 22,
+                        strokeWidth: 2.2,
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    Flexible(
+                      child: ExcludeSemantics(
+                        child: Text(
+                          label,
+                          style: TextStyle(
+                            color: labelColor,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 17,
+                            letterSpacing: 0.5,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+        ),
       ),
     );
   }
 }
 
-/// Kis inline lapos pill gomb (pl. battle képernyő Invite / Watch).
-///
-/// A nagy [EngramButton] kistestvére: ugyanaz a lapos pill forma,
-/// csak kompakt méretben, sorokba, kártyák mellé.
-/// `onTap: null` esetén szürke, nyomhatatlan állapot lesz.
+class EngramPress3D extends StatefulWidget {
+  final VoidCallback onTap;
+  final Widget top;
+  final Color shadowColor;
+  final double depth;
+  final BorderRadius borderRadius;
+  final bool haptic;
+  final String? semanticLabel;
+
+  const EngramPress3D({
+    super.key,
+    required this.onTap,
+    required this.top,
+    required this.shadowColor,
+    this.depth = 4,
+    this.borderRadius = const BorderRadius.all(Radius.circular(18)),
+    this.haptic = true,
+    this.semanticLabel,
+  });
+
+  @override
+  State<EngramPress3D> createState() => _EngramPress3DState();
+}
+
+class _EngramPress3DState extends State<EngramPress3D> {
+  bool _pressed = false;
+
+  void _down(TapDownDetails _) {
+    if (!_pressed) setState(() => _pressed = true);
+    if (widget.haptic) AppFeedback.light();
+  }
+
+  void _up(TapUpDetails _) {
+    if (_pressed) setState(() => _pressed = false);
+  }
+
+  void _cancel() {
+    if (_pressed) setState(() => _pressed = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: widget.semanticLabel,
+      child: GestureDetector(
+        onTapDown: _down,
+        onTapUp: _up,
+        onTapCancel: _cancel,
+        onTap: widget.onTap,
+        child: Stack(
+          children: [
+            Positioned(
+              top: widget.depth,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: widget.shadowColor,
+                  borderRadius: widget.borderRadius,
+                ),
+              ),
+            ),
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 90),
+              curve: Curves.easeOut,
+              top: _pressed ? widget.depth : 0,
+              left: 0,
+              right: 0,
+              bottom: _pressed ? 0 : widget.depth,
+              child: widget.top,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class EngramMiniButton extends StatelessWidget {
   final String label;
   final VoidCallback? onTap;
   final Color? background;
-  // Régi 3D-sáv színe: már nincs használva, csak a hívók
-  // kompatibilitása miatt maradt meg a paraméter.
   final Color? shadowColor;
 
-  /// Koppintáskor a gomb ad egy könnyű rezgést. Ha a kezelő saját
-  /// visszajelzést ad, tedd `false`-ra, hogy ne legyen dupla rezgés.
   final bool haptic;
+
+  final String? semanticsLabel;
 
   const EngramMiniButton({
     super.key,
@@ -187,6 +233,7 @@ class EngramMiniButton extends StatelessWidget {
     this.background,
     this.shadowColor,
     this.haptic = true,
+    this.semanticsLabel,
   });
 
   @override
@@ -195,50 +242,52 @@ class EngramMiniButton extends StatelessWidget {
     final top =
         background ??
         (context.isDark ? context.faintBg : const Color(0xFFD7E0EC));
-    return GestureDetector(
-      onTap: disabled
-          ? null
-          : () {
-              if (haptic) AppFeedback.light();
-              onTap?.call();
-            },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: top,
-          borderRadius: BorderRadius.circular(999),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w800,
-            fontSize: 12,
+    return Semantics(
+      button: true,
+      enabled: !disabled,
+      label: semanticsLabel ?? label,
+      child: GestureDetector(
+        onTap: disabled
+            ? null
+            : () {
+                if (haptic) AppFeedback.light();
+                onTap?.call();
+              },
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: top,
+            borderRadius: BorderRadius.circular(999),
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+          alignment: Alignment.center,
+          child: ExcludeSemantics(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 12,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ),
       ),
     );
   }
 }
 
-/// Komoly, egységes vissza gomb hugeicons-szal.
-///
-/// Minden visszalépéshez ezt használjuk az appban: AppBar `leading`
-/// pozícióban sima ikon módban (`boxed: false`), egyedi fejlécekben
-/// pedig lapos kör módban (`boxed: true`). Modális bezáráshoz
-/// (pl. avatar szerkesztő) az [EngramBackButton.close] ad X jelet
-/// ugyanabban a kör formában.
 class EngramBackButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool boxed;
   final List<List<dynamic>> icon;
 
-  /// Koppintáskor a gomb ad egy könnyű rezgést. Ha a kezelő saját
-  /// visszajelzést ad, tedd `false`-ra, hogy ne legyen dupla rezgés.
   final bool haptic;
+
+  final String? semanticLabel;
+  final bool closeVariant;
 
   const EngramBackButton({
     super.key,
@@ -246,6 +295,8 @@ class EngramBackButton extends StatelessWidget {
     this.boxed = false,
     this.icon = HugeIcons.strokeRoundedArrowLeft01,
     this.haptic = true,
+    this.semanticLabel,
+    this.closeVariant = false,
   });
 
   const EngramBackButton.close({
@@ -254,6 +305,8 @@ class EngramBackButton extends StatelessWidget {
     this.boxed = true,
     this.icon = HugeIcons.strokeRoundedCancel01,
     this.haptic = true,
+    this.semanticLabel,
+    this.closeVariant = true,
   });
 
   @override
@@ -273,47 +326,55 @@ class EngramBackButton extends StatelessWidget {
       size: 30,
       strokeWidth: 2.5,
     );
+    final label =
+        semanticLabel ?? tr(closeVariant ? 'common_close' : 'common_back');
     if (!boxed) {
-      return IconButton(icon: glyph, onPressed: tap);
-    }
-    return GestureDetector(
-      onTap: tap,
-      child: Container(
-        width: 58,
-        height: 58,
-        decoration: BoxDecoration(
-          color: context.cardBg,
-          shape: BoxShape.circle,
-          border: Border.all(color: context.hairline, width: 2),
+      return Semantics(
+        button: true,
+        label: label,
+        onTap: tap,
+        child: ExcludeSemantics(
+          child: IconButton(
+            icon: glyph,
+            onPressed: tap,
+            tooltip: label,
+          ),
         ),
-        alignment: Alignment.center,
-        child: glyph,
+      );
+    }
+    return Semantics(
+      button: true,
+      label: label,
+      child: GestureDetector(
+        onTap: tap,
+        child: Container(
+          width: 58,
+          height: 58,
+          decoration: BoxDecoration(
+            color: context.cardBg,
+            shape: BoxShape.circle,
+            border: Border.all(color: context.hairline, width: 2),
+          ),
+          alignment: Alignment.center,
+          child: glyph,
+        ),
       ),
     );
   }
 }
 
-/// Kör alakú lapos ikongomb (pl. megosztás, avatar-pipa,
-/// memóriatípus-választó) — 1:1-es pill, tehát geometriailag kör.
-///
-/// Alapból kártya-színű, keretes — töltött változathoz add meg
-/// a [background]-ot (pl. blue pipa): ilyenkor keret nélkül,
-/// fehér ikonnal jelenik meg ugyanabban a lapos kör formában.
-/// [isLoading] esetén töltőpötty forog az ikon helyén.
 class EngramIconButton extends StatelessWidget {
   final dynamic icon;
   final VoidCallback? onTap;
   final double size;
   final Color? background;
   final Color? foreground;
-  // Régi 3D-sáv színe: már nincs használva, csak a hívók
-  // kompatibilitása miatt maradt meg a paraméter.
   final Color? shadowColor;
   final bool isLoading;
 
-  /// Koppintáskor a gomb ad egy könnyű rezgést. Ha a kezelő saját
-  /// visszajelzést ad, tedd `false`-ra, hogy ne legyen dupla rezgés.
   final bool haptic;
+
+  final String? semanticLabel;
 
   const EngramIconButton({
     super.key,
@@ -325,6 +386,7 @@ class EngramIconButton extends StatelessWidget {
     this.shadowColor,
     this.isLoading = false,
     this.haptic = true,
+    this.semanticLabel,
   });
 
   @override
@@ -343,37 +405,45 @@ class EngramIconButton extends StatelessWidget {
             : filled
             ? Colors.white
             : context.inkText);
-    return GestureDetector(
-      onTap: disabled
-          ? null
-          : () {
-              if (haptic) AppFeedback.light();
-              onTap?.call();
-            },
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: top,
-          shape: BoxShape.circle,
-          border: filled ? null : Border.all(color: context.hairline, width: 2),
-        ),
-        alignment: Alignment.center,
-        child: isLoading
-            ? SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
+    final minTap = size < 48 ? 48.0 : size;
+    return Semantics(
+      button: true,
+      enabled: !disabled,
+      label: semanticLabel,
+      child: GestureDetector(
+        onTap: disabled
+            ? null
+            : () {
+                if (haptic) AppFeedback.light();
+                onTap?.call();
+              },
+        child: Container(
+          width: minTap,
+          height: minTap,
+          decoration: BoxDecoration(
+            color: top,
+            shape: BoxShape.circle,
+            border: filled
+                ? null
+                : Border.all(color: context.hairline, width: 2),
+          ),
+          alignment: Alignment.center,
+          child: isLoading
+              ? SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: glyphColor,
+                  ),
+                )
+              : HugeIcon(
+                  icon: icon,
                   color: glyphColor,
+                  size: 22,
+                  strokeWidth: 2.2,
                 ),
-              )
-            : HugeIcon(
-                icon: icon,
-                color: glyphColor,
-                size: 22,
-                strokeWidth: 2.2,
-              ),
+        ),
       ),
     );
   }

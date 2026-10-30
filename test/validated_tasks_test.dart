@@ -1,8 +1,15 @@
 import 'dart:convert';
 
+import 'package:engrammo/models/item_banks.dart' show assessmentStories;
 import 'package:engrammo/models/meta_task.dart';
 import 'package:engrammo/models/validated_tasks.dart'
-    show itemCountFor, specForId, specForKind, validateTask;
+    show
+        brownPetersonDelay,
+        itemCountFor,
+        paradigmPrompt,
+        specForId,
+        specForKind,
+        validateTask;
 import 'package:engrammo/services/memory_store.dart';
 import 'package:engrammo/services/meta_ai_service.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,6 +22,11 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    MetaAIService.consentForTest = true;
+  });
+
+  tearDown(() {
+    MetaAIService.consentForTest = null;
   });
 
   group('Validated tasks: every local task traces to a paradigm', () {
@@ -31,6 +43,12 @@ void main() {
       'pattern',
       'duel',
       'order',
+      'face',
+      'foreign',
+      'prospective',
+      'poem',
+      'replay',
+      'interference',
     ];
 
     test('local fallback carries paradigm + source for every kind', () async {
@@ -90,15 +108,12 @@ void main() {
 
     test('AI payload outside the paradigm is rejected', () {
       const req = MetaTaskRequest(kind: 'working', difficulty: 2);
-      // Only 2 options: structural violation, must fall back to local.
       final bad = MetaAIService.parseTaskContent(
         '{"prompt":"x","items":["1","2"],"question":"q?",'
         '"options":["a","b"],"correct":0}',
         req,
       );
       expect(bad, isNull);
-      // Out-of-range or missing correct is rejected (no silent clamp);
-      // empty items fail too.
       final empty = MetaAIService.parseTaskContent(
         '{"prompt":"x","items":[],"question":"q?",'
         '"options":["a","b","c","d"],"correct":9}',
@@ -143,6 +158,71 @@ void main() {
         [for (var d = 1; d <= 5; d++) itemCountFor('number', d)],
         [4, 6, 9, 12, 15],
       );
+    });
+
+    test('sensory maps to iconic probe, old echoic stamps resolve', () {
+      expect(specForKind('sensory').id, 'iconic-probe');
+      expect(specForId('echoic-probe').id, 'iconic-probe');
+      expect(specForKind('sensory').source, contains('Sperling'));
+    });
+
+    test('interference runs the true Brown-Peterson procedure', () {
+      expect(specForKind('interference').id, 'brown-peterson');
+      expect(
+        [for (var d = 1; d <= 5; d++) brownPetersonDelay(d)],
+        [3, 3, 6, 9, 18],
+      );
+      final hint = paradigmPrompt(
+        const MetaTaskRequest(kind: 'interference', difficulty: 5),
+      );
+      expect(hint, contains('brown-peterson'));
+      expect(hint, contains('18 seconds'));
+    });
+
+    test('bad trigrams fail validation (vowels, repeats, wrong shape)', () {
+      const req = MetaTaskRequest(kind: 'interference', difficulty: 3);
+      MetaTask candidate(List<String> items, List<String> options) =>
+          MetaTask(
+            prompt: 'p',
+            items: items,
+            question: 'q?',
+            options: options,
+            correct: 0,
+            createdAt: DateTime(2026, 1, 1),
+          );
+      expect(
+        validateTask(
+          req,
+          candidate(['XJR'], ['XJR', 'KPL', 'ZVM', 'BQT']),
+        ),
+        isEmpty,
+      );
+      expect(
+        validateTask(
+          req,
+          candidate(['XAR'], ['XAR', 'KPL', 'ZVM', 'BQT']),
+        ),
+        isNotEmpty,
+        reason: 'vowel trigram rejected',
+      );
+      expect(
+        validateTask(
+          req,
+          candidate(['XXR'], ['XXR', 'KPL', 'ZVM', 'BQT']),
+        ),
+        isNotEmpty,
+        reason: 'repeat trigram rejected',
+      );
+    });
+
+    test('lesson stories never draw reserved assessment items', () async {
+      final assess = assessmentStories.map((s) => s.text).toSet();
+      for (var i = 0; i < 30; i++) {
+        final task = await MetaAIService.generateTask(
+          MetaTaskRequest(kind: 'episodic', difficulty: 2, seed: 'bank-$i'),
+        );
+        expect(assess, isNot(contains(task.items.first)));
+      }
     });
   });
 
@@ -207,7 +287,7 @@ void main() {
   });
 
   group('Assessment parallel forms', () {
-    test('finished runs alternate Form A/B', () async {
+    test('finished runs rotate Forms A-D', () async {
       expect(await MemoryStore.loadAssessmentRuns(), 0);
       await MemoryStore.saveScores([100, 40, 40, 40, 40, 40]);
       expect(await MemoryStore.loadAssessmentRuns(), 1);

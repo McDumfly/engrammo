@@ -133,8 +133,6 @@ void main() {
     });
 
     test('Spark-válasz állomáslistája beolvasható', () {
-      // A loci-paradigma 4-8 állomást kér: a 2 elemes válasz szerkezeti
-      // hibás, a régi parser mégis elfogadta — ez volt a hiba.
       expect(
         MetaAIService.parseTaskContent(
           '{"prompt":"Walk!","items":["apple","key"],'

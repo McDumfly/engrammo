@@ -23,14 +23,9 @@ class _MaskedFillHugeIcon extends StatelessWidget {
     this.size = 26,
   });
 
-  /// Az SVG-string felépítése + parse-olása drága, és a navbar
-  /// animációja képkockánként újraépítené mind a 10 ikont.
-  /// Ikononként + színenként egyszer építjük fel, utána a
-  /// flutter_svg saját picture-gyorsítótára adja vissza.
   static final Map<String, String> _svgCache = {};
 
   String _cachedSvg() {
-    // Az icon-listák const-ok, így az identity stabil kulcs.
     final key = '${identityHashCode(icon)}|${fillColor.toARGB32()}';
     return _svgCache.putIfAbsent(key, _buildSvg);
   }
@@ -62,15 +57,7 @@ class _MaskedFillHugeIcon extends StatelessWidget {
       final tag = element[0] as String;
       final attrs = Map<String, dynamic>.from(element[1] as Map);
       final closed = _isClosed(tag, attrs);
-      // Kard-trukk: a hosszu nyitott pengevonalak ket vege a markolatnal
-      // kozel van egymashoz, ezert lezarva (Z) tomor penge-sziluettet
-      // adnak. Rovid vonalakat (markolat, keresztvas) nem zarunk le,
-      // azok vonalkent maradnak.
       final d = attrs['d']?.toString() ?? '';
-      // Sulyzorud: ket parhuzamos nyitott vonal a rud ket ele.
-      // Z-vel nem zarhato, mert csak a masodik reszt
-      // zarna vissza. Helyette a negy sarokpont kozott
-      // negyszoget toltunk ki: ez a rud belseje.
       final isDumbbellRod = d.contains('7.73438') && d.contains('10.2344');
       final forceClose =
           !closed && tag == 'path' && d.length > 80 && !isDumbbellRod;
@@ -140,8 +127,6 @@ class _MaskedFillHugeIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox.square(
       dimension: size,
-      // A string innen már gyorsítótárból jön, azonos stringre a
-      // flutter_svg sem parse-ol újra (loader-key alapú cache).
       child: SvgPicture.string(_cachedSvg(), width: size, height: size),
     );
   }
@@ -266,10 +251,6 @@ class _SynapseNavBarState extends State<SynapseNavBar>
     final prevTarget = _dragTarget;
     _dragTarget = i;
     _dragPos = pos;
-    // Végighúzáskor minden újonnan érintett ikon egyet rezeg. Az első,
-    // még az aktuális ikonon belüli előnézet néma marad; a gyors
-    // átsiklást az AppFeedback rés-ablaka fogja vissza duplázódás
-    // helyett ritmikus kattogássá.
     if (prevTarget != i && (prevTarget != null || i != widget.index)) {
       AppFeedback.select();
     }
@@ -421,12 +402,6 @@ class _SynapseNavBarState extends State<SynapseNavBar>
   }
 }
 
-/// Az ikonok animált rétege.
-///
-/// Az ikon-widget példányok egyszer, a [build]-ben jönnek létre; a
-/// képkockánkénti builder már csak az olcsó skálázást, a blob-festést
-/// és a klip-utat számolja újra. Így animáció közben nem születnek
-/// új SVG-widgetek/loader-példányok 60 fps-sel.
 class _NavIconStage extends StatelessWidget {
   final List<SynapseTab> tabs;
   final int selected;
@@ -601,7 +576,7 @@ Path buildLiquidBlobPath({
   required double wobble,
   required bool active,
 }) {
-  const segments = 32;
+  const segments = 24;
   final points = <Offset>[];
   for (var k = 0; k < segments; k++) {
     final theta = k / segments * 2 * math.pi;

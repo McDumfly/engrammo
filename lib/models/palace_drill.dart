@@ -1,32 +1,12 @@
-/// Research-backed drill builders for spatial (loci) and visual (picture)
-/// lessons, plus the SAM-label merge used by the spatial track.
-///
-/// Every builder here is a pure function with an offline local fallback,
-/// so lessons teach the same validated technique with or without an API
-/// key. Live Meta models only enrich the stimulus:
-///
-/// - spatial: Muse Image draws the palace scene, SAM 3.1 segments it into
-///   ordered stations ([stationsFromLabels]), Spark (or the local pool)
-///   supplies the words to place. Paradigm: method of loci
-///   (Maguire et al. 2003; Dresler et al. 2017; Wagner et al. 2021).
-/// - visual: Muse Image draws the scene, recall probes a detail.
-///   Paradigm: picture recognition / picture superiority
-///   (Shepard 1967; Standing 1973; Paivio dual-coding theory).
-///
-/// Bibliography: `docs/RESEARCH.md` sections 1-2.
 library;
 
 import 'dart:math';
 
+import '../l10n/app_localizations.dart';
+import 'item_banks.dart'
+    show extraConcreteNounsFor, extraPictureScenesFor, isHuLocale;
 import 'meta_task.dart';
 
-/// Familiar, fixed-order routes with distinct stations.
-///
-/// Loci must be well known in advance, strictly ordered and mutually
-/// distinct — similar stations interfere with each other (distinctiveness
-/// principle; Krokos et al. VR palace study). Home and street routes are
-/// the classic instruction (Dresler et al. 2017 trained on familiar
-/// routes first).
 const palaceRoutes = <String, List<String>>{
   'home': [
     'front door',
@@ -66,9 +46,48 @@ const palaceRoutes = <String, List<String>>{
   ],
 };
 
-/// Highly imageable concrete nouns (dual-coding friendly: every word
-/// gets a visual plus a verbal code, Paivio). Short everyday words keep
-/// encoding time per station near the recommended ~10 seconds.
+Map<String, List<String>> palaceRoutesFor([String locale = 'en']) =>
+    isHuLocale(locale) ? palaceRoutesHu : palaceRoutes;
+
+const palaceRoutesHu = <String, List<String>>{
+  'otthon': [
+    'bejárati ajtó',
+    'előszobatükör',
+    'fogas',
+    'nappali kanapé',
+    'olvasólámpa',
+    'könyvespolc',
+    'konyhai tűzhely',
+    'konyhaasztal',
+    'hálószobai ágy',
+    'fürdőszobai mosdó',
+  ],
+  'utca': [
+    'kertkapu',
+    'buszmegálló',
+    'pékségkirakat',
+    'sarki szökőkút',
+    'öreg tölgy',
+    'könyvtárlépcső',
+    'piaci bódé',
+    'templomajtó',
+    'hídkorlát',
+    'iskolaudvari kerítés',
+  ],
+  'park': [
+    'parkbejárat',
+    'rózsaágyás',
+    'kőpad',
+    'kacsástó',
+    'fahíd',
+    'piknikasztal',
+    'játszótéri hinta',
+    'magas fenyő',
+    'ivókút',
+    'üvegpavilon',
+  ],
+};
+
 const concreteNouns = <String>[
   'apple',
   'hammer',
@@ -112,13 +131,52 @@ const concreteNouns = <String>[
   'zeppelin',
 ];
 
-/// Everyday scenes for the picture-recall drill. Each scene lists
-/// plausible elements; the probe asks recognition ("which was in the
-/// scene?"), the same paradigm as Shepard (1967) and Standing (1973),
-/// who showed thousands of pictures are recognized after a single
-/// viewing. One element per scene is deliberately distinctive
-/// (Von Restorff 1933 isolation effect) and becomes the queried target
-/// more often at higher difficulty.
+List<String> concreteNounsFor([String locale = 'en']) =>
+    isHuLocale(locale) ? concreteNounsHu : concreteNouns;
+
+const concreteNounsHu = <String>[
+  'alma',
+  'kalapács',
+  'gyertya',
+  'híd',
+  'kert',
+  'lámpa',
+  'óceán',
+  'kulcs',
+  'tigris',
+  'hegedű',
+  'vár',
+  'rakéta',
+  'tükör',
+  'iránytű',
+  'sárkány',
+  'zongora',
+  'horgony',
+  'léggömb',
+  'korona',
+  'gyémánt',
+  'sas',
+  'szökőkút',
+  'földgömb',
+  'kikötő',
+  'sziget',
+  'dzsungel',
+  'lámpás',
+  'hegy',
+  'tű',
+  'gyümölcsös',
+  'piramis',
+  'paplan',
+  'szivárvány',
+  'nyereg',
+  'templom',
+  'esernyő',
+  'vulkán',
+  'szélmalom',
+  'jacht',
+  'zeppelin',
+];
+
 const pictureScenes = <String, List<String>>{
   'morning kitchen': [
     'kettle',
@@ -186,13 +244,89 @@ const pictureScenes = <String, List<String>>{
   ],
 };
 
-/// Number of items a drill of [difficulty] (1..5) probes.
-///
-/// 4 items at difficulty 1 up to 8 at difficulty 5: starts inside the
-/// ~4-chunk working-memory window (Cowan 2001) and grows toward the
-/// lab milestone lists (Dresler et al. 2017), keeping success near the
-/// ~85% difficulty sweet spot (Wilson et al. 2019).
+Map<String, List<String>> pictureScenesFor([String locale = 'en']) =>
+    isHuLocale(locale) ? pictureScenesHu : pictureScenes;
+
+const pictureScenesHu = <String, List<String>>{
+  'reggeli konyha': [
+    'teáskanna',
+    'pirítós',
+    'macska a széken',
+    'kék bögre',
+    'ablaki növény',
+    'fali óra',
+  ],
+  'utcai piac': [
+    'almáskocsi',
+    'csíkos napellenző',
+    'rézmérleg',
+    'virágosvödrök',
+    'síró kisbaba',
+    'galambok',
+  ],
+  'csendes tengerpart': [
+    'piros vitorlás',
+    'homokvár',
+    'csíkos törölköző',
+    'sirály',
+    'fagylaltoskocsi',
+    'világítótorony',
+  ],
+  'régi könyvtár': [
+    'csigalépcső',
+    'zöld lámpa',
+    'földgömb',
+    'alvó kutya',
+    'poros atlasz',
+    'tölgyfa íróasztal',
+  ],
+  'hegyi kunyhó': [
+    'kandalló',
+    'medvebőr szőnyeg',
+    'lámpás',
+    'hótalp',
+    'forró leves',
+    'fagerendák',
+  ],
+  'városi park': [
+    'szökőkút',
+    'sakkozók',
+    'léggömbárus',
+    'kőpad',
+    'mókusok',
+    'rézfúvós zenekar',
+  ],
+  'pályaudvar': [
+    'indulási tábla',
+    'piros bőrönd',
+    'kávésbódé',
+    'galambcsapat',
+    'jegykapu',
+    'alvó utas',
+  ],
+  'üvegház': [
+    'orchideák',
+    'öntözőkanna',
+    'függő páfrányok',
+    'teknős',
+    'üvegtető',
+    'fűszerágyások',
+  ],
+};
+
 int drillItemCount(int difficulty) => 3 + difficulty.clamp(1, 5);
+
+List<String> get allConcreteNouns => allConcreteNounsFor('en');
+
+List<String> allConcreteNounsFor([String locale = 'en']) =>
+    [...concreteNounsFor(locale), ...extraConcreteNounsFor(locale)];
+
+Map<String, List<String>> get allPictureScenes => allPictureScenesFor('en');
+
+Map<String, List<String>> allPictureScenesFor([String locale = 'en']) => {
+      ...pictureScenesFor(locale),
+      ...extraPictureScenesFor(locale),
+    };
 
 int _seedHash(String seed) {
   var h = 0x811c9dc5;
@@ -203,43 +337,33 @@ int _seedHash(String seed) {
   return h;
 }
 
-/// Route name picked deterministically from [seed].
-String routeForSeed(String seed) {
-  final names = palaceRoutes.keys.toList();
+String routeForSeed(String seed, [String locale = 'en']) {
+  final names = palaceRoutesFor(locale).keys.toList();
   return names[_seedHash('route:$seed') % names.length];
 }
 
-/// Scene name picked deterministically from [seed].
-String sceneForSeed(String seed) {
-  final names = pictureScenes.keys.toList();
+String sceneForSeed(String seed, [String locale = 'en']) {
+  final names = allPictureScenesFor(locale).keys.toList();
   return names[_seedHash('scene:$seed') % names.length];
 }
 
-/// Ordered, distinct loci for a drill: first [count] stations of the
-/// seeded route. Order is fixed — loci are always walked, never jumped.
-List<String> localStations(String seed, int count) {
-  final route = palaceRoutes[routeForSeed(seed)]!;
+List<String> localStations(String seed, int count, [String locale = 'en']) {
+  final route = palaceRoutesFor(locale)[routeForSeed(seed, locale)]!;
   return route.take(count.clamp(1, route.length)).toList();
 }
 
-/// Concrete nouns for a drill, shuffled by [seed], no repeats.
-List<String> localDrillWords(String seed, int count) {
-  final pool = List<String>.of(concreteNouns)
+List<String> localDrillWords(String seed, int count, [String locale = 'en']) {
+  final pool = List<String>.of(allConcreteNounsFor(locale))
     ..shuffle(Random(_seedHash('words:$seed')));
   return pool.take(count.clamp(1, pool.length)).toList();
 }
 
-/// Merges SAM 3.1 segment labels over the local route.
-///
-/// Live labels come first (deduped, trimmed, empties dropped) so a real
-/// segmentation of the palace image defines the walk; missing slots are
-/// filled from the familiar local route. The result is always ordered,
-/// distinct and exactly [count] long — the three properties loci need.
 List<String> stationsFromLabels(
   List<String> labels,
   String seed,
-  int count,
-) {
+  int count, [
+  String locale = 'en',
+]) {
   final n = count.clamp(1, 10);
   final merged = <String>[];
   for (final raw in labels) {
@@ -249,7 +373,7 @@ List<String> stationsFromLabels(
     if (merged.length >= n) break;
   }
   if (merged.length < n) {
-    for (final station in localStations(seed, 10)) {
+    for (final station in localStations(seed, 10, locale)) {
       if (merged.contains(station)) continue;
       merged.add(station);
       if (merged.length >= n) break;
@@ -258,38 +382,36 @@ List<String> stationsFromLabels(
   return merged;
 }
 
-/// Prompt for the Muse palace illustration of [routeName].
-String palaceImagePrompt(String routeName, int difficulty) {
-  final stations = palaceRoutes[routeName] ?? palaceRoutes['home']!;
+String palaceImagePrompt(String routeName, int difficulty,
+    [String locale = 'en']) {
+  final routes = palaceRoutesFor(locale);
+  final stations = routes[routeName] ?? routes.values.first;
   final n = drillItemCount(difficulty);
   return 'Cozy memory-palace illustration of a $routeName walk with '
       '${stations.take(n).join(', ')} as clearly separated, numbered '
       'stations in walking order, warm light, storybook style';
 }
 
-/// Prompt for the Muse illustration of [sceneName].
-String pictureImagePrompt(String sceneName) {
-  final elements = pictureScenes[sceneName] ?? const <String>[];
+String pictureImagePrompt(String sceneName, [String locale = 'en']) {
+  final elements =
+      allPictureScenesFor(locale)[sceneName] ?? const <String>[];
   return 'Vivid, detailed illustration of a $sceneName showing '
       '${elements.take(5).join(', ')}, storybook style, sharp details';
 }
 
-/// Local method-of-loci drill: place one word per station, in order,
-/// then recall which word sits at one station.
-///
-/// Stimulus: station → word pairs. Probe: cued recall at a single
-/// station with 4 options (1 placed + 3 lures from the same pool).
-/// This is the Dresler et al. (2017) training loop in miniature:
-/// encode on a timed walk, retrieve by walking, correct immediately.
-MetaTask localPalaceTask({required int difficulty, required String seed}) {
+MetaTask localPalaceTask({
+  required int difficulty,
+  required String seed,
+  String locale = 'en',
+}) {
   final n = drillItemCount(difficulty);
-  final route = routeForSeed(seed);
-  final stations = localStations(seed, n);
-  final words = localDrillWords(seed, n);
+  final route = routeForSeed(seed, locale);
+  final stations = localStations(seed, n, locale);
+  final words = localDrillWords(seed, n, locale);
   final rnd = Random(_seedHash('target:$seed'));
   final target = rnd.nextInt(n);
   final targetWord = words[target];
-  final lures = List<String>.of(concreteNouns)..shuffle(rnd);
+  final lures = List<String>.of(allConcreteNounsFor(locale))..shuffle(rnd);
   final options = <String>[targetWord];
   for (final lure in lures) {
     if (options.length >= 4) break;
@@ -297,38 +419,32 @@ MetaTask localPalaceTask({required int difficulty, required String seed}) {
   }
   options.shuffle(rnd);
   return MetaTask(
-    prompt: 'Walk your $route palace — one image per station!',
+    prompt: trFor(locale, 'task_palace_prompt', {'route': route}),
     items: List<String>.of(words),
     stations: stations,
-    question: 'What did you place at the ${stations[target]}?',
+    question: trFor(locale, 'task_palace_q', {'station': stations[target]}),
     options: options,
     correct: options.indexOf(targetWord),
-    explanation:
-        'Loci: one bizarre, moving image per station, always in walking '
-        'order. Champions memorize with this exact method — 6 weeks of '
-        'training rewires beginner brains toward the athlete pattern. '
-        '(Maguire et al. 2003; Dresler et al. 2017)',
+    explanation: trFor(locale, 'task_palace_expl'),
     paradigm: 'loci-drill',
     source: 'Maguire et al. 2003; Dresler et al. 2017',
     createdAt: DateTime.now(),
   );
 }
 
-/// Local picture-recall drill: study a scene, then recognize one of
-/// its elements among lures from other scenes.
-///
-/// Recognition-after-one-viewing is the Shepard (1967) / Standing
-/// (1973) paradigm: even thousands of pictures stick. The drill trains
-/// the encoding side — naming details instantly so each gets a verbal
-/// plus a visual code (Paivio dual-coding theory).
-MetaTask localPictureTask({required int difficulty, required String seed}) {
+MetaTask localPictureTask({
+  required int difficulty,
+  required String seed,
+  String locale = 'en',
+}) {
+  final scenes = allPictureScenesFor(locale);
   final n = drillItemCount(difficulty);
-  final scene = sceneForSeed(seed);
-  final present = List<String>.of(pictureScenes[scene]!.take(n));
+  final scene = sceneForSeed(seed, locale);
+  final present = List<String>.of(scenes[scene]!.take(n));
   final rnd = Random(_seedHash('target:$seed'));
   final target = present[rnd.nextInt(present.length)];
   final lurePool = <String>[
-    for (final entry in pictureScenes.entries)
+    for (final entry in scenes.entries)
       if (entry.key != scene) ...entry.value,
   ]..shuffle(rnd);
   final options = <String>[target];
@@ -338,16 +454,12 @@ MetaTask localPictureTask({required int difficulty, required String seed}) {
   }
   options.shuffle(rnd);
   return MetaTask(
-    prompt: 'Study this $scene — name every detail!',
+    prompt: trFor(locale, 'task_picture_prompt', {'scene': scene}),
     items: present,
-    question: 'Which of these was in the $scene?',
+    question: trFor(locale, 'task_picture_q', {'scene': scene}),
     options: options,
     correct: options.indexOf(target),
-    explanation:
-        'Pictures get two memory codes (visual + verbal) instead of one, '
-        'and distinctive details pop out of memory. Name what you see '
-        'instantly — words anchor pictures. '
-        '(Shepard 1967; Standing 1973; Von Restorff 1933)',
+    explanation: trFor(locale, 'task_picture_expl'),
     paradigm: 'picture-recall',
     source: 'Shepard 1967; Standing 1973; Paivio dual-coding',
     createdAt: DateTime.now(),

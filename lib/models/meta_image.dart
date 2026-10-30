@@ -1,9 +1,5 @@
 import 'dart:convert';
 
-/// Meta Image kérés és -válasz (Muse minta / DiceBear-tartalék).
-///
-/// A gyorsítótár kulcsa a `dicebear_generator.dart` rendezett join
-/// mintáját követi, így a beszúrási sorrend nem számít.
 class MetaImageRequest {
   final String prompt;
   final String style;
@@ -23,7 +19,6 @@ class MetaImageRequest {
     );
   }
 
-  /// Sorrendfüggetlen cache-kulcs a kérés mezőiből.
   String get cacheKey {
     final parts = <String, String>{
       'prompt': prompt,
@@ -34,7 +29,6 @@ class MetaImageRequest {
     return keys.map((k) => '$k=${parts[k]}').join('&');
   }
 
-  /// Rövid ujjlenyomat a promptról a naplózáshoz (függőség nélkül).
   String get promptHash {
     final bytes = utf8.encode(prompt);
     var h = 0x811c9dc5;
@@ -71,18 +65,13 @@ class MetaImageRequest {
   int get hashCode => Object.hash(prompt, style, size);
 }
 
-/// Egy legenerált vagy tartalék kép hivatkozása.
 class MetaImage {
-  /// Távoli URL (szöveges SVG / PNG). Üres, ha csak bájt van.
   final String url;
 
-  /// Kérés-ujjlenyomat a naplózáshoz.
   final String promptHash;
 
-  /// Gyorsítótár-kulcs ([MetaImageRequest.cacheKey]).
   final String cacheKey;
 
-  /// Melyik modell adta ("local" tartaléknál).
   final String model;
 
   final DateTime createdAt;

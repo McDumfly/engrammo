@@ -1,28 +1,17 @@
-/// Meta AI feladat-kérés és -válasz modellje.
-///
-/// A `memory_profile.dart` szintmérője és a `benchmark.dart` játékai
-/// ugyanerre az alakra képeződnek le: a szerver (Muse Spark) adhat
-/// friss ingert, hiba vagy offline állapot esetén pedig a mai helyi
-/// generátorok maradnak a tartalék (`fallback: true`).
 class MetaTaskRequest {
-  /// Feladattípus: sensory, working, spatial, visual, episodic, semantic,
-  /// sequence, number, verbal, order, duel.
   final String kind;
 
-  /// Nehézség 1..5 skálán.
   final int difficulty;
 
-  /// Véletlen-mag a reprodukálhatósághoz.
   final String seed;
 
-  /// Nyelv, pl. "hu" vagy "en".
   final String locale;
 
   const MetaTaskRequest({
     required this.kind,
     this.difficulty = 1,
     this.seed = '',
-    this.locale = 'hu',
+    this.locale = 'en',
   });
 
   MetaTaskRequest copyWith({
@@ -51,7 +40,7 @@ class MetaTaskRequest {
       kind: (json['kind'] as String?) ?? 'sensory',
       difficulty: (json['difficulty'] as num?)?.toInt() ?? 1,
       seed: (json['seed'] as String?) ?? '',
-      locale: (json['locale'] as String?) ?? 'hu',
+      locale: (json['locale'] as String?) ?? 'en',
     );
   }
 
@@ -68,52 +57,31 @@ class MetaTaskRequest {
   int get hashCode => Object.hash(kind, difficulty, seed, locale);
 }
 
-/// Egy kész, képernyőn megjeleníthető memóriafeladat.
 class MetaTask {
-  /// Rövid inger-cím, pl. "Jegyezd meg ezt a számsort!".
   final String prompt;
 
-  /// Megjelenítendő elemek (számok, szavak, csempék).
   final List<String> items;
 
-  /// Kérdés a feladathoz.
   final String question;
 
-  /// Válaszlehetőségek.
   final List<String> options;
 
-  /// A helyes válasz indexe az [options] listában.
   final int correct;
 
-  /// Magyarázat a tanulási útvonalhoz (mnemotechnika-tipp).
   final String explanation;
 
-  /// Validált paradigma-azonosító (`validated_tasks.dart` registry).
-  /// Minden feladat — AI-s és helyi — ezt viseli; üres csak kézzel
-  /// épített, registry-n kívüli feladatoknál lehet (teszt, vész-tartalék).
   final String paradigm;
 
-  /// A paradigma forrása (tanulmány-hivatkozás, UI-felirathoz).
   final String source;
 
-  /// Rendezett loci-állomások a térbeli (loci) feladatokhoz: az [items]
-  /// ugyanilyen sorrendben ültetett szavak. Élő SAM 3.1 szegmentálásból
-  /// vagy a helyi útvonalból jön (`palace_drill.dart`); üres más
-  /// feladattípusoknál.
   final List<String> stations;
 
-  /// Muse-kép URL-je a térbeli/vizuális ingerekhez. Üres offline
-  /// módban — ilyenkor a leírás alapján a tanuló alkotja meg a képet
-  /// (kettős kódolás-gyakorlat, Paivio).
   final String imageUrl;
 
-  /// Melyik modell adta ("local" offline tartaléknál).
   final String model;
 
-  /// Létrehozás időbélyege.
   final DateTime createdAt;
 
-  /// Igaz, ha helyi generátor adta (nincs háló / nincs kulcs / hiba).
   final bool fallback;
 
   const MetaTask({

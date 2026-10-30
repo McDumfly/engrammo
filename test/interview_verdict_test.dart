@@ -5,8 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('interviewQuestions', () {
-    test('six questions, four options each, unique ids', () {
-      expect(interviewQuestions.length, 6);
+    test('eight questions, four options each, unique ids', () {
+      expect(interviewQuestions.length, 8);
       final ids = interviewQuestions.map((q) => q.id).toList();
       expect(ids.toSet().length, ids.length);
       for (final q in interviewQuestions) {
@@ -64,10 +64,9 @@ void main() {
   });
 
   group('heuristicVerdict (offline fallback)', () {
-    test('clear score winner survives neutral answers', () {
+    test('clear score winner survives a skipped interview', () {
       final answers = [
-        for (final q in interviewQuestions)
-          InterviewAnswer(questionId: q.id, picked: 1),
+        for (final q in interviewQuestions) InterviewAnswer(questionId: q.id),
       ];
       final v = heuristicVerdict(
         scores: const [40, 40, 100, 40, 40, 40],
@@ -78,8 +77,24 @@ void main() {
       expect(v.fallback, isTrue);
     });
 
+    test('verdict is deterministic for fixed answers', () {
+      final answers = [
+        for (final q in interviewQuestions)
+          InterviewAnswer(questionId: q.id, picked: 1),
+      ];
+      final a = heuristicVerdict(
+        scores: const [40, 40, 100, 40, 40, 40],
+        answers: answers,
+      );
+      final b = heuristicVerdict(
+        scores: const [40, 40, 100, 40, 40, 40],
+        answers: answers,
+      );
+      expect(a.kind, b.kind);
+      expect(a.rationale, isNotEmpty);
+    });
+
     test('interview weights break a score tie', () {
-      // All tied at 100: the interview leg must still crown someone.
       final answers = [
         for (final q in interviewQuestions)
           InterviewAnswer(questionId: q.id, picked: 0),
@@ -125,6 +140,8 @@ void main() {
         (body['response_format'] as Map)['type'],
         'json_object',
       );
+      expect(body['max_completion_tokens'], 2000);
+      expect(body.containsKey('max_tokens'), isFalse);
       final messages = body['messages'] as List;
       final joined = messages
           .map((m) => (m as Map)['content'].toString())

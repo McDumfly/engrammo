@@ -5,105 +5,153 @@ import '../theme/app_theme.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../l10n/app_localizations.dart';
+import '../l10n/avatar_hu.dart';
 import '../widgets/app_buttons.dart';
-import '../theme/app_colors.dart' show ink, muted, blue, blueDark;
+import '../theme/app_colors.dart' show ink, muted, blue, blueDark, blueShadow;
 import '../models/avatar_traits.dart';
 import '../services/dicebear_generator.dart';
 
-// NOTE: avatar persistence flows through MemoryStore (local) + CloudSync
-// (users/{uid}.avatarOpts) via initialOpts/onSaved — no direct Firestore
-// calls needed on this screen.
 class AvatarBackgroundOption {
   final String id;
-  final String label;
+  final String labelKey;
   final String hex;
   const AvatarBackgroundOption({
     required this.id,
-    required this.label,
+    required this.labelKey,
     required this.hex,
   });
 }
 
 const List<AvatarBackgroundOption> avatarBackgroundOptions = [
-  AvatarBackgroundOption(id: 'red', label: 'Red', hex: 'ef4444'),
-  AvatarBackgroundOption(id: 'white', label: 'White', hex: 'ffffff'),
-  AvatarBackgroundOption(id: 'black', label: 'Black', hex: '000000'),
-  AvatarBackgroundOption(id: 'lightBlue', label: 'Light blue', hex: '38bdf8'),
-  AvatarBackgroundOption(id: 'darkBlue', label: 'Dark blue', hex: '1e40af'),
-  AvatarBackgroundOption(id: 'teal', label: 'Teal', hex: '2dd4bf'),
-  AvatarBackgroundOption(id: 'green', label: 'Green', hex: '22c55e'),
-  AvatarBackgroundOption(id: 'lemon', label: 'Lemon', hex: 'fde047'),
-  AvatarBackgroundOption(id: 'pink', label: 'Pink', hex: 'f472b6'),
+  AvatarBackgroundOption(id: 'red', labelKey: 'avatar_bg_red', hex: 'ef4444'),
+  AvatarBackgroundOption(
+    id: 'white',
+    labelKey: 'avatar_bg_white',
+    hex: 'ffffff',
+  ),
+  AvatarBackgroundOption(
+    id: 'black',
+    labelKey: 'avatar_bg_black',
+    hex: '000000',
+  ),
+  AvatarBackgroundOption(
+    id: 'lightBlue',
+    labelKey: 'avatar_bg_light_blue',
+    hex: '38bdf8',
+  ),
+  AvatarBackgroundOption(
+    id: 'darkBlue',
+    labelKey: 'avatar_bg_dark_blue',
+    hex: '1e40af',
+  ),
+  AvatarBackgroundOption(id: 'teal', labelKey: 'avatar_bg_teal', hex: '2dd4bf'),
+  AvatarBackgroundOption(
+    id: 'green',
+    labelKey: 'avatar_bg_green',
+    hex: '22c55e',
+  ),
+  AvatarBackgroundOption(
+    id: 'lemon',
+    labelKey: 'avatar_bg_lemon',
+    hex: 'fde047',
+  ),
+  AvatarBackgroundOption(id: 'pink', labelKey: 'avatar_bg_pink', hex: 'f472b6'),
 ];
 
 class _StudioSection {
-  final String label;
+  final String labelKey;
   final List<List<dynamic>> icon;
   final String? traitKey;
   final String? colorKey;
   final bool colorOnly;
+
+  final List<String>? values;
+
+  final bool allowNone;
   const _StudioSection({
-    required this.label,
+    required this.labelKey,
     required this.icon,
     this.traitKey,
     this.colorKey,
     this.colorOnly = false,
+    this.values,
+    this.allowNone = false,
   });
 }
 
 const List<_StudioSection> _sections = [
   _StudioSection(
-    label: 'Skin',
+    labelKey: 'avatar_section_skin',
     icon: HugeIcons.strokeRoundedFaceId,
     traitKey: 'skinColor',
     colorOnly: true,
   ),
   _StudioSection(
-    label: 'Eyes',
+    labelKey: 'avatar_section_eyes',
     icon: HugeIcons.strokeRoundedEye,
     traitKey: 'eyes',
   ),
   _StudioSection(
-    label: 'Mouth',
+    labelKey: 'avatar_section_mouth',
     icon: HugeIcons.strokeRoundedSmile,
     traitKey: 'mouth',
   ),
   _StudioSection(
-    label: 'Brows',
+    labelKey: 'avatar_section_brows',
     icon: HugeIcons.strokeRoundedFaceMimic,
     traitKey: 'eyebrows',
   ),
   _StudioSection(
-    label: 'Hair',
+    labelKey: 'avatar_section_hair',
     icon: HugeIcons.strokeRoundedHairDryer,
     traitKey: 'top',
     colorKey: 'hairColor',
+    values: AvatarTraits.hairVariants,
   ),
   _StudioSection(
-    label: 'Beard',
+    labelKey: 'avatar_section_hats',
+    icon: HugeIcons.strokeRoundedCap,
+    traitKey: 'top',
+    colorKey: 'hatColor',
+    values: AvatarTraits.hatVariants,
+    allowNone: true,
+  ),
+  _StudioSection(
+    labelKey: 'avatar_section_beard',
     icon: HugeIcons.strokeRoundedChairBarber,
     traitKey: 'facialHair',
     colorKey: 'facialHairColor',
   ),
   _StudioSection(
-    label: 'Outfit',
+    labelKey: 'avatar_section_outfit',
     icon: HugeIcons.strokeRoundedTShirt,
     traitKey: 'clothes',
     colorKey: 'clothesColor',
   ),
   _StudioSection(
-    label: 'Glasses',
+    labelKey: 'avatar_section_accessories',
     icon: HugeIcons.strokeRoundedGlasses,
     traitKey: 'accessories',
     colorKey: 'accessoriesColor',
   ),
   _StudioSection(
-    label: 'Stage',
+    labelKey: 'avatar_section_stage',
     icon: HugeIcons.strokeRoundedImage01,
     traitKey: 'backgroundColor',
     colorOnly: true,
   ),
 ];
+
+List<TraitOption> _sectionOptions(_StudioSection sec) {
+  final all = AvatarTraits.traits[sec.traitKey] ?? const [];
+  final values = sec.values;
+  if (values == null) return all;
+  return [
+    for (final o in all)
+      if (values.contains(o.value)) o,
+  ];
+}
 
 class AvatarSelectionScreen extends StatefulWidget {
   final Map<String, String>? initialOpts;
@@ -116,6 +164,8 @@ class AvatarSelectionScreen extends StatefulWidget {
 
 class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
   late Map<String, String> _opts;
+
+  late String _hairTop;
   bool _isSaving = false;
   int _section = 4;
   int _batchToken = 0;
@@ -139,14 +189,36 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
     _opts = Map<String, String>.of(
       widget.initialOpts ?? AvatarTraits.defaults(),
     );
-    // The saved avatar arrives via widget.initialOpts (loaded from
-    // MemoryStore by the caller, synced from Firestore on sign-in).
+    final initialTop = _opts['top'];
+    _hairTop = AvatarTraits.isHat(initialTop)
+        ? AvatarTraits.hairVariants.first
+        : (initialTop ?? AvatarTraits.hairVariants.first);
     _refireBatch();
   }
 
   void _pickSection(int i) {
     if (_section == i) return;
     setState(() => _section = i);
+    _refireBatch();
+  }
+
+  Map<String, String>? _noneOptsFor(_StudioSection sec) {
+    if (!sec.allowNone || sec.traitKey == null) return null;
+    return {..._opts, sec.traitKey!: _hairTop};
+  }
+
+  void _pickTrait(_StudioSection sec, String value) {
+    setState(() {
+      _opts[sec.traitKey!] = value;
+      if (sec.traitKey == 'top' && !AvatarTraits.isHat(value)) {
+        _hairTop = value;
+      }
+    });
+    _refireBatch();
+  }
+
+  void _pickNone(_StudioSection sec) {
+    setState(() => _opts[sec.traitKey!] = _hairTop);
     _refireBatch();
   }
 
@@ -157,10 +229,14 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
     final sec = _sections[_section];
     final traitKey = sec.traitKey;
     if (traitKey != null && !_colorTraits.contains(traitKey)) {
-      for (final opt in AvatarTraits.traits[traitKey] ?? []) {
+      for (final opt in _sectionOptions(sec)) {
         out.add(
           DicebearGenerator.withoutBackground({..._opts, traitKey: opt.value}),
         );
+      }
+      final none = _noneOptsFor(sec);
+      if (none != null) {
+        out.add(DicebearGenerator.withoutBackground(none));
       }
     }
     return out;
@@ -197,8 +273,6 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
   Future<void> _save() async {
     setState(() => _isSaving = true);
     try {
-      // Persisted by the caller via MemoryStore.saveAvatarOpts, which
-      // also pushes to Firestore when signed in (CloudSync hook).
       widget.onSaved?.call(Map<String, String>.of(_opts));
       if (mounted) Navigator.pop(context);
     } finally {
@@ -222,7 +296,6 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
         child: Column(
           children: [
             _Header(
-              // A rezgést a fejléc gombjai adják (vissza + pipa).
               onClose: () => Navigator.pop(context),
               onSave: _isSaving ? null : () => _save(),
               isSaving: _isSaving,
@@ -239,7 +312,8 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
                       child: _Stage(
                         color: _stageColor(),
                         svgFuture: _previewFor(_opts),
-                        optsKey: _opts.toString(),
+                        optsKey: DicebearGenerator.withoutBackground(_opts)
+                            .toString(),
                         fallbackSvg: _shownSvg,
                         onSvg: (svg) => _shownSvg = svg,
                       ),
@@ -249,7 +323,9 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
                     const SizedBox(height: 12),
                     if (sec.colorKey != null)
                       _ColorStrip(
-                        title: '${sec.label} color',
+                        title: tr('avatar_color_title', {
+                          'label': tr(sec.labelKey),
+                        }),
                         values: AvatarTraits.traits[sec.colorKey!]!
                             .map((e) => e.value)
                             .toList(),
@@ -261,12 +337,16 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
                       ),
                     _GridTitle(
                       title: sec.colorOnly
-                          ? '${sec.label} tone'
-                          : 'Pick your ${sec.label.toLowerCase()}',
+                          ? tr('avatar_tone_title', {
+                              'label': tr(sec.labelKey),
+                            })
+                          : tr('avatar_pick_title', {
+                              'label': tr(sec.labelKey).toLowerCase(),
+                            }),
                       count: sec.colorOnly
                           ? _colorValues(sec).length
-                          : (AvatarTraits.traits[sec.traitKey] ?? const [])
-                                .length,
+                          : _sectionOptions(sec).length +
+                                (sec.allowNone ? 1 : 0),
                     ),
                     if (sec.colorOnly)
                       _BigSwatchGrid(
@@ -276,19 +356,24 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
                             : _opts[sec.traitKey!],
                         onPick: (v) {
                           setState(() => _opts[sec.traitKey!] = v);
-                          _refireBatch();
+                          if (sec.traitKey != 'backgroundColor') {
+                            _refireBatch();
+                          }
                         },
                       )
                     else
                       _OptionGrid(
                         traitKey: sec.traitKey!,
+                        values: sec.values,
                         opts: _opts,
                         previewFor: _previewFor,
                         stageColor: _stageColor(),
-                        onPick: (v) {
-                          setState(() => _opts[sec.traitKey!] = v);
-                          _refireBatch();
-                        },
+                        onPick: (v) => _pickTrait(sec, v),
+                        noneOpts: _noneOptsFor(sec),
+                        noneSelected:
+                            sec.allowNone &&
+                            !AvatarTraits.isHat(_opts[sec.traitKey]),
+                        onNone: sec.allowNone ? () => _pickNone(sec) : null,
                       ),
                     if (sec.traitKey == 'clothes' &&
                         _opts['clothes'] == 'graphicShirt')
@@ -303,11 +388,7 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
                 ),
               ),
             ),
-            _BottomBar(
-              isSaving: _isSaving,
-              // A rezgést az EngramButton adja.
-              onSave: () => _save(),
-            ),
+            _BottomBar(isSaving: _isSaving, onSave: () => _save()),
           ],
         ),
       ),
@@ -343,7 +424,7 @@ class _Header extends StatelessWidget {
             child: Column(
               children: [
                 Text(
-                  'Avatar studio',
+                  tr('avatar_title'),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurface,
@@ -353,7 +434,7 @@ class _Header extends StatelessWidget {
                 ),
                 SizedBox(height: 2),
                 Text(
-                  'Make it yours',
+                  tr('avatar_subtitle'),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: context.mutedText,
@@ -368,10 +449,11 @@ class _Header extends StatelessWidget {
             icon: HugeIcons.strokeRoundedTick02,
             onTap: onSave,
             size: 52,
-            background: isSaving ? context.mutedText : blue,
+            background: isSaving ? context.mutedText : blueDark,
             foreground: Colors.white,
             shadowColor: isSaving ? context.hairline : blueDark,
             isLoading: isSaving,
+            semanticLabel: tr('avatar_save'),
           ),
         ],
       ),
@@ -544,65 +626,43 @@ class _SectionRail extends StatelessWidget {
         itemBuilder: (context, i) {
           final s = _sections[i];
           final sel = i == active;
-          return GestureDetector(
-            onTap: () => onPick(i),
-            child: SizedBox(
-              width: 68,
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: 4,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: sel ? blueDark : context.hairline,
-                        borderRadius: BorderRadius.circular(18),
+          return SizedBox(
+            width: 68,
+            child: EngramPress3D(
+              onTap: () => onPick(i),
+              shadowColor: sel ? blueShadow : context.hairline,
+              semanticLabel: tr(s.labelKey),
+              top: Container(
+                decoration: BoxDecoration(
+                  color: sel ? blueDark : context.cardBg,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: sel ? blueDark : context.hairline,
+                    width: 2,
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    HugeIcon(
+                      icon: s.icon,
+                      color: sel ? Colors.white : context.inkText,
+                      size: 22,
+                      strokeWidth: 2,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      tr(s.labelKey),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: sel ? FontWeight.w800 : FontWeight.w600,
+                        color: sel ? context.cardBg : context.mutedText,
                       ),
                     ),
-                  ),
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 4,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: sel ? blue : context.cardBg,
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(
-                          color: sel ? blue : context.hairline,
-                          width: 2,
-                        ),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          HugeIcon(
-                            icon: s.icon,
-                            color: sel ? Colors.white : context.inkText,
-                            size: 22,
-                            strokeWidth: 2,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            s.label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: sel
-                                  ? FontWeight.w800
-                                  : FontWeight.w600,
-                              color: sel ? context.cardBg : context.mutedText,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           );
@@ -657,50 +717,32 @@ class _ColorStrip extends StatelessWidget {
             itemBuilder: (context, i) {
               final v = values[i];
               final sel = selected == v;
-              return GestureDetector(
-                onTap: () => onPick(v),
-                child: SizedBox(
-                  width: 46,
-                  height: 46,
-                  child: Stack(
-                    children: [
-                      Positioned(
-                        top: 3,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: sel ? blueDark : context.hairline,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
+              return SizedBox(
+                width: 46,
+                height: 46,
+                child: EngramPress3D(
+                  onTap: () => onPick(v),
+                  shadowColor: sel ? blueShadow : context.hairline,
+                  depth: 3,
+                  borderRadius: BorderRadius.circular(14),
+                  semanticLabel: '$title $v',
+                  top: Container(
+                    decoration: BoxDecoration(
+                      color: _c(v),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: sel ? blueDark : Colors.white,
+                        width: sel ? 3 : 2,
                       ),
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 3,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: _c(v),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: sel ? blue : Colors.white,
-                              width: sel ? 3 : 2,
-                            ),
-                          ),
-                          child: sel
-                              ? const HugeIcon(
-                                  icon: HugeIcons.strokeRoundedTick02,
-                                  color: Colors.white,
-                                  size: 10,
-                                  strokeWidth: 2.5,
-                                )
-                              : null,
-                        ),
-                      ),
-                    ],
+                    ),
+                    child: sel
+                        ? const HugeIcon(
+                            icon: HugeIcons.strokeRoundedTick02,
+                            color: Colors.white,
+                            size: 10,
+                            strokeWidth: 2.5,
+                          )
+                        : null,
                   ),
                 ),
               );
@@ -787,49 +829,27 @@ class _BigSwatchGrid extends StatelessWidget {
         itemBuilder: (context, i) {
           final v = values[i];
           final sel = selected == v;
-          return GestureDetector(
+          return EngramPress3D(
             onTap: () => onPick(v),
-            child: SizedBox(
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: 4,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: sel ? blueDark : context.hairline,
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 4,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: _c(v),
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(
-                          color: sel ? blue : Colors.white,
-                          width: sel ? 3 : 2,
-                        ),
-                      ),
-                      child: sel
-                          ? const HugeIcon(
-                              icon: HugeIcons.strokeRoundedTick02,
-                              color: Colors.white,
-                              size: 11,
-                              strokeWidth: 2.5,
-                            )
-                          : null,
-                    ),
-                  ),
-                ],
+            shadowColor: sel ? blueShadow : context.hairline,
+            semanticLabel: v,
+            top: Container(
+              decoration: BoxDecoration(
+                color: _c(v),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: sel ? blueDark : Colors.white,
+                  width: sel ? 3 : 2,
+                ),
               ),
+              child: sel
+                  ? const HugeIcon(
+                      icon: HugeIcons.strokeRoundedTick02,
+                      color: Colors.white,
+                      size: 11,
+                      strokeWidth: 2.5,
+                    )
+                  : null,
             ),
           );
         },
@@ -840,23 +860,45 @@ class _BigSwatchGrid extends StatelessWidget {
 
 class _OptionGrid extends StatelessWidget {
   final String traitKey;
+  final List<String>? values;
   final Map<String, String> opts;
   final Future<String> Function(Map<String, String>) previewFor;
   final Color stageColor;
   final void Function(String) onPick;
+
+  final Map<String, String>? noneOpts;
+  final bool noneSelected;
+  final VoidCallback? onNone;
   const _OptionGrid({
     required this.traitKey,
+    this.values,
     required this.opts,
     required this.previewFor,
     required this.stageColor,
     required this.onPick,
+    this.noneOpts,
+    this.noneSelected = false,
+    this.onNone,
   });
 
-  String _label(TraitOption o) => o.labelEn.isNotEmpty ? o.labelEn : o.label;
+  String _label(TraitOption o) => avatarTraitLabel(
+        traitKey,
+        o.value,
+        o.labelEn.isNotEmpty ? o.labelEn : o.label,
+      );
 
   @override
   Widget build(BuildContext context) {
-    final options = AvatarTraits.traits[traitKey] ?? const [];
+    final all = AvatarTraits.traits[traitKey] ?? const [];
+    final filter = values;
+    final options = filter == null
+        ? all
+        : [
+            for (final o in all)
+              if (filter.contains(o.value)) o,
+          ];
+    final none = noneOpts;
+    final hasNone = none != null && onNone != null;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: GridView.builder(
@@ -868,127 +910,125 @@ class _OptionGrid extends StatelessWidget {
           mainAxisSpacing: 12,
           childAspectRatio: 0.82,
         ),
-        itemCount: options.length,
+        itemCount: options.length + (hasNone ? 1 : 0),
         itemBuilder: (context, i) {
-          final opt = options[i];
+          if (hasNone && i == 0) {
+            return _OptionTile(
+              label: tr('avatar_none'),
+              selected: noneSelected,
+              stageColor: stageColor,
+              preview: previewFor(none),
+              onTap: onNone!,
+            );
+          }
+          final opt = options[hasNone ? i - 1 : i];
           final sel = opts[traitKey] == opt.value;
-          return GestureDetector(
+          return _OptionTile(
+            label: _label(opt),
+            selected: sel,
+            stageColor: stageColor,
+            preview: previewFor({...opts, traitKey: opt.value}),
             onTap: () => onPick(opt.value),
-            child: SizedBox(
-              child: Stack(
-                children: [
-                  Positioned(
-                    top: 4,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: sel ? blueDark : context.hairline,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 4,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: context.cardBg,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: sel ? blue : context.hairline,
-                          width: sel ? 3 : 2,
-                        ),
-                      ),
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              margin: const EdgeInsets.fromLTRB(7, 7, 7, 0),
-                              decoration: BoxDecoration(
-                                color: stageColor,
-                                borderRadius: BorderRadius.circular(13),
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(13),
-                                child: FutureBuilder<String>(
-                                  future: previewFor({
-                                    ...opts,
-                                    traitKey: opt.value,
-                                  }),
-                                  builder: (context, snapshot) {
-                                    final svg = snapshot.data;
-                                    if (snapshot.hasError ||
-                                        (svg != null && svg.isEmpty)) {
-                                      return const Center(
-                                        child: HugeIcon(
-                                          icon:
-                                              HugeIcons.strokeRoundedUserCircle,
-                                          size: 40,
-                                          color: Colors.white,
-                                          strokeWidth: 2.0,
-                                        ),
-                                      );
-                                    }
-                                    if (svg == null) {
-                                      return const Center(
-                                        child: SizedBox(
-                                          width: 18,
-                                          height: 18,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: blue,
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                    return Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        4,
-                                        6,
-                                        4,
-                                        0,
-                                      ),
-                                      child: SvgPicture.string(
-                                        svg,
-                                        fit: BoxFit.contain,
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(4, 6, 4, 8),
-                            child: Text(
-                              _label(opt),
-                              textAlign: TextAlign.center,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: sel
-                                    ? FontWeight.w800
-                                    : FontWeight.w600,
-                                color: sel
-                                    ? context.inkText
-                                    : context.mutedText,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _OptionTile extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final Color stageColor;
+  final Future<String> preview;
+  final VoidCallback onTap;
+  const _OptionTile({
+    required this.label,
+    required this.selected,
+    required this.stageColor,
+    required this.preview,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final sel = selected;
+    return EngramPress3D(
+      onTap: onTap,
+      shadowColor: sel ? blueShadow : context.hairline,
+      borderRadius: BorderRadius.circular(20),
+      semanticLabel: label,
+      top: Container(
+        decoration: BoxDecoration(
+          color: context.cardBg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: sel ? blueDark : context.hairline,
+            width: sel ? 3 : 2,
+          ),
+        ),
+        child: Column(
+          children: [
+            Expanded(
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(7, 7, 7, 0),
+                decoration: BoxDecoration(
+                  color: stageColor,
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(13),
+                  child: FutureBuilder<String>(
+                    future: preview,
+                    builder: (context, snapshot) {
+                      final svg = snapshot.data;
+                      if (snapshot.hasError || (svg != null && svg.isEmpty)) {
+                        return const Center(
+                          child: HugeIcon(
+                            icon: HugeIcons.strokeRoundedUserCircle,
+                            size: 40,
+                            color: Colors.white,
+                            strokeWidth: 2.0,
+                          ),
+                        );
+                      }
+                      if (svg == null) {
+                        return const Center(
+                          child: SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: blue,
+                            ),
+                          ),
+                        );
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
+                        child: SvgPicture.string(svg, fit: BoxFit.contain),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 6, 4, 8),
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: sel ? FontWeight.w800 : FontWeight.w600,
+                  color: sel ? context.inkText : context.mutedText,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1008,7 +1048,7 @@ class _GraphicStrip extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
           child: Text(
-            'Shirt print',
+            tr('avatar_shirt_print'),
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w900,
@@ -1026,11 +1066,18 @@ class _GraphicStrip extends StatelessWidget {
             separatorBuilder: (_, _) => const SizedBox(width: 10),
             itemBuilder: (context, i) {
               final o = options[i];
-              final label = o.labelEn.isNotEmpty ? o.labelEn : o.label;
+              final label = avatarTraitLabel(
+                'clothesGraphic',
+                o.value,
+                o.labelEn.isNotEmpty ? o.labelEn : o.label,
+              );
               final sel = selected == o.value;
-              return GestureDetector(
+              return EngramPress3D(
                 onTap: () => onPick(o.value),
-                child: Container(
+                shadowColor: sel ? blueShadow : context.hairline,
+                borderRadius: BorderRadius.circular(16),
+                semanticLabel: label,
+                top: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 10,
@@ -1079,7 +1126,7 @@ class _BottomBar extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
           child: EngramButton(
-            label: 'Save avatar',
+            label: tr('avatar_save'),
             onPressed: isSaving ? null : onSave,
             isLoading: isSaving,
           ),
@@ -1107,7 +1154,7 @@ class _ForgeLoader extends StatelessWidget {
             ),
             SizedBox(height: 16),
             Text(
-              'Building avatar…',
+              tr('avatar_building'),
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w800,

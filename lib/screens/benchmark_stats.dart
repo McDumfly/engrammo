@@ -1,17 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../services/app_feedback.dart';
-import '../theme/app_colors.dart' show ink, blue, blueDark, trail, orange;
+import '../widgets/ai_help_button.dart';
+import '../theme/app_colors.dart' show blue, blueDark, trail;
 
-/// Részletező képernyő egy benchmark feladathoz.
-///
-/// Két kártya, az app stílusában (fehér kártya, 2px `line` keret,
-/// 16-os rádiusz):
-///  1. "Your progress" – a saját próbálkozások vonaldiagramja.
-///  2. "Community" – oszlopdiagram a szintek eloszlásáról, átlaggal
-///     és a saját eredménnyel megjelölve.
 class BenchmarkDetailPage extends StatefulWidget {
   final String gameId;
   final String title;
@@ -42,100 +37,6 @@ class BenchmarkDetailPage extends StatefulWidget {
 
   @override
   State<BenchmarkDetailPage> createState() => _BenchmarkDetailPageState();
-}
-
-class _CommunityData {
-  final String averageLabel;
-  final List<String> buckets;
-  final List<double> percents;
-  const _CommunityData(this.averageLabel, this.buckets, this.percents);
-}
-
-/// Közösségi eloszlás játékonként. Backend nélkül nincs közösségi adat:
-/// minden sáv 0, az átlagjel pedig gondolatjel. A sávcímkék a játék
-/// mérőszámához igazodnak, de érték nélkül maradnak.
-_CommunityData _communityFor(String id) {
-  switch (id) {
-    case 'sequence':
-      return const _CommunityData(
-        '—',
-        ['1–3', '4–5', '6–7', '8–9', '10+'],
-        [0, 0, 0, 0, 0],
-      );
-    case 'number':
-      return const _CommunityData(
-        '—',
-        ['3–4', '5–6', '7–8', '9–10', '11+'],
-        [0, 0, 0, 0, 0],
-      );
-    case 'verbal':
-      return const _CommunityData(
-        '—',
-        ['0–20', '21–40', '41–60', '61–80', '81+'],
-        [0, 0, 0, 0, 0],
-      );
-    case 'visual':
-      return const _CommunityData(
-        '—',
-        ['1–3', '4–5', '6–7', '8–9', '10+'],
-        [0, 0, 0, 0, 0],
-      );
-    case 'order':
-      return const _CommunityData(
-        '—',
-        ['3–4', '5–6', '7–8', '9–10', '11+'],
-        [0, 0, 0, 0, 0],
-      );
-    default:
-      return const _CommunityData(
-        '—',
-        ['1', '2', '3', '4', '5'],
-        [0, 0, 0, 0, 0],
-      );
-  }
-}
-
-/// Saját eredmény melyik sávba esik (0..4), vagy null ha nincs adat.
-int? _bucketFor(String id, int best) {
-  switch (id) {
-    case 'sequence':
-    case 'visual':
-      if (best <= 3) return 0;
-      if (best <= 5) return 1;
-      if (best <= 7) return 2;
-      if (best <= 9) return 3;
-      return 4;
-    case 'number':
-      if (best <= 4) return 0;
-      if (best <= 6) return 1;
-      if (best <= 8) return 2;
-      if (best <= 10) return 3;
-      return 4;
-    case 'order':
-      if (best <= 4) return 0;
-      if (best <= 6) return 1;
-      if (best <= 8) return 2;
-      if (best <= 10) return 3;
-      return 4;
-    case 'verbal':
-      if (best <= 20) return 0;
-      if (best <= 40) return 1;
-      if (best <= 60) return 2;
-      if (best <= 80) return 3;
-      return 4;
-    default:
-      return null;
-  }
-}
-
-String _topTextFor(String id, int best) {
-  final b = _bucketFor(id, best);
-  if (b == null) return '—';
-  if (b == 0) return 'Top 25%';
-  if (b == 1) return 'Top 35%';
-  if (b == 2) return 'Top 60%';
-  if (b == 3) return 'Top 85%';
-  return 'Top 95%';
 }
 
 class _LineChartPainter extends CustomPainter {
@@ -237,7 +138,6 @@ class _LineChartPainter extends CustomPainter {
       );
       canvas.drawCircle(p, 3, Paint()..color = lineColor);
     }
-    // X labels: first / last try.
     final xStyle = TextStyle(color: labelColor, fontSize: 10);
     for (final entry in [(0, '#1'), (values.length - 1, '#${values.length}')]) {
       final tp = TextPainter(
@@ -283,10 +183,6 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    final community = _communityFor(widget.gameId);
-    final youBucket = _best == null ? null : _bucketFor(widget.gameId, _best!);
-    final maxP = community.percents.fold<double>(0, (a, b) => a > b ? a : b);
-
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -313,21 +209,27 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
             fontSize: 17,
           ),
         ),
+        actions: const [
+          AiHelpButton(topic: AiHelpTopics.benchmark),
+          SizedBox(width: 12),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
           _headerCard(),
           const SizedBox(height: 12),
-          _statRow(community),
+          _statRow(),
           const SizedBox(height: 12),
           _card(
-            title: 'Your progress',
+            title: tr('bstat_progress'),
             subtitle: widget.higherIsBetter
-                ? 'Higher is better • last ${_attempts.length} tries'
-                : 'Lower is better • last ${_attempts.length} tries',
+                ? tr('bstat_higher', {'n': _attempts.length})
+                : tr('bstat_lower', {'n': _attempts.length}),
             trailing: _pill(
-              _attempts.isEmpty ? 'NO DATA YET' : '${_attempts.length} TRIES',
+              _attempts.isEmpty
+                  ? tr('bstat_nodata')
+                  : tr('bstat_tries', {'n': _attempts.length}),
             ),
             child: _attempts.isEmpty
                 ? _emptyPersonal()
@@ -347,135 +249,47 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
           ),
           const SizedBox(height: 12),
           _card(
-            title: 'Community',
-            subtitle: 'Where you stand vs others',
-            trailing: _pill('AVG ${community.averageLabel}'),
-            child: Column(
-              children: [
-                SizedBox(
-                  height: 170,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      for (var i = 0; i < community.buckets.length; i++)
-                        Expanded(
-                          child: Padding(
-                            padding: EdgeInsets.only(
-                              left: i == 0 ? 2 : 5,
-                              right: i == community.buckets.length - 1 ? 2 : 5,
-                            ),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                if (youBucket == i)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: ink,
-                                      borderRadius: BorderRadius.circular(99),
-                                    ),
-                                    child: const Text(
-                                      'YOU',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 10,
-                                      ),
-                                    ),
-                                  )
-                                else
-                                  Text(
-                                    '${community.percents[i].round()}%',
-                                    style: TextStyle(
-                                      color: context.mutedText,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 10,
-                                    ),
-                                  ),
-                                const SizedBox(height: 4),
-                                Container(
-                                  height: maxP <= 0
-                                      ? 4
-                                      : 110 * community.percents[i] / maxP,
-                                  decoration: BoxDecoration(
-                                    color: youBucket == i ? orange : blue,
-                                    borderRadius: const BorderRadius.vertical(
-                                      top: Radius.circular(8),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
+            title: tr('bstat_community'),
+            subtitle: tr('bstat_compare'),
+            trailing: _pill(tr('bstat_soon')),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: context.cardBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: context.hairline, width: 2),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: blue.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    alignment: Alignment.center,
+                    child: const HugeIcon(
+                      icon: HugeIcons.strokeRoundedUserGroup,
+                      color: blueDark,
+                      size: 20,
+                      strokeWidth: 2.0,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    for (var i = 0; i < community.buckets.length; i++)
-                      Expanded(
-                        child: Text(
-                          community.buckets[i],
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: youBucket == i
-                                ? context.inkText
-                                : context.mutedText,
-                            fontWeight: youBucket == i
-                                ? FontWeight.bold
-                                : FontWeight.w600,
-                            fontSize: 10,
-                          ),
-                        ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      _attempts.isEmpty
+                          ? tr('bstat_play_first')
+                          : tr('bstat_cloud', {'n': _attempts.length}),
+                      style: TextStyle(
+                        color: context.inkText,
+                        fontSize: 13,
                       ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: context.cardBg,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: context.hairline, width: 2),
+                    ),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: blue.withValues(alpha: 0.14),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        alignment: Alignment.center,
-                        child: const HugeIcon(
-                          icon: HugeIcons.strokeRoundedUserGroup,
-                          color: blueDark,
-                          size: 20,
-                          strokeWidth: 2.0,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          _best == null
-                              ? 'Play once and your bar lights up here against the average of ${community.averageLabel}.'
-                              : 'Your best ${_best!} ${widget.bestLabel} vs the ${community.averageLabel} average.',
-                          style: TextStyle(
-                            color: context.inkText,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 14),
@@ -507,9 +321,9 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
                 ],
               ),
               alignment: Alignment.center,
-              child: const Text(
-                'PLAY',
-                style: TextStyle(
+              child: Text(
+                tr('bstat_play'),
+                style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
@@ -572,7 +386,12 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                _best == null ? '—' : '${_best!} ${widget.bestLabel}',
+                _best == null
+                    ? '—'
+                    : tr('bstat_best_value', {
+                        'n': _best!,
+                        'label': widget.bestLabel,
+                      }),
                 style: TextStyle(
                   color: context.inkText,
                   fontWeight: FontWeight.bold,
@@ -580,7 +399,7 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
                 ),
               ),
               Text(
-                'BEST',
+                tr('bstat_best'),
                 style: TextStyle(
                   color: context.mutedText,
                   fontWeight: FontWeight.bold,
@@ -595,26 +414,32 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
     );
   }
 
-  Widget _statRow(_CommunityData community) {
+  Widget _statRow() {
     return Row(
       children: [
         Expanded(
           child: _miniStat(
-            'BEST',
+            tr('bstat_best'),
             _best == null ? '—' : '$_best',
             widget.bestLabel,
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: _miniStat('AVERAGE', community.averageLabel, 'community'),
+          child: _miniStat(
+            tr('bstat_tries_label'),
+            _attempts.isEmpty ? '—' : '${_attempts.length}',
+            _attempts.isEmpty
+                ? tr('bstat_play_first_short')
+                : tr('bstat_this_game'),
+          ),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: _miniStat(
-            'RANK',
-            _best == null ? '—' : _topTextFor(widget.gameId, _best!),
-            _best == null ? 'play first' : 'of players',
+            tr('bstat_last'),
+            _attempts.isEmpty ? '—' : '${_attempts.last}',
+            widget.bestLabel,
           ),
         ),
       ],
@@ -734,7 +559,7 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
       child: Padding(
         padding: EdgeInsets.all(16),
         child: Text(
-          'No tries yet — tap PLAY and your curve appears here.',
+          tr('bstat_empty'),
           textAlign: TextAlign.center,
           style: TextStyle(color: context.mutedText, fontSize: 13),
         ),
@@ -755,6 +580,8 @@ List<List<dynamic>> _iconFor(String id) {
       return HugeIcons.strokeRoundedEye;
     case 'order':
       return HugeIcons.strokeRoundedBrain01;
+    case 'spatial':
+      return HugeIcons.strokeRoundedCastle01;
     default:
       return HugeIcons.strokeRoundedTimer01;
   }

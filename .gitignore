@@ -76,3 +76,7 @@ docs/
 
 # Távoli segéd cuccai: képernyőképek, csatolmányok, soha nem mennek gitre.
 .muse_remote_attachments/
+
+# Helyi segédszkriptek: csak ezen a gépen kellenek, nem mennek gitre.
+# A fájlok a gépen maradnak, csak a git nem látja őket.
+tool/

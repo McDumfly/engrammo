@@ -67,7 +67,6 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: LearningPathPage()));
     await tester.pumpAndSettle();
 
-    // Fejezetlista -> elso part lenyitva -> part reszletezo.
     await tester.tap(find.text('Attention gate').first);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(

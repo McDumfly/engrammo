@@ -3,11 +3,6 @@ import 'package:hugeicons/hugeicons.dart';
 
 import '../theme/app_colors.dart' show orange;
 
-/// The single collectible currency of the app.
-///
-/// There is exactly one collectible payment method: the [engram].
-/// A stored memory trace, earned for correct answers and spent on
-/// chests and rewards.
 class CollectibleKind {
   final String id;
   final String name;
