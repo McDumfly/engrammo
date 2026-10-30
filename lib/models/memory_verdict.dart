@@ -1,19 +1,10 @@
-/// Verdict model for the AI interview + the offline fallback.
-///
-/// The interview ends in one verdict: the dominant memory kind with a
-/// confidence and a human-readable rationale. Online, Muse Spark
-/// writes the verdict from test scores + interview answers
-/// ([MetaAIService.analyzeMemoryType]). Offline — or when the API
-/// call fails — [heuristicVerdict] computes the same shape
-/// deterministically from the same inputs, so the flow never blocks.
 library;
 
 import 'dart:convert';
 
+import '../l10n/app_localizations.dart';
 import 'interview.dart' show interviewQuestions;
 
-/// One answered interview question: the picked option index (null =
-/// skipped the choices) plus optional free custom text.
 class InterviewAnswer {
   final String questionId;
   final int? picked;
@@ -21,18 +12,13 @@ class InterviewAnswer {
   const InterviewAnswer({required this.questionId, this.picked, this.custom = ''});
 }
 
-/// The final dominant-type verdict (AI-written or heuristic).
 class MemoryVerdict {
-  /// Dominant kind index (0-5, same order as `memoryKinds`).
   final int kind;
 
-  /// 0-1 confidence in the verdict.
   final double confidence;
 
-  /// One or two sentences explaining the call, shown to the user.
   final String rationale;
 
-  /// True when computed locally (no AI call succeeded).
   final bool fallback;
 
   const MemoryVerdict({
@@ -43,7 +29,6 @@ class MemoryVerdict {
   });
 }
 
-/// Kind names the AI may return instead of an index.
 const verdictKindNames = [
   'sensory',
   'working',
@@ -65,17 +50,11 @@ int? _kindFromDynamic(dynamic raw) {
         return i;
       }
     }
-    // "Working memory" etc. also match by prefix ("working").
     if (name.startsWith('working')) return 1;
   }
   return null;
 }
 
-/// Parses the AI verdict JSON: {"dominant": 2 | "Spatial",
-/// "confidence": 0..1, "rationale": "..."}.
-///
-/// Returns null when the payload is unusable — the caller then falls
-/// back to [heuristicVerdict].
 MemoryVerdict? parseVerdictContent(String content) {
   try {
     var text = content.trim();
@@ -94,7 +73,7 @@ MemoryVerdict? parseVerdictContent(String content) {
       kind: kind,
       confidence: conf.clamp(0.0, 1.0),
       rationale: (data['rationale'] as String?)?.trim().isEmpty ?? true
-          ? 'AI verdict from your test scores and interview answers.'
+          ? tr('verdict_default')
           : (data['rationale'] as String).trim(),
     );
   } catch (_) {
@@ -102,23 +81,15 @@ MemoryVerdict? parseVerdictContent(String content) {
   }
 }
 
-/// Custom-text keyword scan per kind (offline fallback only).
 const _keywords = <int, List<String>>{
-  0: ['sound', 'hear', 'listen', 'voice', 'music', 'rhythm', 'audio', 'noise', 'song', 'aloud'],
-  1: ['number', 'digit', 'calculat', 'repeat', 'rehears', 'phone', 'count', 'steps'],
-  2: ['map', 'direction', 'navigat', 'route', 'house', 'room', 'walk', 'place', 'space', 'lost', 'left', 'right'],
-  3: ['picture', 'image', 'color', 'colour', 'see', 'face', 'diagram', 'visual', 'sight', 'look'],
-  4: ['story', 'event', 'yesterday', 'day', 'remember', 'diary', 'experience', 'happen', 'movie', 'scene'],
-  5: ['meaning', 'word', 'fact', 'concept', 'categor', 'name', 'know', 'list', 'logic'],
+  0: ['sound', 'hear', 'listen', 'voice', 'music', 'rhythm', 'audio', 'noise', 'song', 'aloud', 'hang', 'zene', 'hall', 'zaj', 'dal', 'hangosan', 'hangja'],
+  1: ['number', 'digit', 'calculat', 'repeat', 'rehears', 'phone', 'count', 'steps', 'szam', 'szám', 'számjegy', 'számol', 'ismétel', 'telefon', 'lépés'],
+  2: ['map', 'direction', 'navigat', 'route', 'house', 'room', 'walk', 'place', 'space', 'lost', 'left', 'right', 'térkép', 'irány', 'útvonal', 'ház', 'szoba', 'séta', 'hely', 'tér', 'elvé', 'bal', 'jobb'],
+  3: ['picture', 'image', 'color', 'colour', 'see', 'face', 'diagram', 'visual', 'sight', 'look', 'kép', 'szín', 'lát', 'arc', 'ábra', 'vizuális', 'néz'],
+  4: ['story', 'event', 'yesterday', 'day', 'remember', 'diary', 'experience', 'happen', 'movie', 'scene', 'történet', 'esemény', 'tegnap', 'nap', 'emléksz', 'napló', 'élmény', 'történt', 'film', 'jelenet'],
+  5: ['meaning', 'word', 'fact', 'concept', 'categor', 'name', 'know', 'list', 'logic', 'jelentés', 'szó', 'tény', 'fogalom', 'kateg', 'név', 'tud', 'lista', 'logika'],
 };
 
-/// Deterministic offline verdict from the same inputs the AI sees.
-///
-/// Totals per kind = test score (scaled to 0-5) + picked-option
-/// weights + one point per kind per custom answer that mentions its
-/// keywords. Ties break by hard-item hits, then by lowest index —
-/// the same ladder order as [resolveDominant] in `assessment.dart`,
-/// so online and offline verdicts stay consistent.
 MemoryVerdict heuristicVerdict({
   required List<int> scores,
   required List<InterviewAnswer> answers,
@@ -147,16 +118,13 @@ MemoryVerdict heuristicVerdict({
       });
     }
   }
-  // Blank guard: no measured scores and no answered content means
-  // nothing was measured — never crown a fake winner (kind 0).
   final blankScores =
       scores.isEmpty || scores.every((s) => s <= 0);
   if (blankScores && answered == 0) {
-    return const MemoryVerdict(
+    return MemoryVerdict(
       kind: 0,
       confidence: 0.5,
-      rationale:
-          'Nothing measurable yet — finish the assessment to get a verdict.',
+      rationale: tr('verdict_blank'),
       fallback: true,
     );
   }
@@ -174,12 +142,13 @@ MemoryVerdict heuristicVerdict({
   final sorted = List.of(totals)..sort();
   final margin = sorted[5] - sorted[4];
   final confidence = (0.5 + margin / 10.0).clamp(0.5, 0.9);
+  final kindName = tr('verdict_kind_$best');
   return MemoryVerdict(
     kind: best,
     confidence: confidence,
-    rationale:
-        'Local analysis of your $answered interview answer${answered == 1 ? '' : 's'} '
-        'combined with test scores points to ${verdictKindNames[best]} memory.',
+    rationale: answered == 1
+        ? tr('verdict_local_one', {'kind': kindName})
+        : tr('verdict_local_many', {'n': answered, 'kind': kindName}),
     fallback: true,
   );
 }

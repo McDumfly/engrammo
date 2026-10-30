@@ -1,26 +1,17 @@
 import 'dart:math' as math;
 
-/// FSRS-lite tanulókártya: egy feladat távközött ismétléséhez.
-///
-/// Tiszta adatmodell értesítés nélkül: az ütemezés [FsrsScheduler.next]
-/// tiszta függvény, így tesztelhető és offline is működik.
 class FsrsCard {
   final String cardId;
   final String taskId;
 
-  /// Stabilitás napokban (Halandóság: mennyi idő után felejt).
   final double stability;
 
-  /// Nehézség 1..10 skálán.
   final double difficulty;
 
-  /// Következő esedékesség.
   final DateTime due;
 
-  /// Ismétlések száma.
   final int reps;
 
-  /// Bukások száma.
   final int lapses;
 
   const FsrsCard({
@@ -33,7 +24,6 @@ class FsrsCard {
     this.lapses = 0,
   });
 
-  /// Esedékes-e [now]-kor (vagy korábban).
   bool isDue([DateTime? now]) {
     final n = now ?? DateTime.now();
     return !due.isAfter(n);
@@ -99,14 +89,7 @@ class FsrsCard {
       Object.hash(cardId, taskId, stability, difficulty, due, reps, lapses);
 }
 
-/// FSRS-lite ütemező: minősítés (1..4) alapján új állapot.
-///
-/// - 1: újra (bukás, stabilitás nullázódik, nehézség nő),
-/// - 2: nehéz, 3: jó, 4: könnyű (stabilitás nő, nehézség finomodik).
-/// A képlet szándékosan kicsi és determinisztikus, hogy a helyi
-/// generátorok mellett offline is fusson.
 class FsrsScheduler {
-  /// Következő kártyaállapot [grade] (1..4) minősítés után.
   static FsrsCard next(FsrsCard card, int grade, [DateTime? now]) {
     final n = now ?? DateTime.now();
     final g = grade.clamp(1, 4);
@@ -144,7 +127,6 @@ class FsrsScheduler {
     );
   }
 
-  /// Esedékes kártyák kiválogatása és rendezése (legkorábbi elöl).
   static List<FsrsCard> dueCards(Iterable<FsrsCard> cards, [DateTime? now]) {
     final n = now ?? DateTime.now();
     final due = [

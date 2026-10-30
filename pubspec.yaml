@@ -1,5 +1,5 @@
 name: engrammo
-description: "Engrammo: saját fejlesztésű, kutatásalapú memóriatréning Flutterrel."
+description: "Engrammo: research-backed memory training built with Flutter."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -30,9 +30,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
 
-  # Nincs cupertino_icons / sensors_plus: egyikre sincs hivatkozás
-  # a kódban (az ikonok HugeIcons-készletből jönnek, szenzor nem kell).
+  # No cupertino_icons / sensors_plus: nothing references them in the code
+  # (icons come from the HugeIcons set, no sensor needed).
   hugeicons: ^1.2.0
   shared_preferences: ^2.5.3
   flutter_svg: ^2.3.0
@@ -43,6 +45,9 @@ dependencies:
   cloud_firestore: ^7.1.0
   google_sign_in: ^7.2.0
   http: ^1.2.0
+  # The saved Meta key lives in encrypted storage (iOS Keychain /
+  # Android Keystore), not as plain SharedPreferences text.
+  flutter_secure_storage: ^11.2.0
 
 dev_dependencies:
   flutter_test:
@@ -62,19 +67,19 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
 
-  # The following line ensures that the Material Icons font is
-  # included with your application, so that you can use the icons in
-  # the material Icons class.
-  uses-material-design: true
+  # Az appban kizárólag HugeIcons van: a Material Icons betűtípus
+  # nincs becsomagolva (`Icons` / `Icon` használata tilos).
+  uses-material-design: false
 
-  # To add assets to your application, add an assets section, like this:
-  assets:
-    # A gitignore-olt `.env` sima `flutter run` esetén is becsomagolódik,
-    # ha helyben létezik. Giten nincs rajta, a kulcs nem kerül fel.
-    # FIGYELEM: a becsomagolt kulcs a buildelt app része lesz — publikus
-    # release előtt töröld a helyi `.env`-t (vagy építs kulcs nélkül),
-    # és a kulcsot `--dart-define` / Beállítások úton add meg.
-    - .env
+  # NINCS `assets:` kulcs a `.env`-hez — szándékosan: a kulcs
+  # soha nem kerülhet a becsomagolt appba (a becsomagolt kulcs
+  # bárki által kiolvasható a buildelt appból). Helyette:
+  # - fejlesztéskor: `sh tool/run.sh` (a helyi, gitignore-olt
+  #   `.env` tartalmát `--dart-define` kulcsként adja át, a fájlt
+  #   NEM csomagolja be), vagy kézzel
+  #   `flutter run --dart-define=MODEL_API_KEY=...`;
+  # - éles / első indítás: Beállítások → Meta AI kulcsmező
+  #   (titkosított tárolóba mentődik a készüléken).
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 

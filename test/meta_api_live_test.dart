@@ -14,6 +14,11 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    MetaAIService.consentForTest = true;
+  });
+
+  tearDown(() {
+    MetaAIService.consentForTest = null;
   });
 
   group('Meta Model API konfig', () {
@@ -25,7 +30,7 @@ void main() {
     });
 
     test('valós modellnevek', () {
-      expect(MetaAIService.taskModel, 'muse-spark-1.3');
+      expect(MetaAIService.taskModel, 'muse-spark-1.3-contributor');
       expect(MetaAIService.imageModel, 'muse-image-1.0');
       expect(MetaAIService.segmentModel, 'sam-3.1');
     });
@@ -36,15 +41,16 @@ void main() {
 
     test('kérés törzse chat-completions formátum', () {
       final body = MetaAIService.taskRequestBody(req);
-      expect(body['model'], 'muse-spark-1.3');
+      expect(body['model'], 'muse-spark-1.3-contributor');
+      expect(body['reasoning_effort'], 'low');
+      expect(body['max_completion_tokens'], 3000);
+      expect(body.containsKey('max_tokens'), isFalse);
       final messages = body['messages'] as List;
       expect(messages.length, 2);
       expect((messages[1] as Map)['content'] as String, contains('number'));
     });
 
     test('érvényes JSON-ból élő feladat', () {
-      // A chunk-span paradigma 4-15 jegyű számot kér: az 1 jegyű "1"
-      // nem stimulus, a régi parser mégis megette.
       final task = MetaAIService.parseTaskContent(
         '{"prompt":"P","items":["491625830"],"question":"Q?",'
         '"options":["491625830","491625831","491625380","491625800"],'
@@ -53,16 +59,12 @@ void main() {
       );
       expect(task, isNotNull);
       expect(task!.fallback, isFalse);
-      expect(task.model, 'muse-spark-1.3');
+      expect(task.model, 'muse-spark-1.3-contributor');
       expect(task.correct, 2);
       expect(task.paradigm, 'chunk-span');
     });
 
     test('kódkeret tűrése, de hibás szerkezet elutasítva', () {
-      // A keret-tűrés megmarad, de a 2 opciós / tartományon kívüli
-      // correct / üres inger többé nem "javítódik" csendben (a vágás
-      // másik választ jelölne helyesnek, mint amit az AI gondolt) —
-      // az ilyen válasz null, és a hívó a validált tartalékot adja.
       final framed = MetaAIService.parseTaskContent(
         '```json\n{"prompt":"P","items":["491625830"],"question":"Q?",'
         '"options":["491625830","491625831","491625380","491625800"],'
@@ -205,6 +207,34 @@ void main() {
       expect((body['input'] as String), contains('palace-1'));
     });
 
+    test('URL-kép bekerül a kérésbe (SAM ténylegesen látja)', () {
+      final body = MetaAIService.segmentRequestBody(
+        const MetaSegmentRequest(imageRef: 'https://img/palota.png'),
+      );
+      expect(body['model'], 'sam-3.1');
+      final input = body['input'] as List;
+      final content = (input.first as Map)['content'] as List;
+      expect(
+        content.any(
+          (e) =>
+              e is Map &&
+              e['type'] == 'input_image' &&
+              (e['image_url'] as String).contains('https://img/palota.png'),
+        ),
+        isTrue,
+      );
+    });
+
+    test('közvetlen masks/labels törzs is élőként nyílik', () {
+      final seg = MetaAIService.parseSegmentOutput({
+        'masks': ['m1'],
+        'labels': ['kapu'],
+      });
+      expect(seg, isNotNull);
+      expect(seg!.fallback, isFalse);
+      expect(seg.labels, ['kapu']);
+    });
+
     test('válaszblokk JSON kicsomagolás', () {
       final seg = MetaAIService.parseSegmentOutput({
         'output': [
@@ -241,12 +271,27 @@ void main() {
         );
       });
       final seg = await MetaAIService.segment(
-        req,
+        const MetaSegmentRequest(imageRef: 'https://img/palota.png'),
         client: client,
         apiKeyOverride: 'teszt-kulcs',
       );
       expect(seg.fallback, isFalse);
       expect(seg.masks, ['m1']);
+    });
+
+    test('kép nélküli névvel nem hív hálózatot', () async {
+      var called = false;
+      final client = MockClient((_) async {
+        called = true;
+        return http.Response('{}', 200);
+      });
+      final seg = await MetaAIService.segment(
+        req,
+        client: client,
+        apiKeyOverride: 'teszt-kulcs',
+      );
+      expect(called, isFalse);
+      expect(seg.fallback, isTrue);
     });
   });
 }

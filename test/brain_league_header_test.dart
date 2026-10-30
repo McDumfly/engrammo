@@ -6,7 +6,6 @@ void main() {
   testWidgets('League header adds no extra status-bar space when embedded', (
     WidgetTester tester,
   ) async {
-    // A valós beágyazás: felül a közös sáv, alatta a liga oldal.
     await tester.pumpWidget(
       MaterialApp(
         home: MediaQuery(
@@ -14,7 +13,7 @@ void main() {
           child: const Scaffold(
             body: Column(
               children: [
-                SizedBox(height: 48), // a közös sáv helye
+                SizedBox(height: 48),
                 Expanded(child: BrainLeaguePage()),
               ],
             ),
@@ -28,7 +27,6 @@ void main() {
     final bottomHeight =
         (appBar.bottom as PreferredSizeWidget).preferredSize.height;
     final size = tester.getSize(find.byType(AppBar).first);
-    // Csak eszköztár + TabBar, dupla státuszsáv-hely nélkül.
     expect(size.height, kToolbarHeight + bottomHeight);
   });
 }

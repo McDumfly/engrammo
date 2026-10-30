@@ -1,22 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../l10n/app_localizations.dart';
+import '../models/claims_policy.dart'
+    show aiCloudConsentBody, aiCloudConsentTitle;
 import '../models/interview.dart';
 import '../models/memory_verdict.dart';
+import '../models/study_recommendation.dart';
 import '../services/app_feedback.dart';
 import '../services/memory_store.dart';
 import '../services/meta_ai_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
+import 'learning_path.dart';
 import 'memory_profile.dart';
 
-/// Post-test interview: the self-report leg of the assessment.
-///
-/// Six questions about HOW the user remembers, each with four
-/// selectable answers plus a free custom field. At the end the AI
-/// (Muse Spark) reads the test scores together with these answers
-/// and writes the dominant-type verdict; offline, the same-shaped
-/// local heuristic decides so the flow never blocks.
 class AssessmentInterviewPage extends StatefulWidget {
   final List<int> scores;
   final List<int> hardHits;
@@ -37,11 +36,19 @@ class AssessmentInterviewPage extends StatefulWidget {
 
 class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
   int _step = 0;
-  final List<int?> _picked = List.filled(6, null);
-  final List<TextEditingController> _customs = [
-    for (var i = 0; i < 6; i++) TextEditingController(),
-  ];
+  late final List<int?> _picked;
+  late final List<TextEditingController> _customs;
   bool _analyzing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _picked = List.filled(interviewQuestions.length, null);
+    _customs = [
+      for (var i = 0; i < interviewQuestions.length; i++)
+        TextEditingController(),
+    ];
+  }
 
   @override
   void dispose() {
@@ -60,13 +67,60 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
       ),
   ];
 
+  Future<bool> _askCloudConsent() async {
+    final allow = await showDialog<bool>(
+      context: context,
+      builder: (dlgCtx) => AlertDialog(
+        key: const ValueKey('interview-consent-dialog'),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Text(
+          aiCloudConsentTitle,
+          style: TextStyle(
+            color: context.inkText,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        content: Text(
+          aiCloudConsentBody,
+          style: TextStyle(color: context.mutedText, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            key: const ValueKey('interview-consent-offline'),
+            onPressed: () {
+              AppFeedback.light();
+              Navigator.of(dlgCtx).pop(false);
+            },
+            child: Text(tr('assess_offline')),
+          ),
+          FilledButton(
+            key: const ValueKey('interview-consent-allow'),
+            onPressed: () {
+              AppFeedback.light();
+              Navigator.of(dlgCtx).pop(true);
+            },
+            child: Text(tr('assess_allow')),
+          ),
+        ],
+      ),
+    );
+    return allow == true;
+  }
+
   Future<void> _analyze() async {
     if (_analyzing) return;
+    if (await MetaAIService.hasAnyKey() &&
+        !await MetaAIService.cloudConsent()) {
+      if (!mounted) return;
+      if (await _askCloudConsent()) {
+        await MetaAIService.setCloudConsent(true);
+      }
+      if (!mounted) return;
+    }
     setState(() => _analyzing = true);
     AppFeedback.medium();
-    // Tie-only rule: the AI may only pick among the top-tied scores,
-    // never override a measured gap (enforced server-side in the prompt
-    // and again when the verdict arrives).
     final tiedTop = widget.scores.isEmpty
         ? <int>[]
         : [
@@ -75,12 +129,23 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
                   widget.scores.reduce((a, b) => a > b ? a : b))
                 i,
           ];
-    final verdict = await MetaAIService.analyzeMemoryType(
-      scores: widget.scores,
-      answers: _answers,
-      hardHits: widget.hardHits,
-      tiedTop: tiedTop,
-    );
+    final results = await Future.wait([
+      MetaAIService.analyzeMemoryType(
+        scores: widget.scores,
+        answers: _answers,
+        hardHits: widget.hardHits,
+        tiedTop: tiedTop,
+      ),
+      MetaAIService.recommendStudyTrack(
+        scores: widget.scores,
+        answers: _answers,
+        hardHits: widget.hardHits,
+        latenciesMs: widget.latenciesMs,
+        tiedTop: tiedTop,
+      ),
+    ]);
+    final verdict = results[0] as MemoryVerdict;
+    final studyChoice = results[1] as StudyRecommendation;
     await MemoryStore.saveDominantKind(
       verdict.kind,
       rationale: verdict.rationale,
@@ -95,7 +160,18 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
           hardHits: widget.hardHits,
           latenciesMs: widget.latenciesMs,
           verdict: verdict,
+          recommendation: studyChoice,
+          onStartTrack: _startTrack,
         ),
+      ),
+    );
+  }
+
+  void _startTrack(int track) {
+    AppFeedback.medium();
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => LearningPathPage(initialTrack: track),
       ),
     );
   }
@@ -110,23 +186,79 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
           xp: widget.xp,
           hardHits: widget.hardHits,
           latenciesMs: widget.latenciesMs,
+          onStartTrack: _startTrack,
         ),
       ),
     );
   }
 
+  Future<bool> _confirmExit() async {
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (dlgCtx) => AlertDialog(
+        key: const ValueKey('interview-exit-dialog'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          tr('assess_leave'),
+          style: TextStyle(
+            color: context.inkText,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        content: Text(
+          tr('assess_leave_body'),
+          style: TextStyle(color: context.mutedText),
+        ),
+        actions: [
+          TextButton(
+            key: const ValueKey('interview-exit-stay'),
+            onPressed: () {
+              AppFeedback.light();
+              Navigator.of(dlgCtx).pop(false);
+            },
+            child: Text(tr('assess_keep')),
+          ),
+          FilledButton(
+            key: const ValueKey('interview-exit-leave'),
+            onPressed: () {
+              AppFeedback.light();
+              Navigator.of(dlgCtx).pop(true);
+            },
+            child: Text(tr('assess_leave_btn')),
+          ),
+        ],
+      ),
+    );
+    return leave == true;
+  }
+
+  Future<void> _onBackPressed() async {
+    final leave = await _confirmExit();
+    if (leave && mounted) Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final q = interviewQuestions[_step];
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final leave = await _confirmExit();
+        if (leave && context.mounted) Navigator.of(context).pop();
+      },
+      child: Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: const EngramBackButton(),
+        leading: EngramBackButton(onPressed: _onBackPressed),
         title: Text(
-          'Quick interview ${_step + 1}/${interviewQuestions.length}',
+          tr('assess_title', {
+            'n': _step + 1,
+            'total': interviewQuestions.length,
+          }),
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.bold,
@@ -134,10 +266,14 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
           ),
         ),
         actions: [
+          AiHelpButton(
+            topic: AiHelpTopics.assessment,
+            helpContext: tr('assess_help_context'),
+          ),
           TextButton(
             onPressed: _skip,
             child: Text(
-              'Skip',
+              tr('onboarding_skip'),
               style: TextStyle(
                 color: context.mutedText,
                 fontWeight: FontWeight.bold,
@@ -169,7 +305,7 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
                   const CircularProgressIndicator(color: violet),
                   const SizedBox(height: 16),
                   Text(
-                    'Analyzing your answers…',
+                    tr('assess_analyzing'),
                     style: TextStyle(
                       color: context.inkText,
                       fontWeight: FontWeight.bold,
@@ -178,7 +314,7 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Test scores + interview, read together.',
+                    tr('assess_analyzing_sub'),
                     style: TextStyle(color: context.mutedText, fontSize: 13),
                   ),
                 ],
@@ -197,7 +333,7 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
                     borderRadius: BorderRadius.circular(99),
                   ),
                   child: Text(
-                    q.hint,
+                    tr(q.hintKey),
                     style: const TextStyle(
                       color: violetDark,
                       fontWeight: FontWeight.bold,
@@ -207,7 +343,7 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  q.prompt,
+                  tr(q.promptKey),
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.bold,
@@ -215,10 +351,10 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
                     height: 1.35,
                   ),
                 ),
-                if (q.construct.isNotEmpty) ...[
+                if (q.constructKey.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Text(
-                    '${q.construct} · ${q.source}',
+                    '${tr(q.constructKey)} · ${tr(q.sourceKey)}',
                     style: TextStyle(
                       color: context.mutedText,
                       fontStyle: FontStyle.italic,
@@ -256,7 +392,7 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
                           children: [
                             Expanded(
                               child: Text(
-                                q.options[i].label,
+                                tr(q.options[i].labelKey),
                                 style: TextStyle(
                                   color: context.inkText,
                                   fontWeight: FontWeight.w600,
@@ -279,7 +415,7 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
                   ),
                 const SizedBox(height: 8),
                 Text(
-                  'Or describe it in your own words (optional):',
+                  tr('assess_own_words'),
                   style: TextStyle(
                     color: context.mutedText,
                     fontWeight: FontWeight.bold,
@@ -291,9 +427,12 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
                   controller: _customs[_step],
                   maxLines: 3,
                   minLines: 1,
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  textCapitalization: TextCapitalization.none,
                   style: TextStyle(color: context.inkText, fontSize: 15),
                   decoration: InputDecoration(
-                    hintText: 'For example: I see it like a photo…',
+                    hintText: tr('assess_example'),
                     hintStyle: TextStyle(color: context.mutedText),
                     filled: true,
                     fillColor: context.cardBg,
@@ -342,7 +481,7 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
                             ),
                           ),
                           child: Text(
-                            'BACK',
+                            tr('assess_back'),
                             style: TextStyle(
                               color: context.inkText,
                               fontWeight: FontWeight.bold,
@@ -356,8 +495,8 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
                       flex: 2,
                       child: EngramButton(
                         label: _step + 1 < interviewQuestions.length
-                            ? 'NEXT'
-                            : 'ANALYZE ME',
+                            ? tr('common_next')
+                            : tr('assess_analyze'),
                         onPressed: () {
                           AppFeedback.medium();
                           if (_step + 1 < interviewQuestions.length) {
@@ -372,6 +511,7 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
                 ),
               ],
             ),
+      ),
     );
   }
 }

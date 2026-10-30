@@ -1,218 +1,237 @@
-/// The post-test interview: the self-report leg of the assessment.
-///
-/// Performance probes alone cannot tell *how* someone remembers — two
-/// users can both score 100% while one replays a mental movie and the
-/// other rehearses words. Combining a performance test with a
-/// structured self-report is standard multitrait-multimethod practice
-/// (Campbell & Fiske 1959): the interview breaks performance ties
-/// instead of letting index order crown a fake winner.
-///
-/// Each question targets one published construct ([InterviewQuestion.construct]
-/// + [InterviewQuestion.source], shown under the prompt) but is rewritten as
-/// a direct coaching question — adapted, not verbatim, so no normed scale is
-/// claimed. They deliberately never name the memory palace: at this stage we
-/// measure the user's unaided strategy, we don't teach it.
-///
-/// Each option carries weights per memory-kind index
-/// (0 sensory, 1 working, 2 spatial, 3 visual, 4 episodic, 5 semantic).
-/// The weights are a transparent rational key (which answer reveals which
-/// strategy), not a validated norm table: the interview only ever BREAKS
-/// performance ties, it never overrides a measured score gap (see the
-/// tie-only rule in `MetaAIService.interviewRequestBody` and rung 4 of
-/// `resolveDominant`). The AI analysis reads these weights plus any custom
-/// text; the offline fallback ([heuristicVerdict] in `memory_verdict.dart`)
-/// uses the same weights, so online and offline agree by design.
 library;
 
-/// One selectable answer; [weights] maps kind index → points.
+import '../l10n/app_localizations.dart';
+
 class InterviewOption {
-  final String label;
+  final String labelKey;
   final Map<int, int> weights;
-  const InterviewOption(this.label, this.weights);
+  const InterviewOption(this.labelKey, this.weights);
+
+  String get label => enText(labelKey);
 }
 
-/// One interview question with 4 selectable answers. Every question
-/// also accepts free custom text, which the AI (or the keyword
-/// fallback) reads as well.
 class InterviewQuestion {
   final String id;
-  final String prompt;
-  final String hint;
+  final String promptKey;
+  final String hintKey;
 
-  /// Published construct this question probes (shown under the prompt).
-  final String construct;
+  final String constructKey;
 
-  /// Source questionnaire/study of the construct (shown under the prompt).
-  final String source;
+  final String sourceKey;
   final List<InterviewOption> options;
   const InterviewQuestion({
     required this.id,
-    required this.prompt,
-    required this.hint,
-    this.construct = '',
-    this.source = '',
+    required this.promptKey,
+    required this.hintKey,
+    this.constructKey = '',
+    this.sourceKey = '',
     required this.options,
   });
+
+  String get prompt => enText(promptKey);
+  String get hint => enText(hintKey);
+  String get construct => constructKey.isEmpty ? '' : enText(constructKey);
+  String get source => sourceKey.isEmpty ? '' : enText(sourceKey);
 }
 
 const interviewQuestions = [
   InterviewQuestion(
     id: 'q1-face',
-    prompt:
-        'Close your eyes and picture the face of a close friend. '
-        'How clear is the image?',
-    hint: 'Vividness of visual imagery (VVIQ-style)',
-    construct: 'Visual imagery vividness',
-    source: 'Adapted from VVIQ (Marks 1973)',
+    promptKey: 'iv_q1_prompt',
+    hintKey: 'iv_q1_hint',
+    constructKey: 'iv_q1_construct',
+    sourceKey: 'iv_q1_source',
     options: [
       InterviewOption(
-        'Crystal clear, every detail',
+        'iv_q1_opt0',
         {3: 2, 2: 1},
       ),
       InterviewOption(
-        'Clear, but some parts are fuzzy',
+        'iv_q1_opt1',
         {3: 1, 4: 1},
       ),
       InterviewOption(
-        'Vague blur, more a feeling than a picture',
+        'iv_q1_opt2',
         {0: 1, 5: 1},
       ),
       InterviewOption(
-        'No picture at all — I just know facts about them',
+        'iv_q1_opt3',
         {5: 2, 1: 1},
       ),
     ],
   ),
   InterviewQuestion(
     id: 'q2-house-walk',
-    prompt:
-        'Walk through your childhood home in your head, room by room. '
-        'Can you do it and notice small details along the way?',
-    hint: 'Spatial scene construction, no technique named yet',
-    construct: 'Spatial scene construction',
-    source: 'Hassabis & Maguire 2007; OSIQ-spatial (Blajenkova et al. 2006)',
+    promptKey: 'iv_q2_prompt',
+    hintKey: 'iv_q2_hint',
+    constructKey: 'iv_q2_construct',
+    sourceKey: 'iv_q2_source',
     options: [
       InterviewOption(
-        'Easily — I stroll through and see everything',
+        'iv_q2_opt0',
         {2: 2, 3: 1},
       ),
       InterviewOption(
-        'Mostly, but I lose track in some rooms',
+        'iv_q2_opt1',
         {2: 1, 4: 1},
       ),
       InterviewOption(
-        'I remember facts about it, not a walkable space',
+        'iv_q2_opt2',
         {5: 2},
       ),
       InterviewOption(
-        'I get lost — spaces never stuck with me',
+        'iv_q2_opt3',
         {0: 1, 1: 1},
       ),
     ],
   ),
   InterviewQuestion(
     id: 'q3-number',
-    prompt:
-        'Someone tells you a new phone number once. What do you do '
-        'to hold onto it?',
-    hint: 'Phonological loop vs visual vs chunking strategy',
-    construct: 'Rehearsal strategy (phonological loop)',
-    source: 'Baddeley & Hitch 1974; strategy probe',
+    promptKey: 'iv_q3_prompt',
+    hintKey: 'iv_q3_hint',
+    constructKey: 'iv_q3_construct',
+    sourceKey: 'iv_q3_source',
     options: [
       InterviewOption(
-        'Repeat it aloud or in my head, over and over',
+        'iv_q3_opt0',
         {0: 2, 1: 1},
       ),
       InterviewOption(
-        'See the digits written out in front of me',
+        'iv_q3_opt1',
         {3: 2, 1: 1},
       ),
       InterviewOption(
-        'Split it into groups, like 49-16-25',
+        'iv_q3_opt2',
         {1: 2, 5: 1},
       ),
       InterviewOption(
-        'Tie it to something I know — a date, an address',
+        'iv_q3_opt3',
         {4: 1, 5: 2},
       ),
     ],
   ),
   InterviewQuestion(
     id: 'q4-yesterday',
-    prompt:
-        'Think back to yesterday afternoon. How does it come back to you?',
-    hint: 'Episodic replay vs semantic listing',
-    construct: 'Episodic reliving vs semantic listing',
-    source: 'Tulving 1972 episodic/semantic distinction',
+    promptKey: 'iv_q4_prompt',
+    hintKey: 'iv_q4_hint',
+    constructKey: 'iv_q4_construct',
+    sourceKey: 'iv_q4_source',
     options: [
       InterviewOption(
-        'Like replaying a movie, scene by scene',
+        'iv_q4_opt0',
         {4: 2, 3: 1},
       ),
       InterviewOption(
-        'Moments pop up, but out of order',
+        'iv_q4_opt1',
         {4: 1, 0: 1},
       ),
       InterviewOption(
-        'As a list of facts: where I was, who I met',
+        'iv_q4_opt2',
         {5: 2, 1: 1},
       ),
       InterviewOption(
-        'Barely at all — yesterday is already foggy',
+        'iv_q4_opt3',
         {1: 1, 0: 1},
       ),
     ],
   ),
   InterviewQuestion(
     id: 'q5-new-word',
-    prompt:
-        'You learn a new word in another language. What makes it stick?',
-    hint: 'Keyword imagery vs verbal rehearsal vs meaning links',
-    construct: 'Keyword-imagery vs verbal rehearsal',
-    source: 'Atkinson & Raugh 1975 keyword method',
+    promptKey: 'iv_q5_prompt',
+    hintKey: 'iv_q5_hint',
+    constructKey: 'iv_q5_construct',
+    sourceKey: 'iv_q5_source',
     options: [
       InterviewOption(
-        'A funny picture linking the sound to the meaning',
+        'iv_q5_opt0',
         {3: 2, 5: 1},
       ),
       InterviewOption(
-        'Saying it many times until it sounds right',
+        'iv_q5_opt1',
         {0: 2, 1: 1},
       ),
       InterviewOption(
-        'Connecting it to words I already know',
+        'iv_q5_opt2',
         {5: 2, 1: 1},
       ),
       InterviewOption(
-        'Placing it somewhere — a room, a route, a scene',
+        'iv_q5_opt3',
         {2: 2, 4: 1},
       ),
     ],
   ),
   InterviewQuestion(
     id: 'q6-new-place',
-    prompt:
-        'You visit a new neighborhood once. How do you find your way '
-        'back the second time?',
-    hint: 'Sense of direction (SBSOD-style)',
-    construct: 'Sense of direction',
-    source: 'Adapted from SBSOD (Hegarty et al. 2002)',
+    promptKey: 'iv_q6_prompt',
+    hintKey: 'iv_q6_hint',
+    constructKey: 'iv_q6_construct',
+    sourceKey: 'iv_q6_source',
     options: [
       InterviewOption(
-        'A map just forms in my head',
+        'iv_q6_opt0',
         {2: 2, 1: 1},
       ),
       InterviewOption(
-        'I remember striking sights along the way',
+        'iv_q6_opt1',
         {3: 2, 2: 1},
       ),
       InterviewOption(
-        'I replay the turns as instructions: left, right, straight',
+        'iv_q6_opt2',
         {1: 2, 5: 1},
       ),
       InterviewOption(
-        'I remember who I was with and what we talked about',
+        'iv_q6_opt3',
         {4: 2, 0: 1},
+      ),
+    ],
+  ),
+  InterviewQuestion(
+    id: 'q7-tomorrow-call',
+    promptKey: 'iv_q7_prompt',
+    hintKey: 'iv_q7_hint',
+    constructKey: 'iv_q7_construct',
+    sourceKey: 'iv_q7_source',
+    options: [
+      InterviewOption(
+        'iv_q7_opt0',
+        {4: 2, 2: 1},
+      ),
+      InterviewOption(
+        'iv_q7_opt1',
+        {1: 2, 0: 1},
+      ),
+      InterviewOption(
+        'iv_q7_opt2',
+        {3: 2, 4: 1},
+      ),
+      InterviewOption(
+        'iv_q7_opt3',
+        {0: 2, 1: 1},
+      ),
+    ],
+  ),
+  InterviewQuestion(
+    id: 'q8-gathering',
+    promptKey: 'iv_q8_prompt',
+    hintKey: 'iv_q8_hint',
+    constructKey: 'iv_q8_construct',
+    sourceKey: 'iv_q8_source',
+    options: [
+      InterviewOption(
+        'iv_q8_opt0',
+        {3: 2, 2: 1},
+      ),
+      InterviewOption(
+        'iv_q8_opt1',
+        {0: 2, 1: 1},
+      ),
+      InterviewOption(
+        'iv_q8_opt2',
+        {2: 2, 4: 1},
+      ),
+      InterviewOption(
+        'iv_q8_opt3',
+        {4: 2, 5: 1},
       ),
     ],
   ),

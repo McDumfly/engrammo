@@ -10,16 +10,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// A leckejátékos által generált feladat, ugyanazzal a kéréssel —
-/// a helyi generátor seed-determinisztikus, így a teszt előre tudja
-/// a helyes opció indexét (a keverés miatt az már nem fixen 0).
-Future<MetaTask> _expectedTask(int chapter, int section, int lesson) {
+Future<MetaTask> _expectedRoundTask(
+  int chapter,
+  int section,
+  int lesson,
+  int round,
+) {
   final rounds = lessonRoundsFor(chapter, section, lesson);
   return MetaAIService.generateTask(
     MetaTaskRequest(
-      kind: lessonRoundKindFor(chapter, lesson, 0, rounds),
-      difficulty: lessonRoundDifficultyFor(chapter, section, lesson, 0, rounds),
-      seed: '$chapter-$section-$lesson-r0',
+      kind: lessonRoundKindFor(chapter, lesson, round, rounds),
+      difficulty: lessonRoundDifficultyFor(
+        chapter,
+        section,
+        lesson,
+        round,
+        rounds,
+      ),
+      seed: '$chapter-$section-$lesson-r$round',
       locale: 'en',
     ),
   );
@@ -39,11 +47,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // Coach-kártya angol magyarázattal.
     expect(find.text('The Attention Gate'), findsOneWidget);
 
-    // A START DRILL a hosszú coach-lista alján ül: görgetve hozzuk
-    // láthatóvá (a lista lusta építése miatt csak így koppintható).
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('lesson-coach-next')),
       300,
@@ -51,25 +56,44 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('lesson-coach-next')), findsOneWidget);
 
-    // Gyakorlat indítása -> inger (offline tartalék).
     await tester.tap(find.byKey(const ValueKey('lesson-coach-next')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('lesson-memorized')), findsOneWidget);
 
-    // Kérdés -> helyes válasz (a generátorból kiolvasott index).
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('lesson-memorized')),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('lesson-memorized')));
-    await tester.pumpAndSettle();
-    final expected = await _expectedTask(0, 0, 0);
-    final right = 'lesson-option-${expected.correct}';
-    expect(find.byKey(ValueKey(right)), findsOneWidget);
-    await tester.tap(find.byKey(ValueKey(right)));
-    await tester.pumpAndSettle();
+    var answered = 0;
+    for (var guard = 0; guard < 30; guard++) {
+      await tester.pumpAndSettle();
+      if (find
+          .byKey(const ValueKey('lesson-continue'))
+          .evaluate()
+          .isNotEmpty) {
+        break;
+      }
+      if (find
+          .byKey(const ValueKey('lesson-next-step'))
+          .evaluate()
+          .isNotEmpty) {
+        await tester.tap(find.byKey(const ValueKey('lesson-next-step')));
+        continue;
+      }
+      if (find
+          .byKey(const ValueKey('lesson-memorized'))
+          .evaluate()
+          .isNotEmpty) {
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('lesson-memorized')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('lesson-memorized')));
+        continue;
+      }
+      final expected = await _expectedRoundTask(0, 0, 0, answered);
+      final right = 'lesson-option-${expected.correct}';
+      expect(find.byKey(ValueKey(right)), findsOneWidget);
+      await tester.tap(find.byKey(ValueKey(right)));
+      answered++;
+    }
 
-    // Csillag + mentés + folytatás.
     expect(find.text('3/3 stars'), findsOneWidget);
     final progress = await MemoryStore.loadChapterProgress();
     expect(progress[MemoryStore.lessonKey(0, 0, 0)], 3);
@@ -94,8 +118,6 @@ void main() {
     );
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('lesson-coach-next')));
-    // A térbeli dúsítás kulcs nélkül azonnali helyi tartalék: néhány
-    // képkocka alatt ingernek kell jönnie, nem örök spinnernek.
     for (var i = 0; i < 20; i++) {
       await tester.pump(const Duration(milliseconds: 100));
       if (find.byKey(const ValueKey('lesson-memorized')).evaluate().isNotEmpty) {
@@ -106,9 +128,6 @@ void main() {
   });
 
   testWidgets('Palace Step 2 lógó hálózattal is továbblép', (tester) async {
-    // Kulcs van (élő ág), de a szerver soha nem válaszol: a játékos
-    // ilyenkor sem ragadhat a töltőképernyőn, hanem a helyi
-    // tartalékfeladattal folytatja.
     SharedPreferences.setMockInitialValues({});
     EnvLoader.loadFromStringForTest('MODEL_API_KEY=test-key');
     HttpOverrides.global = _HangingHttpOverrides();
@@ -133,9 +152,6 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('lesson-coach-next')));
     try {
-      // Lógó hálózatnál 20 s virtuális idő alatt megjön az inger:
-      // a régi lánc (feladat + kép + szegmentálás, egyenként 12 s)
-      // 36 s-ig is elüldögélne a spinneren.
       for (var i = 0; i < 20; i++) {
         await tester.pump(const Duration(seconds: 1));
         if (find.byKey(const ValueKey('lesson-memorized')).evaluate().isNotEmpty) {
@@ -144,9 +160,7 @@ void main() {
       }
       expect(find.byKey(const ValueKey('lesson-memorized')), findsOneWidget);
     } finally {
-      // Az elárvult belső hívások 12 s-es időzítőit is kifuttatjuk,
-      // hogy ne maradjon függő Timer a teszt végén.
-      for (var i = 0; i < 60; i++) {
+      for (var i = 0; i < 100; i++) {
         await tester.pump(const Duration(seconds: 1));
       }
     }
@@ -171,19 +185,42 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('lesson-coach-next')));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('lesson-memorized')),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('lesson-memorized')));
-    await tester.pumpAndSettle();
 
-    // Biztosan hibás válasz: a helyes utáni opció (körbe).
-    final expected = await _expectedTask(1, 0, 0);
-    final wrong =
-        'lesson-option-${(expected.correct + 1) % expected.options.length}';
-    await tester.tap(find.byKey(ValueKey(wrong)));
-    await tester.pumpAndSettle();
+    var answered = 0;
+    for (var guard = 0; guard < 30; guard++) {
+      await tester.pumpAndSettle();
+      if (find
+          .byKey(const ValueKey('lesson-continue'))
+          .evaluate()
+          .isNotEmpty) {
+        break;
+      }
+      if (find
+          .byKey(const ValueKey('lesson-next-step'))
+          .evaluate()
+          .isNotEmpty) {
+        await tester.tap(find.byKey(const ValueKey('lesson-next-step')));
+        continue;
+      }
+      if (find
+          .byKey(const ValueKey('lesson-memorized'))
+          .evaluate()
+          .isNotEmpty) {
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('lesson-memorized')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('lesson-memorized')));
+        continue;
+      }
+      final expected = await _expectedRoundTask(1, 0, 0, answered);
+      final wrong =
+          'lesson-option-${(expected.correct + 1) % expected.options.length}';
+      expect(find.byKey(ValueKey(wrong)), findsOneWidget);
+      await tester.tap(find.byKey(ValueKey(wrong)));
+      answered++;
+    }
+    expect(answered, 2);
 
     expect(find.text('1/3 stars'), findsOneWidget);
     final progress = await MemoryStore.loadChapterProgress();
@@ -191,9 +228,6 @@ void main() {
   });
 }
 
-/// Soha meg nem jövő válasz: a kérést befogadja, a választ nem küldi.
-/// A `package:http` IOClient ezen keresztül megy (`HttpClient()` gyári
-/// konstruktor), így a teljes Meta-hálózat lógását szimulálja.
 class _HangingHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) =>

@@ -1,19 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../l10n/app_localizations.dart';
 import '../services/app_feedback.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_buttons.dart';
 import '../widgets/google_g_logo.dart';
 
-/// Belépő / regisztrációs képernyő.
-///
-/// Email+jelszó (bejelentkezés és regisztráció), Google-belépés és
-/// fiók nélküli folytatás. Backend nélkül az [AuthGate] eleve nem ezt
-/// mutatja; ha mégis ide jutna, a gombok hibaüzenetet adnak.
-/// A profil bejelentkezési kártyájáról útvonalként is nyitható:
-/// ilyenkor sikeres belépés után visszalép a profilra.
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
 
@@ -54,10 +48,10 @@ class _AuthScreenState extends State<AuthScreen> {
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
     if (!email.contains('@')) {
-      return _fail(StateError('Adj meg egy érvényes email-címet.'));
+      return _fail(StateError(tr('auth_invalid_email')));
     }
     if (password.length < 6) {
-      return _fail(StateError('A jelszó legalább 6 karakter legyen.'));
+      return _fail(StateError(tr('auth_short_password')));
     }
     try {
       if (_register) {
@@ -66,8 +60,6 @@ class _AuthScreenState extends State<AuthScreen> {
         await authService.signInWithEmail(email, password);
       }
       AppFeedback.medium();
-      // Útvonalként nyitva (profilkártya): vissza a profilra.
-      // Kapuként (gyökér) a canPop hamis, a kapu magától vált.
       if (mounted && Navigator.of(context).canPop()) {
         Navigator.of(context).pop();
       }
@@ -88,7 +80,6 @@ class _AuthScreenState extends State<AuthScreen> {
         Navigator.of(context).pop();
       }
     } catch (e) {
-      // A felhasználó által megszakított Google-folyamat nem hiba.
       final msg = '$e';
       if (msg.contains('canceled')) return;
       _fail(e);
@@ -102,7 +93,7 @@ class _AuthScreenState extends State<AuthScreen> {
     });
     final email = _emailCtrl.text.trim();
     if (!email.contains('@')) {
-      return _fail(StateError('Írd be az emailed, arra megy a levél.'));
+      return _fail(StateError(tr('auth_reset_prompt')));
     }
     try {
       await authService.sendPasswordReset(email);
@@ -130,7 +121,9 @@ class _AuthScreenState extends State<AuthScreen> {
                   children: [
                     const SizedBox(height: 12),
                     Text(
-                      _register ? 'Create account' : 'Welcome back',
+                      _register
+                          ? tr('auth_create_account')
+                          : tr('auth_welcome_back'),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurface,
@@ -141,8 +134,8 @@ class _AuthScreenState extends State<AuthScreen> {
                     const SizedBox(height: 6),
                     Text(
                       _register
-                          ? 'Your scores, streak and avatar sync to the cloud.'
-                          : 'Pick up where you left off — on any device.',
+                          ? tr('auth_register_subtitle')
+                          : tr('auth_login_subtitle'),
                       textAlign: TextAlign.center,
                       style: TextStyle(color: context.mutedText, fontSize: 14),
                     ),
@@ -157,18 +150,21 @@ class _AuthScreenState extends State<AuthScreen> {
                     ),
                     const SizedBox(height: 16),
                     if (_register) ...[
-                      _Field(controller: _nameCtrl, hint: 'Display name'),
+                      _Field(
+                        controller: _nameCtrl,
+                        hint: tr('auth_display_name_hint'),
+                      ),
                       const SizedBox(height: 10),
                     ],
                     _Field(
                       controller: _emailCtrl,
-                      hint: 'you@example.com',
+                      hint: tr('auth_email_hint'),
                       keyboard: TextInputType.emailAddress,
                     ),
                     const SizedBox(height: 10),
                     _Field(
                       controller: _passwordCtrl,
-                      hint: 'Password (min. 6 characters)',
+                      hint: tr('auth_password_hint'),
                       obscure: _obscure,
                       onToggleObscure: () =>
                           setState(() => _obscure = !_obscure),
@@ -188,7 +184,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     if (_resetSent) ...[
                       const SizedBox(height: 10),
                       Text(
-                        'Reset email sent — check your inbox.',
+                        tr('auth_reset_sent'),
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: context.inkText,
@@ -200,8 +196,10 @@ class _AuthScreenState extends State<AuthScreen> {
                     const SizedBox(height: 14),
                     EngramButton(
                       label: authService.busy
-                          ? 'PLEASE WAIT…'
-                          : (_register ? 'CREATE ACCOUNT' : 'SIGN IN'),
+                          ? tr('auth_please_wait')
+                          : (_register
+                                ? tr('auth_create_button')
+                                : tr('auth_sign_in_button')),
                       onPressed: authService.busy ? null : () => _submit(),
                       isLoading: authService.busy,
                     ),
@@ -210,7 +208,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       TextButton(
                         onPressed: authService.busy ? null : _reset,
                         child: Text(
-                          'Forgot password?',
+                          tr('auth_forgot_password'),
                           style: TextStyle(
                             color: context.mutedText,
                             fontWeight: FontWeight.w800,
@@ -227,7 +225,7 @@ class _AuthScreenState extends State<AuthScreen> {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Text(
-                            'or',
+                            tr('auth_or'),
                             style: TextStyle(
                               color: context.mutedText,
                               fontWeight: FontWeight.w800,
@@ -241,7 +239,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     ),
                     const SizedBox(height: 12),
                     EngramButton(
-                      label: 'CONTINUE WITH GOOGLE',
+                      label: tr('auth_google_button'),
                       leading: const GoogleGLogo(size: 22),
                       variant: EngramButtonVariant.secondary,
                       onPressed: authService.busy ? null : _google,
@@ -253,13 +251,12 @@ class _AuthScreenState extends State<AuthScreen> {
                           : () async {
                               await authService.continueAsGuest();
                               if (!context.mounted) return;
-                              // Útvonalként nyitva: vissza oda, ahonnan jött.
                               if (Navigator.of(context).canPop()) {
                                 Navigator.of(context).pop();
                               }
                             },
                       child: Text(
-                        'Continue without account',
+                        tr('auth_guest_button'),
                         style: TextStyle(
                           color: context.mutedText,
                           fontWeight: FontWeight.w800,
@@ -296,7 +293,7 @@ class _Segment extends StatelessWidget {
           Expanded(
             child: _segBtn(
               context,
-              'Sign in',
+              tr('auth_sign_in_tab'),
               !register,
               () => onChanged(false),
             ),
@@ -304,7 +301,7 @@ class _Segment extends StatelessWidget {
           Expanded(
             child: _segBtn(
               context,
-              'Register',
+              tr('auth_register_tab'),
               register,
               () => onChanged(true),
             ),

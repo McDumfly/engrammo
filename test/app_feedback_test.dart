@@ -26,7 +26,6 @@ void main() {
   tearDown(() async {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(SystemChannels.platform, null);
-    // A globális példányt tiszta állapotban hagyjuk a többi tesztnek.
     await appSettings.setHaptics(true);
   });
 
@@ -68,7 +67,6 @@ void main() {
             label: 'TAP',
             onPressed: () {
               pressed = true;
-              // Régi, duplázó minta: a gomb már rezgett belülről.
               AppFeedback.light();
             },
           ),

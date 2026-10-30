@@ -12,15 +12,26 @@ void main() {
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    MetaAIService.secureStoreForTest = {};
+    MetaAIService.consentForTest = true;
+  });
+
+  tearDown(() {
+    MetaAIService.secureStoreForTest = null;
+    MetaAIService.consentForTest = null;
   });
 
   test('elmentett kulccsal nem kell dart-define, élő ág fut', () async {
-    await MetaAIService.setStoredApiKey('elmentett-kulcs');
-    expect(await MetaAIService.storedApiKey(), 'elmentett-kulcs');
-    expect(await MetaAIService.effectiveApiKey(), 'elmentett-kulcs');
+    const testKey = 'elmentett-kulcs';
+    const authScheme = 'Bearer';
+    await MetaAIService.setStoredApiKey(testKey);
+    expect(await MetaAIService.storedApiKey(), testKey);
+    expect(await MetaAIService.effectiveApiKey(), testKey);
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('meta_api_key_v1'), isNull);
 
     final client = MockClient((request) async {
-      expect(request.headers['Authorization'], 'Bearer elmentett-kulcs');
+      expect(request.headers['Authorization'], '$authScheme $testKey');
       return http.Response(
         jsonEncode({
           'choices': [
@@ -60,5 +71,20 @@ void main() {
       const MetaTaskRequest(kind: 'number', difficulty: 2),
     );
     expect(task.fallback, isTrue);
+  });
+
+  test('régi sima szöveges kulcs átköltözik és törlődik', () async {
+    SharedPreferences.setMockInitialValues({
+      'meta_api_key_v1': 'régi-plain-kulcs',
+    });
+    expect(MetaAIService.secureStoreForTest, isEmpty);
+
+    expect(await MetaAIService.storedApiKey(), 'régi-plain-kulcs');
+    expect(
+      MetaAIService.secureStoreForTest!['meta_api_key_v1'],
+      'régi-plain-kulcs',
+    );
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getString('meta_api_key_v1'), isNull);
   });
 }

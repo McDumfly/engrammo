@@ -1,8 +1,8 @@
 import 'package:engrammo/models/battle_invites.dart';
+import 'package:engrammo/services/memory_store.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-/// A szűrő saját listával dolgozik: a globális `battleFriends` friss
-/// fióknál üres (a barátlista a backendről jön majd).
 const _sample = [
   BattleFriend(name: 'Nóra', xp: 2380, streak: 17, online: true),
   BattleFriend(name: 'Marci', xp: 2710, streak: 14, online: true),
@@ -56,6 +56,51 @@ void main() {
       store.invite('Marci');
       store.clear();
       expect(store.invitedNames, isEmpty);
+    });
+  });
+
+  group('BattleInviteStore persistence', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+      battleInvites.resetForTest();
+    });
+
+    tearDown(() {
+      battleInvites.resetForTest();
+    });
+
+    Future<void> settle() =>
+        Future<void>.delayed(const Duration(milliseconds: 20));
+
+    test('invites survive a reload', () async {
+      final first = BattleInviteStore();
+      first.invite('Nóra');
+      await settle();
+
+      final second = BattleInviteStore();
+      await second.ensureLoaded();
+      expect(second.isInvited('Nóra'), isTrue);
+      expect(second.inviteCount, 1);
+    });
+
+    test('withdraw persists the removal', () async {
+      await MemoryStore.saveBattleInvites({'Nóra', 'Marci'});
+      final store = BattleInviteStore();
+      await store.ensureLoaded();
+      expect(store.inviteCount, 2);
+
+      store.withdraw('Nóra');
+      await settle();
+      expect(await MemoryStore.loadBattleInvites(), {'Marci'});
+    });
+
+    test('refresh picks up cloud-pulled invites', () async {
+      await battleInvites.ensureLoaded();
+      expect(battleInvites.inviteCount, 0);
+
+      await MemoryStore.saveBattleInvitesWithoutNotify({'Léna'});
+      await battleInvites.refresh();
+      expect(battleInvites.isInvited('Léna'), isTrue);
     });
   });
 }

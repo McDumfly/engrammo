@@ -9,25 +9,26 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   group('lessonRoundsFor', () {
-    test('kezdő állomás egyetlen feladat', () {
-      expect(lessonRoundsFor(0, 0, 0), 1);
-      expect(lessonRoundsFor(0, 0, 1), 1);
-      expect(lessonRoundsFor(1, 0, 0), 1);
+    test('alapozó leckék gyengéden, 2 feladattal indulnak', () {
+      expect(lessonRoundsFor(0, 0, 0), 2);
+      expect(lessonRoundsFor(0, 0, 1), 2);
+      expect(lessonRoundsFor(1, 0, 0), 2);
+      expect(lessonRoundsFor(5, 0, 1), 2);
     });
 
-    test('későbbi partok több feladatot láncolnak', () {
-      expect(lessonRoundsFor(0, 0, 2), 2);
-      expect(lessonRoundsFor(0, 2, 3), greaterThan(2));
-      expect(lessonRoundsFor(2, 2, 3), 4);
+    test('későbbi partok még több feladatot láncolnak', () {
+      expect(lessonRoundsFor(0, 0, 2), 4);
+      expect(lessonRoundsFor(0, 2, 3), 5);
+      expect(lessonRoundsFor(2, 2, 3), 5);
     });
 
-    test('1 és 5 között marad a Gauntlet végén is', () {
+    test('2 és 5 között marad a Gauntlet végén is', () {
       expect(lessonRoundsFor(7, 2, 3), 5);
       for (var c = 0; c < 8; c++) {
         for (var s = 0; s < 3; s++) {
           for (var l = 0; l < 4; l++) {
             final r = lessonRoundsFor(c, s, l);
-            expect(r, inInclusiveRange(1, 5));
+            expect(r, inInclusiveRange(2, 5));
           }
         }
       }
@@ -48,6 +49,28 @@ void main() {
     test('5 feladattól vagy Gauntletben két inger jön közbe', () {
       expect(lessonLagFor(5, 0), 2);
       expect(lessonLagFor(4, 7), 2);
+    });
+  });
+
+  group('lessonLagForLesson', () {
+    test('az alapozó fejezetek nyitó része késleltetés nélkül', () {
+      expect(lessonLagForLesson(0, 0, 0), 0);
+      expect(lessonLagForLesson(0, 0, 3), 0);
+      expect(lessonLagForLesson(2, 0, 2), 0);
+      expect(lessonLagForLesson(5, 0, 1), 0);
+    });
+
+    test('a második résztől jön a késleltetett kérdés', () {
+      expect(lessonLagForLesson(0, 1, 0), 1);
+      expect(lessonLagForLesson(2, 1, 2), greaterThanOrEqualTo(1));
+    });
+
+    test('mély fejezetekben a köri képlet dönt', () {
+      expect(
+        lessonLagForLesson(18, 0, 0),
+        lessonLagFor(lessonRoundsFor(18, 0, 0), 18),
+      );
+      expect(lessonLagForLesson(-1, 0, 0), 0);
     });
   });
 
@@ -91,7 +114,7 @@ void main() {
   });
 
   group('lessonRoundKindFor', () {
-    test('egyfeladatos állomás tartja a lecke típusát', () {
+    test('rövid segéd-terv tartja a lecke típusát', () {
       expect(
         lessonRoundKindFor(2, 0, 0, 1),
         lessonKindFor(2, 0),
@@ -109,6 +132,36 @@ void main() {
   });
 
   group('loadLessonTasks', () {
+    test('helyi feladatok szinkron elkészülnek (azonnali indítás)', () {
+      final tasks = loadLocalLessonTasks(chapter: 2, section: 0, lesson: 1);
+      expect(tasks, hasLength(lessonRoundsFor(2, 0, 1)));
+      expect(tasks.first.paradigm, 'loci-drill');
+    });
+
+    test('elkészült körönként jelez a folyamatjelzőnek', () async {
+      final seen = <int>[];
+      final tasks = await loadLessonTasks(
+        chapter: 0,
+        section: 0,
+        lesson: 2,
+        loadRound: (r) async {
+          await Future<void>.delayed(const Duration(milliseconds: 5));
+          return loadLocalLessonTasks(
+            chapter: 0,
+            section: 0,
+            lesson: 2,
+          )[r];
+        },
+        onProgress: (done, total) {
+          seen.add(done);
+          expect(total, lessonRoundsFor(0, 0, 2));
+        },
+      );
+      expect(tasks, hasLength(lessonRoundsFor(0, 0, 2)));
+      expect(seen.length, tasks.length);
+      expect(seen.last, tasks.length);
+    });
+
     test('lógó betöltésből időkorlát után helyi tartalék lesz', () async {
       final tasks = await loadLessonTasks(
         chapter: 2,
@@ -178,9 +231,8 @@ void main() {
   testWidgets('többfeladatos állomás késleltetett kérdésekkel végigjátszható', (
     tester,
   ) async {
-    // 2-2-3: 4 feladat, lag 1 -> S0,S1,Q0,S2,Q1,S3,Q2,Q3.
-    expect(lessonRoundsFor(2, 2, 3), 4);
-    expect(lessonLagFor(4, 2), 1);
+    expect(lessonRoundsFor(2, 2, 3), 5);
+    expect(lessonLagFor(5, 2), 2);
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(
       const MaterialApp(
@@ -194,40 +246,65 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('lesson-session-info')),
+      300,
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('lesson-session-info')), findsOneWidget);
+    await tester.scrollUntilVisible(
       find.byKey(const ValueKey('lesson-coach-next')),
       300,
     );
     await tester.pumpAndSettle();
-    // Nehéz állomáson a coach jelzi a sorozatot és a késleltetést.
-    expect(find.byKey(const ValueKey('lesson-session-info')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('lesson-coach-next')));
     await tester.pumpAndSettle();
 
-    // A terv szerint felváltva inger és kérdés jön (4+4 lépés):
-    // addig lépünk, amíg a kész-képernyő meg nem épül (a CONTINUE
-    // a hosszú lista alján a hajtás alá is kerülhet).
     final contGone = find.byKey(const ValueKey('lesson-continue'));
     final contBuilt = find.byKey(
       const ValueKey('lesson-continue'),
       skipOffstage: false,
     );
-    for (var guard = 0; guard < 30; guard++) {
+    Future<void> tapVisible(Finder finder) async {
+      await tester.ensureVisible(finder);
+      await tester.pumpAndSettle();
+      await tester.tap(finder);
+    }
+
+    for (var guard = 0; guard < 40; guard++) {
       await tester.pumpAndSettle();
       if (contBuilt.evaluate().isNotEmpty) break;
-      if (find
-          .byKey(const ValueKey('lesson-next-step'))
-          .evaluate()
-          .isNotEmpty) {
-        await tester.tap(find.byKey(const ValueKey('lesson-next-step')));
+      final nextFinder = find.byKey(const ValueKey('lesson-next-step'));
+      if (nextFinder.evaluate().isNotEmpty) {
+        await tapVisible(nextFinder);
         continue;
       }
-      if (find.byKey(const ValueKey('lesson-memorized')).evaluate().isNotEmpty) {
-        await tester.tap(find.byKey(const ValueKey('lesson-memorized')));
+      final optFinder = find.byKey(const ValueKey('lesson-option-0'));
+      if (optFinder.evaluate().isNotEmpty) {
+        await tapVisible(optFinder);
         continue;
       }
-      await tester.tap(find.byKey(const ValueKey('lesson-option-0')));
+      final memFinder = find.byKey(const ValueKey('lesson-memorized'));
+      if (memFinder.evaluate().isNotEmpty) {
+        await tapVisible(memFinder);
+        continue;
+      }
+      await tester.scrollUntilVisible(
+        memFinder,
+        300,
+        scrollable: find.descendant(
+          of: find.byType(ListView),
+          matching: find.byType(Scrollable),
+        ),
+      );
     }
-    await tester.scrollUntilVisible(contGone, 300);
+    await tester.scrollUntilVisible(
+      contGone,
+      300,
+      scrollable: find.ancestor(
+        of: contGone,
+        matching: find.byType(Scrollable),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('lesson-continue')), findsOneWidget);

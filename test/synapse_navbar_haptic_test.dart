@@ -52,7 +52,6 @@ void main() {
     );
   }
 
-  /// Az első ikon közepe: a sávsor középre igazított, ismert szélességű.
   Offset firstIconCenter(WidgetTester tester) {
     final navCenter = tester.getCenter(find.byType(SynapseNavBar));
     final rowW =
@@ -75,7 +74,6 @@ void main() {
 
     final start = firstIconCenter(tester);
     final gesture = await tester.startGesture(start);
-    // Áthúzzuk az ujjat a szomszédos ikon cellájába (cella ~60 px).
     await gesture.moveBy(const Offset(70, 0));
     await tester.pump();
 
@@ -99,7 +97,6 @@ void main() {
 
     final start = firstIconCenter(tester);
     final gesture = await tester.startGesture(start);
-    // Kis mozdulat, maradunk az első ikon celláján belül.
     await gesture.moveBy(const Offset(10, 0));
     await tester.pump();
 

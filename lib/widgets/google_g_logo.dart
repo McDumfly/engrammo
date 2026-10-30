@@ -1,13 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-/// A hivatalos, színes Google „G" logó.
-///
-/// A login/signup képernyő „Continue with Google" gombjához és a
-/// beállítások „Signed in with Google" banneréhez. A HugeIcons-féle
-/// egyszínű vonal-ikon helyett ez a mindenki által ismert, hivatalos
-/// négyszínű G — a Google arculati útmutatója is ezt írja elő a
-/// Google-belépés gombjain.
 class GoogleGLogo extends StatelessWidget {
   final double size;
 

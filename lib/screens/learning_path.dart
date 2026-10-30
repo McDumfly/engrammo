@@ -3,7 +3,29 @@ import '../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../l10n/app_localizations.dart';
+import '../models/claims_policy.dart' show foundationDoseText;
+import '../models/marathon.dart'
+    show
+        daysUntilReviewDue,
+        depthForNextSession,
+        depthForReps,
+        labDoseMinutesPerTrack,
+        labDoseProgressLineIn,
+        practiceDepths,
+        practiceRoundLocked,
+        reviewLockedMessageIn,
+        reviewStatusLabelIn,
+        sessionsDoneOnTrack,
+        sessionsToFinishTrack,
+        stretchDoseMinutesPerTrack,
+        tierForAverageDepthIn,
+        trackDepthAverage,
+        trackProgramLineIn;
+import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
+import '../widgets/honesty_sheet.dart';
+import '../widgets/missions_sheet.dart';
 import '../services/app_feedback.dart';
 import '../theme/app_colors.dart'
     show blue, blueDark, teal, orange, coral, sky, trail;
@@ -13,12 +35,22 @@ import 'brain_league.dart' show BrainLeaguePage;
 import '../models/curriculum.dart'
     show
         SectionSpec,
+        chapterRealmIn,
+        chapterTaglineIn,
         chapters,
         chaptersForTrack,
+        lessonDetailIn,
+        lessonTitleIn,
         memoryTracks,
-        trackPositionOfChapter;
+        sectionNameIn,
+        sectionTechniqueIn,
+        trackName,
+        trackPositionOfChapter,
+        trackTag;
 import 'kreeds_profile.dart' show KreedsProfilePage;
 import 'lesson_player.dart' show LessonPlayerPage;
+import 'memory_profile.dart' show MemoryAssessmentIntroPage;
+import 'my_goals.dart' show MyGoalsPage;
 import '../services/memory_store.dart';
 import '../utils/streak_restore.dart';
 import '../widgets/stats_top_bar.dart';
@@ -26,10 +58,9 @@ import '../widgets/streak_restore_dialog.dart';
 
 import '../widgets/synapse_navbar.dart';
 
-/// Saját tanulási folyam képernyő: fehér alapon világoskék folyó,
-/// állomásokkal. Nincs 3D-gomb, nincs csillagsor, nincs kabala.
 class LearningPathPage extends StatefulWidget {
-  const LearningPathPage({super.key});
+  final int initialTrack;
+  const LearningPathPage({super.key, this.initialTrack = 0});
 
   @override
   State<LearningPathPage> createState() => _LearningPathPageState();
@@ -43,8 +74,6 @@ class _Track {
   const _Track(this.name, this.module, this.icon, this.tint);
 }
 
-/// Six memory-type paths, each five chapters deep, each ending in a
-/// supermemory exam. Mirrors [memoryTracks] from the curriculum.
 const _tracks = [
   _Track(
     'Sensory',
@@ -54,7 +83,7 @@ const _tracks = [
   ),
   _Track(
     'Working memory',
-    'From 4 digits to speed numbers',
+    'From 4 digits to longer numbers',
     HugeIcons.strokeRoundedLayers01,
     blue,
   ),
@@ -78,16 +107,12 @@ const _tracks = [
   ),
   _Track(
     'Semantic',
-    'From 2 names to name master',
+    'From 2 names to confident recall',
     HugeIcons.strokeRoundedBrain01,
     blueDark,
   ),
 ];
 
-/// Profilban tárolt fejezethaladás feloldása a statikus tantervre.
-///
-/// Hiányzó kulcs = 0 csillag, így friss fiók 0/12-ről indul; a mentett
-/// érték felülírja a tanterv alapértelmezését, és a felhőbe is szinkronizálódik.
 int _effectiveStars(
   Map<String, int> progress,
   int chapter,
@@ -98,8 +123,6 @@ int _effectiveStars(
   return progress[MemoryStore.lessonKey(chapter, section, lesson)] ?? base;
 }
 
-/// Aktív ("Up now") lecke: amíg nincs mentett haladás, a tanterv jelölése
-/// dönt; utána mindig az első befejezetlen lecke az aktív.
 bool _effectiveActive(
   Map<String, int> progress,
   int chapter,
@@ -125,7 +148,6 @@ bool _effectiveActive(
   return false;
 }
 
-/// Egy part minden leckéje kész (1+ csillag).
 bool _sectionComplete(Map<String, int> progress, int chapter, int section) {
   final spec = chapters[chapter].sections[section];
   for (var l = 0; l < spec.lessons.length; l++) {
@@ -137,18 +159,11 @@ bool _sectionComplete(Map<String, int> progress, int chapter, int section) {
   return true;
 }
 
-/// Dinamikus zárolás: az első part mindig nyitva, a többi akkor
-/// nyílik, ha az előző part minden leckéje kész. Friss fiókon
-/// ugyanazt mutatja, mint a régi statikus `locked` jelölés.
 bool _sectionLocked(Map<String, int> progress, int chapter, int section) {
   if (section <= 0) return false;
   return !_sectionComplete(progress, chapter, section - 1);
 }
 
-/// Leckeszintű zárolás a parton belül: az első lecke mindig nyitva,
-/// a többi csak akkor, ha minden korábbi lecke kész (1+ csillag).
-/// Nincs átugrás: a parton belül is sorrendben kell haladni. A már
-/// kész leckék ettől függetlenül újrajátszhatók.
 bool _lessonLocked(
   Map<String, int> progress,
   int chapter,
@@ -165,12 +180,17 @@ bool _lessonLocked(
   return false;
 }
 
-/// Egy fejezet minden leckéje kész (1+ csillag).
 bool _chapterComplete(Map<String, int> progress, int chapter) {
   final spec = chapters[chapter];
   for (var s = 0; s < spec.sections.length; s++) {
     for (var l = 0; l < spec.sections[s].lessons.length; l++) {
-      if (_effectiveStars(progress, chapter, s, l, spec.sections[s].lessons[l].stars) <=
+      if (_effectiveStars(
+            progress,
+            chapter,
+            s,
+            l,
+            spec.sections[s].lessons[l].stars,
+          ) <=
           0) {
         return false;
       }
@@ -179,28 +199,36 @@ bool _chapterComplete(Map<String, int> progress, int chapter) {
   return true;
 }
 
-/// Fejezetzárolás a pályán belül: az első fejezet mindig nyitva, a
-/// többi akkor nyílik, ha az előző fejezet minden leckéje kész.
 bool _chapterLocked(Map<String, int> progress, List<int> order, int pos) {
   if (pos <= 0) return false;
   return !_chapterComplete(progress, order[pos - 1]);
 }
 
-
 class _LearningPathPageState extends State<LearningPathPage> {
-  static const _navTabs = [
-    SynapseTab(HugeIcons.strokeRoundedHome01, 'Home'),
-    SynapseTab(HugeIcons.strokeRoundedTrophy, 'League'),
-    SynapseTab(HugeIcons.strokeRoundedSwords, 'Arena'),
-    SynapseTab(HugeIcons.strokeRoundedDumbbell01, 'Practice'),
-    SynapseTab(HugeIcons.strokeRoundedUser02, 'Profile'),
+  static List<SynapseTab> get _navTabs => [
+    SynapseTab(HugeIcons.strokeRoundedHome01, tr('lpt_home')),
+    SynapseTab(HugeIcons.strokeRoundedTrophy, tr('lpt_league')),
+    SynapseTab(HugeIcons.strokeRoundedSwords, tr('lpt_arena')),
+    SynapseTab(HugeIcons.strokeRoundedDumbbell01, tr('lpt_practice')),
+    SynapseTab(HugeIcons.strokeRoundedUser02, tr('lpt_profile')),
   ];
 
+  String get _helpTopic {
+    switch (_tab) {
+      case 0:
+        return AiHelpTopics.path;
+      case 1:
+        return AiHelpTopics.league;
+      case 2:
+        return AiHelpTopics.battle;
+      case 3:
+        return AiHelpTopics.benchmark;
+      default:
+        return AiHelpTopics.general;
+    }
+  }
+
   Widget _tabBody() {
-    // A navbar lebeg a tartalom folott (Stack + Positioned az
-    // extendBody miatt), ezert nincs kulso also hely: minden
-    // beagyazott lap a sajat gorgetheto tartalman belul hagy
-    // elegendo also helyet, igy semmilyen fulon nincs feher sav.
     switch (_tab) {
       case 1:
         return const BrainLeaguePage();
@@ -216,13 +244,16 @@ class _LearningPathPageState extends State<LearningPathPage> {
   }
 
   int _tab = 0;
-  // Friss fiók az első fejezetben (Echo Trail) kezd: a fejezetlista
-  // is ezt nyitja le automatikusan, nem a 3. fejezetet.
   int _memory = 0;
+  int? _chapterPos;
+  int _goalsCount = 0;
   int _streak = 0;
   int _engrams = 0;
   List<DateTime> _streakHistory = const [];
   Map<String, int> _progress = const {};
+  Map<String, int> _reps = const {};
+  Map<String, int> _trackMinutes = const {};
+  Map<String, DateTime> _doneDates = const {};
   bool _showBackToNow = false;
   final ScrollController _scroll = ScrollController();
   final GlobalKey _nowKey = GlobalKey();
@@ -230,9 +261,62 @@ class _LearningPathPageState extends State<LearningPathPage> {
   @override
   void initState() {
     super.initState();
+    _memory = widget.initialTrack.clamp(0, _tracks.length - 1);
     _scroll.addListener(_onScroll);
-    _loadStreak();
-    _loadProgress();
+    _loadHome();
+  }
+
+  Future<void> _loadHome() async {
+    Map<String, int> progress = const {};
+    Map<String, int> reps = const {};
+    Map<String, int> trackMinutes = const {};
+    Map<String, DateTime> doneDates = const {};
+    try {
+      progress = await MemoryStore.loadChapterProgress();
+      try {
+        reps = await MemoryStore.loadLessonReps();
+        trackMinutes = await MemoryStore.loadTrackMinutes();
+        doneDates = await MemoryStore.loadLessonDoneDates();
+      } catch (_) {
+        reps = const {};
+        trackMinutes = const {};
+        doneDates = const {};
+      }
+    } catch (_) {
+      progress = const {};
+    }
+    var goalsCount = 0;
+    try {
+      goalsCount = (await MemoryStore.loadUserGoals()).length;
+    } catch (_) {
+    }
+    StreakState? streakState;
+    try {
+      streakState = await MemoryStore.loadStreakState();
+    } catch (_) {
+      streakState = null;
+    }
+    if (!mounted) return;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final s = streakState;
+    setState(() {
+      _progress = progress;
+      _reps = reps;
+      _trackMinutes = trackMinutes;
+      _doneDates = doneDates;
+      _goalsCount = goalsCount;
+      if (s != null) {
+        _streakHistory = s.history;
+        _streak = StreakRestore.displayStreak(
+          stored: s.streak,
+          history: s.history,
+          today: today,
+        );
+        _engrams = s.engrams;
+      }
+    });
+    _maybeShowRestorePrompt();
   }
 
   Future<void> _loadProgress() async {
@@ -243,7 +327,34 @@ class _LearningPathPageState extends State<LearningPathPage> {
       return;
     }
     if (!mounted) return;
-    setState(() => _progress = progress);
+    Map<String, int> reps;
+    Map<String, int> trackMinutes;
+    Map<String, DateTime> doneDates;
+    try {
+      reps = await MemoryStore.loadLessonReps();
+      trackMinutes = await MemoryStore.loadTrackMinutes();
+      doneDates = await MemoryStore.loadLessonDoneDates();
+    } catch (_) {
+      reps = const {};
+      trackMinutes = const {};
+      doneDates = const {};
+    }
+    if (!mounted) return;
+    setState(() {
+      _progress = progress;
+      _reps = reps;
+      _trackMinutes = trackMinutes;
+      _doneDates = doneDates;
+    });
+  }
+
+  Future<void> _loadGoalsCount() async {
+    try {
+      final goals = await MemoryStore.loadUserGoals();
+      if (!mounted) return;
+      setState(() => _goalsCount = goals.length);
+    } catch (_) {
+    }
   }
 
   Future<void> _loadStreak() async {
@@ -251,8 +362,6 @@ class _LearningPathPageState extends State<LearningPathPage> {
     try {
       state = await MemoryStore.loadStreakState();
     } catch (_) {
-      // Teszt-környezetben (plugin nélküli widget-teszt) nincs
-      // tároló: maradnak az alapértelmezett kijelzett értékek.
       return;
     }
     if (!mounted) return;
@@ -270,9 +379,6 @@ class _LearningPathPageState extends State<LearningPathPage> {
     _maybeShowRestorePrompt();
   }
 
-  /// Törött széria -> napi egyszeri emlékeztető az első megnyitáskor.
-  /// Csak akkor ugrik fel, ha van visszaállítható szakadás, és ma
-  /// még nem látta a user (az elvetés is számít, holnap újra jön).
   Future<void> _maybeShowRestorePrompt() async {
     if (!mounted) return;
     final lastPrompt = await MemoryStore.loadRestorePromptDay();
@@ -386,8 +492,6 @@ class _LearningPathPageState extends State<LearningPathPage> {
           Positioned.fill(
             child: Column(
               children: [
-                // A profil fül saját fejléccel megy, a többi fül
-                // tetején ez a közös sáv ül.
                 if (_tab != 4)
                   SafeArea(
                     bottom: false,
@@ -401,12 +505,19 @@ class _LearningPathPageState extends State<LearningPathPage> {
                         streakBroken: _streakBroken,
                         onIconTap: _openTrackPicker,
                         onStreakTap: _onStreakTap,
+                        onGoalsTap: _openGoals,
+                        goalsCount: _goalsCount,
                       ),
                     ),
                   ),
                 Expanded(child: _tabBody()),
               ],
             ),
+          ),
+          Positioned(
+            left: 16,
+            bottom: 110,
+            child: AiHelpButton(topic: _helpTopic),
           ),
           if (_tab == 0 && _showBackToNow)
             Positioned(
@@ -442,61 +553,105 @@ class _LearningPathPageState extends State<LearningPathPage> {
     );
   }
 
+  Future<void> _openGoals() async {
+    AppFeedback.light();
+    await Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const MyGoalsPage()));
+    if (mounted) _loadGoalsCount();
+  }
+
+  int _shownChapterPos(List<int> order) {
+    final pinned = _chapterPos;
+    if (pinned != null) return pinned.clamp(0, order.length - 1);
+    for (var pos = 0; pos < order.length; pos++) {
+      if (!_chapterComplete(_progress, order[pos])) return pos;
+    }
+    return order.length - 1;
+  }
+
+  void _goToChapter(int pos, List<int> order) {
+    AppFeedback.light();
+    setState(() => _chapterPos = pos.clamp(0, order.length - 1));
+    if (_scroll.hasClients) _scroll.jumpTo(0);
+  }
+
   Widget _flowView() {
-    // Egy pálya = egy memóriatípus öt fejezete végigjárható sorrendben.
     final order = chaptersForTrack(_memory);
+    final pos = _shownChapterPos(order);
+    final chapterIdx = order[pos];
+    final chapter = chapters[chapterIdx];
+    final chapLocked = _chapterLocked(_progress, order, pos);
     const offsets = [0.0, -64.0, 64.0, 0.0];
     final body = <Widget>[];
     var station = 0;
 
-    for (var pos = 0; pos < order.length; pos++) {
-      final chapterIdx = order[pos];
-      final chapter = chapters[chapterIdx];
-      final chapLocked = _chapterLocked(_progress, order, pos);
+    for (var s = 0; s < chapter.sections.length; s++) {
+      final section = chapter.sections[s];
+      final secLocked = chapLocked || _sectionLocked(_progress, chapterIdx, s);
       body.add(const SizedBox(height: 20));
-      body.add(_chapterBanner(pos, order.length, chapterIdx, chapLocked));
-      for (var s = 0; s < chapter.sections.length; s++) {
-        final section = chapter.sections[s];
-        final secLocked =
-            chapLocked || _sectionLocked(_progress, chapterIdx, s);
-        body.add(const SizedBox(height: 20));
-        body.add(_sectionHeader(chapterIdx, s, section));
+      body.add(_sectionHeader(chapterIdx, s, section));
       var prev = 0.0;
       var linked = false;
       for (var l = 0; l < section.lessons.length; l++) {
         final lesson = section.lessons[l];
         final offset = offsets[l % offsets.length];
-        final stars = _effectiveStars(_progress, chapterIdx, s, l, lesson.stars);
-        // Kész lecke sosem zárolt (újrajátszható); befejezetlen csak
-        // akkor nyitható, ha minden korábbi lecke kész.
+        final stars = _effectiveStars(
+          _progress,
+          chapterIdx,
+          s,
+          l,
+          lesson.stars,
+        );
         final lessonLocked =
             !secLocked &&
             stars <= 0 &&
             _lessonLocked(_progress, chapterIdx, s, l);
         if (linked) {
-          body.add(
-            _riverLink(prev, offset, locked: secLocked || lessonLocked),
-          );
+          body.add(_riverLink(prev, offset, locked: secLocked || lessonLocked));
         }
         prev = offset;
         linked = true;
         if (secLocked || lessonLocked) {
-          // Zárolt mező: nem koppintható, nem indít leckét.
           body.add(
             Container(
               key: ValueKey('path-lesson-$chapterIdx-$s-$l'),
-              child: _stationLocked(offset: offset, title: lesson.title),
+              child: _stationLocked(
+                offset: offset,
+                title: lessonTitleIn(
+                  AppLocalizations.localeCode,
+                  chapterIdx,
+                  s,
+                  l,
+                ),
+              ),
             ),
           );
           continue;
         }
         if (stars > 0) {
-          // Kész lecke: koppintásra újrajátszható.
+          final doneKey = MemoryStore.lessonKey(chapterIdx, s, l);
+          final doneReps = _reps[doneKey] ?? 0;
+          final doneDepth = doneReps > 0 ? depthForReps(doneReps) : 1;
+          final doneStatus = reviewStatusLabelIn(
+            AppLocalizations.localeCode,
+            lastDone: _doneDates[doneKey],
+            depth: doneDepth,
+            now: DateTime.now(),
+          );
           body.add(
             GestureDetector(
               key: ValueKey('path-lesson-$chapterIdx-$s-$l'),
               onTap: () => _openLesson(chapterIdx, s, l),
-              child: _stationDone(offset: offset, title: lesson.title),
+              child: _stationDone(
+                offset: offset,
+                title: lessonTitleIn(
+                  AppLocalizations.localeCode,
+                  chapterIdx,
+                  s,
+                  l,
+                ),
+                sub: doneStatus,
+              ),
             ),
           );
           continue;
@@ -519,23 +674,17 @@ class _LearningPathPageState extends State<LearningPathPage> {
                 child: _stationNow(
                   offset: offset,
                   number: station,
+                  title: lessonTitleIn(
+                    AppLocalizations.localeCode,
+                    chapterIdx,
+                    s,
+                    l,
+                  ),
                   lessonIcon: lesson.icon,
                 ),
               ),
             ),
           );
-          body.add(const SizedBox(height: 12));
-          body.add(
-            _nowCard(
-              title: lesson.title,
-              detail: lesson.detail,
-              station: station,
-              chapter: chapterIdx,
-              section: s,
-              lesson: l,
-            ),
-          );
-          body.add(const SizedBox(height: 4));
           continue;
         }
         station++;
@@ -546,14 +695,26 @@ class _LearningPathPageState extends State<LearningPathPage> {
             child: _stationTodo(
               offset: offset,
               number: station,
-              title: lesson.title,
+              title: lessonTitleIn(
+                AppLocalizations.localeCode,
+                chapterIdx,
+                s,
+                l,
+              ),
             ),
           ),
         );
       }
       if (s == 0 && !secLocked) {
         body.add(_riverLink(prev, 0, locked: false));
-        body.add(_bonusStop(realm: chapter.realm));
+        body.add(
+          _bonusStop(
+            realm: chapterRealmIn(
+              AppLocalizations.localeCode,
+              chapterIdx,
+            ),
+          ),
+        );
         body.add(const SizedBox(height: 4));
       } else if (secLocked) {
         body.add(const SizedBox(height: 10));
@@ -562,39 +723,60 @@ class _LearningPathPageState extends State<LearningPathPage> {
         body.add(const SizedBox(height: 8));
       }
     }
-    }
     body.add(const SizedBox(height: 24));
+    if (pos < order.length - 1) {
+      body.add(_nextChapterButton(order, pos));
+      body.add(const SizedBox(height: 16));
+    }
     body.add(_trackEndCard(order));
     body.add(const SizedBox(height: 130));
 
     return SafeArea(
       top: false,
-      child: SingleChildScrollView(
-        controller: _scroll,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: body,
-        ),
+      child: Column(
+        children: [
+          const SizedBox(height: 12),
+          _chapterPager(order, pos),
+          Expanded(
+            child: SingleChildScrollView(
+              controller: _scroll,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: body,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Future<void> _openTrackPicker() async {
-    // A rezgést az ikongomb adja (StatsTopBar → EngramIconButton).
     final picked = await Navigator.of(context).push<int>(
       MaterialPageRoute(builder: (_) => _TrackPickerPage(selected: _memory)),
     );
     if (picked != null && picked != _memory) {
-      setState(() => _memory = picked);
+      setState(() {
+        _memory = picked;
+        _chapterPos = null;
+      });
     }
   }
 
   Widget _sectionHeader(int chapterIdx, int index, SectionSpec section) {
     final bool locked = _sectionLocked(_progress, chapterIdx, index);
-    final Color accent = locked ? context.faintBorder : blue;
-    final String name = section.name;
-    final String technique = section.technique;
-    final List<List<dynamic>> icon = section.icon;
+    final Color accent = locked ? _dim(context.faintBorder, 0.6) : blue;
+    final Color sub = locked ? _dim(context.mutedText, 0.6) : context.mutedText;
+    final String name = sectionNameIn(
+      AppLocalizations.localeCode,
+      chapterIdx,
+      index,
+    );
+    final String technique = sectionTechniqueIn(
+      AppLocalizations.localeCode,
+      chapterIdx,
+      index,
+    );
     final int total = section.lessons.length;
     var done = 0;
     for (var l = 0; l < section.lessons.length; l++) {
@@ -609,173 +791,76 @@ class _LearningPathPageState extends State<LearningPathPage> {
         done++;
       }
     }
-    final double progress = total == 0 || locked ? 0 : done / total;
     final String status = locked
-        ? 'Locked'
-        : progress >= 1
-        ? 'Completed'
-        : '$done/$total done';
+        ? tr('lpt_locked')
+        : done >= total && total > 0
+        ? tr('lpt_completed')
+        : tr('lpt_done_n', {'done': done, 'n': total});
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
-      // Blur és áttetszőség nélkül: a BackdropFilter görgetés közben
-      // Androidon külön offscreen-réteget kényszerít ki minden kártyára.
-      // Tömör kártyaszínnel vizuálisan gyakorlatilag azonos.
-      child: _Dimmed(
-        dimmed: locked,
-        child: GestureDetector(
-          onTap: () {
-            AppFeedback.light();
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => _ChapterListPage(initialChapterIndex: chapterIdx),
-              ),
-            );
-          },
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-            decoration: BoxDecoration(
-              color: context.cardBg,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: locked ? context.faintBorder : context.washBorder,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ],
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          AppFeedback.light();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => _ChapterListPage(initialChapterIndex: chapterIdx),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 5,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: accent,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Part ${index + 1}',
-                            style: TextStyle(
-                              color: locked ? context.mutedText : blue,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                              letterSpacing: 1.4,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            name,
-                            style: TextStyle(
-                              color: context.inkText,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 19,
-                            ),
-                          ),
-                          Text(
-                            '$technique • $total lessons',
-                            style: TextStyle(
-                              color: context.mutedText,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      width: 46,
-                      height: 46,
-                      decoration: BoxDecoration(
-                        color: locked ? context.faintBg : context.washBg,
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: HugeIcon(
-                        icon: locked ? HugeIcons.strokeRoundedLock : icon,
-                        color: locked ? context.mutedText : blue,
-                        size: 23,
-                        strokeWidth: 2.0,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.chevron_right,
-                      color: context.mutedText,
-                      size: 24,
-                    ),
-                  ],
-                ),
-                if (!locked) const SizedBox(height: 10),
-                if (!locked)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          height: 10,
-                          decoration: BoxDecoration(
-                            color: context.faintBg,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          alignment: Alignment.centerLeft,
-                          child: FractionallySizedBox(
-                            widthFactor: progress.clamp(0.0, 1.0),
-                            child: Container(
-                              height: 10,
-                              decoration: BoxDecoration(
-                                color: blue,
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        status,
-                        style: TextStyle(
-                          color: context.mutedText,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                if (locked) const SizedBox(height: 8),
-                if (locked)
-                  Row(
-                    children: [
-                      HugeIcon(
-                        icon: HugeIcons.strokeRoundedLock,
-                        color: context.mutedText,
-                        size: 14,
-                        strokeWidth: 2.2,
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        'Locked',
-                        style: TextStyle(
-                          color: context.mutedText,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
+          );
+        },
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 4,
+              height: 34,
+              decoration: BoxDecoration(
+                color: accent,
+                borderRadius: BorderRadius.circular(999),
+              ),
             ),
-          ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    tr('lpt_part_title', {'i': index + 1}),
+                    style: TextStyle(
+                      color: locked ? sub : blue,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  Text(
+                    name,
+                    style: TextStyle(
+                      color: locked
+                          ? _dim(context.inkText, 0.6)
+                          : context.inkText,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  Text(
+                    '$technique • $status',
+                    style: TextStyle(color: sub, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 4),
+            HugeIcon(
+              icon: locked
+                  ? HugeIcons.strokeRoundedLock
+                  : HugeIcons.strokeRoundedArrowRight01,
+              color: sub,
+              size: 20,
+              strokeWidth: 2,
+            ),
+          ],
         ),
       ),
     );
@@ -800,14 +885,24 @@ class _LearningPathPageState extends State<LearningPathPage> {
     );
   }
 
+  Color _dim(Color c, [double f = 0.7]) =>
+      c.withValues(alpha: (c.a * f).clamp(0.0, 1.0));
+
   Widget _stationShell({
     required double offset,
     required String title,
     required Widget badge,
     bool faintTitle = false,
+    bool dimmed = false,
+    String? sub,
   }) {
-    // A felirat mindig a trail fölött: a badge + label egyben mozog,
-    // a label tömör fehér háttérrel, így a folyó alatta marad.
+    final labelBg = dimmed ? _dim(context.cardBg) : context.cardBg;
+    final labelBorder = dimmed
+        ? _dim(faintTitle ? context.faintBorder : context.washBorder)
+        : (faintTitle ? context.faintBorder : context.washBorder);
+    final labelText = dimmed
+        ? _dim(faintTitle ? context.mutedText : context.inkText)
+        : (faintTitle ? context.mutedText : context.inkText);
     final content = Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -816,40 +911,46 @@ class _LearningPathPageState extends State<LearningPathPage> {
         const SizedBox(height: 8),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 200),
-          child: Material(
-            color: context.cardBg,
-            borderRadius: BorderRadius.circular(999),
-            elevation: 0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-              decoration: BoxDecoration(
-                color: context.cardBg,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(
-                  color: faintTitle ? context.faintBorder : context.washBorder,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            decoration: BoxDecoration(
+              color: labelBg,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: labelBorder),
+              boxShadow: [
+                BoxShadow(
+                  color: dimmed
+                      ? _dim(context.faintBorder)
+                      : context.faintBorder,
+                  offset: const Offset(0, 2),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Text(
-                title,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: faintTitle ? context.mutedText : context.inkText,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12.5,
-                ),
+              ],
+            ),
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: labelText,
+                fontWeight: FontWeight.w600,
+                fontSize: 12.5,
               ),
             ),
           ),
         ),
+        if (sub != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            sub,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: dimmed ? _dim(context.mutedText) : context.mutedText,
+              fontWeight: FontWeight.w600,
+              fontSize: 11,
+            ),
+          ),
+        ],
       ],
     );
     final centered = Center(child: content);
@@ -905,11 +1006,16 @@ class _LearningPathPageState extends State<LearningPathPage> {
     );
   }
 
-  Widget _stationDone({required double offset, required String title}) {
+  Widget _stationDone({
+    required double offset,
+    required String title,
+    String? sub,
+  }) {
     return _stationShell(
       offset: offset,
       title: title,
       faintTitle: true,
+      sub: sub,
       badge: _block3d(
         size: 62,
         top: context.washBg,
@@ -953,6 +1059,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
   Widget _stationNow({
     required double offset,
     required int number,
+    required String title,
     required List<List<dynamic>> lessonIcon,
   }) {
     final badge = _block3d(
@@ -985,11 +1092,40 @@ class _LearningPathPageState extends State<LearningPathPage> {
             borderRadius: BorderRadius.circular(999),
           ),
           child: Text(
-            'Station $number • up now',
+            tr('lpt_station_up', {'n': number}),
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
               fontSize: 12,
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 200),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            decoration: BoxDecoration(
+              color: context.cardBg,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: context.washBorder),
+              boxShadow: [
+                BoxShadow(
+                  color: context.faintBorder,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: context.inkText,
+                fontWeight: FontWeight.w600,
+                fontSize: 12.5,
+              ),
             ),
           ),
         ),
@@ -998,31 +1134,26 @@ class _LearningPathPageState extends State<LearningPathPage> {
   }
 
   Widget _stationLocked({required double offset, required String title}) {
-    return Opacity(
-      opacity: 0.7,
-      child: _stationShell(
-        offset: offset,
-        title: title,
-        faintTitle: true,
-        badge: _block3d(
-          size: 62,
-          top: context.faintBg,
-          edge: context.faintBorder,
-          border: context.faintBorder,
-          child: HugeIcon(
-            icon: HugeIcons.strokeRoundedLock,
-            color: context.mutedText,
-            size: 24,
-            strokeWidth: 2.0,
-          ),
+    return _stationShell(
+      offset: offset,
+      title: title,
+      faintTitle: true,
+      dimmed: true,
+      badge: _block3d(
+        size: 62,
+        top: _dim(context.faintBg),
+        edge: _dim(context.faintBorder),
+        border: _dim(context.faintBorder),
+        child: HugeIcon(
+          icon: HugeIcons.strokeRoundedLock,
+          color: _dim(context.mutedText),
+          size: 24,
+          strokeWidth: 2.0,
         ),
       ),
     );
   }
 
-  /// Opens a lesson in the player; refreshes stars + streak on return.
-  /// Belépési védelem: zárolt lecke közvetlenül sem indítható, csak a
-  /// kész leckék nyithatók újra sorrenden kívül.
   Future<void> _openLesson(int chapter, int section, int lesson) async {
     final loc = trackPositionOfChapter(chapter);
     if (_chapterLocked(_progress, chaptersForTrack(loc.track), loc.pos)) return;
@@ -1037,6 +1168,36 @@ class _LearningPathPageState extends State<LearningPathPage> {
     if (stars <= 0 && _lessonLocked(_progress, chapter, section, lesson)) {
       return;
     }
+    final key = MemoryStore.lessonKey(chapter, section, lesson);
+    final reps = _reps[key] ?? 0;
+    final nextDepth = depthForNextSession(reps: reps, stars: stars);
+    final lastDone = _doneDates[key];
+    final now = DateTime.now();
+    if (practiceRoundLocked(
+      lastDone: lastDone,
+      depth: nextDepth,
+      stars: stars,
+      now: now,
+    )) {
+      final daysLeft = daysUntilReviewDue(
+        lastDone: lastDone,
+        depth: nextDepth,
+        now: now,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            reviewLockedMessageIn(
+              AppLocalizations.localeCode,
+              depth: nextDepth,
+              daysLeft: daysLeft,
+            ),
+          ),
+        ),
+      );
+      return;
+    }
     AppFeedback.light();
     final done = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
@@ -1044,6 +1205,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
           chapterIndex: chapter,
           sectionIndex: section,
           lessonIndex: lesson,
+          practiceDepth: nextDepth,
         ),
       ),
     );
@@ -1051,76 +1213,6 @@ class _LearningPathPageState extends State<LearningPathPage> {
       await _loadProgress();
       await _loadStreak();
     }
-  }
-
-  /// "Up next" infókártya: nincs rajta külön indítógomb, maga a
-  /// kártya (és a hozzá tartozó állomás a folyón) koppintásra nyitja
-  /// a leckét. Ezért a kész leckék is újracsinálhatók a path-ról.
-  Widget _nowCard({
-    required String title,
-    required String detail,
-    required int station,
-    required int chapter,
-    required int section,
-    required int lesson,
-  }) {
-    return GestureDetector(
-      key: ValueKey('path-now-card-$chapter-$section-$lesson'),
-      onTap: () => _openLesson(chapter, section, lesson),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 24),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: context.washBg,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: context.washBorder),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'UP NEXT',
-              style: TextStyle(
-                color: blue,
-                fontWeight: FontWeight.bold,
-                fontSize: 11,
-                letterSpacing: 1.6,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: TextStyle(
-                color: context.inkText,
-                fontWeight: FontWeight.bold,
-                fontSize: 17,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              '$detail • about 5 min',
-              style: TextStyle(color: context.mutedText, fontSize: 13),
-            ),
-            const SizedBox(height: 12),
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.play_circle_outline, color: blue, size: 18),
-                SizedBox(width: 6),
-                Text(
-                  'Tap the station to start',
-                  style: TextStyle(
-                    color: blue,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Widget _bonusStop({required String realm}) {
@@ -1152,7 +1244,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Rest bonus',
+                    tr('lpt_bonus'),
                     style: TextStyle(
                       color: context.inkText,
                       fontWeight: FontWeight.bold,
@@ -1160,7 +1252,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
                     ),
                   ),
                   Text(
-                    '+20–40 engrams',
+                    tr('lpt_bonus_sub'),
                     style: TextStyle(color: context.mutedText, fontSize: 12),
                   ),
                 ],
@@ -1185,16 +1277,135 @@ class _LearningPathPageState extends State<LearningPathPage> {
         ),
         const SizedBox(width: 6),
         Text(
-          'Locked — finish the part above first',
+          tr('lpt_locked_note'),
           style: TextStyle(color: sub, fontSize: 13),
         ),
       ],
     );
   }
 
-  /// Fejezet-elválasztó a pályanézetben: sorszám, név, haladás.
-  /// Koppintásra a fejezetlista nyílik, ezzel a fejezettel lenyitva.
-  Widget _chapterBanner(int pos, int total, int chapterIdx, bool locked) {
+  Widget _chapterPager(List<int> order, int pos) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          key: const ValueKey('chapter-pager'),
+          behavior: HitTestBehavior.opaque,
+          onHorizontalDragEnd: (details) {
+            final velocity = details.primaryVelocity ?? 0;
+            if (velocity < -200 && pos < order.length - 1) {
+              _goToChapter(pos + 1, order);
+            } else if (velocity > 200 && pos > 0) {
+              _goToChapter(pos - 1, order);
+            }
+          },
+          child: _chapterBanner(
+            pos,
+            order.length,
+            order[pos],
+            _chapterLocked(_progress, order, pos),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (var i = 0; i < order.length; i++)
+              GestureDetector(
+                key: ValueKey('chapter-dot-$i'),
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _goToChapter(i, order),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: i == pos ? 22 : 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: i == pos ? blue : context.faintBorder,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 10),
+      ],
+    );
+  }
+
+  Widget _nextChapterButton(List<int> order, int pos) {
+    final complete = _chapterComplete(_progress, order[pos]);
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      child: GestureDetector(
+        key: const ValueKey('chapter-jump-next'),
+        behavior: HitTestBehavior.opaque,
+        onTap: () => _goToChapter(pos + 1, order),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          decoration: BoxDecoration(
+            color: complete ? blue : context.washBg,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: complete ? blueDark : context.washBorder,
+              width: 2,
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      complete ? tr('lpt_next_done') : tr('lpt_next'),
+                      style: TextStyle(
+                        color: complete ? Colors.white : blue,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      tr('lpt_next_chapter', {
+                        'n': pos + 2,
+                        'realm': chapterRealmIn(
+                          AppLocalizations.localeCode,
+                          order[pos + 1],
+                        ),
+                      }),
+                      style: TextStyle(
+                        color: complete ? Colors.white : context.inkText,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              HugeIcon(
+                icon: HugeIcons.strokeRoundedArrowRight01,
+                color: complete ? Colors.white : blue,
+                size: 24,
+                strokeWidth: 2.2,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _chapterBanner(
+    int pos,
+    int total,
+    int chapterIdx,
+    bool locked, {
+    EdgeInsetsGeometry outerPadding = const EdgeInsets.fromLTRB(20, 0, 20, 0),
+  }) {
     final chapter = chapters[chapterIdx];
     var all = 0;
     var done = 0;
@@ -1216,125 +1427,124 @@ class _LearningPathPageState extends State<LearningPathPage> {
     }
     final progress = all == 0 || locked ? 0.0 : done / all;
     final status = locked
-        ? 'Locked'
+        ? tr('lpt_locked')
         : progress >= 1
-        ? 'Completed'
-        : '$done/$all done';
+        ? tr('lpt_completed')
+        : tr('lpt_done_n', {'done': done, 'n': all});
+    final sub = locked ? _dim(context.mutedText, 0.6) : context.mutedText;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-      child: _Dimmed(
-        dimmed: locked,
-        child: GestureDetector(
-          onTap: () {
-            AppFeedback.light();
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) =>
-                    _ChapterListPage(initialChapterIndex: chapterIdx),
-              ),
-            );
-          },
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-            decoration: BoxDecoration(
-              color: chapter.tint.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: locked ? context.faintBorder : chapter.tint,
-                width: 1.5,
-              ),
+      padding: outerPadding,
+      child: GestureDetector(
+        onTap: () {
+          AppFeedback.light();
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => _ChapterListPage(initialChapterIndex: chapterIdx),
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: locked ? context.faintBg : chapter.tint,
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: locked
-                      ? HugeIcon(
-                          icon: HugeIcons.strokeRoundedLock,
-                          color: context.mutedText,
-                          size: 22,
-                          strokeWidth: 2.0,
-                        )
-                      : Text(
-                          '${pos + 1}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
-                          ),
-                        ),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+          decoration: BoxDecoration(
+            color: locked
+                ? _dim(chapter.tint.withValues(alpha: 0.12), 0.6)
+                : chapter.tint.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: locked ? _dim(context.faintBorder, 0.6) : chapter.tint,
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: locked ? _dim(context.faintBg, 0.6) : chapter.tint,
+                  shape: BoxShape.circle,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Chapter ${pos + 1} of $total',
-                        style: TextStyle(
-                          color: locked ? context.mutedText : blue,
+                alignment: Alignment.center,
+                child: locked
+                    ? HugeIcon(
+                        icon: HugeIcons.strokeRoundedLock,
+                        color: sub,
+                        size: 22,
+                        strokeWidth: 2.0,
+                      )
+                    : Text(
+                        '${pos + 1}',
+                        style: const TextStyle(
+                          color: Colors.white,
                           fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                          letterSpacing: 1.4,
+                          fontSize: 20,
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        chapter.realm,
-                        style: TextStyle(
-                          color: context.inkText,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 19,
-                        ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tr('lpt_chapter_of', {'i': pos + 1, 'n': total}),
+                      style: TextStyle(
+                        color: locked ? sub : blue,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                        letterSpacing: 1.4,
                       ),
-                      Text(
-                        locked
-                            ? 'Finish the chapter above to unlock'
-                            : '${chapter.tagline} • $status',
-                        style: TextStyle(
-                          color: context.mutedText,
-                          fontSize: 13,
-                        ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      chapterRealmIn(
+                        AppLocalizations.localeCode,
+                        chapterIdx,
                       ),
-                      if (!locked) const SizedBox(height: 8),
-                      if (!locked)
-                        Container(
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: context.faintBg,
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          alignment: Alignment.centerLeft,
-                          child: FractionallySizedBox(
-                            widthFactor: progress.clamp(0.0, 1.0),
-                            child: Container(
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: chapter.tint,
-                                borderRadius: BorderRadius.circular(999),
-                              ),
+                      style: TextStyle(
+                        color: locked
+                            ? _dim(context.inkText, 0.6)
+                            : context.inkText,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 19,
+                      ),
+                    ),
+                    Text(
+                      locked
+                          ? tr('lpt_unlock_hint')
+                          : '${chapterTaglineIn(AppLocalizations.localeCode, chapterIdx)} • $status',
+                      style: TextStyle(color: sub, fontSize: 13),
+                    ),
+                    if (!locked) const SizedBox(height: 8),
+                    if (!locked)
+                      Container(
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: context.faintBg,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        alignment: Alignment.centerLeft,
+                        child: FractionallySizedBox(
+                          widthFactor: progress.clamp(0.0, 1.0),
+                          child: Container(
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: chapter.tint,
+                              borderRadius: BorderRadius.circular(999),
                             ),
                           ),
                         ),
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  /// Pálya végi kártya: a következő fejezet — vagy a szupermemória-
-  /// korona, ha a teljes pálya kész.
   Widget _trackEndCard(List<int> order) {
     var doneChapters = 0;
     for (final c in order) {
@@ -1343,7 +1553,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
     final complete = doneChapters >= order.length;
     final upNext = complete
         ? ''
-        : chapters[order[doneChapters]].realm;
+        : chapterRealmIn(AppLocalizations.localeCode, order[doneChapters]);
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24),
       padding: const EdgeInsets.all(20),
@@ -1373,7 +1583,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
           ),
           const SizedBox(height: 10),
           Text(
-            complete ? 'Supermemory unlocked' : upNext,
+            complete ? tr('lpt_foundation_done') : upNext,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontWeight: FontWeight.bold,
@@ -1383,8 +1593,13 @@ class _LearningPathPageState extends State<LearningPathPage> {
           ),
           Text(
             complete
-                ? 'You finished the ${_tracks[_memory].name} path'
-                : 'Finish this track to keep flowing',
+                ? tr('lpt_foundation_body', {
+                    'track': trackName(
+                      _memory,
+                      AppLocalizations.localeCode,
+                    ),
+                  })
+                : tr('lpt_foundation_keep'),
             textAlign: TextAlign.center,
             style: TextStyle(color: context.mutedText, fontSize: 13),
           ),
@@ -1397,12 +1612,141 @@ class _LearningPathPageState extends State<LearningPathPage> {
               border: Border.all(color: context.washBorder),
             ),
             child: Text(
-              complete ? 'Track complete' : 'Chapter ${doneChapters + 1} of ${order.length} up next',
+              complete
+                  ? tr('lpt_foundation_pill_done')
+                  : tr('lpt_foundation_pill_next', {
+                      'i': doneChapters + 1,
+                      'n': order.length,
+                    }),
               style: const TextStyle(
                 color: blue,
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
               ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          _trackProgramBlock(),
+        ],
+      ),
+    );
+  }
+
+  Widget _trackProgramBlock() {
+    final track = _memory;
+    final total = sessionsToFinishTrack(track);
+    final done = sessionsDoneOnTrack(
+      reps: _reps,
+      progress: _progress,
+      track: track,
+    );
+    final average = trackDepthAverage(
+      reps: _reps,
+      progress: _progress,
+      track: track,
+    );
+    final tier = tierForAverageDepthIn(AppLocalizations.localeCode, average);
+    final minutes = _trackMinutes[track.toString()] ?? 0;
+    final courseValue = total <= 0 ? 0.0 : (done / total).clamp(0.0, 1.0);
+    final doseValue = (minutes / stretchDoseMinutesPerTrack).clamp(0.0, 1.0);
+    final labMark = (labDoseMinutesPerTrack / stretchDoseMinutesPerTrack).clamp(
+      0.0,
+      1.0,
+    );
+    return Container(
+      key: const ValueKey('track-program-block'),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: context.washBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.washBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            tr('lpt_tier_sessions', {
+              'tier': tier,
+              'done': done,
+              'total': total,
+            }),
+            style: TextStyle(
+              color: context.inkText,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: Container(
+              height: 8,
+              color: context.faintBg,
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: courseValue,
+                child: Container(
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: blue,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            labDoseProgressLineIn(AppLocalizations.localeCode, minutes),
+            style: TextStyle(
+              color: context.mutedText,
+              fontSize: 12,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 8),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              return SizedBox(
+                height: 8,
+                child: Stack(
+                  children: [
+                    Container(
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: context.faintBg,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                    FractionallySizedBox(
+                      widthFactor: doseValue,
+                      child: Container(
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: teal,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: (width * labMark - 1).clamp(0.0, width),
+                      top: 0,
+                      bottom: 0,
+                      child: Container(width: 2, color: context.inkText),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+          Text(
+            trackProgramLineIn(AppLocalizations.localeCode, track),
+            style: TextStyle(
+              color: context.mutedText,
+              fontSize: 11,
+              height: 1.45,
             ),
           ),
         ],
@@ -1411,11 +1755,6 @@ class _LearningPathPageState extends State<LearningPathPage> {
   }
 }
 
-/// Fejezetlista képernyő: csak az aktuális pálya fejezetei egymás
-/// alatt, mindegyiken progressbarral, hogy mennyire van kész. A
-/// fejezetek lenyithatók, bennük a partokkal; a partokon látszik,
-/// hány feladat van. A jelenlegi fejezet megnyitáskor automatikusan
-/// lenyitva.
 class _ChapterListPage extends StatefulWidget {
   final int initialChapterIndex;
   const _ChapterListPage({required this.initialChapterIndex});
@@ -1454,8 +1793,6 @@ class _ChapterListPageState extends State<_ChapterListPage> {
     return total;
   }
 
-  /// Zárolt fejezet a saját pályáján belül (az előző fejezet
-  /// befejezéséig minden partja zárolt).
   bool _chapterIsLocked(int i) {
     final loc = trackPositionOfChapter(i);
     return _chapterLocked(_progress, chaptersForTrack(loc.track), loc.pos);
@@ -1498,7 +1835,6 @@ class _ChapterListPageState extends State<_ChapterListPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Csak az aktuális pálya fejezetei: amelyiken a nyitó fejezet van.
     final track = trackPositionOfChapter(widget.initialChapterIndex).track;
     final trackOrder = chaptersForTrack(track);
     return Scaffold(
@@ -1521,7 +1857,7 @@ class _ChapterListPageState extends State<_ChapterListPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Chapters',
+                          tr('lpt_chapters_title'),
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurface,
                             fontWeight: FontWeight.bold,
@@ -1529,7 +1865,13 @@ class _ChapterListPageState extends State<_ChapterListPage> {
                           ),
                         ),
                         Text(
-                          '${trackOrder.length} chapters • ${memoryTracks[track].name} track',
+                          tr('lpt_chapters_sub', {
+                            'n': trackOrder.length,
+                            'track': trackName(
+                              track,
+                              AppLocalizations.localeCode,
+                            ),
+                          }),
                           style: TextStyle(
                             color: context.mutedText,
                             fontSize: 13,
@@ -1545,8 +1887,6 @@ class _ChapterListPageState extends State<_ChapterListPage> {
             Expanded(
               child: Builder(
                 builder: (context) {
-                  // Egy pálya sorai: pályafejléc, majd a pálya
-                  // fejezetei járási sorrendben.
                   final rows = <_ListRow>[];
                   rows.add(_ListRow.track(track));
                   for (final c in trackOrder) {
@@ -1569,249 +1909,304 @@ class _ChapterListPageState extends State<_ChapterListPage> {
                       final done = _chapterDone(i);
                       final progress = total == 0 ? 0.0 : done / total;
                       final status = chapLocked
-                          ? 'Locked'
+                          ? tr('lpt_locked')
                           : progress >= 1
-                          ? 'Completed'
-                          : '$done/$total done';
+                          ? tr('lpt_completed')
+                          : tr('lpt_done_n', {'done': done, 'n': total});
                       final isOpen = _expanded.contains(i);
                       return Container(
                         key: ValueKey('chapter-$i'),
                         margin: EdgeInsets.only(
                           bottom: row == rows.length - 1 ? 0 : 10,
                         ),
-                    decoration: BoxDecoration(
-                      color: context.cardBg,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: context.washBorder),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 16,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            setState(() {
-                              if (isOpen) {
-                                _expanded.remove(i);
-                              } else {
-                                _expanded.add(i);
-                              }
-                            });
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Chapter ${loc.pos + 1} of ${order.length}',
-                                            style: const TextStyle(
-                                              color: blue,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
-                                              letterSpacing: 1.4,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            chapter.realm,
-                                            style: TextStyle(
-                                              color: context.inkText,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 18,
-                                            ),
-                                          ),
-                                          Text(
-                                            chapter.tagline,
-                                            style: TextStyle(
-                                              color: context.mutedText,
-                                              fontSize: 13,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Icon(
-                                      isOpen
-                                          ? Icons.expand_less
-                                          : Icons.expand_more,
-                                      color: context.mutedText,
-                                      size: 24,
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 10),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Container(
-                                        height: 10,
-                                        decoration: BoxDecoration(
-                                          color: context.faintBg,
-                                          borderRadius: BorderRadius.circular(
-                                            999,
-                                          ),
-                                        ),
-                                        alignment: Alignment.centerLeft,
-                                        child: FractionallySizedBox(
-                                          widthFactor: progress.clamp(0.0, 1.0),
-                                          child: Container(
-                                            height: 10,
-                                            decoration: BoxDecoration(
-                                              color: blue,
-                                              borderRadius:
-                                                  BorderRadius.circular(999),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      status,
-                                      style: TextStyle(
-                                        color: context.mutedText,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                        decoration: BoxDecoration(
+                          color: context.cardBg,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: context.washBorder),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
                             ),
-                          ),
+                          ],
                         ),
-                        if (isOpen)
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-                            child: Column(
-                              children: [
-                                for (
-                                  var p = 0;
-                                  p < chapter.sections.length;
-                                  p++
-                                )
-                                  Builder(
-                                    builder: (context) {
-                                      final section = chapter.sections[p];
-                                      final partTotal = section.lessons.length;
-                                      final partDone = _partDone(i, p);
-                                      final partLocked =
-                                          chapLocked ||
-                                          _sectionLocked(_progress, i, p);
-                                      final trailing = partLocked
-                                          ? 'Locked'
-                                          : '$partDone/$partTotal done';
-                                      return GestureDetector(
-                                        onTap: partLocked
-                                            ? null
-                                            : () {
-                                                AppFeedback.light();
-                                                Navigator.of(context)
-                                                    .push(
-                                                      MaterialPageRoute(
-                                                        builder: (_) =>
-                                                            _PartDetailPage(
-                                                              chapterIndex:
-                                                                  i,
-                                                              partIndex: p,
-                                                              section:
-                                                                  section,
-                                                              progress:
-                                                                  _progress,
-                                                            ),
-                                                      ),
-                                                    )
-                                                    .then(
-                                                      (_) => _loadProgress(),
-                                                    );
-                                              },
-                                        child: Container(
-                                          key: ValueKey('chapter-$i-part-$p'),
-                                          margin: EdgeInsets.only(
-                                            top: p == 0 ? 2 : 8,
-                                          ),
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 10,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: context.washBg,
-                                            borderRadius: BorderRadius.circular(
-                                              14,
-                                            ),
-                                            border: Border.all(
-                                              color: context.faintBorder,
-                                            ),
-                                          ),
-                                          child: Row(
+                        child: Column(
+                          children: [
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                setState(() {
+                                  if (isOpen) {
+                                    _expanded.remove(i);
+                                  } else {
+                                    _expanded.add(i);
+                                  }
+                                });
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  14,
+                                  12,
+                                  14,
+                                  12,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      'Part ${p + 1} • ${section.name}',
-                                                      style: TextStyle(
-                                                        color: context.inkText,
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                        fontSize: 14,
-                                                      ),
-                                                    ),
-                                                    Text(
-                                                      '${section.technique} • $partTotal tasks',
-                                                      style: TextStyle(
-                                                        color:
-                                                            context.mutedText,
-                                                        fontSize: 12,
-                                                      ),
-                                                    ),
-                                                  ],
+                                              Text(
+                                                tr('lpt_chapter_of', {
+                                                  'i': loc.pos + 1,
+                                                  'n': order.length,
+                                                }),
+                                                style: const TextStyle(
+                                                  color: blue,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 12,
+                                                  letterSpacing: 1.4,
                                                 ),
                                               ),
-                                              const SizedBox(width: 8),
+                                              const SizedBox(height: 2),
                                               Text(
-                                                trailing,
+                                                chapterRealmIn(
+                                                  AppLocalizations.localeCode,
+                                                  i,
+                                                ),
+                                                style: TextStyle(
+                                                  color: context.inkText,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 18,
+                                                ),
+                                              ),
+                                              Text(
+                                                chapterTaglineIn(
+                                                  AppLocalizations.localeCode,
+                                                  i,
+                                                ),
                                                 style: TextStyle(
                                                   color: context.mutedText,
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 13,
                                                 ),
-                                              ),
-                                              const SizedBox(width: 2),
-                                              Icon(
-                                                Icons.chevron_right,
-                                                color: context.mutedText,
-                                                size: 20,
                                               ),
                                             ],
                                           ),
                                         ),
-                                      );
-                                    },
-                                  ),
-                              ],
+                                        const SizedBox(width: 8),
+                                        HugeIcon(
+                                          icon: isOpen
+                                              ? HugeIcons.strokeRoundedArrowUp01
+                                              : HugeIcons
+                                                    .strokeRoundedArrowDown01,
+                                          color: context.mutedText,
+                                          size: 24,
+                                          strokeWidth: 2.2,
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Container(
+                                            height: 10,
+                                            decoration: BoxDecoration(
+                                              color: context.faintBg,
+                                              borderRadius:
+                                                  BorderRadius.circular(999),
+                                            ),
+                                            alignment: Alignment.centerLeft,
+                                            child: FractionallySizedBox(
+                                              widthFactor: progress.clamp(
+                                                0.0,
+                                                1.0,
+                                              ),
+                                              child: Container(
+                                                height: 10,
+                                                decoration: BoxDecoration(
+                                                  color: blue,
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                        999,
+                                                      ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Text(
+                                          status,
+                                          style: TextStyle(
+                                            color: context.mutedText,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
-                      ],
-                    ),
-                  );
+                            if (isOpen)
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  14,
+                                  0,
+                                  14,
+                                  14,
+                                ),
+                                child: Column(
+                                  children: [
+                                    for (
+                                      var p = 0;
+                                      p < chapter.sections.length;
+                                      p++
+                                    )
+                                      Builder(
+                                        builder: (context) {
+                                          final section = chapter.sections[p];
+                                          final partTotal =
+                                              section.lessons.length;
+                                          final partDone = _partDone(i, p);
+                                          final partLocked =
+                                              chapLocked ||
+                                              _sectionLocked(_progress, i, p);
+                                          final trailing = partLocked
+                                              ? tr('lpt_locked')
+                                              : tr('lpt_done_n', {
+                                                  'done': partDone,
+                                                  'n': partTotal,
+                                                });
+                                          return GestureDetector(
+                                            onTap: partLocked
+                                                ? null
+                                                : () {
+                                                    AppFeedback.light();
+                                                    Navigator.of(context)
+                                                        .push(
+                                                          MaterialPageRoute(
+                                                            builder: (_) =>
+                                                                _PartDetailPage(
+                                                                  chapterIndex:
+                                                                      i,
+                                                                  partIndex: p,
+                                                                  section:
+                                                                      section,
+                                                                  progress:
+                                                                      _progress,
+                                                                ),
+                                                          ),
+                                                        )
+                                                        .then(
+                                                          (_) =>
+                                                              _loadProgress(),
+                                                        );
+                                                  },
+                                            child: Container(
+                                              key: ValueKey(
+                                                'chapter-$i-part-$p',
+                                              ),
+                                              margin: EdgeInsets.only(
+                                                top: p == 0 ? 2 : 8,
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 10,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: context.washBg,
+                                                borderRadius:
+                                                    BorderRadius.circular(14),
+                                                border: Border.all(
+                                                  color: context.faintBorder,
+                                                ),
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        Text(
+                                                          tr('lpt_part_name', {
+                                                            'i': p + 1,
+                                                            'name':
+                                                                sectionNameIn(
+                                                              AppLocalizations
+                                                                  .localeCode,
+                                                              i,
+                                                              p,
+                                                            ),
+                                                          }),
+                                                          style: TextStyle(
+                                                            color:
+                                                                context.inkText,
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            fontSize: 14,
+                                                          ),
+                                                        ),
+                                                        Text(
+                                                          tr('lpt_part_tech', {
+                                                            'tech':
+                                                                sectionTechniqueIn(
+                                                              AppLocalizations
+                                                                  .localeCode,
+                                                              i,
+                                                              p,
+                                                            ),
+                                                            'n': partTotal,
+                                                          }),
+                                                          style: TextStyle(
+                                                            color: context
+                                                                .mutedText,
+                                                            fontSize: 12,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Text(
+                                                    trailing,
+                                                    style: TextStyle(
+                                                      color: context.mutedText,
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 2),
+                                                  HugeIcon(
+                                                    icon: HugeIcons
+                                                        .strokeRoundedArrowRight01,
+                                                    color: context.mutedText,
+                                                    size: 20,
+                                                    strokeWidth: 2,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
                     },
                   );
                 },
@@ -1823,7 +2218,6 @@ class _ChapterListPageState extends State<_ChapterListPage> {
     );
   }
 
-  /// Pályafejléc a fejezetlistában: ikon, név, pályahaladás.
   Widget _trackHeader(int track) {
     final spec = memoryTracks[track];
     final order = chaptersForTrack(track);
@@ -1866,7 +2260,7 @@ class _ChapterListPageState extends State<_ChapterListPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  spec.name,
+                  trackName(track, AppLocalizations.localeCode),
                   style: TextStyle(
                     color: context.inkText,
                     fontWeight: FontWeight.bold,
@@ -1874,7 +2268,7 @@ class _ChapterListPageState extends State<_ChapterListPage> {
                   ),
                 ),
                 Text(
-                  '${spec.module} • $done/$all done',
+                  '${trackTag(track, AppLocalizations.localeCode)} • ${tr('lpt_done_n', {'done': done, 'n': all})}',
                   style: TextStyle(color: context.mutedText, fontSize: 12),
                 ),
                 const SizedBox(height: 6),
@@ -1899,13 +2293,36 @@ class _ChapterListPageState extends State<_ChapterListPage> {
               ],
             ),
           ),
+          const SizedBox(width: 8),
+          Tooltip(
+            message: tr('lpt_missions_tip'),
+            child: InkWell(
+              key: ValueKey('missions-$track'),
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => showMissionsSheet(context, track),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: spec.tint.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignment: Alignment.center,
+                child: HugeIcon(
+                  icon: HugeIcons.strokeRoundedFlag01,
+                  color: spec.tint,
+                  size: 20,
+                  strokeWidth: 2.0,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-/// Egy fejezetlista-sor: vagy pályafejléc, vagy fejezetkártya.
 class _ListRow {
   final int track;
   final int? chapter;
@@ -1913,12 +2330,6 @@ class _ListRow {
   const _ListRow.chapter(this.chapter) : track = -1;
 }
 
-/// Egy Part leckéit soroló képernyő: egymás alatt sorolja
-/// a leckéket, felül a darabszámmal és haladással.
-/// A sorok sorszáma egyre nő (1-től N-ig), a státusz egyre nehezedik:
-///
-/// kész (csillagos) -> aktív (Up now) -> várakozó (Todo) -> zárolt.
-/// A fejezetlistából nyílik, egy partra koppintva.
 class _PartDetailPage extends StatefulWidget {
   final int chapterIndex;
   final int partIndex;
@@ -1937,6 +2348,8 @@ class _PartDetailPage extends StatefulWidget {
 
 class _PartDetailPageState extends State<_PartDetailPage> {
   late Map<String, int> _progress;
+  Map<String, int> _reps = const {};
+  Map<String, DateTime> _doneDates = const {};
 
   @override
   void initState() {
@@ -1949,10 +2362,53 @@ class _PartDetailPageState extends State<_PartDetailPage> {
     try {
       final loaded = await MemoryStore.loadChapterProgress();
       if (!mounted) return;
-      setState(() => _progress = loaded);
+      Map<String, int> reps;
+      Map<String, DateTime> doneDates;
+      try {
+        reps = await MemoryStore.loadLessonReps();
+      } catch (_) {
+        reps = const {};
+      }
+      try {
+        doneDates = await MemoryStore.loadLessonDoneDates();
+      } catch (_) {
+        doneDates = const {};
+      }
+      if (!mounted) return;
+      setState(() {
+        _progress = loaded;
+        _reps = reps;
+        _doneDates = doneDates;
+      });
     } catch (_) {
-      // Teszt-környezetben marad a kapott pillanatkép.
     }
+  }
+
+  int _depthFor(int lessonIdx) {
+    final key = MemoryStore.lessonKey(
+      widget.chapterIndex,
+      widget.partIndex,
+      lessonIdx,
+    );
+    final reps = _reps[key] ?? 0;
+    if (reps > 0) return depthForReps(reps);
+    return (_progress[key] ?? widget.section.lessons[lessonIdx].stars) > 0
+        ? 1
+        : 0;
+  }
+
+  String _reviewStatus(int lessonIdx) {
+    final key = MemoryStore.lessonKey(
+      widget.chapterIndex,
+      widget.partIndex,
+      lessonIdx,
+    );
+    return reviewStatusLabelIn(
+      AppLocalizations.localeCode,
+      lastDone: _doneDates[key],
+      depth: _depthFor(lessonIdx),
+      now: DateTime.now(),
+    );
   }
 
   int _starsFor(int lessonIdx) {
@@ -1981,15 +2437,11 @@ class _PartDetailPageState extends State<_PartDetailPage> {
     return false;
   }
 
-  /// Zárolt pályafejezet partja nem nyitható (a lista sem engedi,
-  /// ez a belépési pont védelme).
   bool get _chapterLockedHere {
     final loc = trackPositionOfChapter(widget.chapterIndex);
     return _chapterLocked(_progress, chaptersForTrack(loc.track), loc.pos);
   }
 
-  /// Leckesorrend a parton belül: befejezetlen lecke csak akkor
-  /// nyitható, ha minden korábbi kész. A kész lecke újrajátszható.
   bool _lessonLockedFor(int lessonIdx) {
     if (lessonIdx <= 0) return false;
     for (var i = 0; i < lessonIdx; i++) {
@@ -2004,6 +2456,43 @@ class _PartDetailPageState extends State<_PartDetailPage> {
       return;
     }
     if (_starsFor(lessonIdx) <= 0 && _lessonLockedFor(lessonIdx)) return;
+    final key = MemoryStore.lessonKey(
+      widget.chapterIndex,
+      widget.partIndex,
+      lessonIdx,
+    );
+    final stars = _starsFor(lessonIdx);
+    final nextDepth = depthForNextSession(
+      reps: _reps[key] ?? 0,
+      stars: stars,
+    );
+    final lastDone = _doneDates[key];
+    final now = DateTime.now();
+    if (practiceRoundLocked(
+      lastDone: lastDone,
+      depth: nextDepth,
+      stars: stars,
+      now: now,
+    )) {
+      final daysLeft = daysUntilReviewDue(
+        lastDone: lastDone,
+        depth: nextDepth,
+        now: now,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            reviewLockedMessageIn(
+              AppLocalizations.localeCode,
+              depth: nextDepth,
+              daysLeft: daysLeft,
+            ),
+          ),
+        ),
+      );
+      return;
+    }
     AppFeedback.light();
     final done = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
@@ -2011,6 +2500,7 @@ class _PartDetailPageState extends State<_PartDetailPage> {
           chapterIndex: widget.chapterIndex,
           sectionIndex: widget.partIndex,
           lessonIndex: lessonIdx,
+          practiceDepth: nextDepth,
         ),
       ),
     );
@@ -2030,10 +2520,10 @@ class _PartDetailPageState extends State<_PartDetailPage> {
     }
     final progressValue = total == 0 || locked ? 0.0 : done / total;
     final status = locked
-        ? 'Locked'
+        ? tr('lpt_locked')
         : progressValue >= 1
-        ? 'Completed'
-        : '$done/$total done';
+        ? tr('lpt_completed')
+        : tr('lpt_done_n', {'done': done, 'n': total});
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -2054,7 +2544,9 @@ class _PartDetailPageState extends State<_PartDetailPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Part ${widget.partIndex + 1}',
+                          tr('lpt_part_title', {
+                            'i': widget.partIndex + 1,
+                          }),
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurface,
                             fontWeight: FontWeight.bold,
@@ -2062,7 +2554,11 @@ class _PartDetailPageState extends State<_PartDetailPage> {
                           ),
                         ),
                         Text(
-                          section.name,
+                          sectionNameIn(
+                            AppLocalizations.localeCode,
+                            widget.chapterIndex,
+                            widget.partIndex,
+                          ),
                           style: TextStyle(
                             color: context.mutedText,
                             fontSize: 13,
@@ -2082,7 +2578,7 @@ class _PartDetailPageState extends State<_PartDetailPage> {
                       border: Border.all(color: context.washBorder),
                     ),
                     child: Text(
-                      '$total lessons',
+                      tr('lpt_lessons_n', {'n': total}),
                       style: const TextStyle(
                         color: blue,
                         fontSize: 12,
@@ -2105,8 +2601,8 @@ class _PartDetailPageState extends State<_PartDetailPage> {
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 16,
-                      offset: const Offset(0, 6),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
@@ -2114,7 +2610,11 @@ class _PartDetailPageState extends State<_PartDetailPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      section.technique,
+                      sectionTechniqueIn(
+                        AppLocalizations.localeCode,
+                        widget.chapterIndex,
+                        widget.partIndex,
+                      ),
                       style: TextStyle(
                         color: context.inkText,
                         fontWeight: FontWeight.bold,
@@ -2123,7 +2623,7 @@ class _PartDetailPageState extends State<_PartDetailPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '$total lessons • $done done',
+                      tr('lpt_lessons_done', {'n': total, 'd': done}),
                       style: TextStyle(
                         color: context.mutedText,
                         fontSize: 12,
@@ -2174,18 +2674,18 @@ class _PartDetailPageState extends State<_PartDetailPage> {
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
                 itemCount: total,
                 itemBuilder: (context, i) {
-                  final lesson = section.lessons[i];
                   final stars = _starsFor(i);
                   final active = _activeFor(i);
+                  final depth = _depthFor(i);
                   final lessonLocked =
                       !locked && stars <= 0 && _lessonLockedFor(i);
                   final trailing = locked || lessonLocked
-                      ? 'Locked'
+                      ? tr('lpt_locked')
                       : stars > 0
                       ? '$stars/3'
                       : active
-                      ? 'Up now'
-                      : 'Todo';
+                      ? tr('lpt_up_now')
+                      : tr('lpt_todo');
                   return GestureDetector(
                     onTap: locked || lessonLocked ? null : () => _openLesson(i),
                     child: Container(
@@ -2229,7 +2729,10 @@ class _PartDetailPageState extends State<_PartDetailPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Step ${i + 1} of $total',
+                                  tr('lpt_step_of', {
+                                    'i': i + 1,
+                                    'n': total,
+                                  }),
                                   style: TextStyle(
                                     color: context.mutedText,
                                     fontSize: 11,
@@ -2238,7 +2741,12 @@ class _PartDetailPageState extends State<_PartDetailPage> {
                                   ),
                                 ),
                                 Text(
-                                  lesson.title,
+                                  lessonTitleIn(
+                                    AppLocalizations.localeCode,
+                                    widget.chapterIndex,
+                                    widget.partIndex,
+                                    i,
+                                  ),
                                   style: TextStyle(
                                     color: context.inkText,
                                     fontWeight: FontWeight.w600,
@@ -2246,12 +2754,30 @@ class _PartDetailPageState extends State<_PartDetailPage> {
                                   ),
                                 ),
                                 Text(
-                                  lesson.detail,
+                                  lessonDetailIn(
+                                    AppLocalizations.localeCode,
+                                    widget.chapterIndex,
+                                    widget.partIndex,
+                                    i,
+                                  ),
                                   style: TextStyle(
                                     color: context.mutedText,
                                     fontSize: 12,
                                   ),
                                 ),
+                                if (depth > 0 && !locked && !lessonLocked)
+                                  Text(
+                                    tr('lpt_depth_line', {
+                                      'd': depth,
+                                      'total': practiceDepths,
+                                      'status': _reviewStatus(i),
+                                    }),
+                                    style: TextStyle(
+                                      color: blue,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                               ],
                             ),
                           ),
@@ -2278,7 +2804,6 @@ class _PartDetailPageState extends State<_PartDetailPage> {
   }
 }
 
-/// Teljes képernyős, az app stílusához illő memóriatípus-választó.
 class _TrackPickerPage extends StatelessWidget {
   final int selected;
   const _TrackPickerPage({required this.selected});
@@ -2299,6 +2824,67 @@ class _TrackPickerPage extends StatelessWidget {
       ),
       alignment: Alignment.center,
       child: child,
+    );
+  }
+
+  Widget _retakeCard(BuildContext context) {
+    return GestureDetector(
+      key: const ValueKey('track-retake-assessment'),
+      onTap: () {
+        AppFeedback.light();
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (_) => const MemoryAssessmentIntroPage()),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: context.washBg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: blue, width: 2),
+        ),
+        child: Row(
+          children: [
+            _squareIcon(
+              size: 52,
+              top: context.cardBg,
+              edge: blue,
+              child: const HugeIcon(
+                icon: HugeIcons.strokeRoundedRefresh,
+                color: blue,
+                size: 26,
+                strokeWidth: 2.0,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tr('lpt_retake'),
+                    style: TextStyle(
+                      color: context.inkText,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Text(
+                    tr('lpt_retake_sub'),
+                    style: TextStyle(color: context.mutedText, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+            const HugeIcon(
+              icon: HugeIcons.strokeRoundedArrowRight01,
+              color: blue,
+              size: 22,
+              strokeWidth: 2.2,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -2324,18 +2910,42 @@ class _TrackPickerPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Learning track',
+                          tr('lpt_track_title'),
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurface,
                             fontWeight: FontWeight.bold,
                             fontSize: 22,
+                            height: 1.2,
                           ),
                         ),
+                        const SizedBox(height: 6),
                         Text(
-                          'Six tracks, five chapters each — every path ends in supermemory.',
+                          tr('lpt_six_tracks'),
                           style: TextStyle(
                             color: context.mutedText,
                             fontSize: 13,
+                            height: 1.4,
+                          ),
+                        ),
+                        Text(
+                          tr('lpt_foundation_review'),
+                          style: TextStyle(
+                            color: context.mutedText,
+                            fontSize: 13,
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: () => showHonestySheet(context),
+                          child: Text(
+                            tr('lpt_honesty'),
+                            style: TextStyle(
+                              color: blue,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                              height: 1.4,
+                            ),
                           ),
                         ),
                       ],
@@ -2348,15 +2958,35 @@ class _TrackPickerPage extends StatelessWidget {
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
-                itemCount: _tracks.length,
+                itemCount: _tracks.length + 2,
                 itemBuilder: (context, i) {
-                  final track = _tracks[i];
-                  final isSel = i == selected;
+                  if (i == 0) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _retakeCard(context),
+                    );
+                  }
+                  final trackIndex = i - 1;
+                  if (trackIndex >= _tracks.length) {
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 12, 4, 8),
+                      child: Text(
+                        foundationDoseText,
+                        style: TextStyle(
+                          color: context.mutedText,
+                          fontSize: 12,
+                          height: 1.5,
+                        ),
+                      ),
+                    );
+                  }
+                  final track = _tracks[trackIndex];
+                  final isSel = trackIndex == selected;
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: GestureDetector(
                       onTap: () {
-                        Navigator.pop(context, i);
+                        Navigator.pop(context, trackIndex);
                       },
                       child: Container(
                         padding: const EdgeInsets.all(14),
@@ -2370,8 +3000,8 @@ class _TrackPickerPage extends StatelessWidget {
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.05),
-                              blurRadius: 16,
-                              offset: const Offset(0, 6),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
@@ -2394,7 +3024,10 @@ class _TrackPickerPage extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    track.name,
+                                    trackName(
+                                      trackIndex,
+                                      AppLocalizations.localeCode,
+                                    ),
                                     style: TextStyle(
                                       color: context.inkText,
                                       fontWeight: FontWeight.bold,
@@ -2402,7 +3035,10 @@ class _TrackPickerPage extends StatelessWidget {
                                     ),
                                   ),
                                   Text(
-                                    track.module,
+                                    trackTag(
+                                      trackIndex,
+                                      AppLocalizations.localeCode,
+                                    ),
                                     style: TextStyle(
                                       color: context.mutedText,
                                       fontSize: 13,
@@ -2446,21 +3082,6 @@ class _TrackPickerPage extends StatelessWidget {
   }
 }
 
-/// Csak zárolt állapotban tesz rá áttetszőséget; máskor a gyereket
-/// réteg nélkül adja vissza, így görgetéskor nincs felesleges
-/// Opacity-réteg az Androidos raster-szál útjában.
-class _Dimmed extends StatelessWidget {
-  final bool dimmed;
-  final Widget child;
-  const _Dimmed({required this.dimmed, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    if (!dimmed) return child;
-    return Opacity(opacity: 0.6, child: child);
-  }
-}
-
 class _RiverPainter extends CustomPainter {
   final double fromX;
   final double toX;
@@ -2475,12 +3096,12 @@ class _RiverPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final h = size.height;
-    // Szigorúan a saját sávon belül marad, nem lóg rá a feliratokra.
+    canvas.save();
+    canvas.clipRect(Offset.zero & size);
     final path = Path()
       ..moveTo(fromX, 0)
       ..cubicTo(fromX, h * 0.45, toX, h * 0.55, toX, h);
 
-    // Külső derengés: ettől "idegrost" a csík, nem sima vonal.
     final glow = Paint()
       ..color = color.withValues(alpha: 0.35)
       ..strokeWidth = 18
@@ -2488,7 +3109,6 @@ class _RiverPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
     canvas.drawPath(path, glow);
 
-    // Fő összekötött szál: végig folytonos, átfed az állomások alá.
     final core = Paint()
       ..color = color
       ..strokeWidth = 10
@@ -2496,7 +3116,6 @@ class _RiverPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
     canvas.drawPath(path, core);
 
-    // Belső fénycsík a plasztikusságért.
     final shine = Paint()
       ..color = Colors.white.withValues(alpha: 0.45)
       ..strokeWidth = 3
@@ -2504,7 +3123,6 @@ class _RiverPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
     canvas.drawPath(path, shine);
 
-    // Szinapszis-gombok a szál mentén: ettől lesz "brain" érzet.
     Offset cubic(double t) {
       final a = Offset(fromX, 0);
       final b = Offset(fromX, h * 0.45);
@@ -2529,6 +3147,7 @@ class _RiverPainter extends CustomPainter {
       canvas.drawCircle(p, 6.5, Paint()..color = color);
       canvas.drawCircle(p, 2.4, Paint()..color = Colors.white);
     }
+    canvas.restore();
   }
 
   @override

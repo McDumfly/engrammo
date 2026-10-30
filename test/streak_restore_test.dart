@@ -88,7 +88,6 @@ void main() {
       expect(plan, isNotNull);
       expect(plan!.missedDays, 1);
       expect(plan.filledDays, [d(2026, 9, 11)]);
-      // 3 napos szakasz + 1 pótolt = 4; a mai olvasás viszi 5-re.
       expect(plan.restoredStreak, 4);
       expect(plan.lastDate, d(2026, 9, 11));
     });
@@ -177,7 +176,6 @@ void main() {
       );
 
       expect(plan, isNotNull);
-      // Csak a szept. 10-i 1 napos szakasz + 1 pótolt.
       expect(plan!.restoredStreak, 2);
     });
   });

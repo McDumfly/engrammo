@@ -11,9 +11,9 @@ plugins {
 }
 
 // Release signing: put your keystore details in android/key.properties
-// (gitignored — never commit it). Without that file the debug keys are
-// used so `flutter run --release` keeps working, but store uploads
-// require a real signing config.
+// (gitignored — never commit it). Release builds REFUSE to run without
+// that file (see the taskGraph check below): silently shipping a
+// release signed with debug keys is worse than a loud error.
 val keystoreProperties = Properties().apply {
     val f = rootProject.file("key.properties")
     if (f.exists()) FileInputStream(f).use { load(it) }
@@ -58,14 +58,31 @@ android {
 
     buildTypes {
         release {
-            // Real keys when android/key.properties exists, debug keys
-            // otherwise (local `--release` runs only, never for upload).
+            // Real keys when android/key.properties exists. Without it the
+            // taskGraph check below fails the build loudly instead of
+            // silently signing the release with debug keys.
             val hasReleaseKeys =
                 keystoreProperties.getProperty("storeFile") != null
             signingConfig = signingConfigs.getByName(
                 if (hasReleaseKeys) "release" else "debug",
             )
         }
+    }
+}
+
+// Fail LOUDLY when a release task runs without android/key.properties.
+// This runs at task-graph time (not configuration time) so plain debug
+// builds keep working on a fresh clone.
+gradle.taskGraph.whenReady {
+    val wantsRelease = allTasks.any { it.name.contains("Release") }
+    if (wantsRelease && keystoreProperties.getProperty("storeFile") == null) {
+        throw GradleException(
+            "Release build needs a real signing config: create " +
+                "android/key.properties with storeFile/storePassword/" +
+                "keyAlias/keyPassword (see https://flutter.dev/to/reference-keystore). " +
+                "The file is gitignored — never commit it. Refusing to " +
+                "sign a release with debug keys.",
+        )
     }
 }
 

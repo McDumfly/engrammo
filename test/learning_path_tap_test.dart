@@ -11,7 +11,6 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: LearningPathPage()));
     await tester.pumpAndSettle();
 
-    // A path-on nincs külön Continue gomb: maga a mező indít.
     expect(find.text('Continue'), findsNothing);
 
     await tester.ensureVisible(find.byKey(const ValueKey('path-lesson-0-0-0')));
@@ -19,7 +18,6 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('path-lesson-0-0-0')));
     await tester.pumpAndSettle();
 
-    // A coach-gomb a hosszú lista alján van: görgetve hozzuk láthatóvá.
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('lesson-coach-next')),
       300,
@@ -59,7 +57,6 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('path-lesson-0-0-0')));
     await tester.pumpAndSettle();
 
-    // A coach-gomb a hosszú lista alján van: görgetve hozzuk láthatóvá.
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('lesson-coach-next')),
       300,

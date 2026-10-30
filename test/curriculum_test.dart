@@ -5,8 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('curriculum shape', () {
-    test('30 chapters: 6 tracks x 5 chapters', () {
-      expect(chapters.length, 30);
+    test('36 chapters: 6 tracks x 6 chapters', () {
+      expect(chapters.length, 36);
       expect(memoryTracks.length, 6);
     });
 
@@ -49,7 +49,20 @@ void main() {
       }
     });
 
-    test('372 lessons total, all with titles', () {
+    test('fieldwork chapters hold 3 sections x 4 lessons', () {
+      for (var c = 30; c < 36; c++) {
+        expect(chapters[c].sections.length, 3, reason: 'chapter $c');
+        for (var s = 0; s < 3; s++) {
+          expect(
+            chapters[c].sections[s].lessons.length,
+            4,
+            reason: 'chapter $c section $s',
+          );
+        }
+      }
+    });
+
+    test('444 lessons total, all with titles', () {
       var total = 0;
       for (final chapter in chapters) {
         for (final section in chapter.sections) {
@@ -62,44 +75,44 @@ void main() {
           }
         }
       }
-      expect(total, 372);
+      expect(total, 444);
     });
 
     test('classic realms untouched', () {
       expect(chapters[0].realm, 'Echo Trail');
       expect(chapters[2].realm, 'Palace Builder');
       expect(chapters[5].realm, 'Name–Face Synthesizer');
-      expect(chapters[6].realm, "Champion's Arsenal");
-      expect(chapters[7].realm, 'Grandmaster Gauntlet');
+      expect(chapters[6].realm, 'Pro Lab');
+      expect(chapters[7].realm, 'Grand Gauntlet');
     });
 
-    test('every track ends in a supermemory final', () {
-      expect(chapters[11].realm, 'Golden Ear');
-      expect(chapters[7].realm, 'Grandmaster Gauntlet');
-      expect(chapters[17].realm, 'Grand Palace');
-      expect(chapters[21].realm, 'Supermemory Gallery');
-      expect(chapters[25].realm, 'Life Archive');
-      expect(chapters[29].realm, 'Name Master');
+    test('every track ends in a fieldwork chapter', () {
+      expect(chapters[30].realm, 'Street Ears');
+      expect(chapters[31].realm, 'Number Field');
+      expect(chapters[32].realm, 'Two Palaces');
+      expect(chapters[33].realm, 'Daily Images');
+      expect(chapters[34].realm, 'Week Replay');
+      expect(chapters[35].realm, 'Names Out');
     });
   });
 
   group('track structure', () {
-    test('each track walks 5 chapters, foundations first', () {
+    test('each track walks 6 chapters, foundations first', () {
       for (var t = 0; t < 6; t++) {
         final order = chaptersForTrack(t);
-        expect(order.length, 5, reason: 'track $t');
+        expect(order.length, 6, reason: 'track $t');
         expect(order.first, t, reason: 'track $t starts at chapter $t');
       }
     });
 
-    test('tracks cover all 30 chapters exactly once', () {
+    test('tracks cover all 36 chapters exactly once', () {
       final seen = <int>{};
       for (var t = 0; t < 6; t++) {
         for (final c in chaptersForTrack(t)) {
           expect(seen.add(c), isTrue, reason: 'chapter $c duplicated');
         }
       }
-      expect(seen.length, 30);
+      expect(seen.length, 36);
     });
 
     test('every chapter belongs to its own track', () {
@@ -126,8 +139,10 @@ void main() {
     test('historic mastery chapters slot into their tracks', () {
       expect(trackOfChapter(6), 2);
       expect(trackOfChapter(7), 1);
-      expect(chaptersForTrack(1).last, 7);
+      expect(chaptersForTrack(1), contains(7));
+      expect(chaptersForTrack(2), contains(6));
       expect(chapterDepth(7), 4);
+      expect(chapterDepth(31), 5);
     });
   });
 
@@ -175,6 +190,48 @@ void main() {
       expect(lessonKindFor(7, 1), 'sequence');
     });
 
+    test('fieldwork chapters train transfer variants', () {
+      expect(lessonKindFor(30, 0), 'sensory');
+      expect(lessonKindFor(30, 1), 'interference');
+      expect(lessonKindFor(31, 0), 'number');
+      expect(lessonKindFor(32, 0), 'spatial');
+      expect(lessonKindFor(33, 0), 'visual');
+      expect(lessonKindFor(34, 0), 'episodic');
+      expect(lessonKindFor(34, 1), 'verbal');
+      expect(lessonKindFor(35, 0), 'face');
+      expect(lessonKindFor(35, 1), 'foreign');
+      expect(lessonKindFor(35, 2), 'semantic');
+    });
+
+    test('free recall starts at the finals, never in base chapters', () {
+      expect(
+        lessonRecallMode(chapter: 5, difficulty: 5, paradigm: 'story-recall'),
+        isFalse,
+      );
+      expect(
+        lessonRecallMode(chapter: 6, difficulty: 2, paradigm: 'story-recall'),
+        isFalse,
+      );
+      expect(
+        lessonRecallMode(chapter: 6, difficulty: 3, paradigm: 'story-recall'),
+        isTrue,
+      );
+      expect(
+        lessonRecallMode(
+          chapter: 11,
+          difficulty: 5,
+          paradigm: 'backward-span',
+        ),
+        isTrue,
+      );
+      expect(
+        lessonRecallMode(chapter: 11, difficulty: 5, paradigm: 'mystery'),
+        isFalse,
+      );
+      expect(recallCapableParadigm('brown-peterson'), isTrue);
+      expect(lessonRecallHint('story-recall'), isNotEmpty);
+    });
+
     test('difficulty rises with depth, finals start at 3', () {
       expect(lessonDifficultyFor(0, 0, 0), 1);
       expect(lessonDifficultyFor(0, 2, 3), 4);
@@ -186,7 +243,9 @@ void main() {
       expect(lessonDifficultyFor(11, 0, 0), 3);
       expect(lessonDifficultyFor(11, 2, 3), 5);
       expect(lessonDifficultyFor(29, 0, 0), 3);
-      for (var c = 0; c < 30; c++) {
+      expect(lessonDifficultyFor(30, 0, 0), 3);
+      expect(lessonDifficultyFor(35, 2, 3), 5);
+      for (var c = 0; c < 36; c++) {
         for (var s = 0; s < 3; s++) {
           for (var l = 0; l < 6; l++) {
             final d = lessonDifficultyFor(c, s, l);

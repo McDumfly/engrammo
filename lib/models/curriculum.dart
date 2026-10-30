@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../l10n/app_localizations.dart';
+import '../l10n/curriculum_hu.dart';
 import '../theme/app_colors.dart'
     show orange, coral, sky, teal, blue, blueDark;
 import 'meta_task.dart';
@@ -50,9 +52,6 @@ class ChapterSpec {
   });
 }
 
-/// One memory-type learning path: a track groups several chapters so a
-/// user who finishes the whole path holds real supermemory in that type.
-/// Chapter indices below are into [chapters]; order is the walking order.
 class MemoryTrackSpec {
   final String name;
   final String module;
@@ -70,7 +69,7 @@ const memoryTracks = <MemoryTrackSpec>[
   ),
   MemoryTrackSpec(
     'Working memory',
-    'From 4 digits to speed numbers',
+    'From 4 digits to longer numbers',
     HugeIcons.strokeRoundedLayers01,
     blue,
   ),
@@ -94,50 +93,114 @@ const memoryTracks = <MemoryTrackSpec>[
   ),
   MemoryTrackSpec(
     'Semantic',
-    'From 2 names to name master',
+    'From 2 names to confident recall',
     HugeIcons.strokeRoundedBrain01,
     blueDark,
   ),
 ];
 
-/// Walking order of chapter indices per memory track (0-5).
-/// Chapters 0-7 keep their historic indices; new chapters append after.
-/// The old standalone mastery chapters slot into their own tracks:
-/// Grandmaster Gauntlet (7) closes Working memory, Champion's Arsenal
-/// (6) is the pro lab before the Spatial final.
 const trackChapters = <List<int>>[
-  [0, 8, 9, 10, 11],
-  [1, 12, 13, 14, 7],
-  [2, 15, 16, 6, 17],
-  [3, 18, 19, 20, 21],
-  [4, 22, 23, 24, 25],
-  [5, 26, 27, 28, 29],
+  [0, 8, 9, 10, 11, 30],
+  [1, 12, 13, 14, 7, 31],
+  [2, 15, 16, 6, 17, 32],
+  [3, 18, 19, 20, 21, 33],
+  [4, 22, 23, 24, 25, 34],
+  [5, 26, 27, 28, 29, 35],
 ];
 
-/// Chapter indices of [track] in walking order (clamped to 0-5).
 List<int> chaptersForTrack(int track) =>
     trackChapters[track.clamp(0, trackChapters.length - 1)];
 
-/// Memory track (0-5) a chapter belongs to.
 int trackOfChapter(int chapter) {
   if (chapter < 0 || chapter >= chapters.length) return 0;
   return chapters[chapter].memory.clamp(0, memoryTracks.length - 1);
 }
 
-/// Depth of a chapter inside its track (0 = foundation).
 int chapterDepth(int chapter) {
   final order = chaptersForTrack(trackOfChapter(chapter));
   final depth = order.indexOf(chapter);
   return depth < 0 ? 0 : depth;
 }
 
-/// Track and walking position of a chapter (defaults to track 0 start).
 ({int track, int pos}) trackPositionOfChapter(int chapter) {
   for (var t = 0; t < trackChapters.length; t++) {
     final pos = trackChapters[t].indexOf(chapter);
     if (pos >= 0) return (track: t, pos: pos);
   }
   return (track: 0, pos: 0);
+}
+
+String trackName(int track, [String locale = 'en']) =>
+    trFor(locale, 'track_${track.clamp(0, 5)}_name');
+
+String trackTag(int track, [String locale = 'en']) =>
+    trFor(locale, 'track_${track.clamp(0, 5)}_tag');
+
+bool _isHu(String locale) => locale == 'hu';
+
+String chapterRealmIn(String locale, int chapter) {
+  if (_isHu(locale) &&
+      chapter >= 0 &&
+      chapter < chaptersHu.length &&
+      chaptersHu[chapter].realm.isNotEmpty) {
+    return chaptersHu[chapter].realm;
+  }
+  return chapters[chapter].realm;
+}
+
+String chapterTaglineIn(String locale, int chapter) {
+  if (_isHu(locale) &&
+      chapter >= 0 &&
+      chapter < chaptersHu.length &&
+      chaptersHu[chapter].tagline.isNotEmpty) {
+    return chaptersHu[chapter].tagline;
+  }
+  return chapters[chapter].tagline;
+}
+
+String sectionNameIn(String locale, int chapter, int section) {
+  if (_isHu(locale)) {
+    final hu = _huSection(chapter, section);
+    if (hu != null && hu.name.isNotEmpty) return hu.name;
+  }
+  return chapters[chapter].sections[section].name;
+}
+
+String sectionTechniqueIn(String locale, int chapter, int section) {
+  if (_isHu(locale)) {
+    final hu = _huSection(chapter, section);
+    if (hu != null && hu.technique.isNotEmpty) return hu.technique;
+  }
+  return chapters[chapter].sections[section].technique;
+}
+
+String lessonTitleIn(String locale, int chapter, int section, int lesson) {
+  if (_isHu(locale)) {
+    final hu = _huLesson(chapter, section, lesson);
+    if (hu != null && hu.title.isNotEmpty) return hu.title;
+  }
+  return chapters[chapter].sections[section].lessons[lesson].title;
+}
+
+String lessonDetailIn(String locale, int chapter, int section, int lesson) {
+  if (_isHu(locale)) {
+    final hu = _huLesson(chapter, section, lesson);
+    if (hu != null && hu.detail.isNotEmpty) return hu.detail;
+  }
+  return chapters[chapter].sections[section].lessons[lesson].detail;
+}
+
+SectionHu? _huSection(int chapter, int section) {
+  if (chapter < 0 || chapter >= chaptersHu.length) return null;
+  final sections = chaptersHu[chapter].sections;
+  if (section < 0 || section >= sections.length) return null;
+  return sections[section];
+}
+
+LessonHu? _huLesson(int chapter, int section, int lesson) {
+  final hu = _huSection(chapter, section);
+  if (hu == null || lesson < 0 || lesson >= hu.lessons.length) return null;
+  return hu.lessons[lesson];
 }
 
 const chapters = <ChapterSpec>[
@@ -186,7 +249,6 @@ const chapters = <ChapterSpec>[
             'flashing digits',
             HugeIcons.strokeRoundedAudioWave01,
           ),
-          // Egyetlen fizetoeszkoz: engram (lasd collectibles.dart).
           LessonSpec(
             '5 items, 2 sec',
             'halved time',
@@ -318,7 +380,7 @@ const chapters = <ChapterSpec>[
             HugeIcons.strokeRoundedPuzzle,
           ),
           LessonSpec(
-            'Championship exam',
+            'Long-list review',
             '100 digits',
             HugeIcons.strokeRoundedTrophy,
           ),
@@ -379,7 +441,7 @@ const chapters = <ChapterSpec>[
           ),
           LessonSpec(
             '27 items',
-            'championship list',
+            'long list',
             HugeIcons.strokeRoundedFlag02,
           ),
         ],
@@ -447,7 +509,6 @@ const chapters = <ChapterSpec>[
       SectionSpec(
         name: 'Odd one out',
         technique: 'Von Restorff isolation',
-        // Egyetlen fizetoeszkoz: engram (lasd collectibles.dart).
         icon: HugeIcons.strokeRoundedBrainCircuit,
         locked: true,
         lessons: [
@@ -680,22 +741,21 @@ const chapters = <ChapterSpec>[
           ),
           LessonSpec(
             '12-minute blitz',
-            'master exam',
+            'mixed review',
             HugeIcons.strokeRoundedTrophy,
           ),
         ],
       ),
     ],
   ),
-  // ── Mastery arc (append-only: chapters 0-5 above are untouched) ──
   ChapterSpec(
     memory: 2,
-    realm: "Champion's Arsenal",
-    tagline: 'Think like a memory champion: pro techniques, step by step.',
+    realm: 'Pro Lab',
+    tagline: 'Pro techniques, step by step: palace, codes, names.',
     tint: orange,
     sections: [
       SectionSpec(
-        name: 'Palace masterclass',
+        name: 'Palace workshop',
         technique: 'method of loci • Maguire 2003',
         icon: HugeIcons.strokeRoundedCastle01,
         lessons: [
@@ -802,7 +862,7 @@ const chapters = <ChapterSpec>[
             HugeIcons.strokeRoundedBook04,
           ),
           LessonSpec(
-            'Master recall',
+            'Mixed recall',
             'mixed names + words',
             HugeIcons.strokeRoundedCrown,
           ),
@@ -812,8 +872,8 @@ const chapters = <ChapterSpec>[
   ),
   ChapterSpec(
     memory: 1,
-    realm: 'Grandmaster Gauntlet',
-    tagline: 'Supermemory finals: champion-grade pressure.',
+    realm: 'Grand Gauntlet',
+    tagline: 'Timed finals in sprint formats — practice, not records.',
     tint: coral,
     sections: [
       SectionSpec(
@@ -849,14 +909,14 @@ const chapters = <ChapterSpec>[
           ),
           LessonSpec(
             '80 digits, 20 sec',
-            'near-record pace',
+            'top pace',
             HugeIcons.strokeRoundedCrown,
           ),
         ],
       ),
       SectionSpec(
         name: 'Card shark',
-        technique: 'PAO card system • championship format',
+        technique: 'PAO card system • timed format',
         icon: HugeIcons.strokeRoundedClubs01,
         locked: true,
         lessons: [
@@ -882,12 +942,12 @@ const chapters = <ChapterSpec>[
           ),
           LessonSpec(
             'Full deck, 2 min',
-            'competition pace',
+            'brisk pace',
             HugeIcons.strokeRoundedDice,
           ),
           LessonSpec(
             'Speed cards, 60 sec',
-            'final table',
+            'final round',
             HugeIcons.strokeRoundedTrophy,
           ),
         ],
@@ -924,16 +984,14 @@ const chapters = <ChapterSpec>[
             HugeIcons.strokeRoundedLayers01,
           ),
           LessonSpec(
-            'Grandmaster final',
-            'supermemory exam',
+            'Grand final',
+            'mixed foundation review',
             HugeIcons.strokeRoundedCrown,
           ),
         ],
       ),
     ],
   ),
-  // ── Deep paths (append-only: chapters 0-7 above are untouched) ──
-  // Track 0 (Sensory) continues: 0 -> 8 -> 9 -> 10 -> 11.
   ChapterSpec(
     memory: 0,
     realm: 'Echo Chamber',
@@ -1210,7 +1268,7 @@ const chapters = <ChapterSpec>[
   ChapterSpec(
     memory: 0,
     realm: 'Golden Ear',
-    tagline: 'Supermemory hearing: the final test.',
+    tagline: 'The listening final: names, sequences, delays.',
     tint: sky,
     sections: [
       SectionSpec(
@@ -1269,8 +1327,8 @@ const chapters = <ChapterSpec>[
         ],
       ),
       SectionSpec(
-        name: 'Golden ear exam',
-        technique: 'supermemory hearing',
+        name: 'Golden ear review',
+        technique: 'trained listening review',
         icon: HugeIcons.strokeRoundedCrown,
         locked: true,
         lessons: [
@@ -1291,14 +1349,13 @@ const chapters = <ChapterSpec>[
           ),
           LessonSpec(
             'Golden ear',
-            'sensory supermemory',
+            'listening review',
             HugeIcons.strokeRoundedTrophy,
           ),
         ],
       ),
     ],
   ),
-  // Track 1 (Working memory) continues: 1 -> 12 -> 13 -> 14 -> 7.
   ChapterSpec(
     memory: 1,
     realm: 'Number Atelier',
@@ -1382,8 +1439,8 @@ const chapters = <ChapterSpec>[
             HugeIcons.strokeRoundedCube,
           ),
           LessonSpec(
-            'PAO debut exam',
-            'clean recall',
+            'PAO debut review',
+            'steady recall',
             HugeIcons.strokeRoundedCrown,
           ),
         ],
@@ -1508,8 +1565,8 @@ const chapters = <ChapterSpec>[
             HugeIcons.strokeRoundedCalculator01,
           ),
           LessonSpec(
-            'Totals exam',
-            'exact every time',
+            'Totals review',
+            'steady accuracy',
             HugeIcons.strokeRoundedMedal01,
           ),
         ],
@@ -1572,11 +1629,10 @@ const chapters = <ChapterSpec>[
       ),
     ],
   ),
-  // Track 2 (Spatial) continues: 2 -> 15 -> 16 -> 6 -> 17.
   ChapterSpec(
     memory: 2,
     realm: 'Palace District',
-    tagline: 'More palaces, more stations, zero blur.',
+    tagline: 'More palaces, more stations, kept distinct.',
     tint: teal,
     sections: [
       SectionSpec(
@@ -1758,7 +1814,7 @@ const chapters = <ChapterSpec>[
   ChapterSpec(
     memory: 2,
     realm: 'Grand Palace',
-    tagline: 'Supermemory walk: 100 stations, one route.',
+    tagline: 'The long walk: 100 stations, one route.',
     tint: teal,
     sections: [
       SectionSpec(
@@ -1806,19 +1862,19 @@ const chapters = <ChapterSpec>[
           ),
           LessonSpec(
             '100 stations',
-            'champion distance',
+            'long distance',
             HugeIcons.strokeRoundedFlag01,
           ),
           LessonSpec(
-            'Chain exam',
-            'no broken links',
+            'Chain review',
+            'steady links',
             HugeIcons.strokeRoundedMedal02,
           ),
         ],
       ),
       SectionSpec(
-        name: 'Supermemory walk',
-        technique: 'spatial supermemory',
+        name: 'Grand walk',
+        technique: 'long-route review',
         icon: HugeIcons.strokeRoundedCrown,
         locked: true,
         lessons: [
@@ -1839,14 +1895,13 @@ const chapters = <ChapterSpec>[
           ),
           LessonSpec(
             'Grand palace',
-            'spatial supermemory',
+            'long-route review',
             HugeIcons.strokeRoundedTrophy,
           ),
         ],
       ),
     ],
   ),
-  // Track 3 (Visual) continues: 3 -> 18 -> 19 -> 20 -> 21.
   ChapterSpec(
     memory: 3,
     realm: 'Detail Studio',
@@ -1874,8 +1929,8 @@ const chapters = <ChapterSpec>[
             HugeIcons.strokeRoundedTimer01,
           ),
           LessonSpec(
-            'Twin exam',
-            'flawless eyes',
+            'Twin review',
+            'sharp eyes',
             HugeIcons.strokeRoundedMedal01,
           ),
         ],
@@ -1941,7 +1996,7 @@ const chapters = <ChapterSpec>[
   ChapterSpec(
     memory: 3,
     realm: 'Movie Director',
-    tagline: 'Chain scenes into unforgettable films.',
+    tagline: 'Chain scenes into connected films.',
     tint: orange,
     sections: [
       SectionSpec(
@@ -2122,8 +2177,8 @@ const chapters = <ChapterSpec>[
   ),
   ChapterSpec(
     memory: 3,
-    realm: 'Supermemory Gallery',
-    tagline: 'The gallery final: fast and flawless.',
+    realm: 'Grand Gallery',
+    tagline: 'The gallery final: fast and focused.',
     tint: orange,
     sections: [
       SectionSpec(
@@ -2147,15 +2202,15 @@ const chapters = <ChapterSpec>[
             HugeIcons.strokeRoundedFire,
           ),
           LessonSpec(
-            'Sprint exam',
-            'clean recall',
+            'Sprint review',
+            'steady recall',
             HugeIcons.strokeRoundedMedal01,
           ),
         ],
       ),
       SectionSpec(
         name: 'Abstract finals',
-        technique: 'hard-pattern mastery',
+        technique: 'hard-pattern practice',
         icon: HugeIcons.strokeRoundedShapes,
         locked: true,
         lessons: [
@@ -2171,19 +2226,19 @@ const chapters = <ChapterSpec>[
           ),
           LessonSpec(
             '20 abstracts',
-            'championship set',
+            'hard set',
             HugeIcons.strokeRoundedPuzzle,
           ),
           LessonSpec(
-            'Abstract exam',
-            'every pattern',
+            'Abstract review',
+            'pattern set',
             HugeIcons.strokeRoundedMedal02,
           ),
         ],
       ),
       SectionSpec(
-        name: 'Gallery exam',
-        technique: 'visual supermemory',
+        name: 'Gallery review',
+        technique: 'full-archive review',
         icon: HugeIcons.strokeRoundedTrophy,
         locked: true,
         lessons: [
@@ -2203,15 +2258,14 @@ const chapters = <ChapterSpec>[
             HugeIcons.strokeRoundedMoon01,
           ),
           LessonSpec(
-            'Supermemory gallery',
-            'visual supermemory',
+            'Grand gallery',
+            'full-archive review',
             HugeIcons.strokeRoundedTrophy,
           ),
         ],
       ),
     ],
   ),
-  // Track 4 (Episodic) continues: 4 -> 22 -> 23 -> 24 -> 25.
   ChapterSpec(
     memory: 4,
     realm: 'Time Machine',
@@ -2331,7 +2385,7 @@ const chapters = <ChapterSpec>[
           ),
           LessonSpec(
             'Detail exam',
-            'exact recall',
+            'careful recall',
             HugeIcons.strokeRoundedMedal01,
           ),
         ],
@@ -2359,7 +2413,7 @@ const chapters = <ChapterSpec>[
           ),
           LessonSpec(
             'Dialogue exam',
-            'verbatim moments',
+            'quoted moments',
             HugeIcons.strokeRoundedFlag01,
           ),
         ],
@@ -2387,7 +2441,7 @@ const chapters = <ChapterSpec>[
           ),
           LessonSpec(
             'Order exam',
-            'perfect sequence',
+            'steady sequence',
             HugeIcons.strokeRoundedCrown,
           ),
         ],
@@ -2512,8 +2566,8 @@ const chapters = <ChapterSpec>[
             HugeIcons.strokeRoundedHourglass,
           ),
           LessonSpec(
-            'Month exam',
-            'no lost weeks',
+            'Month review',
+            'full month',
             HugeIcons.strokeRoundedMedal01,
           ),
         ],
@@ -2541,14 +2595,14 @@ const chapters = <ChapterSpec>[
           ),
           LessonSpec(
             'Milestone final',
-            'exact dates',
+            'dated order',
             HugeIcons.strokeRoundedMedal02,
           ),
         ],
       ),
       SectionSpec(
-        name: 'Supermemory journal',
-        technique: 'episodic supermemory',
+        name: 'Life journal review',
+        technique: 'journal review',
         icon: HugeIcons.strokeRoundedCrown,
         locked: true,
         lessons: [
@@ -2558,7 +2612,7 @@ const chapters = <ChapterSpec>[
             HugeIcons.strokeRoundedDice,
           ),
           LessonSpec(
-            'Conversations verbatim',
+            'Conversation quotes',
             'week-old quotes',
             HugeIcons.strokeRoundedAiChat02,
           ),
@@ -2569,18 +2623,17 @@ const chapters = <ChapterSpec>[
           ),
           LessonSpec(
             'Life archive',
-            'episodic supermemory',
+            'journal review',
             HugeIcons.strokeRoundedTrophy,
           ),
         ],
       ),
     ],
   ),
-  // Track 5 (Semantic) continues: 5 -> 26 -> 27 -> 28 -> 29.
   ChapterSpec(
     memory: 5,
     realm: 'Face Gallery',
-    tagline: 'Crowds of faces, every name placed.',
+    tagline: 'Crowds of faces, practiced one by one.',
     tint: blueDark,
     sections: [
       SectionSpec(
@@ -2604,8 +2657,8 @@ const chapters = <ChapterSpec>[
             HugeIcons.strokeRoundedUser,
           ),
           LessonSpec(
-            'Crowd exam',
-            'every name placed',
+            'Crowd review',
+            'names in place',
             HugeIcons.strokeRoundedMedal01,
           ),
         ],
@@ -2742,7 +2795,7 @@ const chapters = <ChapterSpec>[
           ),
           LessonSpec(
             '20 words both ways',
-            'no weak direction',
+            'both directions',
             HugeIcons.strokeRoundedRefresh,
           ),
           LessonSpec(
@@ -2752,7 +2805,7 @@ const chapters = <ChapterSpec>[
           ),
           LessonSpec(
             'Chain exam',
-            'flawless both ways',
+            'steady both ways',
             HugeIcons.strokeRoundedCrown,
           ),
         ],
@@ -2842,8 +2895,8 @@ const chapters = <ChapterSpec>[
             HugeIcons.strokeRoundedHashtag,
           ),
           LessonSpec(
-            'Figures exam',
-            'exact every time',
+            'Figures review',
+            'steady accuracy',
             HugeIcons.strokeRoundedCrown,
           ),
         ],
@@ -2852,8 +2905,8 @@ const chapters = <ChapterSpec>[
   ),
   ChapterSpec(
     memory: 5,
-    realm: 'Name Master',
-    tagline: 'Competition names and words, flawless.',
+    realm: 'Name Hall',
+    tagline: 'Timed names and words, at your best pace.',
     tint: blueDark,
     sections: [
       SectionSpec(
@@ -2868,7 +2921,7 @@ const chapters = <ChapterSpec>[
           ),
           LessonSpec(
             '15 names, 5 min',
-            'competition pace',
+            'brisk pace',
             HugeIcons.strokeRoundedTimer01,
           ),
           LessonSpec(
@@ -2877,8 +2930,8 @@ const chapters = <ChapterSpec>[
             HugeIcons.strokeRoundedFire,
           ),
           LessonSpec(
-            'Name sprint exam',
-            'flawless sheet',
+            'Name sprint review',
+            'clean sheet',
             HugeIcons.strokeRoundedMedal01,
           ),
         ],
@@ -2901,19 +2954,19 @@ const chapters = <ChapterSpec>[
           ),
           LessonSpec(
             '50 words, 15 min',
-            'championship round',
+            'long round',
             HugeIcons.strokeRoundedTrophy,
           ),
           LessonSpec(
-            'Blitz exam',
-            'verbatim recall',
+            'Blitz review',
+            'careful recall',
             HugeIcons.strokeRoundedMedal02,
           ),
         ],
       ),
       SectionSpec(
-        name: 'Supermemory exam',
-        technique: 'semantic supermemory',
+        name: 'Final review',
+        technique: 'mixed names + words review',
         icon: HugeIcons.strokeRoundedTrophy,
         locked: true,
         lessons: [
@@ -2929,13 +2982,559 @@ const chapters = <ChapterSpec>[
           ),
           LessonSpec(
             'Noisy final',
-            'distraction-proof',
+            'with distractions',
             HugeIcons.strokeRoundedShield01,
           ),
           LessonSpec(
-            'Name master',
-            'semantic supermemory',
+            'Name hall',
+            'mixed names + words review',
             HugeIcons.strokeRoundedTrophy,
+          ),
+        ],
+      ),
+    ],
+  ),
+  ChapterSpec(
+    memory: 0,
+    realm: 'Street Ears',
+    tagline: 'Real voices, real rooms, your own lists.',
+    tint: sky,
+    sections: [
+      SectionSpec(
+        name: 'Live voices',
+        technique: 'real introductions practice',
+        icon: HugeIcons.strokeRoundedEar,
+        lessons: [
+          LessonSpec(
+            '3 live names',
+            'at real meetings',
+            HugeIcons.strokeRoundedEar,
+          ),
+          LessonSpec(
+            '5 live names',
+            'spelling asked',
+            HugeIcons.strokeRoundedUser,
+          ),
+          LessonSpec(
+            'Noisy greetings',
+            'with chatter on',
+            HugeIcons.strokeRoundedShield01,
+          ),
+          LessonSpec(
+            'Voices review',
+            'next-day check',
+            HugeIcons.strokeRoundedFlag01,
+          ),
+        ],
+      ),
+      SectionSpec(
+        name: 'Own errands',
+        technique: 'heard lists aloud',
+        icon: HugeIcons.strokeRoundedMic01,
+        locked: true,
+        lessons: [
+          LessonSpec(
+            '4 errands heard',
+            'said back once',
+            HugeIcons.strokeRoundedMic01,
+          ),
+          LessonSpec(
+            '6 errands heard',
+            'rhythm grouped',
+            HugeIcons.strokeRoundedAudioWave01,
+          ),
+          LessonSpec(
+            'Errands in noise',
+            'street recall',
+            HugeIcons.strokeRoundedShield01,
+          ),
+          LessonSpec(
+            'Errands review',
+            'sealed-list check',
+            HugeIcons.strokeRoundedFlag01,
+          ),
+        ],
+      ),
+      SectionSpec(
+        name: 'Evening sounds',
+        technique: 'day replay habit',
+        icon: HugeIcons.strokeRoundedMoon01,
+        locked: true,
+        lessons: [
+          LessonSpec(
+            'Tonight replay',
+            '3 hard sounds',
+            HugeIcons.strokeRoundedMoon01,
+          ),
+          LessonSpec(
+            '3-evening run',
+            'notes kept',
+            HugeIcons.strokeRoundedNotebook01,
+          ),
+          LessonSpec(
+            'Week replay',
+            'day 1 again',
+            HugeIcons.strokeRoundedRefresh,
+          ),
+          LessonSpec(
+            'Sounds review',
+            'steady recall',
+            HugeIcons.strokeRoundedFlag01,
+          ),
+        ],
+      ),
+    ],
+  ),
+  ChapterSpec(
+    memory: 1,
+    realm: 'Number Field',
+    tagline: 'Real numbers you actually need.',
+    tint: blue,
+    sections: [
+      SectionSpec(
+        name: 'Real numbers',
+        technique: 'chunked phone codes',
+        icon: HugeIcons.strokeRoundedCalculator01,
+        lessons: [
+          LessonSpec(
+            '1 number owned',
+            'dialed from memory',
+            HugeIcons.strokeRoundedCalculator01,
+          ),
+          LessonSpec(
+            '2 numbers owned',
+            'morning recall',
+            HugeIcons.strokeRoundedHashtag,
+          ),
+          LessonSpec(
+            'Long number',
+            'three-chunk scene',
+            HugeIcons.strokeRoundedGrid3x3,
+          ),
+          LessonSpec(
+            'Numbers review',
+            'week-later check',
+            HugeIcons.strokeRoundedFlag01,
+          ),
+        ],
+      ),
+      SectionSpec(
+        name: 'Shopping runs',
+        technique: 'sealed-list shops',
+        icon: HugeIcons.strokeRoundedHashtag,
+        locked: true,
+        lessons: [
+          LessonSpec(
+            '4 items sealed',
+            'pocket check',
+            HugeIcons.strokeRoundedHashtag,
+          ),
+          LessonSpec(
+            '8 items sealed',
+            'till recall',
+            HugeIcons.strokeRoundedLayers01,
+          ),
+          LessonSpec(
+            'Mixed errands',
+            'backwards check',
+            HugeIcons.strokeRoundedRefresh,
+          ),
+          LessonSpec(
+            'Shopping review',
+            'fresh list',
+            HugeIcons.strokeRoundedFlag01,
+          ),
+        ],
+      ),
+      SectionSpec(
+        name: 'Dates kept',
+        technique: 'face-linked dates',
+        icon: HugeIcons.strokeRoundedTimer01,
+        locked: true,
+        lessons: [
+          LessonSpec(
+            '2 dates fixed',
+            'photo cues',
+            HugeIcons.strokeRoundedTimer01,
+          ),
+          LessonSpec(
+            '5 dates fixed',
+            'evening recall',
+            HugeIcons.strokeRoundedNotebook01,
+          ),
+          LessonSpec(
+            'Random quiz',
+            'asked by friend',
+            HugeIcons.strokeRoundedUser,
+          ),
+          LessonSpec(
+            'Dates review',
+            'month-later check',
+            HugeIcons.strokeRoundedFlag01,
+          ),
+        ],
+      ),
+    ],
+  ),
+  ChapterSpec(
+    memory: 2,
+    realm: 'Two Palaces',
+    tagline: 'Your rooms, your routes, your lists.',
+    tint: teal,
+    sections: [
+      SectionSpec(
+        name: 'Home route',
+        technique: 'own 10 stations',
+        icon: HugeIcons.strokeRoundedHome01,
+        lessons: [
+          LessonSpec(
+            '10 stations set',
+            'door to bedroom',
+            HugeIcons.strokeRoundedHome01,
+          ),
+          LessonSpec(
+            '10 words placed',
+            'one scene each',
+            HugeIcons.strokeRoundedCastle01,
+          ),
+          LessonSpec(
+            'Blind walk',
+            'next morning',
+            HugeIcons.strokeRoundedEye,
+          ),
+          LessonSpec(
+            'Home review',
+            'misses re-walked',
+            HugeIcons.strokeRoundedFlag01,
+          ),
+        ],
+      ),
+      SectionSpec(
+        name: 'Street route',
+        technique: 'own 15 stations',
+        icon: HugeIcons.strokeRoundedCastle01,
+        locked: true,
+        lessons: [
+          LessonSpec(
+            '15 spots picked',
+            'sharp and distinct',
+            HugeIcons.strokeRoundedCastle01,
+          ),
+          LessonSpec(
+            '15 items placed',
+            'study or work',
+            HugeIcons.strokeRoundedNotebook01,
+          ),
+          LessonSpec(
+            'Forward recall',
+            'no jumping',
+            HugeIcons.strokeRoundedFlag01,
+          ),
+          LessonSpec(
+            'Street review',
+            'fresh 15',
+            HugeIcons.strokeRoundedRefresh,
+          ),
+        ],
+      ),
+      SectionSpec(
+        name: 'Two routes',
+        technique: 'own 20-item lists',
+        icon: HugeIcons.strokeRoundedFlag01,
+        locked: true,
+        lessons: [
+          LessonSpec(
+            '20 split placed',
+            '10 plus 10',
+            HugeIcons.strokeRoundedLayers01,
+          ),
+          LessonSpec(
+            'Evening walk',
+            'both routes',
+            HugeIcons.strokeRoundedMoon01,
+          ),
+          LessonSpec(
+            'Morning recall',
+            'written from memory',
+            HugeIcons.strokeRoundedNotebook01,
+          ),
+          LessonSpec(
+            'Routes review',
+            'taught once',
+            HugeIcons.strokeRoundedUser,
+          ),
+        ],
+      ),
+    ],
+  ),
+  ChapterSpec(
+    memory: 3,
+    realm: 'Daily Images',
+    tagline: 'Work and study, pictured.',
+    tint: orange,
+    sections: [
+      SectionSpec(
+        name: 'Work pictures',
+        technique: 'abstract to image',
+        icon: HugeIcons.strokeRoundedEye,
+        lessons: [
+          LessonSpec(
+            '4 tasks pictured',
+            'big and moving',
+            HugeIcons.strokeRoundedEye,
+          ),
+          LessonSpec(
+            '6 tasks pictured',
+            'corners attached',
+            HugeIcons.strokeRoundedGrid3x3,
+          ),
+          LessonSpec(
+            'Noon recall',
+            'list checked',
+            HugeIcons.strokeRoundedTimer01,
+          ),
+          LessonSpec(
+            'Tasks review',
+            'fresh 6',
+            HugeIcons.strokeRoundedFlag01,
+          ),
+        ],
+      ),
+      SectionSpec(
+        name: 'Photo holds',
+        technique: 'next-day details',
+        icon: HugeIcons.strokeRoundedBook04,
+        locked: true,
+        lessons: [
+          LessonSpec(
+            '6 details named',
+            'one photo',
+            HugeIcons.strokeRoundedBook04,
+          ),
+          LessonSpec(
+            'Exaggerated tags',
+            'twins apart',
+            HugeIcons.strokeRoundedTarget01,
+          ),
+          LessonSpec(
+            'Next-day rebuild',
+            'no peeking',
+            HugeIcons.strokeRoundedMoon01,
+          ),
+          LessonSpec(
+            'Photo review',
+            'fresh photo',
+            HugeIcons.strokeRoundedRefresh,
+          ),
+        ],
+      ),
+      SectionSpec(
+        name: 'Meeting strips',
+        technique: 'linked point images',
+        icon: HugeIcons.strokeRoundedFlag01,
+        locked: true,
+        lessons: [
+          LessonSpec(
+            '3 points linked',
+            'small actions',
+            HugeIcons.strokeRoundedLink01,
+          ),
+          LessonSpec(
+            '5 points linked',
+            'full strip',
+            HugeIcons.strokeRoundedNotebook01,
+          ),
+          LessonSpec(
+            'Morning replay',
+            'minutes checked',
+            HugeIcons.strokeRoundedMoon01,
+          ),
+          LessonSpec(
+            'Strips review',
+            'fresh meeting',
+            HugeIcons.strokeRoundedFlag01,
+          ),
+        ],
+      ),
+    ],
+  ),
+  ChapterSpec(
+    memory: 4,
+    realm: 'Week Replay',
+    tagline: 'Stories and evenings, kept.',
+    tint: coral,
+    sections: [
+      SectionSpec(
+        name: 'Day chains',
+        technique: 'one-chain stories',
+        icon: HugeIcons.strokeRoundedNotebook01,
+        lessons: [
+          LessonSpec(
+            '6 terms chained',
+            'single adventure',
+            HugeIcons.strokeRoundedNotebook01,
+          ),
+          LessonSpec(
+            '10 terms chained',
+            'retold aloud',
+            HugeIcons.strokeRoundedMic01,
+          ),
+          LessonSpec(
+            'Next-day retell',
+            'misses noted',
+            HugeIcons.strokeRoundedMoon01,
+          ),
+          LessonSpec(
+            'Chains review',
+            'fresh 10',
+            HugeIcons.strokeRoundedFlag01,
+          ),
+        ],
+      ),
+      SectionSpec(
+        name: 'Evening log',
+        technique: '7-night replay',
+        icon: HugeIcons.strokeRoundedMoon01,
+        locked: true,
+        lessons: [
+          LessonSpec(
+            'Tonight backwards',
+            'scene by scene',
+            HugeIcons.strokeRoundedMoon01,
+          ),
+          LessonSpec(
+            '3 nights logged',
+            'hard recalls',
+            HugeIcons.strokeRoundedNotebook01,
+          ),
+          LessonSpec(
+            '7 nights logged',
+            'week held',
+            HugeIcons.strokeRoundedFlag01,
+          ),
+          LessonSpec(
+            'Log review',
+            'day 1 from cues',
+            HugeIcons.strokeRoundedRefresh,
+          ),
+        ],
+      ),
+      SectionSpec(
+        name: 'Retold aloud',
+        technique: 'single-reading retells',
+        icon: HugeIcons.strokeRoundedMic01,
+        locked: true,
+        lessons: [
+          LessonSpec(
+            'One article once',
+            'movie-like read',
+            HugeIcons.strokeRoundedBook04,
+          ),
+          LessonSpec(
+            'Evening retell',
+            'to one listener',
+            HugeIcons.strokeRoundedUser,
+          ),
+          LessonSpec(
+            'Next-day retell',
+            'skips compared',
+            HugeIcons.strokeRoundedMoon01,
+          ),
+          LessonSpec(
+            'Retell review',
+            'fresh article',
+            HugeIcons.strokeRoundedFlag01,
+          ),
+        ],
+      ),
+    ],
+  ),
+  ChapterSpec(
+    memory: 5,
+    realm: 'Names Out',
+    tagline: 'Real names, real words, real talks.',
+    tint: blueDark,
+    sections: [
+      SectionSpec(
+        name: 'Live names',
+        technique: '3-step at events',
+        icon: HugeIcons.strokeRoundedFaceId,
+        lessons: [
+          LessonSpec(
+            '3 event names',
+            'feature first',
+            HugeIcons.strokeRoundedFaceId,
+          ),
+          LessonSpec(
+            '5 event names',
+            'hooks stuck',
+            HugeIcons.strokeRoundedUser,
+          ),
+          LessonSpec(
+            'Greeted by name',
+            'two hellos',
+            HugeIcons.strokeRoundedMic01,
+          ),
+          LessonSpec(
+            'Names review',
+            'next-day list',
+            HugeIcons.strokeRoundedFlag01,
+          ),
+        ],
+      ),
+      SectionSpec(
+        name: 'Word weeks',
+        technique: 'keyword daily pairs',
+        icon: HugeIcons.strokeRoundedBook04,
+        locked: true,
+        lessons: [
+          LessonSpec(
+            '2 words daily',
+            'both directions',
+            HugeIcons.strokeRoundedBook04,
+          ),
+          LessonSpec(
+            '10 words held',
+            'week quiz',
+            HugeIcons.strokeRoundedFlag01,
+          ),
+          LessonSpec(
+            '20 words held',
+            'shuffled test',
+            HugeIcons.strokeRoundedRefresh,
+          ),
+          LessonSpec(
+            'Words review',
+            'misses retested',
+            HugeIcons.strokeRoundedMoon01,
+          ),
+        ],
+      ),
+      SectionSpec(
+        name: 'Talks plus facts',
+        technique: 'skeleton plus rooms',
+        icon: HugeIcons.strokeRoundedMic01,
+        locked: true,
+        lessons: [
+          LessonSpec(
+            '3-point update',
+            'no notes',
+            HugeIcons.strokeRoundedMic01,
+          ),
+          LessonSpec(
+            '5-point talk',
+            'listener check',
+            HugeIcons.strokeRoundedUser,
+          ),
+          LessonSpec(
+            '10 facts filed',
+            'own study',
+            HugeIcons.strokeRoundedBrain01,
+          ),
+          LessonSpec(
+            'Talks review',
+            'stations called',
+            HugeIcons.strokeRoundedFlag01,
           ),
         ],
       ),
@@ -2943,11 +3542,6 @@ const chapters = <ChapterSpec>[
   ),
 ];
 
-/// Spark-lecke leképezése a tanterv `LessonSpec` alakjára.
-///
-/// A `const chapters` változatlanul a tartalék tanterv; ez csak akkor
-/// fut, ha a Meta-válasz élő (nem-fallback). A technika-tipp a
-/// `MetaTask.explanation` mezőből jön (loci / képi társítás / kulcsszó).
 LessonSpec lessonFromMetaTask(MetaTask task) {
   final title = task.prompt.isEmpty ? 'Meta drill' : task.prompt;
   final detail = task.explanation.isEmpty ? 'AI practice' : task.explanation;

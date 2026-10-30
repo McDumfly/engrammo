@@ -12,13 +12,16 @@ void main() {
     expect(find.text('Discover your memory type'), findsOneWidget);
     expect(find.text('STRONGEST TYPE'), findsNothing);
 
-    // A CTA a csalásmentes bevezetőt nyitja, onnan indul a mérés.
     await tester.tap(find.text('Discover your memory type'));
     await tester.pumpAndSettle();
     expect(find.text('One rule: no cheating.'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('START — I PLAY FAIR'),
+      100,
+    );
     await tester.tap(find.text('START — I PLAY FAIR'));
     await tester.pumpAndSettle();
-    expect(find.text('Memory assessment 1/12'), findsOneWidget);
+    expect(find.text('Memory assessment 1/13'), findsOneWidget);
   });
 
   testWidgets('mérés után erős típus + újramérés', (tester) async {
@@ -29,7 +32,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('STRONGEST TYPE'), findsOneWidget);
-    // Egyszer az identitáskártyán, egyszer a memóriatérképen.
+    await tester.scrollUntilVisible(find.text('Sensory'), 50);
     expect(find.text('Working memory'), findsNWidgets(2));
     expect(find.text('Retake'), findsOneWidget);
     expect(find.text('Discover your memory type'), findsNothing);

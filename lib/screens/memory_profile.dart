@@ -1,33 +1,68 @@
 import '../theme/app_theme.dart';
 
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../l10n/app_localizations.dart';
+import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
 import '../services/app_feedback.dart';
 import '../models/assessment.dart'
     show
         assessmentColorChips,
-        chipNotAmong,
-        resolveDominant;
+        backEasyReversed,
+        backHardReversed,
+        corsiProbeSequences,
+        iconicEasyCueByForm,
+        iconicHardCuesByForm,
+        ordinal,
+        pointsForBudget,
+        resolveDominant,
+        scoresAreBlank,
+        spatialProbeBudgets;
+import '../models/claims_policy.dart'
+    show assessmentDisclaimer, resultDisclaimer;
 import '../models/collectibles.dart' show engram;
+import '../models/item_banks.dart'
+    show StoryIdeaUnit, assessmentCategory, assessmentStory;
 import '../models/memory_verdict.dart' show MemoryVerdict;
+import '../models/norms.dart'
+    show
+        LocalNorm,
+        minNormN,
+        minReliability,
+        minReliabilityN,
+        splitHalfReliability;
+import '../models/recall_scoring.dart'
+    show
+        RecallScore,
+        scoreDigitSpan,
+        scoreOrderedCells,
+        scoreStoryRecall;
+import '../models/study_recommendation.dart'
+    show StudyRecommendation, heuristicStudyRecommendation;
 import '../services/memory_store.dart';
+import '../widgets/honesty_sheet.dart';
+import '../widgets/recall_inputs.dart';
 import 'assessment_interview.dart';
 
 class MemoryKind {
-  final String name;
-  final String module;
+  final String nameKey;
+  final String moduleKey;
   final List<List<dynamic>> icon;
   final Color tint;
-  const MemoryKind(this.name, this.module, this.icon, this.tint);
+  const MemoryKind(this.nameKey, this.moduleKey, this.icon, this.tint);
+
+  String get displayName => tr(nameKey);
+  String get displayModule => tr(moduleKey);
 }
 
 const paper = Color(0xFFFFFFFF);
 const ink = Color(0xFF22314A);
-const muted = Color(0xFF8494AB);
+const muted = Color(0xFF5B6B82);
 const line = Color(0xFFDEE9F7);
 const violet = Color(0xFF45A3FF);
 const violetDark = Color(0xFF1F6FC4);
@@ -40,37 +75,39 @@ const trail = Color(0xFFC7E4FF);
 
 const memoryKinds = [
   MemoryKind(
-    'Sensory',
-    'Audio flash and attention focus',
+    'track_0_name',
+    'mkind_0_sub',
     HugeIcons.strokeRoundedAudioWave01,
     sky,
   ),
   MemoryKind(
-    'Working memory',
-    'Chunking forge',
+    'track_1_name',
+    'mkind_1_sub',
     HugeIcons.strokeRoundedLayers01,
     violet,
   ),
   MemoryKind(
-    'Spatial',
-    'Palace builder',
+    'track_2_name',
+    'mkind_2_sub',
     HugeIcons.strokeRoundedCastle01,
     teal,
   ),
-  MemoryKind('Visual', 'Imagery lab', HugeIcons.strokeRoundedEye, amber),
+  MemoryKind('track_3_name', 'mkind_3_sub', HugeIcons.strokeRoundedEye, amber),
   MemoryKind(
-    'Episodic',
-    'Journal and loci walk',
+    'track_4_name',
+    'mkind_4_sub',
     HugeIcons.strokeRoundedNotebook01,
     coral,
   ),
   MemoryKind(
-    'Semantic',
-    'Names, faces and vocabulary',
+    'track_5_name',
+    'mkind_5_sub',
     HugeIcons.strokeRoundedBrain01,
     violetDark,
   ),
 ];
+
+enum _ResponseMode { choice, recall, corsi }
 
 class _Task {
   final int kind;
@@ -81,22 +118,45 @@ class _Task {
   final List<String> options;
   final int correct;
 
-  /// Validated paradigm this probe is modeled on (shown under the
-  /// stimulus) and the study it comes from. Every probe traces to
-  /// `docs/RESEARCH.md` section 3.
   final String paradigm;
   final String source;
+  final _ResponseMode mode;
+
+  final List<String> expectedDigits;
+
+  final List<StoryIdeaUnit> units;
+
+  final String recallHint;
+  final bool multiline;
+  final String answerKey;
+
+  final Widget? questionStimulus;
+
+  final List<int> corsiSequence;
+
+  final int points;
   const _Task({
     required this.kind,
     this.hard = false,
     required this.stimulusTitle,
     required this.stimulus,
     required this.question,
-    required this.options,
-    required this.correct,
+    this.options = const [],
+    this.correct = 0,
     this.paradigm = '',
     this.source = '',
+    this.mode = _ResponseMode.choice,
+    this.expectedDigits = const [],
+    this.units = const [],
+    this.recallHint = '',
+    this.multiline = false,
+    this.answerKey = '',
+    this.questionStimulus,
+    this.corsiSequence = const [],
+    this.points = 0,
   });
+
+  int get maxPoints => points > 0 ? points : (hard ? 60 : 40);
 }
 
 Widget _stimulusBox(BuildContext context, {required Widget child}) {
@@ -113,9 +173,6 @@ Widget _stimulusBox(BuildContext context, {required Widget child}) {
   );
 }
 
-/// Row of color chips built from [assessmentColorChips]: the same
-/// entry paints the circle and names the option, so label and hue
-/// can never mismatch again.
 Widget _chipRow(BuildContext context, {required List<int> chipIndexes}) {
   return _stimulusBox(
     context,
@@ -141,31 +198,91 @@ Widget _chipRow(BuildContext context, {required List<int> chipIndexes}) {
   );
 }
 
-/// Fixed parallel assessment forms (matched difficulty, different
-/// stimuli): Form A on even runs, Form B on odd runs, so retakes measure
-/// memory rather than remembered answers (practice-effect control;
-/// Woods et al. 2006). Fixed forms — never AI-generated probes — keep
-/// scores comparable across runs and users.
+List<String> _shuffledOptions(List<String> opts, int seed) {
+  final out = List<String>.of(opts)..shuffle(Random(seed));
+  return out;
+}
+
 List<_Task> _buildTasks(BuildContext context, {int form = 0}) {
-  final b = form == 1;
-  // Visual probes share one fixed chip set per form; the missing chip
-  // is computed, never hand-written.
-  final easyShown = b ? [1, 2, 3] : [0, 1, 2];
-  final easyMissing = chipNotAmong(
-    [for (final i in easyShown) assessmentColorChips[i]],
-  );
-  final hardShown = b ? [1, 2, 3, 4, 5] : [0, 1, 2, 3, 4];
-  final hardMissing = chipNotAmong(
-    [for (final i in hardShown) assessmentColorChips[i]],
-  );
+  final f = form % 4;
+  const iconicEasy = [
+    ['7', '3', '9'],
+    ['5', '1', '8'],
+    ['4', '7', '2'],
+    ['9', '6', '3'],
+  ];
+  const iconicHard = [
+    ['2', '8', '4', '9', '1', '6'],
+    ['9', '3', '6', '2', '7', '4'],
+    ['5', '1', '9', '4', '8', '3'],
+    ['3', '7', '2', '6', '5', '9'],
+  ];
+  const backEasy = [
+    ['4', '1', '8'],
+    ['9', '2', '6'],
+    ['5', '8', '3'],
+    ['7', '4', '1'],
+  ];
+  const backHard = [
+    ['3', '9', '1', '6', '2'],
+    ['7', '4', '8', '2', '5'],
+    ['6', '2', '9', '5', '3'],
+    ['8', '5', '1', '7', '4'],
+  ];
+  final corsiEasy = corsiProbeSequences[0][f];
+  final corsiMedium = corsiProbeSequences[1][f];
+  final corsiHard = corsiProbeSequences[2][f];
+  const visEasyShown = [
+    [0, 1, 2],
+    [1, 2, 3],
+    [2, 3, 4],
+    [0, 2, 5],
+  ];
+  const visEasyTest = [
+    [0, 1, 2],
+    [1, 2, 0],
+    [5, 3, 4],
+    [0, 2, 5],
+  ];
+  const visEasyAns = [0, 1, 1, 0];
+  const visHardShown = [
+    [0, 1, 2, 3, 4],
+    [1, 2, 3, 4, 5],
+    [0, 1, 3, 4, 5],
+    [0, 2, 3, 4, 5],
+  ];
+  const visHardTest = [
+    [0, 1, 2, 5, 4],
+    [1, 2, 3, 4, 5],
+    [0, 1, 3, 4, 5],
+    [0, 1, 3, 4, 5],
+  ];
+  const visHardAns = [1, 0, 0, 1];
+  final locale = AppLocalizations.localeCode;
+  final storyEasy = assessmentStory(f, false, locale);
+  final storyHard = assessmentStory(f, true, locale);
+  final catEasy = assessmentCategory(f, false, locale);
+  final catHard = assessmentCategory(f, true, locale);
+  final easyCue = iconicEasyCueByForm[f];
+  final easyCued = iconicEasy[f][easyCue];
+  final hardCues = iconicHardCuesByForm[f];
+  final hardCued = [iconicHard[f][hardCues[0]], iconicHard[f][hardCues[1]]];
+  final easyRev = backEasyReversed(f);
+  final hardRev = backHardReversed(f);
+  final backEasyExp = easyRev ? backEasy[f].reversed.toList() : backEasy[f];
+  final backHardExp = hardRev ? backHard[f].reversed.toList() : backHard[f];
+  final catEasyOpts =
+      _shuffledOptions([catEasy.correct, ...catEasy.lures], 10 + f);
+  final catHardOpts =
+      _shuffledOptions([catHard.correct, ...catHard.lures], 20 + f);
   return [
     _Task(
       kind: 0,
-      stimulusTitle: 'Memorize this digit sequence!',
+      stimulusTitle: tr('mtask_k0_easy_title'),
       stimulus: _stimulusBox(
         context,
         child: Text(
-          b ? '5   1   8' : '7   3   9',
+          iconicEasy[f].join('   '),
           style: TextStyle(
             fontSize: 40,
             fontWeight: FontWeight.bold,
@@ -174,41 +291,48 @@ List<_Task> _buildTasks(BuildContext context, {int form = 0}) {
           ),
         ),
       ),
-      question: 'What was the middle digit?',
-      options: b ? ['3', '1', '5', '8'] : ['5', '3', '7', '9'],
-      correct: 1,
-      paradigm: 'Echoic probe · 3 items, brief look',
-      source: 'Peterson & Peterson 1959; Baddeley & Hitch 1974',
+      question: tr('mtask_k0_easy_q', {'ord': ordinal(easyCue + 1)}),
+      mode: _ResponseMode.recall,
+      expectedDigits: [easyCued],
+      recallHint: tr('mtask_type_digit'),
+      answerKey: easyCued,
+      paradigm: tr('mtask_iconic_easy'),
+      source: 'Sperling 1960; Luck & Vogel 1997',
     ),
     _Task(
       kind: 0,
       hard: true,
-      stimulusTitle: 'Five digits this time — hold them all!',
+      stimulusTitle: tr('mtask_k0_hard_title'),
       stimulus: _stimulusBox(
         context,
         child: Text(
-          b ? '9   3   6   2   7' : '2   8   4   9   1',
+          iconicHard[f].join('   '),
           style: TextStyle(
-            fontSize: 36,
+            fontSize: 32,
             fontWeight: FontWeight.bold,
             color: context.inkText,
             letterSpacing: 3,
           ),
         ),
       ),
-      question: 'What was the 4th digit?',
-      options: b ? ['3', '6', '2', '7'] : ['8', '4', '9', '1'],
-      correct: 2,
-      paradigm: 'Echoic probe · 5 items, brief look',
-      source: 'Peterson & Peterson 1959; Cowan 2001',
+      question: tr('mtask_k0_hard_q', {
+        'a': ordinal(hardCues[0] + 1),
+        'b': ordinal(hardCues[1] + 1),
+      }),
+      mode: _ResponseMode.recall,
+      expectedDigits: hardCued,
+      recallHint: tr('mtask_type_2digits'),
+      answerKey: hardCued.join('-'),
+      paradigm: tr('mtask_iconic_hard'),
+      source: 'Sperling 1960; Cowan 2001',
     ),
     _Task(
       kind: 1,
-      stimulusTitle: 'Hold it in mind, then reverse it!',
+      stimulusTitle: tr('mtask_k1_easy_title'),
       stimulus: _stimulusBox(
         context,
         child: Text(
-          b ? '9   2   6' : '4   1   8',
+          backEasy[f].join('   '),
           style: TextStyle(
             fontSize: 40,
             fontWeight: FontWeight.bold,
@@ -217,22 +341,22 @@ List<_Task> _buildTasks(BuildContext context, {int form = 0}) {
           ),
         ),
       ),
-      question: 'What is the order reversed?',
-      options: b
-          ? ['9-2-6', '6-9-2', '6-2-9', '2-6-9']
-          : ['4-1-8', '8-4-1', '8-1-4', '1-8-4'],
-      correct: 2,
-      paradigm: 'Backward digit span · 3',
+      question: easyRev ? tr('mtask_rev') : tr('mtask_fwd'),
+      mode: _ResponseMode.recall,
+      expectedDigits: backEasyExp,
+      recallHint: tr('mtask_type_digits'),
+      answerKey: backEasyExp.join('-'),
+      paradigm: tr('mtask_span3'),
       source: 'WAIS digit span; Baddeley 1986',
     ),
     _Task(
       kind: 1,
       hard: true,
-      stimulusTitle: 'Five digits — reverse all of them!',
+      stimulusTitle: tr('mtask_k1_hard_title'),
       stimulus: _stimulusBox(
         context,
         child: Text(
-          b ? '7   4   8   2   5' : '3   9   1   6   2',
+          backHard[f].join('   '),
           style: TextStyle(
             fontSize: 36,
             fontWeight: FontWeight.bold,
@@ -241,216 +365,128 @@ List<_Task> _buildTasks(BuildContext context, {int form = 0}) {
           ),
         ),
       ),
-      question: 'What is the full order reversed?',
-      options: b
-          ? ['7-4-8-2-5', '5-4-8-2-7', '5-2-8-4-7', '2-5-7-4-8']
-          : ['3-9-1-6-2', '2-9-1-6-3', '2-6-1-9-3', '6-2-3-9-1'],
-      correct: 2,
-      paradigm: 'Backward digit span · 5 (past the ~4 limit)',
+      question: hardRev ? tr('mtask_rev_full') : tr('mtask_fwd_full'),
+      mode: _ResponseMode.recall,
+      expectedDigits: backHardExp,
+      recallHint: tr('mtask_type_digits'),
+      answerKey: backHardExp.join('-'),
+      paradigm: tr('mtask_span5'),
       source: 'WAIS digit span; Cowan 2001',
     ),
     _Task(
       kind: 2,
-      stimulusTitle: 'Remember: which tile lit up?',
-      stimulus: _stimulusBox(
-        context,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    // Form A lights the top-left tile, Form B the
-                    // bottom-right one (matched 1-location span).
-                    color: b ? context.hairline : teal,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: context.hairline,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(width: 8),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: context.hairline,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: b ? teal : context.hairline,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+      stimulusTitle: tr('mtask_corsi3_title'),
+      stimulus: CorsiSequenceStimulus(
+        key: ValueKey('corsi-stim-$f-easy'),
+        sequence: corsiEasy,
       ),
-      question: 'Which tile lit up?',
-      options: const ['Top left', 'Top right', 'Bottom left', 'Bottom right'],
-      correct: b ? 3 : 0,
-      paradigm: 'Spatial span · 1 location',
+      question: tr('mtask_corsi_tap'),
+      mode: _ResponseMode.corsi,
+      corsiSequence: corsiEasy,
+      points: spatialProbeBudgets[0],
+      paradigm: tr('mtask_corsi3'),
       source: 'Corsi 1972 block-tapping',
     ),
     _Task(
       kind: 2,
-      hard: true,
-      stimulusTitle: 'Two tiles this time — catch both!',
-      stimulus: _stimulusBox(
-        context,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (var col = 0; col < 3; col++)
-              Padding(
-                padding: EdgeInsets.only(left: col == 0 ? 0 : 8),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    for (var row = 0; row < 3; row++)
-                      Container(
-                        width: 44,
-                        height: 44,
-                        margin: EdgeInsets.only(top: row == 0 ? 0 : 8),
-                        decoration: BoxDecoration(
-                          // Form A: main diagonal; Form B: anti-diagonal
-                          // (matched 2-location span).
-                          color:
-                              (b
-                                  ? (row == 0 && col == 2) ||
-                                        (row == 2 && col == 0)
-                                  : (row == 0 && col == 0) ||
-                                        (row == 2 && col == 2))
-                              ? teal
-                              : context.hairline,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-          ],
-        ),
+      stimulusTitle: tr('mtask_corsi5_title'),
+      stimulus: CorsiSequenceStimulus(
+        key: ValueKey('corsi-stim-$f-medium'),
+        sequence: corsiMedium,
       ),
-      question: 'Which TWO tiles lit up?',
-      options: [
-        b ? 'Top-right + bottom-left' : 'Top-left + bottom-right',
-        'Whole top row',
-        'Whole left column',
-        'Center + a corner',
-      ],
-      correct: 0,
-      paradigm: 'Spatial span · 2 locations',
+      question: tr('mtask_corsi_tap'),
+      mode: _ResponseMode.corsi,
+      corsiSequence: corsiMedium,
+      points: spatialProbeBudgets[1],
+      paradigm: tr('mtask_corsi5'),
+      source: 'Corsi 1972; Kessels et al. 2000',
+    ),
+    _Task(
+      kind: 2,
+      hard: true,
+      stimulusTitle: tr('mtask_corsi6_title'),
+      stimulus: CorsiSequenceStimulus(
+        key: ValueKey('corsi-stim-$f-hard'),
+        sequence: corsiHard,
+      ),
+      question: tr('mtask_corsi_tap'),
+      mode: _ResponseMode.corsi,
+      corsiSequence: corsiHard,
+      points: spatialProbeBudgets[2],
+      paradigm: tr('mtask_corsi6'),
       source: 'Corsi 1972; Kessels et al. 2000',
     ),
     _Task(
       kind: 3,
-      stimulusTitle: 'Memorize the three colors!',
-      stimulus: _chipRow(context, chipIndexes: easyShown),
-      question: 'Which color was NOT among them?',
-      options: [
-        assessmentColorChips[easyShown[0]].name,
-        assessmentColorChips[easyShown[1]].name,
-        assessmentColorChips[easyShown[2]].name,
-        easyMissing.name,
-      ],
-      correct: 3,
-      paradigm: 'Visual array · 3 colors',
+      stimulusTitle: tr('mtask_vis3_title'),
+      stimulus: _chipRow(context, chipIndexes: visEasyShown[f]),
+      question: tr('mtask_vis_q'),
+      questionStimulus: _chipRow(context, chipIndexes: visEasyTest[f]),
+      options: [tr('mtask_same'), tr('mtask_different')],
+      correct: visEasyAns[f],
+      paradigm: tr('mtask_vis3'),
       source: 'Luck & Vogel 1997 change detection',
     ),
     _Task(
       kind: 3,
       hard: true,
-      stimulusTitle: 'Five colors — hold them all!',
-      stimulus: _chipRow(context, chipIndexes: hardShown),
-      question: 'Which color was NOT among them?',
-      options: [
-        assessmentColorChips[hardShown[4]].name,
-        assessmentColorChips[hardShown[1]].name,
-        hardMissing.name,
-        assessmentColorChips[hardShown[0]].name,
-      ],
-      correct: 2,
-      paradigm: 'Visual array · 5 colors (past capacity ~4)',
+      stimulusTitle: tr('mtask_vis5_title'),
+      stimulus: _chipRow(context, chipIndexes: visHardShown[f]),
+      question: tr('mtask_vis_q'),
+      questionStimulus: _chipRow(context, chipIndexes: visHardTest[f]),
+      options: [tr('mtask_same'), tr('mtask_different')],
+      correct: visHardAns[f],
+      paradigm: tr('mtask_vis5'),
       source: 'Luck & Vogel 1997; Cowan 2001',
     ),
     _Task(
       kind: 4,
-      stimulusTitle: 'Read carefully, just once!',
+      stimulusTitle: tr('mtask_story_title'),
       stimulus: _stimulusBox(
         context,
         child: Text(
-          b
-              ? 'This morning Tom found 2 keys and a green wallet in the park.'
-              : 'Yesterday Anna bought 3 apples and a blue scarf at the market.',
+          storyEasy.text,
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 18, color: context.inkText, height: 1.4),
         ),
       ),
-      question: b
-          ? 'What did Tom find besides the wallet?'
-          : 'What did Anna buy besides the scarf?',
-      options: b
-          ? ['2 keys', '3 coins', 'A phone', 'A glove']
-          : ['2 pears', '3 apples', '1 hat', 'A basket'],
-      correct: b ? 0 : 1,
-      paradigm: 'Story recall · 1 detail, single reading',
+      question: tr('mtask_story_q'),
+      mode: _ResponseMode.recall,
+      units: storyEasy.units,
+      recallHint: tr('mtask_story_hint'),
+      multiline: true,
+      answerKey: storyEasy.text,
+      paradigm: tr('mtask_story3'),
       source: 'WMS Logical Memory; Craik & Tulving 1975',
     ),
     _Task(
       kind: 4,
       hard: true,
-      stimulusTitle: 'Two facts this time — catch both!',
+      stimulusTitle: tr('mtask_story2_title'),
       stimulus: _stimulusBox(
         context,
         child: Text(
-          b
-              ? 'On Friday Lisa lent 4 books and a silver camera to her '
-                  'neighbor, then called Ann at 6.'
-              : 'On Tuesday Maria borrowed 2 novels and a red umbrella from the '
-                  'library, then met Tom at 5.',
+          storyHard.text,
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 17, color: context.inkText, height: 1.4),
         ),
       ),
-      question: b
-          ? 'What did Lisa lend besides the camera?'
-          : 'What did Maria borrow besides the umbrella?',
-      options: b
-          ? ['4 books', '2 books', 'A laptop', 'A bike']
-          : ['2 novels', '3 magazines', 'A map', '1 novel'],
-      correct: 0,
-      paradigm: 'Story recall · 2 details + time anchor',
+      question: tr('mtask_story_q'),
+      mode: _ResponseMode.recall,
+      units: storyHard.units,
+      recallHint: tr('mtask_story_hint2'),
+      multiline: true,
+      answerKey: storyHard.text,
+      paradigm: tr('mtask_story5'),
       source: 'WMS Logical Memory; Craik & Tulving 1975',
     ),
     _Task(
       kind: 5,
-      stimulusTitle: 'Think about the meaning!',
+      stimulusTitle: tr('mtask_cat_title'),
       stimulus: _stimulusBox(
         context,
         child: Text(
-          b ? 'Vegetables' : 'Fruits',
+          catEasy.category,
           style: TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.bold,
@@ -458,22 +494,20 @@ List<_Task> _buildTasks(BuildContext context, {int form = 0}) {
           ),
         ),
       ),
-      question: b ? 'Which one is a vegetable?' : 'Which one is a fruit?',
-      options: b
-          ? ['Apple', 'Carrot', 'Pear', 'Grape']
-          : ['Carrot', 'Apple', 'Potato', 'Onion'],
-      correct: 1,
-      paradigm: 'Category exemplar · clear prototype',
+      question: tr('mtask_cat_q'),
+      options: catEasyOpts,
+      correct: catEasyOpts.indexOf(catEasy.correct),
+      paradigm: tr('mtask_cat_easy'),
       source: 'Collins & Quillian 1969; Rosch 1975',
     ),
     _Task(
       kind: 5,
       hard: true,
-      stimulusTitle: 'Trickier category — think!',
+      stimulusTitle: tr('mtask_cat_title2'),
       stimulus: _stimulusBox(
         context,
         child: Text(
-          b ? 'Birds' : 'Mammals',
+          catHard.category,
           style: TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.bold,
@@ -481,36 +515,22 @@ List<_Task> _buildTasks(BuildContext context, {int form = 0}) {
           ),
         ),
       ),
-      question: b ? 'Which one is a bird?' : 'Which one is a mammal?',
-      options: b
-          ? ['Bat', 'Penguin', 'Butterfly', 'Bee']
-          : ['Shark', 'Dolphin', 'Penguin', 'Crocodile'],
-      correct: 1,
-      paradigm: 'Category exemplar · lookalike lures',
+      question: tr('mtask_cat_q'),
+      options: catHardOpts,
+      correct: catHardOpts.indexOf(catHard.correct),
+      paradigm: tr('mtask_cat_hard'),
       source: 'Collins & Quillian 1969; Rosch 1975',
     ),
   ];
 }
 
-/// Assessment tasks: fixed parallel forms, never AI-generated.
-///
-/// A measurement instrument must give every user the same items, or
-/// scores stop being comparable. AI therefore never replaces probes
-/// here (it only reads the finished scores + interview at the verdict
-/// stage). Retakes alternate Form A/B via [MemoryStore].
 // ignore: library_private_types_in_public_api
 Future<List<_Task>> loadAssessmentTasks(BuildContext context) async {
   final runs = await MemoryStore.loadAssessmentRuns();
   // ignore: use_build_context_synchronously
-  return _buildTasks(context, form: runs % 2);
+  return _buildTasks(context, form: runs % 4);
 }
 
-/// Honest preamble every assessment run starts with.
-///
-/// Cheating (writing things down, asking for help, re-reading) does
-/// not raise the user's level — it only hides their real dominant
-/// type from them, so the training path adapts to a lie. Saying this
-/// up front is standard test-instruction practice.
 class MemoryAssessmentIntroPage extends StatelessWidget {
   const MemoryAssessmentIntroPage({super.key});
 
@@ -524,19 +544,26 @@ class MemoryAssessmentIntroPage extends StatelessWidget {
         scrolledUnderElevation: 0,
         leading: const EngramBackButton(),
         title: Text(
-          'Before we start',
+          tr('mprof_before'),
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.bold,
             fontSize: 17,
           ),
         ),
+        actions: [
+          AiHelpButton(
+            topic: AiHelpTopics.assessment,
+            helpContext: tr('mprof_intro_help'),
+          ),
+          const SizedBox(width: 12),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         children: [
           Text(
-            'One rule: no cheating.',
+            tr('mprof_nocheat'),
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w900,
@@ -546,12 +573,17 @@ class MemoryAssessmentIntroPage extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'No writing things down, no asking for help, no second '
-            'looks. Cheating only hurts you: it hides your real '
-            'dominant memory type, and then your whole training path '
-            'adapts to a lie. Answer from memory alone — wrong '
-            'answers are useful data too.',
+            tr('mprof_nocheat_body'),
             style: TextStyle(color: context.inkText, fontSize: 16, height: 1.5),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            assessmentDisclaimer,
+            style: TextStyle(
+              color: context.mutedText,
+              fontSize: 13,
+              height: 1.5,
+            ),
           ),
           const SizedBox(height: 16),
           Container(
@@ -565,7 +597,7 @@ class MemoryAssessmentIntroPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'What happens next',
+                  tr('mprof_next'),
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.bold,
@@ -574,11 +606,7 @@ class MemoryAssessmentIntroPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '• 12 quick probes — 2 for each of your 6 memory types\n'
-                  '• A 6-question interview about HOW you remember\n'
-                  '• An AI reads both legs and names your dominant type\n'
-                  '• Retakes alternate parallel forms, so memorized answers '
-                  'do not inflate your score',
+                  tr('mprof_next_body'),
                   style: TextStyle(
                     color: context.inkText,
                     fontSize: 14,
@@ -590,7 +618,7 @@ class MemoryAssessmentIntroPage extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           EngramButton(
-            label: 'START — I PLAY FAIR',
+            label: tr('mprof_start'),
             onPressed: () {
               AppFeedback.medium();
               Navigator.of(context).pushReplacement(
@@ -613,17 +641,17 @@ class MemoryAssessmentPage extends StatefulWidget {
   State<MemoryAssessmentPage> createState() => _MemoryAssessmentPageState();
 }
 
-class _MemoryAssessmentPageState extends State<MemoryAssessmentPage> {
-  /// Parallel form of this run (0 = A, 1 = B): alternates per finished
-  /// run so retakes cannot be passed from remembered answers.
+class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
+    with WidgetsBindingObserver {
   int _form = 0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     MemoryStore.loadAssessmentRuns().then((runs) {
       if (!mounted) return;
-      setState(() => _form = runs % 2);
+      setState(() => _form = runs % 4);
     });
   }
 
@@ -632,8 +660,6 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Theme (or other dependencies) changed: drop the cached tasks so
-    // the next access rebuilds them with the fresh context.
     _taskCache = null;
     if (!_firstArmed) {
       _firstArmed = true;
@@ -641,9 +667,6 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage> {
     }
   }
 
-  /// Memoized task list: rebuilding all 12 widget trees on every
-  /// per-second timer tick wasted frames, so the list is rebuilt only
-  /// when the form flips or dependencies (theme) change.
   List<_Task>? _taskCache;
   int _taskCacheForm = -1;
 
@@ -659,19 +682,23 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage> {
   bool _revealed = false;
   final List<int> _scores = List.filled(6, 0);
 
-  /// Tie-break evidence for `resolveDominant`: hard-item hits per
-  /// kind, plus mean recall latency (ms) per kind.
+  final List<double> _itemProps = [];
+
   final List<int> _hardHits = List.filled(6, 0);
   final List<int> _latSumMs = List.filled(6, 0);
   final List<int> _latCount = List.filled(6, 0);
-  DateTime? _revealTime;
+  final Stopwatch _latencyClock = Stopwatch();
+  bool _latencyWasRunning = false;
 
-  /// Sensory probes auto-hide: a sensory trace is measured with a
-  /// brief look, not unlimited study (Peterson & Peterson 1959).
   Timer? _senseTimer;
   int _senseLeft = 0;
+  bool _senseWasTicking = false;
 
   int? _picked;
+
+  RecallScore? _recall;
+  bool get _answered => _picked != null || _recall != null;
+
   int _xp = 0;
   int _combo = 0;
   int _lastGain = 0;
@@ -679,39 +706,72 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _senseTimer?.cancel();
+    _latencyClock.stop();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      _senseWasTicking = _senseTimer?.isActive ?? false;
+      _senseTimer?.cancel();
+      _latencyWasRunning = _latencyClock.isRunning;
+      _latencyClock.stop();
+    } else if (state == AppLifecycleState.resumed) {
+      if (_latencyWasRunning) {
+        _latencyWasRunning = false;
+        _latencyClock.start();
+      }
+      if (_senseWasTicking) {
+        _senseWasTicking = false;
+        if (mounted && !_revealed && _step < _tasks.length) {
+          _startSenseTicker();
+        }
+      }
+    }
   }
 
   void _armSenseTimerIfNeeded() {
     _senseTimer?.cancel();
+    _senseWasTicking = false;
     final task = _tasks[_step];
     if (task.kind == 0 && !_revealed) {
-      _senseLeft = task.hard ? 6 : 5;
-      _senseTimer = Timer.periodic(const Duration(seconds: 1), (t) {
-        if (!mounted) return;
-        if (_revealed || _tasks[_step].kind != 0) {
-          t.cancel();
-          return;
-        }
-        if (_senseLeft <= 1) {
-          t.cancel();
-          _reveal();
-        } else {
-          setState(() => _senseLeft--);
-        }
-      });
+      _senseLeft = task.hard ? 6 : 4;
+      _startSenseTicker();
     }
+  }
+
+  void _startSenseTicker() {
+    _senseTimer?.cancel();
+    _senseTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) return;
+      if (_revealed || _tasks[_step].kind != 0) {
+        t.cancel();
+        return;
+      }
+      if (_senseLeft <= 1) {
+        t.cancel();
+        _reveal();
+      } else {
+        setState(() => _senseLeft--);
+      }
+    });
   }
 
   void _reveal() {
     if (_revealed) return;
     AppFeedback.light();
     _senseTimer?.cancel();
+    _senseWasTicking = false;
     setState(() {
       _revealed = true;
-      _revealTime = DateTime.now();
     });
+    _latencyClock
+      ..reset()
+      ..start();
   }
 
   Future<void> _nextStep() async {
@@ -720,14 +780,19 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage> {
         _step++;
         _revealed = false;
         _picked = null;
-        _revealTime = null;
+        _recall = null;
       });
+      _latencyClock
+        ..stop()
+        ..reset();
+      _latencyWasRunning = false;
       _armSenseTimerIfNeeded();
     } else {
-      // Remember the profile locally so Battle Zone can default
-      // the game mode to the user's strongest memory type. Awaited:
-      // the scores must be on disk before leaving the assessment.
       await MemoryStore.saveScores(List.of(_scores));
+      await MemoryStore.recordAssessmentRun(
+        itemProps: List.of(_itemProps),
+        scores: List.of(_scores),
+      );
       if (!mounted) return;
       final latencies = [
         for (var i = 0; i < 6; i++)
@@ -746,61 +811,173 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage> {
     }
   }
 
-  void _answer(int option) {
-    if (_picked != null) return;
-    final task = _tasks[_step];
-    final good = option == task.correct;
-    final gain = good
+  void _registerResult({
+    required _Task task,
+    required double proportion,
+    required bool exact,
+  }) {
+    final prop = proportion.clamp(0.0, 1.0);
+    final gain = exact
         ? 20 + (_combo >= 1 ? 10 : 0) + (_combo >= 3 ? 10 : 0)
-        : 0;
-    final latencyMs = _revealTime == null
-        ? 0
-        : DateTime.now().difference(_revealTime!).inMilliseconds;
+        : (20 * prop).round();
+    final latencyMs = _latencyClock.elapsed.inMilliseconds;
     setState(() {
-      _picked = option;
-      // Two probes per type: easy 40 + hard 60 (see assessment.dart).
-      if (good) {
-        _scores[task.kind] += task.hard ? 60 : 40;
-        if (task.hard) _hardHits[task.kind]++;
+      _scores[task.kind] += pointsForBudget(
+        proportion: prop,
+        max: task.maxPoints,
+      );
+      if (task.hard && exact) _hardHits[task.kind]++;
+      while (_itemProps.length <= _step) {
+        _itemProps.add(0);
       }
+      _itemProps[_step] = prop;
       if (latencyMs > 0) {
         _latSumMs[task.kind] += latencyMs;
         _latCount[task.kind]++;
       }
       _lastGain = gain;
-      _lastGood = good;
-      if (good) {
+      _lastGood = prop >= 0.99;
+      if (exact) {
         _combo++;
         _xp += gain;
       } else {
         _combo = 0;
+        _xp += gain;
       }
     });
+  }
+
+  void _answer(int option) {
+    if (_answered) return;
+    final task = _tasks[_step];
+    final good = option == task.correct;
+    _registerResult(
+      task: task,
+      proportion: good ? 1 : 0,
+      exact: good,
+    );
+    setState(() => _picked = option);
     Future.delayed(const Duration(milliseconds: 750), () {
       if (!mounted) return;
       unawaited(_nextStep());
     });
   }
 
+  void _submitRecall(String text) {
+    if (_answered) return;
+    final task = _tasks[_step];
+    final RecallScore score;
+    if (task.units.isNotEmpty) {
+      score = scoreStoryRecall(task.units, text);
+    } else {
+      score = scoreDigitSpan(task.expectedDigits, text);
+    }
+    _registerResult(
+      task: task,
+      proportion: score.proportion,
+      exact: score.exact,
+    );
+    setState(() => _recall = score);
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (!mounted) return;
+      unawaited(_nextStep());
+    });
+  }
+
+  void _answerCorsi(List<int> taps) {
+    if (_answered) return;
+    final task = _tasks[_step];
+    final score = scoreOrderedCells(task.corsiSequence, taps);
+    _registerResult(
+      task: task,
+      proportion: score.proportion,
+      exact: score.exact,
+    );
+    setState(() => _recall = score);
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (!mounted) return;
+      unawaited(_nextStep());
+    });
+  }
+
+  Future<bool> _confirmExit() async {
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (dlgCtx) => AlertDialog(
+        key: const ValueKey('assessment-exit-dialog'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          tr('assess_leave'),
+          style: TextStyle(
+            color: context.inkText,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        content: Text(
+          tr('mprof_leave_body'),
+          style: TextStyle(color: context.mutedText),
+        ),
+        actions: [
+          TextButton(
+            key: const ValueKey('assessment-exit-stay'),
+            onPressed: () {
+              AppFeedback.light();
+              Navigator.of(dlgCtx).pop(false);
+            },
+            child: Text(tr('assess_keep')),
+          ),
+          FilledButton(
+            key: const ValueKey('assessment-exit-leave'),
+            onPressed: () {
+              AppFeedback.light();
+              Navigator.of(dlgCtx).pop(true);
+            },
+            child: Text(tr('assess_leave_btn')),
+          ),
+        ],
+      ),
+    );
+    return leave == true;
+  }
+
+  Future<void> _onBackPressed() async {
+    final leave = await _confirmExit();
+    if (leave && mounted) Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final task = _tasks[_step];
     final kind = memoryKinds[task.kind];
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final leave = await _confirmExit();
+        if (leave && context.mounted) Navigator.of(context).pop();
+      },
+      child: Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: const EngramBackButton(),
+        leading: EngramBackButton(onPressed: _onBackPressed),
         title: Text(
-          'Memory assessment ${_step + 1}/${_tasks.length}',
+          tr('mprof_title', {'n': _step + 1, 'total': _tasks.length}),
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.bold,
             fontSize: 17,
           ),
         ),
+        actions: [
+          AiHelpButton(
+            topic: AiHelpTopics.assessment,
+            helpContext: tr('mprof_task_help'),
+          ),
+          const SizedBox(width: 12),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(6),
           child: Padding(
@@ -808,7 +985,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage> {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(99),
               child: LinearProgressIndicator(
-                value: (_step) / _tasks.length,
+                value: (_step + 1) / _tasks.length,
                 minHeight: 6,
                 backgroundColor: context.hairline,
                 valueColor: const AlwaysStoppedAnimation(violet),
@@ -843,7 +1020,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      kind.name,
+                      kind.displayName,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurface,
                         fontWeight: FontWeight.bold,
@@ -851,7 +1028,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage> {
                       ),
                     ),
                     Text(
-                      kind.module,
+                      kind.displayModule,
                       style: TextStyle(color: context.mutedText, fontSize: 13),
                     ),
                   ],
@@ -883,7 +1060,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '$_xp engrams',
+                      tr('streak_balance', {'n': _xp}),
                       style: TextStyle(
                         color: context.inkText,
                         fontWeight: FontWeight.bold,
@@ -906,7 +1083,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage> {
                     border: Border.all(color: violet, width: 1.5),
                   ),
                   child: Text(
-                    'Combo x$_combo',
+                    tr('mprof_combo', {'n': _combo}),
                     style: TextStyle(
                       color: violetDark,
                       fontWeight: FontWeight.bold,
@@ -916,7 +1093,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage> {
                 )
               else
                 Text(
-                  'Every correct answer earns XP',
+                  tr('mprof_earn'),
                   style: TextStyle(color: context.mutedText, fontSize: 12),
                 ),
             ],
@@ -948,7 +1125,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage> {
             if (task.kind == 0) ...[
               const SizedBox(height: 8),
               Text(
-                'Memorize fast — it hides in $_senseLeft s!',
+                tr('mprof_sense', {'n': _senseLeft}),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: coral,
@@ -970,9 +1147,9 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage> {
                   ],
                 ),
                 alignment: Alignment.center,
-                child: const Text(
-                  'CONTINUE TO QUESTION',
-                  style: TextStyle(
+                child: Text(
+                  tr('mprof_continue'),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
@@ -983,7 +1160,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'The prompt disappears — answer from memory!',
+              tr('mprof_prompt_gone'),
               textAlign: TextAlign.center,
               style: TextStyle(color: context.mutedText, fontSize: 13),
             ),
@@ -997,57 +1174,105 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage> {
               ),
             ),
             const SizedBox(height: 12),
-            for (var i = 0; i < task.options.length; i++)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: GestureDetector(
-                  onTap: () => _answer(i),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 13,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _picked == null
-                          ? context.cardBg
-                          : i == task.correct
-                          ? teal.withValues(alpha: 0.14)
-                          : (i == _picked
-                                ? coral.withValues(alpha: 0.12)
-                                : context.cardBg),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: _picked != null && i == task.correct
-                            ? teal
-                            : context.hairline,
-                        width: 2,
+            if (task.questionStimulus != null) ...[
+              task.questionStimulus!,
+              const SizedBox(height: 12),
+            ],
+            if (task.mode == _ResponseMode.choice)
+              for (var i = 0; i < task.options.length; i++)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: GestureDetector(
+                    onTap: () => _answer(i),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 13,
                       ),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            task.options[i],
-                            style: TextStyle(
-                              color: context.inkText,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15,
+                      decoration: BoxDecoration(
+                        color: _picked == null
+                            ? context.cardBg
+                            : i == task.correct
+                            ? teal.withValues(alpha: 0.14)
+                            : (i == _picked
+                                  ? coral.withValues(alpha: 0.12)
+                                  : context.cardBg),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: _picked != null && i == task.correct
+                              ? teal
+                              : _picked != null && i == _picked
+                              ? coral
+                              : context.hairline,
+                          width: 2,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              task.options[i],
+                              style: TextStyle(
+                                color: context.inkText,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                              ),
                             ),
                           ),
-                        ),
-                        if (_picked != null && i == task.correct)
-                          const HugeIcon(
-                            icon: HugeIcons.strokeRoundedCheckmarkCircle02,
-                            color: teal,
-                            size: 22,
-                            strokeWidth: 2.2,
-                          ),
-                      ],
+                          if (_picked != null && i == task.correct)
+                            const HugeIcon(
+                              icon: HugeIcons.strokeRoundedCheckmarkCircle02,
+                              color: teal,
+                              size: 22,
+                              strokeWidth: 2.2,
+                            ),
+                          if (_picked != null &&
+                              i == _picked &&
+                              _picked != task.correct)
+                            const HugeIcon(
+                              icon: HugeIcons.strokeRoundedCancelCircle,
+                              color: coral,
+                              size: 22,
+                              strokeWidth: 2.2,
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
+            if (task.mode == _ResponseMode.recall)
+              RecallTextField(
+                key: ValueKey('recall-$_step'),
+                hint: task.recallHint,
+                keyboard: task.multiline
+                    ? TextInputType.multiline
+                    : TextInputType.text,
+                submitted: _recall != null,
+                detail: _recall?.detail ?? '',
+                exact: _recall?.exact ?? false,
+                answerKey: task.answerKey,
+                onSubmit: _submitRecall,
               ),
-            if (_picked != null)
+            if (task.mode == _ResponseMode.corsi) ...[
+              CorsiTapGrid(
+                key: ValueKey('corsi-$_step'),
+                submitted: _recall != null,
+                onDone: _answerCorsi,
+              ),
+              if (_recall != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  _recall!.detail,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: context.inkText,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ],
+            if (_answered)
               Container(
                 margin: const EdgeInsets.only(top: 4),
                 padding: const EdgeInsets.symmetric(
@@ -1079,9 +1304,14 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage> {
                       child: Text(
                         _lastGood
                             ? (_combo >= 3
-                                  ? 'Engram sealed! Combo x$_combo, +$_lastGain'
-                                  : 'Nice! +$_lastGain engrams')
-                            : 'No worries — the next one is worth double engrams!',
+                                  ? tr('mprof_sealed', {
+                                      'combo': _combo,
+                                      'gain': _lastGain,
+                                    })
+                                  : tr('mprof_nice', {'gain': _lastGain}))
+                            : _lastGain > 0
+                            ? tr('mprof_partial', {'gain': _lastGain})
+                            : tr('mprof_next_double'),
                         style: TextStyle(
                           color: context.inkText,
                           fontWeight: FontWeight.bold,
@@ -1095,6 +1325,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage> {
           ],
         ],
       ),
+      ),
     );
   }
 }
@@ -1105,6 +1336,10 @@ class MemoryResultPage extends StatelessWidget {
   final List<int> hardHits;
   final List<int> latenciesMs;
   final MemoryVerdict? verdict;
+
+  final StudyRecommendation? recommendation;
+
+  final ValueChanged<int>? onStartTrack;
   const MemoryResultPage({
     super.key,
     required this.scores,
@@ -1112,13 +1347,12 @@ class MemoryResultPage extends StatelessWidget {
     this.hardHits = const [],
     this.latenciesMs = const [],
     this.verdict,
+    this.recommendation,
+    this.onStartTrack,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Research-backed tie ladder: hard items, then recall speed,
-    // then the interview verdict — and a balanced card when the top
-    // is still tied, never a fake single winner.
     final result = resolveDominant(
       scores: scores,
       hardHits: hardHits.length == scores.length ? hardHits : null,
@@ -1128,8 +1362,24 @@ class MemoryResultPage extends StatelessWidget {
     final best = result.kind;
     final v = verdict;
     final tiedNames = [
-      for (final i in result.tied) memoryKinds[i].name,
+      for (final i in result.tied) memoryKinds[i].displayName,
     ].join(', ');
+    final rec =
+        recommendation ??
+        heuristicStudyRecommendation(
+          scores: scores,
+          hardHits: hardHits.length == scores.length ? hardHits : null,
+          latenciesMs: latenciesMs.length == scores.length
+              ? latenciesMs
+              : null,
+          interviewKind: verdict?.kind,
+        );
+    var weakest = -1;
+    for (var i = 0; i < scores.length; i++) {
+      if (i == rec.track) continue;
+      if (weakest < 0 || scores[i] < scores[weakest]) weakest = i;
+    }
+    final showWeakest = !scoresAreBlank(scores) && weakest >= 0;
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -1138,13 +1388,20 @@ class MemoryResultPage extends StatelessWidget {
         scrolledUnderElevation: 0,
         leading: const EngramBackButton(),
         title: Text(
-          'Memory profile',
+          tr('mprof_result'),
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.bold,
             fontSize: 17,
           ),
         ),
+        actions: [
+          AiHelpButton(
+            topic: AiHelpTopics.assessment,
+            helpContext: tr('mprof_result_help'),
+          ),
+          const SizedBox(width: 12),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
@@ -1187,8 +1444,10 @@ class MemoryResultPage extends StatelessWidget {
                     children: [
                       Text(
                         best == null
-                            ? 'Balanced profile'
-                            : 'Strongest: ${memoryKinds[best].name}',
+                            ? tr('mprof_balanced')
+                            : tr('mprof_strongest', {
+                                'name': memoryKinds[best].displayName,
+                              }),
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -1197,8 +1456,8 @@ class MemoryResultPage extends StatelessWidget {
                       ),
                       Text(
                         best == null
-                            ? 'Tied at the top: $tiedNames'
-                            : memoryKinds[best].module,
+                            ? tr('mprof_tied', {'names': tiedNames})
+                            : memoryKinds[best].displayModule,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.85),
                           fontSize: 13,
@@ -1227,6 +1486,27 @@ class MemoryResultPage extends StatelessWidget {
               fontStyle: FontStyle.italic,
               fontSize: 13,
               height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            resultDisclaimer,
+            style: TextStyle(
+              color: context.mutedText,
+              fontSize: 13,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 4),
+          GestureDetector(
+            onTap: () => showHonestySheet(context),
+            child: Text(
+              tr('onboarding_honesty_link'),
+              style: const TextStyle(
+                color: violet,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
             ),
           ),
           if (v != null) ...[
@@ -1263,10 +1543,14 @@ class MemoryResultPage extends StatelessWidget {
                       children: [
                         Text(
                           v.fallback
-                              ? 'Local analysis: ${memoryKinds[v.kind].name} '
-                                    '(${(v.confidence * 100).round()}%)'
-                              : 'AI verdict: ${memoryKinds[v.kind].name} '
-                                    '(${(v.confidence * 100).round()}%)',
+                              ? tr('mprof_local', {
+                                  'name': memoryKinds[v.kind].displayName,
+                                  'pct': (v.confidence * 100).round(),
+                                })
+                              : tr('mprof_ai_verdict', {
+                                  'name': memoryKinds[v.kind].displayName,
+                                  'pct': (v.confidence * 100).round(),
+                                }),
                           style: TextStyle(
                             color: context.inkText,
                             fontWeight: FontWeight.bold,
@@ -1289,6 +1573,116 @@ class MemoryResultPage extends StatelessWidget {
               ),
             ),
           ],
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: teal.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: teal, width: 2),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: teal.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      alignment: Alignment.center,
+                      child: const HugeIcon(
+                        icon: HugeIcons.strokeRoundedAiChat02,
+                        color: teal,
+                        size: 24,
+                        strokeWidth: 2.0,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            rec.fallback
+                                ? tr('mprof_study', {
+                                    'name': memoryKinds[rec.track].displayName,
+                                  })
+                                : tr('mprof_ai_study', {
+                                    'name': memoryKinds[rec.track].displayName,
+                                  }),
+                            style: TextStyle(
+                              color: context.inkText,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            rec.rationale,
+                            style: TextStyle(
+                              color: context.inkText,
+                              fontSize: 13,
+                              height: 1.4,
+                            ),
+                          ),
+                          if (showWeakest) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              tr('mprof_weakest', {
+                                'name': memoryKinds[weakest].displayName,
+                              }),
+                              style: TextStyle(
+                                color: context.mutedText,
+                                fontSize: 13,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                if (onStartTrack != null) ...[
+                  const SizedBox(height: 12),
+                  GestureDetector(
+                    onTap: () => onStartTrack!(rec.track),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      decoration: BoxDecoration(
+                        color: teal,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: const [
+                          BoxShadow(color: tealDark, offset: Offset(0, 4)),
+                        ],
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        tr('mprof_start_track', {
+                          'name': memoryKinds[rec.track]
+                              .displayName
+                              .toUpperCase(),
+                        }),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          _CalibrationCard(scores: scores),
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(14),
@@ -1320,7 +1714,7 @@ class MemoryResultPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Engrams earned: $xp',
+                        tr('mprof_earned', {'n': xp}),
                         style: TextStyle(
                           color: context.inkText,
                           fontWeight: FontWeight.bold,
@@ -1328,7 +1722,7 @@ class MemoryResultPage extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'Come back tomorrow for a +10 bonus.',
+                        tr('mprof_bonus'),
                         style: TextStyle(
                           color: context.mutedText,
                           fontSize: 13,
@@ -1361,9 +1755,9 @@ class MemoryResultPage extends StatelessWidget {
                 ],
               ),
               alignment: Alignment.center,
-              child: const Text(
-                'CONTINUE',
-                style: TextStyle(
+              child: Text(
+                tr('mprof_continue_btn'),
+                style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1,
@@ -1389,19 +1783,19 @@ class MemoryResultPage extends StatelessWidget {
                 border: Border.all(color: context.hairline, width: 2),
               ),
               alignment: Alignment.center,
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  HugeIcon(
+                  const HugeIcon(
                     icon: HugeIcons.strokeRoundedRefresh,
                     color: violet,
                     size: 20,
                     strokeWidth: 2.2,
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Text(
-                    'RETAKE',
-                    style: TextStyle(
+                    tr('mprof_retake'),
+                    style: const TextStyle(
                       color: violet,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1,
@@ -1413,6 +1807,105 @@ class MemoryResultPage extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CalibrationCard extends StatelessWidget {
+  final List<int> scores;
+  const _CalibrationCard({required this.scores});
+
+  Future<({Map<int, LocalNorm> norms, List<List<double>> runs})> _load() async {
+    final norms = await MemoryStore.loadLocalNorms();
+    final runs = await MemoryStore.loadAssessmentRunsData();
+    return (norms: norms, runs: runs);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+      future: _load(),
+      builder: (context, snap) {
+        final norms = snap.data?.norms ?? const <int, LocalNorm>{};
+        final runs = snap.data?.runs ?? const <List<double>>[];
+        final n = norms.values.isEmpty
+            ? 0
+            : norms.values.map((v) => v.n).reduce((a, b) => a > b ? a : b);
+        final myAvg = scores.isEmpty
+            ? 0
+            : scores.reduce((a, b) => a + b) / scores.length;
+        String line1 = n <= 0
+            ? tr('mprof_calibrating')
+            : (n == 1
+                ? tr('mprof_calibrated_one')
+                : tr('mprof_calibrated_many', {'n': n}));
+        String? line2;
+        if (n >= minNormN && norms.length == 6) {
+          final appAvg =
+              norms.values.map((v) => v.mean).reduce((a, b) => a + b) /
+              6 *
+              100;
+          line2 = tr('mprof_avg', {
+            'mine': myAvg.round(),
+            'app': appAvg.round(),
+          });
+        }
+        String? line3;
+        if (runs.length >= minReliabilityN) {
+          final r = splitHalfReliability(runs);
+          if (r != null) {
+            line3 = r >= minReliability
+                ? tr('mprof_rel_ok', {
+                    'r': r.toStringAsFixed(2),
+                    'n': runs.length,
+                  })
+                : tr('mprof_rel_low', {
+                    'r': r.toStringAsFixed(2),
+                    'n': runs.length,
+                  });
+          }
+        }
+        return Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: context.cardBg,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: context.hairline, width: 2),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                tr('mprof_quality'),
+                style: TextStyle(
+                  color: context.inkText,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                line1,
+                style: TextStyle(color: context.mutedText, fontSize: 13),
+              ),
+              if (line2 != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  line2,
+                  style: TextStyle(color: context.mutedText, fontSize: 13),
+                ),
+              ],
+              if (line3 != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  line3,
+                  style: TextStyle(color: context.mutedText, fontSize: 13),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -1457,7 +1950,7 @@ class _ScoreRow extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        kind.name,
+                        kind.displayName,
                         style: TextStyle(
                           color: context.inkText,
                           fontWeight: FontWeight.bold,

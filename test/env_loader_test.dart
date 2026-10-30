@@ -9,16 +9,17 @@ void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     EnvLoader.resetForTest();
+    MetaAIService.secureStoreForTest = {};
   });
 
   tearDown(() {
     EnvLoader.resetForTest();
+    MetaAIService.secureStoreForTest = null;
   });
 
   test('a .env sima indításnál is kulcsot ad, mentés nélkül', () async {
     EnvLoader.loadFromStringForTest('MODEL_API_KEY=LLM_teszt-kulcs\n');
     expect(EnvLoader.apiKey, 'LLM_teszt-kulcs');
-    // Mentett kulcs nincs, mégis van effektív kulcs a fájlból.
     expect(await MetaAIService.storedApiKey(), isEmpty);
     expect(await MetaAIService.effectiveApiKey(), 'LLM_teszt-kulcs');
     expect(await MetaAIService.hasAnyKey(), isTrue);

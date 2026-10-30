@@ -1,16 +1,8 @@
-/// SAM 3.1 szegmentálási kérés és -válasz a térbeli "Palace" útvonalhoz.
-///
-/// Csak a "Palace builder" (spatial) útvonal használja: egy palota-kép
-/// adott pontjára / dobozára kér maszkot és címkéket. Offline módban
-/// a válasz üres maszklista tartalékkal tér vissza.
 class MetaSegmentRequest {
-  /// Kép-hivatkozás (URL vagy cache-kulcs).
   final String imageRef;
 
-  /// Érdekes pontok (relatív 0..1 koordináták, [x, y] párok).
   final List<List<double>> points;
 
-  /// Érdekes dobozok (relatív [x1, y1, x2, y2]).
   final List<List<double>> boxes;
 
   const MetaSegmentRequest({
@@ -67,12 +59,9 @@ class MetaSegmentRequest {
       Object.hash(imageRef, Object.hashAll(points), Object.hashAll(boxes));
 }
 
-/// Egy szegmentálási válasz.
 class MetaSegment {
-  /// Maszk-azonosítók vagy futáshossz-kódolt maszkok (szerverfüggő).
   final List<String> masks;
 
-  /// Emberi címkék a maszkokhoz (pl. "kapu", "lépcső", "szökőkút").
   final List<String> labels;
   final String model;
   final DateTime createdAt;

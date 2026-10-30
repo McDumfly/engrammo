@@ -1,24 +1,26 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import '../l10n/app_localizations.dart';
+import '../models/claims_policy.dart'
+    show aiCloudConsentBody, aiCloudConsentTitle;
 import '../theme/app_theme.dart';
+import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
 import '../widgets/google_g_logo.dart';
 import '../theme/app_colors.dart' show coral, ink, teal, blue;
 import '../services/app_feedback.dart';
 import '../services/app_settings.dart';
 import '../services/auth_service.dart';
+import '../services/cloud_sync.dart';
 import '../services/memory_store.dart';
 import '../services/meta_ai_service.dart';
+import '../services/profile_setup.dart';
+import '../widgets/meta_call_log.dart';
 import 'memory_profile.dart' show MemoryAssessmentIntroPage;
 
-/// Beállítások: profil, fiók, preferenciák, Meta AI-kulcs, danger zone.
-/// - Account: email + jelszócsere, csak ha nem Google-belépés
-///   ([isGoogleUser] == false). Google-felhasználó infósávot lát.
-/// - A profil- és kapcsolóváltozások bejelentkezve a felhőbe is
-///   szinkronizálódnak ([CloudSync]), kijelentkezve helyben maradnak.
-/// - Danger zone: fióktörlés megerősítő dialógussal.
-/// Nincs toast / snackbar / értesítés-UI.
 class SettingsScreen extends StatefulWidget {
   final bool isGoogleUser;
   final String initialDisplayName;
@@ -42,10 +44,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late final TextEditingController _usernameCtrl;
   late final TextEditingController _apiKeyCtrl;
   String? _profileNote;
+  bool _profileSaving = false;
+  bool _profileSaved = false;
+  bool _profileError = false;
   String? _apiKeyNote;
   bool _hasStoredKey = false;
   bool _hasBundledKey = false;
   bool _apiKeyBusy = false;
+  bool _aiConsent = false;
 
   @override
   void initState() {
@@ -53,22 +59,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _nameCtrl = TextEditingController(text: widget.initialDisplayName);
     _usernameCtrl = TextEditingController(text: widget.initialUsername);
     _apiKeyCtrl = TextEditingController();
+    _nameCtrl.addListener(_onProfileEdited);
+    _usernameCtrl.addListener(_onProfileEdited);
     _loadApiKeyStatus();
+  }
+
+  void _onProfileEdited() {
+    if (!_profileSaved && !_profileError) return;
+    setState(() {
+      _profileSaved = false;
+      _profileError = false;
+    });
+  }
+
+  Color? get _profileBorder {
+    if (_profileSaved) return const Color(0xFF16A34A);
+    if (_profileError) return coral;
+    return null;
   }
 
   Future<void> _loadApiKeyStatus() async {
     final stored = await MetaAIService.storedApiKey();
+    final consent = await MetaAIService.cloudConsent();
     if (!mounted) return;
     setState(() {
       _hasStoredKey = stored.isNotEmpty;
       _hasBundledKey = MetaAIService.bundledApiKey.isNotEmpty;
+      _aiConsent = consent;
     });
   }
 
   Future<void> _saveApiKey() async {
     final value = _apiKeyCtrl.text.trim();
     if (value.isEmpty) {
-      setState(() => _apiKeyNote = 'Enter a key first.');
+      setState(() => _apiKeyNote = tr('settings_key_first'));
       return;
     }
     setState(() {
@@ -78,25 +102,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       await MetaAIService.setStoredApiKey(value);
       _apiKeyCtrl.clear();
-      // Nincs rárezgés: a gomb koppintása már rezgett, a sikert a ✓ mutatja.
+      final consent = await MetaAIService.cloudConsent();
       if (!mounted) return;
       setState(() {
         _hasStoredKey = true;
-        _apiKeyNote = 'Saved ✓ Stays live on plain launches too.';
+        _aiConsent = consent;
+        _apiKeyNote = consent
+            ? tr('settings_key_saved_live')
+            : tr('settings_key_saved_consent');
       });
-      // Első kulcs + még nincs szintmérő: egyből feljön a
-      // szintfelmérő + domináns memóriatípus-megállapítás.
       final scores = await MemoryStore.loadScores();
       if (!mounted) return;
       if (scores == null || scores.isEmpty) {
-        setState(() => _apiKeyNote = 'Saved ✓ Now discover your memory type!');
+        setState(() => _apiKeyNote = tr('settings_key_saved_type'));
         await Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const MemoryAssessmentIntroPage()),
         );
       }
     } catch (e) {
       if (!mounted) return;
-      setState(() => _apiKeyNote = 'Save failed.');
+      setState(() => _apiKeyNote = tr('common_save_failed'));
     } finally {
       if (mounted) setState(() => _apiKeyBusy = false);
     }
@@ -109,11 +134,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
     await MetaAIService.clearStoredApiKey();
     if (!mounted) return;
-    // Nincs rárezgés: a gomb koppintása már rezgett.
     setState(() {
       _hasStoredKey = false;
       _apiKeyBusy = false;
-      _apiKeyNote = 'Deleted, offline fallback runs again.';
+      _apiKeyNote = tr('settings_key_deleted');
     });
   }
 
@@ -129,36 +153,119 @@ class _SettingsScreenState extends State<SettingsScreen> {
     AppFeedback.light();
   }
 
-  /// Profil mentése helybe + (belépve) a Firebase-profilba és a felhőbe.
   Future<void> _saveProfile() async {
+    if (_profileSaving) return;
     final name = _nameCtrl.text.trim();
-    final username = _usernameCtrl.text.trim().replaceAll(' ', '_');
+    final username = ProfileSetupRules.normalizeUsername(_usernameCtrl.text);
+    if (username.isNotEmpty) {
+      final userError = ProfileSetupRules.validateUsername(username);
+      if (userError != null) {
+        if (!mounted) return;
+        setState(() {
+          _profileNote = userError;
+          _profileSaved = false;
+          _profileError = true;
+        });
+        return;
+      }
+    }
+    final uid = authService.user?.uid;
+    setState(() {
+      _profileSaving = true;
+      _profileNote = null;
+      _profileSaved = false;
+      _profileError = false;
+    });
+    var previousUsername = '';
+    try {
+      if (uid != null &&
+          username.isNotEmpty &&
+          authService.backendAvailable) {
+        final previous = await MemoryStore.loadProfile();
+        previousUsername = previous.username;
+        if (previous.username != username) {
+          await CloudSync.claimUsername(
+            uid: uid,
+            username: username,
+          ).timeout(const Duration(seconds: 10));
+        }
+      }
+    } on UsernameTakenException {
+      if (!mounted) return;
+      setState(() {
+        _profileSaving = false;
+        _profileNote = tr('profile_username_taken');
+        _profileError = true;
+      });
+      return;
+    } on TimeoutException {
+      if (!mounted) return;
+      setState(() {
+        _profileSaving = false;
+        _profileNote = tr('auth_no_connection');
+        _profileError = true;
+      });
+      return;
+    } on NoConnectionException {
+      if (!mounted) return;
+      setState(() {
+        _profileSaving = false;
+        _profileNote = tr('auth_no_connection');
+        _profileError = true;
+      });
+      return;
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _profileSaving = false;
+        _profileNote = e is StateError
+            ? e.message
+            : AuthService.messageFor(e);
+        _profileError = true;
+      });
+      return;
+    }
     await MemoryStore.saveProfile(
       displayName: name,
       username: username,
       email: authService.email,
     );
+    if (!mounted) return;
+    setState(() {
+      _profileSaving = false;
+      _profileSaved = true;
+      _profileError = false;
+      _profileNote = tr('settings_saved');
+    });
+    // The local save is done, the feedback is instant. Releasing the old
+    // username and syncing the Auth name continue in the background and
+    // do not block the green frame.
+    if (previousUsername.isNotEmpty &&
+        previousUsername != username &&
+        uid != null) {
+      unawaited(
+        CloudSync.releaseUsername(uid: uid, username: previousUsername),
+      );
+    }
+    if (authService.signedIn && name.isNotEmpty) {
+      unawaited(_syncDisplayNameInBackground(name));
+    }
+  }
+
+  Future<void> _syncDisplayNameInBackground(String name) async {
     try {
-      if (authService.signedIn && name.isNotEmpty) {
-        await authService.updateDisplayName(name);
-      }
-      // Nincs rárezgés: a gomb koppintása már rezgett, a sikert a ✓ mutatja.
-      if (!mounted) return;
-      setState(() => _profileNote = 'Saved ✓');
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _profileNote = AuthService.messageFor(e));
+      await authService.updateDisplayName(name);
+    } catch (_) {
+      // The local save is already green: the next save retries.
     }
   }
 
   void _openEmailEditor() {
-    // Névtelen / helyi vendég: nincs mihez emailt cserélni,
-    // előbb megmaradó fiók kell (profilkártya → belépés).
     if (!authService.isPermanentAccount) {
       setState(
         () => _profileNote = authService.signedIn
-            ? 'Guest account — sign in on the Profile tab to set an email.'
-            : 'Sign in first to change your email.',
+            ? tr('settings_guest_email')
+            : tr('settings_signin_email'),
       );
       return;
     }
@@ -189,7 +296,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const _Grabber(),
                 const SizedBox(height: 12),
                 Text(
-                  'Change email',
+                  tr('settings_change_email'),
                   style: TextStyle(
                     color: Theme.of(sheetCtx).colorScheme.onSurface,
                     fontWeight: FontWeight.w900,
@@ -198,7 +305,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'We send a verification link — the address changes after you tap it.',
+                  tr('settings_change_email_body'),
                   style: TextStyle(
                     color: Theme.of(sheetCtx).colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w600,
@@ -206,7 +313,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 14),
-                _Field(controller: ctrl, hint: 'you@example.com'),
+                _Field(controller: ctrl, hint: tr('auth_email_hint')),
                 if (note.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(
@@ -220,7 +327,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
                 const SizedBox(height: 14),
                 EngramButton(
-                  label: busy ? 'SENDING…' : 'SEND VERIFICATION',
+                  label: busy
+                      ? tr('settings_sending')
+                      : tr('settings_send_verification'),
                   isLoading: busy,
                   onPressed: busy
                       ? null
@@ -228,7 +337,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           final next = ctrl.text.trim();
                           if (!next.contains('@')) {
                             setSheet(
-                              () => note = 'Adj meg egy érvényes email-címet.',
+                              () => note = tr('auth_invalid_email'),
                             );
                             return;
                           }
@@ -242,7 +351,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             _acknowledge();
                             if (!mounted) return;
                             setState(
-                              () => _profileNote = 'Verification sent to $next',
+                              () => _profileNote = tr(
+                                'settings_verification_sent',
+                                {'email': next},
+                              ),
                             );
                           } catch (e) {
                             setSheet(() {
@@ -265,8 +377,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!authService.isPermanentAccount) {
       setState(
         () => _profileNote = authService.signedIn
-            ? 'Guest account — sign in on the Profile tab to set a password.'
-            : 'Sign in first to change your password.',
+            ? tr('settings_guest_password')
+            : tr('settings_signin_password'),
       );
       return;
     }
@@ -297,7 +409,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const _Grabber(),
                 const SizedBox(height: 12),
                 Text(
-                  'Change password',
+                  tr('settings_change_password'),
                   style: TextStyle(
                     color: Theme.of(sheetCtx).colorScheme.onSurface,
                     fontWeight: FontWeight.w900,
@@ -306,7 +418,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'New password takes effect immediately. You may need to sign in again first.',
+                  tr('settings_change_password_body'),
                   style: TextStyle(
                     color: Theme.of(sheetCtx).colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w600,
@@ -314,7 +426,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 14),
-                _Field(controller: fresh, hint: 'New password', obscure: true),
+                _Field(
+                  controller: fresh,
+                  hint: tr('settings_new_password'),
+                  obscure: true,
+                ),
                 if (note.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(
@@ -328,15 +444,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
                 const SizedBox(height: 14),
                 EngramButton(
-                  label: busy ? 'SAVING…' : 'SAVE PASSWORD',
+                  label: busy
+                      ? tr('profile_saving')
+                      : tr('settings_save_password'),
                   isLoading: busy,
                   onPressed: busy
                       ? null
                       : () async {
                           if (fresh.text.length < 6) {
                             setSheet(
-                              () =>
-                                  note = 'A jelszó legalább 6 karakter legyen.',
+                              () => note = tr('auth_short_password'),
                             );
                             return;
                           }
@@ -349,7 +466,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             sheetNav.pop();
                             _acknowledge();
                             if (!mounted) return;
-                            setState(() => _profileNote = 'Password updated ✓');
+                            setState(
+                              () => _profileNote = tr(
+                                'settings_password_updated',
+                              ),
+                            );
                           } catch (e) {
                             setSheet(() {
                               busy = false;
@@ -377,14 +498,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
           side: BorderSide(color: context.hairline, width: 2),
         ),
         title: Text(
-          'Delete account?',
+          tr('settings_delete_title'),
           style: TextStyle(
             color: Theme.of(dlgCtx).colorScheme.onSurface,
             fontWeight: FontWeight.w900,
           ),
         ),
         content: Text(
-          'This permanently deletes your profile, progress and engrams.',
+          tr('settings_delete_body'),
           style: TextStyle(
             color: Theme.of(dlgCtx).colorScheme.onSurfaceVariant,
             fontWeight: FontWeight.w600,
@@ -396,17 +517,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               AppFeedback.light();
               Navigator.of(dlgCtx).pop(false);
             },
-            child: const Text('Keep it'),
+            child: Text(tr('settings_keep')),
           ),
           TextButton(
             onPressed: () {
               AppFeedback.light();
               Navigator.of(dlgCtx).pop(true);
             },
-            style: TextButton.styleFrom(foregroundColor: coral),
-            child: const Text(
-              'Delete',
-              style: TextStyle(fontWeight: FontWeight.w900),
+            style: TextButton.styleFrom(
+              foregroundColor: context.dangerText,
+            ),
+            child: Text(
+              tr('common_delete'),
+              style: const TextStyle(fontWeight: FontWeight.w900),
             ),
           ),
         ],
@@ -426,7 +549,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // A témakapcsoló azonnal újrarajzolja ezt a képernyőt is.
     return ListenableBuilder(
       listenable: appSettings,
       builder: (context, _) => Scaffold(
@@ -436,7 +558,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Column(
             children: [
               _Header(
-                // A rezgést az EngramBackButton adja.
                 onBack: () => Navigator.of(context).pop(),
               ),
               Expanded(
@@ -446,29 +567,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const _SectionTitle(
+                      _SectionTitle(
                         icon: HugeIcons.strokeRoundedUserCircle,
-                        title: 'Profile',
-                        subtitle: 'How you appear to others',
+                        title: tr('settings_profile'),
+                        subtitle: tr('settings_profile_sub'),
                       ),
                       _Card(
                         child: Column(
                           children: [
-                            _FieldLabel(label: 'Display name'),
+                            _FieldLabel(
+                              label: tr('settings_display_name'),
+                            ),
                             const SizedBox(height: 6),
-                            _Field(controller: _nameCtrl, hint: 'Your name'),
+                            _Field(
+                              controller: _nameCtrl,
+                              hint: tr('settings_your_name'),
+                              enabled: !_profileSaving,
+                              borderColor: _profileBorder,
+                            ),
                             const SizedBox(height: 12),
-                            _FieldLabel(label: 'Username'),
+                            _FieldLabel(
+                              label: tr('settings_username'),
+                            ),
                             const SizedBox(height: 6),
                             _Field(
                               controller: _usernameCtrl,
-                              hint: 'username',
+                              hint: tr('profile_username_hint'),
                               prefix: '@',
+                              enabled: !_profileSaving,
+                              borderColor: _profileBorder,
                             ),
                             const SizedBox(height: 14),
                             EngramButton(
-                              label: 'SAVE PROFILE',
-                              onPressed: _saveProfile,
+                              label: _profileSaving
+                                  ? tr('profile_saving')
+                                  : tr('settings_save_profile'),
+                              isLoading: _profileSaving,
+                              onPressed: _profileSaving
+                                  ? null
+                                  : _saveProfile,
                             ),
                             if (_profileNote != null) ...[
                               const SizedBox(height: 8),
@@ -486,10 +623,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      const _SectionTitle(
+                      _SectionTitle(
                         icon: HugeIcons.strokeRoundedMail01,
-                        title: 'Account',
-                        subtitle: 'Email and sign-in',
+                        title: tr('settings_account'),
+                        subtitle: tr('settings_account_sub'),
                       ),
                       if (widget.isGoogleUser)
                         const _Card(child: _GoogleBanner())
@@ -499,11 +636,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             children: [
                               _AccountRow(
                                 icon: HugeIcons.strokeRoundedMail01,
-                                title: 'Email',
+                                title: tr('settings_email'),
                                 subtitle: authService.isAnonymous
-                                    ? 'Guest account'
+                                    ? tr('settings_guest')
                                     : (widget.initialEmail.isEmpty
-                                          ? 'Not signed in'
+                                          ? tr('settings_not_signed')
                                           : widget.initialEmail),
                                 onTap: _openEmailEditor,
                               ),
@@ -514,7 +651,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                               _AccountRow(
                                 icon: HugeIcons.strokeRoundedKey01,
-                                title: 'Password',
+                                title: tr('settings_password'),
                                 subtitle: '••••••••',
                                 onTap: _openPasswordEditor,
                               ),
@@ -526,9 +663,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         _Card(
                           child: _AccountRow(
                             icon: HugeIcons.strokeRoundedLogout01,
-                            title: 'Sign out',
-                            subtitle: 'Back to the sign-in screen',
-                            // A rezgést a sor (_AccountRow) adja.
+                            title: tr('settings_sign_out'),
+                            subtitle: tr('settings_sign_out_sub'),
                             onTap: () async {
                               await authService.signOut();
                               if (!context.mounted) return;
@@ -538,17 +674,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ],
                       const SizedBox(height: 20),
-                      const _SectionTitle(
+                      _SectionTitle(
                         icon: HugeIcons.strokeRoundedSettings01,
-                        title: 'Preferences',
-                        subtitle: 'Applies instantly, saved on this device',
+                        title: tr('settings_prefs'),
+                        subtitle: tr('settings_prefs_sub'),
                       ),
                       _Card(
                         child: Column(
                           children: [
                             _SwitchRow(
                               icon: HugeIcons.strokeRoundedMoon01,
-                              label: 'Dark mode',
+                              label: tr('settings_dark'),
                               value: appSettings.darkMode,
                               onChanged: (v) => appSettings.setDarkMode(v),
                             ),
@@ -559,18 +695,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             _SwitchRow(
                               icon: HugeIcons.strokeRoundedVibrate,
-                              label: 'Haptic',
+                              label: tr('settings_haptic'),
                               value: appSettings.haptics,
                               onChanged: (v) => appSettings.setHaptics(v),
+                            ),
+                            Divider(
+                              color: context.hairline,
+                              height: 20,
+                              thickness: 1.5,
+                            ),
+                            _LanguageRow(
+                              current: appSettings.languageCode,
+                              onChanged: (code) =>
+                                  appSettings.setLanguage(code),
                             ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 20),
-                      const _SectionTitle(
+                      _SectionTitle(
                         icon: HugeIcons.strokeRoundedKey01,
-                        title: 'Meta AI',
-                        subtitle: 'Enter once, stays live on plain launches',
+                        title: tr('settings_meta'),
+                        subtitle: tr('settings_meta_sub'),
                       ),
                       _Card(
                         child: Column(
@@ -578,12 +724,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           children: [
                             Text(
                               MetaAIService.configured
-                                  ? 'Provided at launch ✓'
+                                  ? tr('settings_launch_key')
                                   : _hasBundledKey
-                                  ? 'Loaded from file ✓ (plain launch)'
+                                  ? tr('settings_file_key')
                                   : _hasStoredKey
-                                  ? 'Saved key active ✓'
-                                  : 'No key, offline fallback runs.',
+                                  ? tr('settings_stored_key')
+                                  : tr('settings_no_key'),
                               style: TextStyle(
                                 color: context.mutedText,
                                 fontWeight: FontWeight.w700,
@@ -591,7 +737,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                             ),
                             const SizedBox(height: 12),
-                            const _FieldLabel(label: 'Model API key'),
+                            _SwitchRow(
+                              icon: HugeIcons.strokeRoundedShield01,
+                              label: aiCloudConsentTitle,
+                              value: _aiConsent,
+                              onChanged: (v) async {
+                                await MetaAIService.setCloudConsent(v);
+                                if (!mounted) return;
+                                setState(() => _aiConsent = v);
+                              },
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              aiCloudConsentBody,
+                              style: TextStyle(
+                                color: context.mutedText,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12,
+                                height: 1.4,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            _FieldLabel(label: tr('settings_api_key')),
                             const SizedBox(height: 6),
                             _Field(
                               controller: _apiKeyCtrl,
@@ -600,14 +767,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             const SizedBox(height: 14),
                             EngramButton(
-                              label: _apiKeyBusy ? 'SAVING…' : 'SAVE KEY',
+                              label: _apiKeyBusy
+                                  ? tr('profile_saving')
+                                  : tr('settings_save_key'),
                               isLoading: _apiKeyBusy,
                               onPressed: _apiKeyBusy ? null : _saveApiKey,
                             ),
                             if (_hasStoredKey) ...[
                               const SizedBox(height: 8),
                               EngramButton(
-                                label: 'DELETE KEY',
+                                label: tr('settings_delete_key'),
                                 variant: EngramButtonVariant.danger,
                                 onPressed: _apiKeyBusy ? null : _clearApiKey,
                               ),
@@ -623,14 +792,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 ),
                               ),
                             ],
+                            const SizedBox(height: 12),
+                            Text(
+                              tr('settings_recent_calls'),
+                              style: TextStyle(
+                                color: context.mutedText,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            const MetaCallLogView(),
                           ],
                         ),
                       ),
                       const SizedBox(height: 20),
-                      const _SectionTitle(
+                      _SectionTitle(
                         icon: HugeIcons.strokeRoundedAlert02,
-                        title: 'Danger zone',
-                        subtitle: 'Irreversible actions',
+                        title: tr('settings_danger'),
+                        subtitle: tr('settings_danger_sub'),
                         accent: coral,
                       ),
                       _Card(
@@ -639,7 +819,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Delete account',
+                              tr('settings_delete_account'),
                               style: TextStyle(
                                 color: context.inkText,
                                 fontWeight: FontWeight.w900,
@@ -648,8 +828,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Removes your profile, progress and engrams. '
-                              'This also deletes your cloud save.',
+                              tr('settings_delete_account_body'),
                               style: TextStyle(
                                 color: context.mutedText,
                                 fontWeight: FontWeight.w600,
@@ -658,10 +837,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             const SizedBox(height: 14),
                             EngramButton(
-                              label: 'DELETE ACCOUNT',
+                              label: tr('settings_delete_account_btn'),
                               variant: EngramButtonVariant.danger,
                               icon: HugeIcons.strokeRoundedDelete02,
-                              // A kezelő adja a medium jelzést, a gomb nem rezeg rá.
                               haptic: false,
                               onPressed: _confirmDelete,
                             ),
@@ -695,7 +873,7 @@ class _Header extends StatelessWidget {
             child: Column(
               children: [
                 Text(
-                  'Settings',
+                  tr('settings_title'),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurface,
@@ -705,7 +883,7 @@ class _Header extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Profile, account and app',
+                  tr('settings_subtitle'),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -716,7 +894,7 @@ class _Header extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 48),
+          const AiHelpButton(topic: AiHelpTopics.settings),
         ],
       ),
     );
@@ -757,7 +935,7 @@ class _SectionTitle extends StatelessWidget {
                   title,
                   style: TextStyle(
                     color: accent == coral
-                        ? coral
+                        ? context.dangerText
                         : Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.w900,
                     fontSize: 16,
@@ -826,11 +1004,15 @@ class _Field extends StatelessWidget {
   final String hint;
   final String? prefix;
   final bool obscure;
+  final bool enabled;
+  final Color? borderColor;
   const _Field({
     required this.controller,
     required this.hint,
     this.prefix,
     this.obscure = false,
+    this.enabled = true,
+    this.borderColor,
   });
 
   @override
@@ -838,6 +1020,7 @@ class _Field extends StatelessWidget {
     return TextField(
       controller: controller,
       obscureText: obscure,
+      enabled: enabled,
       style: TextStyle(
         color: context.inkText,
         fontWeight: FontWeight.w700,
@@ -862,11 +1045,14 @@ class _Field extends StatelessWidget {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: context.hairline, width: 2),
+          borderSide: BorderSide(
+            color: borderColor ?? context.hairline,
+            width: 2,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: blue, width: 2),
+          borderSide: BorderSide(color: borderColor ?? blue, width: 2),
         ),
       ),
     );
@@ -973,7 +1159,7 @@ class _GoogleBanner extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Signed in with Google',
+                tr('settings_google_title'),
                 style: TextStyle(
                   color: context.inkText,
                   fontWeight: FontWeight.w800,
@@ -982,8 +1168,7 @@ class _GoogleBanner extends StatelessWidget {
               ),
               SizedBox(height: 2),
               Text(
-                'Email and password are managed by Google, '
-                'so they cannot be changed here.',
+                tr('settings_google_body'),
                 style: TextStyle(
                   color: context.mutedText,
                   fontWeight: FontWeight.w600,
@@ -1036,6 +1221,54 @@ class _SwitchRow extends StatelessWidget {
           activeThumbColor: teal,
           onChanged: (nv) {
             onChanged(nv);
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _LanguageRow extends StatelessWidget {
+  final String current;
+  final ValueChanged<String> onChanged;
+  const _LanguageRow({required this.current, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        HugeIcon(
+          icon: HugeIcons.strokeRoundedTranslate,
+          color: context.mutedText,
+          size: 22,
+          strokeWidth: 2,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            tr('settings_language'),
+            style: TextStyle(
+              color: context.inkText,
+              fontWeight: FontWeight.w700,
+              fontSize: 15,
+            ),
+          ),
+        ),
+        SegmentedButton<String>(
+          segments: [
+            ButtonSegment<String>(
+              value: 'en',
+              label: Text(tr('settings_english')),
+            ),
+            ButtonSegment<String>(
+              value: 'hu',
+              label: Text(tr('settings_hungarian')),
+            ),
+          ],
+          selected: {current},
+          onSelectionChanged: (selection) {
+            AppFeedback.light();
+            onChanged(selection.first);
           },
         ),
       ],

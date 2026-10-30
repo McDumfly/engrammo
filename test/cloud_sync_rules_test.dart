@@ -2,9 +2,6 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// A felhős belépés őre: a `users/{uid}` dokumentum csak a saját
-/// tulajdonosé lehet. Ha ez a fájl/szabály sérül, idegen fiók
-/// olvashatná/írhatná más haladását.
 void main() {
   test(
     'firestore.rules csak a tulajdonosnak enged a users/{uid}-ban',
@@ -19,6 +16,17 @@ void main() {
       expect(rules, contains('match /users/{userId}'));
       expect(rules, contains('request.auth != null'));
       expect(rules, contains('request.auth.uid == userId'));
+    },
+  );
+
+  test(
+    'firestore.rules: usernames-foglaltsag olvashato, irni csak sajatot lehet',
+    () async {
+      final rules = await File('firestore.rules').readAsString();
+      expect(rules, contains('match /usernames/{name}'));
+      expect(rules, contains('allow read: if request.auth != null;'));
+      expect(rules, contains('request.resource.data.uid == request.auth.uid'));
+      expect(rules, contains('resource.data.uid == request.auth.uid'));
     },
   );
 }

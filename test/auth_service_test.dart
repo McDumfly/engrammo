@@ -13,7 +13,6 @@ void main() {
   });
 
   tearDown(() {
-    // A globális példányt tiszta állapotban hagyjuk a többi tesztnek.
     authService.exitGuest();
     CloudSync.currentUid = null;
   });
@@ -21,7 +20,6 @@ void main() {
   test('backend nélkül: belépés hibát dob, az app mégis továbbmegy', () async {
     expect(authService.backendAvailable, isFalse);
     expect(authService.signedIn, isFalse);
-    // Nincs kapu: offline az app egyből használható.
     expect(authService.showApp, isTrue);
 
     await expectLater(
@@ -42,7 +40,6 @@ void main() {
   test('backend nélkül: vendég-folytatás helyi módban megy tovább', () async {
     expect(authService.backendAvailable, isFalse);
     await authService.continueAsGuest();
-    // Nincs Firebase, így névtelen munkamenet helyett helyi vendég.
     expect(authService.guestMode, isTrue);
     expect(authService.signedIn, isFalse);
     expect(authService.showApp, isTrue);
@@ -52,12 +49,10 @@ void main() {
     expect(authService.signedIn, isFalse);
     expect(authService.isAnonymous, isFalse);
     expect(authService.isPermanentAccount, isFalse);
-    // Backend nélkül nincs kit bejelentkezésre buzdítani.
     expect(authService.needsAccountNudge, isFalse);
   });
 
   test('felhő-szinkron kijelentkezve csendben nem csinál semmit', () async {
-    // Nem dobhat: offline / kijelentkezve ez no-op.
     await CloudSync.pushNow();
     await CloudSync.pushFromLocal('nincs-ilyen-uid');
     await CloudSync.pullToLocal('nincs-ilyen-uid');
