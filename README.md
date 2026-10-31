@@ -1,11 +1,13 @@
 # Engrammo
 
-Research-backed memory training built with Flutter.
-Starting assessment per memory type, a personalized
-learning path, teachable mnemonic techniques, and
-spaced repetition (FSRS) — with short daily lessons
-and playful motivation. At runtime it places live
-Meta Model API calls, with an offline fallback.
+Research-backed memory training built with Flutter —
+my entry for the **Meta Global AI Developer Hackathon**
+(Indie Dev Track), problem statement: **Build for Your
+World**. Starting assessment per memory type, a
+personalized learning path, teachable mnemonic
+techniques, and spaced repetition — with short daily
+lessons and playful motivation. At runtime it places
+live Meta Model API calls, with an offline fallback.
 
 > The name comes from `engram`: the physical trace of a memory.
 > It promises no photographic memory — that is a myth. Instead it
@@ -25,9 +27,10 @@ Meta Model API calls, with an offline fallback.
    palace, chaining, visual association, keyword method,
    number systems, if-then plans, poem learning, evening
    day-replay.
-4. **Retrieval days later.** An FSRS-lite scheduler brings
-   the learned material back, building on sleep
-   consolidation.
+4. **Retrieval days later.** A spaced scheduler brings
+   the learned material back (practice rounds unlock
+   from 1 day to 60 days out; per-card FSRS state is
+   tracked alongside), building on sleep consolidation.
 5. **Everyday goals + your own material.** Every lesson names
    what you use it for (exams, names, faces, numbers, years,
    birthdays, deadlines, tasks, poems, phone numbers,
@@ -48,37 +51,72 @@ Meta Model API calls, with an offline fallback.
 
 ## Meta AI at runtime
 
-Because the competition rules require it, the app places
-at least one live Meta call at runtime:
+The app places live Meta Model API calls at runtime
+(base URL `https://api.meta.ai/v1`, overridable via
+`META_API_BASE_URL`):
 
-- **Muse Spark** provides every lesson round's stimulus,
-  every practice game's stimulus, the personalized
-  technique explanation, the forgetting diagnosis, the
-  task built from your own material, plus the post-lesson,
-  post-practice and post-duel recaps and tips
-  (`muse-spark-1.3-contributor`, with `low`/`minimal`
-  effort for fast answers),
-- **Muse Image** provides the palace illustration, the
-  visual scene image, the lesson illustrations, and the
-  endless unique picture-recall rounds in practice
-  (`muse-image`),
-- **SAM** segments the generated palace and picture images
-  into loci stations and spotted details — in lessons and
-  in practice alike.
+- **Muse Spark** (`muse-spark-1.3-contributor`, with
+  `low`/`minimal` effort for fast answers) provides every
+  lesson round's stimulus, every practice game's stimulus,
+  the personalized technique explanation, the forgetting
+  diagnosis, the task built from your own material, plus
+  the post-lesson, post-practice and post-duel recaps
+  and tips,
+- **Muse Image** (`muse-image-1.0`) provides the palace
+  illustration, the visual scene image, the lesson
+  illustrations, and the endless unique picture-recall
+  rounds in practice,
+- **SAM 3.1** (`sam-3.1`) segments the generated palace
+  and picture images into loci stations and spotted
+  details — in lessons and in practice alike — and reads
+  the player's own room photo into palace stations,
+- **Voice Transcribe** (`voice-transcribe-1.0`) scores
+  the spoken SEEN/NEW answers in word practice
+  (microphone with explicit consent; the clip is kept
+  in a single rotating temp file),
+- **Wonder** (`wonder-1.0`) previews the spatial route
+  from a second viewpoint,
+- **Glimmer** (`glimmer-1.0`) gives the short post-game
+  verdict, and **Spark Open** (`muse-spark-open-1.0`)
+  the open-weights practice tip.
 
 With no key or no network the app does not fall over:
 local generators provide the content, and every call
 is logged (model name, time, success/error, whether
-fallback). The call log is also viewable in the UI.
+fallback). The call log is also viewable in the UI
+(Settings → Meta AI → recent calls).
 
 Detailed technical plan in the repo: `docs/META_TERV.md`.
-Research background on my machine: `~/Downloads/meta`
-folder (2 competition-brief PDFs, 1 memory-research PDF
-on the loci + FSRS + daily-habit pillars, 1 application
-copy). Only the scientific claims and the judging
-weights came from those: all code, text, and screens
-are original work, with no copied code snippets, data,
-or trademarked visuals.
+Research background: `docs/RESEARCH.md` (loci + spaced
+repetition + daily-habit pillars, with citations). All
+code, text, and screens are original work, with no
+copied code snippets, data, or trademarked visuals.
+
+## Hackathon submission
+
+- Track: Indie Dev (solo), problem statement **Build
+  for Your World**. Judging per the Participant Guide:
+  four equally weighted criteria on a 0–10 scale —
+  Impact, Use of Meta AI Tooling, Technical Depth &
+  Execution, Demo (plus a pass/fail Stage One: fits the
+  theme and reasonably uses Meta Model API / Meta
+  open-weight models).
+- New work only: the Oct 26 initial commit is a plain
+  `flutter create` scaffold; every line of app code,
+  docs and tests landed Oct 27 – Nov 4, 2026, in
+  day-stamped build commits (see `git log`). Nothing
+  predates the building period.
+- Not an anti-project: this is a full training system
+  (curriculum, spaced schedule, assessment, duels,
+  leagues), not an education chatbot and not medical
+  advice — see the claims guardrail
+  (`lib/models/claims_policy.dart`) and
+  `docs/SUBMISSION.md`.
+- This repo is public; the submission video is a
+  3-minute demo of hackathon-built features only.
+- Demo script, recording checklist and judging
+  cross-reference: `docs/SUBMISSION.md`.
+  Competition log: `docs/verseny-naplo.md`.
 
 ## Scientific basis (brief)
 
@@ -94,8 +132,9 @@ or trademarked visuals.
 - For deadlines: if-then plans (Gollwitzer 1999); for poems:
   piecemeal recall (Rubin 1995); for the day: evening
   replay + sleep (Gais et al. 2006; Wilhelm et al. 2011).
-- Repetition is timed by an FSRS scheduler (DSR model:
-  difficulty, stability, retrievability).
+- Repetition is spaced over days to weeks (expanding
+  schedule; per-card FSRS difficulty/stability/
+  retrievability state is tracked alongside).
 
 ## Dueling as timed retrieval
 
@@ -161,7 +200,7 @@ counts toward the league then too. Code:
 ## Tech
 
 - Flutter, Dart `^3.13.4`, `1.0.0+1`, `publish_to: none`.
-- Icons: a neutral, non-Material-Android set.
+- Icons: HugeIcons (neutral, non-Material set).
 - Font: Lexend (variable weight 100–900) from a local asset,
   works offline, with Latin Extended accents.
 - Firebase: Auth + Firestore sync (`users/{uid}`
@@ -175,15 +214,16 @@ counts toward the league then too. Code:
 - `lib/main.dart` — startup, Firebase + settings load.
 - `lib/screens/` — screens (path, assessment,
   memory games, battle, profile, settings).
-- `lib/models/` — curriculum, FSRS card, Meta task /
-  image / segment models.
+- `lib/models/` — curriculum, spaced-schedule +
+  FSRS card state, Meta task / image / segment models.
 - `lib/services/` — auth, cloud sync, memory store,
   Meta AI service, settings.
 - `lib/theme/`, `lib/widgets/`, `lib/utils/` — theme,
   shared buttons, navigation, streak helpers.
-- `test/` — 78 test files: models, FSRS, Meta-service
-  fallback, auth, sync, streak/engram economy,
-  transfer tasks and missions, UI details
+- `test/` — 94 test files (834 tests): models,
+  scheduler, Meta-service fallback, auth, sync,
+  streak/engram economy, transfer tasks and missions,
+  onboarding and screen flows, UI details
   (`flutter test`).
 - `tool/run.sh` — launch script with a `.env` key (not bundled),
   `tool/build_release.sh` — obfuscated release build.
@@ -196,8 +236,9 @@ flutter analyze
 flutter test
 ```
 
-With a live Meta call: the key goes once into the gitignored
-local `.env` file, from then on this is enough:
+With a live Meta call: copy `.env.example` to a gitignored
+local `.env` file, put the key in once, from then on this
+is enough:
 
 ```bash
 sh tool/run.sh
@@ -205,7 +246,11 @@ sh tool/run.sh
 
 This script passes the `.env` content as a `--dart-define` key
 (the file is NOT included in the build — `.env` is never an asset).
-For one occasion it can also go by hand:
+If a gitignored `.env.json` exists
+(`{"MODEL_API_KEY":"..."}`), the script prefers
+`--dart-define-from-file` instead, so the key never shows
+up in the process list. For one occasion it can also go
+by hand:
 
 ```bash
 flutter run --dart-define=MODEL_API_KEY=YourKeyHere
@@ -232,7 +277,9 @@ at startup. It also starts without Firebase config (but with
 live net): then the app opens directly instead of the sign-in,
 and all data stays on the device. For Firebase setup see:
 `FIREBASE_SETUP.md` (EU region recommended, `flutterfire
-configure --project=engrammo-app`).
+configure --project=engrammo-app`). On Linux there is no
+Firebase config yet, so the app runs device-local there
+(also fine for judging the offline path).
 
 ## Note on the old description
 
