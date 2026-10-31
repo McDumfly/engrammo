@@ -78,6 +78,15 @@ class MetaTask {
 
   final String imageUrl;
 
+  /// Raw SAM detail labels for [imageUrl] (SAM 3.1 `labels`), kept separate
+  /// from [stations]: stations are the playable, padded walk order, while
+  /// these are exactly what the segmenter spotted on the picture.
+  final List<String> samLabels;
+
+  /// Model id that produced [samLabels] (e.g. `sam-3.1`), empty when the
+  /// task never went through segmentation.
+  final String samModel;
+
   final String model;
 
   final DateTime createdAt;
@@ -95,6 +104,8 @@ class MetaTask {
     this.source = '',
     this.stations = const [],
     this.imageUrl = '',
+    this.samLabels = const [],
+    this.samModel = '',
     this.model = 'local',
     required this.createdAt,
     this.fallback = true,
@@ -111,6 +122,8 @@ class MetaTask {
     String? source,
     List<String>? stations,
     String? imageUrl,
+    List<String>? samLabels,
+    String? samModel,
     String? model,
     DateTime? createdAt,
     bool? fallback,
@@ -126,6 +139,8 @@ class MetaTask {
       source: source ?? this.source,
       stations: stations ?? List<String>.of(this.stations),
       imageUrl: imageUrl ?? this.imageUrl,
+      samLabels: samLabels ?? List<String>.of(this.samLabels),
+      samModel: samModel ?? this.samModel,
       model: model ?? this.model,
       createdAt: createdAt ?? this.createdAt,
       fallback: fallback ?? this.fallback,
@@ -143,6 +158,8 @@ class MetaTask {
     'source': source,
     'stations': stations,
     'imageUrl': imageUrl,
+    'samLabels': samLabels,
+    'samModel': samModel,
     'model': model,
     'createdAt': createdAt.toIso8601String(),
     'fallback': fallback,
@@ -167,6 +184,10 @@ class MetaTask {
         for (final e in (json['stations'] as List? ?? const [])) e.toString(),
       ],
       imageUrl: (json['imageUrl'] as String?) ?? '',
+      samLabels: [
+        for (final e in (json['samLabels'] as List? ?? const [])) e.toString(),
+      ],
+      samModel: (json['samModel'] as String?) ?? '',
       model: (json['model'] as String?) ?? 'local',
       createdAt: created ?? DateTime.fromMillisecondsSinceEpoch(0),
       fallback: (json['fallback'] as bool?) ?? true,
@@ -187,6 +208,8 @@ class MetaTask {
           source == other.source &&
           _listEq(stations, other.stations) &&
           imageUrl == other.imageUrl &&
+          _listEq(samLabels, other.samLabels) &&
+          samModel == other.samModel &&
           model == other.model &&
           createdAt == other.createdAt &&
           fallback == other.fallback;
@@ -203,6 +226,8 @@ class MetaTask {
     source,
     Object.hashAll(stations),
     imageUrl,
+    Object.hashAll(samLabels),
+    samModel,
     model,
     createdAt,
     fallback,

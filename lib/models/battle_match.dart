@@ -249,7 +249,10 @@ class BattleRecord {
       foeScore: (json['foeScore'] as num?)?.toInt() ?? 0,
       rounds: [
         for (final e in (json['rounds'] as List? ?? const []))
-          if (e is Map<String, dynamic>) BattleRoundRecord.fromJson(e),
+          if (e is Map)
+            BattleRoundRecord.fromJson(
+              e.map((k, v) => MapEntry(k.toString(), v)),
+            ),
       ],
       roundLines: [
         for (final e in (json['roundLines'] as List? ?? const [])) e.toString(),

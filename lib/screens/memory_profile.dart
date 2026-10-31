@@ -45,6 +45,7 @@ import '../models/recall_scoring.dart'
 import '../models/study_recommendation.dart'
     show StudyRecommendation, heuristicStudyRecommendation;
 import '../services/memory_store.dart';
+import '../theme/app_colors.dart' as app_colors;
 import '../widgets/honesty_sheet.dart';
 import '../widgets/recall_inputs.dart';
 import 'assessment_interview.dart';
@@ -60,18 +61,20 @@ class MemoryKind {
   String get displayModule => tr(moduleKey);
 }
 
-const paper = Color(0xFFFFFFFF);
-const ink = Color(0xFF22314A);
-const muted = Color(0xFF5B6B82);
-const line = Color(0xFFDEE9F7);
-const violet = Color(0xFF45A3FF);
-const violetDark = Color(0xFF1F6FC4);
-const teal = Color(0xFF14B8A6);
-const tealDark = Color(0xFF0B7E72);
-const amber = Color(0xFFFF9500);
-const coral = Color(0xFFFF6B6B);
-const sky = Color(0xFF8FCBFF);
-const trail = Color(0xFFC7E4FF);
+/// Egyetlen igazságforrás: [app_colors]. Ezek az álnevek a kompatibilitás
+/// miatt maradtak itt; új kód az app_colors neveket használja.
+const paper = app_colors.paper;
+const ink = app_colors.ink;
+const muted = app_colors.muted;
+const line = app_colors.line;
+const blue = app_colors.blue;
+const blueDark = app_colors.blueDark;
+const teal = app_colors.teal;
+const tealDark = app_colors.tealDark;
+const orange = app_colors.orange;
+const coral = app_colors.coral;
+const sky = app_colors.sky;
+const trail = app_colors.trail;
 
 const memoryKinds = [
   MemoryKind(
@@ -84,7 +87,7 @@ const memoryKinds = [
     'track_1_name',
     'mkind_1_sub',
     HugeIcons.strokeRoundedLayers01,
-    violet,
+    blue,
   ),
   MemoryKind(
     'track_2_name',
@@ -92,7 +95,7 @@ const memoryKinds = [
     HugeIcons.strokeRoundedCastle01,
     teal,
   ),
-  MemoryKind('track_3_name', 'mkind_3_sub', HugeIcons.strokeRoundedEye, amber),
+  MemoryKind('track_3_name', 'mkind_3_sub', HugeIcons.strokeRoundedEye, orange),
   MemoryKind(
     'track_4_name',
     'mkind_4_sub',
@@ -103,7 +106,7 @@ const memoryKinds = [
     'track_5_name',
     'mkind_5_sub',
     HugeIcons.strokeRoundedBrain01,
-    violetDark,
+    blueDark,
   ),
 ];
 
@@ -857,10 +860,6 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
       exact: good,
     );
     setState(() => _picked = option);
-    Future.delayed(const Duration(milliseconds: 750), () {
-      if (!mounted) return;
-      unawaited(_nextStep());
-    });
   }
 
   void _submitRecall(String text) {
@@ -878,10 +877,6 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
       exact: score.exact,
     );
     setState(() => _recall = score);
-    Future.delayed(const Duration(milliseconds: 1500), () {
-      if (!mounted) return;
-      unawaited(_nextStep());
-    });
   }
 
   void _answerCorsi(List<int> taps) {
@@ -894,10 +889,6 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
       exact: score.exact,
     );
     setState(() => _recall = score);
-    Future.delayed(const Duration(milliseconds: 1500), () {
-      if (!mounted) return;
-      unawaited(_nextStep());
-    });
   }
 
   Future<bool> _confirmExit() async {
@@ -988,7 +979,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                 value: (_step + 1) / _tasks.length,
                 minHeight: 6,
                 backgroundColor: context.hairline,
-                valueColor: const AlwaysStoppedAnimation(violet),
+                valueColor: const AlwaysStoppedAnimation(blue),
               ),
             ),
           ),
@@ -1045,9 +1036,9 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: amber.withValues(alpha: 0.16),
+                  color: orange.withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(99),
-                  border: Border.all(color: amber, width: 1.5),
+                  border: Border.all(color: orange, width: 1.5),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -1078,14 +1069,14 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: violet.withValues(alpha: 0.12),
+                    color: blue.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(99),
-                    border: Border.all(color: violet, width: 1.5),
+                    border: Border.all(color: blue, width: 1.5),
                   ),
                   child: Text(
                     tr('mprof_combo', {'n': _combo}),
                     style: TextStyle(
-                      color: violetDark,
+                      color: blueDark,
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
                     ),
@@ -1135,16 +1126,18 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
               ),
             ],
             const SizedBox(height: 16),
-            GestureDetector(
+            EngramPress3D(
               onTap: _reveal,
-              child: Container(
+              shadowColor: blueDark,
+              depth: 4,
+              borderRadius: BorderRadius.circular(14),
+              haptic: false,
+              semanticLabel: tr('mprof_continue'),
+              top: Container(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 decoration: BoxDecoration(
-                  color: violet,
+                  color: blue,
                   borderRadius: BorderRadius.circular(14),
-                  boxShadow: const [
-                    BoxShadow(color: violetDark, offset: Offset(0, 4)),
-                  ],
                 ),
                 alignment: Alignment.center,
                 child: Text(
@@ -1281,11 +1274,11 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                 ),
                 decoration: BoxDecoration(
                   color: _lastGood
-                      ? amber.withValues(alpha: 0.16)
+                      ? orange.withValues(alpha: 0.16)
                       : context.cardBg,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: _lastGood ? amber : context.hairline,
+                    color: _lastGood ? orange : context.hairline,
                     width: 2,
                   ),
                 ),
@@ -1322,6 +1315,38 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                   ],
                 ),
               ),
+            if (_answered) ...[
+              const SizedBox(height: 12),
+              EngramPress3D(
+                key: const ValueKey('assessment-continue'),
+                onTap: () {
+                  AppFeedback.medium();
+                  unawaited(_nextStep());
+                },
+                shadowColor: blueDark,
+                depth: 4,
+                borderRadius: BorderRadius.circular(14),
+                haptic: false,
+                semanticLabel: tr('mprof_continue_btn'),
+                top: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    color: blue,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    tr('mprof_continue_btn'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ],
         ],
       ),
@@ -1409,11 +1434,11 @@ class MemoryResultPage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: best == null ? teal : violet,
+              color: best == null ? teal : blue,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: best == null ? tealDark : violetDark,
+                  color: best == null ? tealDark : blueDark,
                   offset: const Offset(0, 4),
                 ),
               ],
@@ -1503,7 +1528,7 @@ class MemoryResultPage extends StatelessWidget {
             child: Text(
               tr('onboarding_honesty_link'),
               style: const TextStyle(
-                color: violet,
+                color: blue,
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
               ),
@@ -1516,7 +1541,7 @@ class MemoryResultPage extends StatelessWidget {
               decoration: BoxDecoration(
                 color: context.cardBg,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: violet, width: 2),
+                border: Border.all(color: blue, width: 2),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1525,13 +1550,13 @@ class MemoryResultPage extends StatelessWidget {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: violet.withValues(alpha: 0.14),
+                      color: blue.withValues(alpha: 0.14),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     alignment: Alignment.center,
                     child: const HugeIcon(
                       icon: HugeIcons.strokeRoundedAiChat02,
-                      color: violet,
+                      color: blue,
                       size: 24,
                       strokeWidth: 2.0,
                     ),
@@ -1650,16 +1675,20 @@ class MemoryResultPage extends StatelessWidget {
                 ),
                 if (onStartTrack != null) ...[
                   const SizedBox(height: 12),
-                  GestureDetector(
+                  EngramPress3D(
                     onTap: () => onStartTrack!(rec.track),
-                    child: Container(
+                    shadowColor: tealDark,
+                    depth: 4,
+                    borderRadius: BorderRadius.circular(14),
+                    haptic: false,
+                    semanticLabel: tr('mprof_start_track', {
+                      'name': memoryKinds[rec.track].displayName.toUpperCase(),
+                    }),
+                    top: Container(
                       padding: const EdgeInsets.symmetric(vertical: 13),
                       decoration: BoxDecoration(
                         color: teal,
                         borderRadius: BorderRadius.circular(14),
-                        boxShadow: const [
-                          BoxShadow(color: tealDark, offset: Offset(0, 4)),
-                        ],
                       ),
                       alignment: Alignment.center,
                       child: Text(
@@ -1689,7 +1718,7 @@ class MemoryResultPage extends StatelessWidget {
             decoration: BoxDecoration(
               color: context.cardBg,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: amber, width: 2),
+              border: Border.all(color: orange, width: 2),
             ),
             child: Row(
               children: [
@@ -1697,7 +1726,7 @@ class MemoryResultPage extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: amber.withValues(alpha: 0.16),
+                    color: orange.withValues(alpha: 0.16),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   alignment: Alignment.center,
@@ -1740,19 +1769,21 @@ class MemoryResultPage extends StatelessWidget {
             const SizedBox(height: 10),
           ],
           const SizedBox(height: 8),
-          GestureDetector(
+          EngramPress3D(
             onTap: () {
               AppFeedback.medium();
               Navigator.of(context).pop();
             },
-            child: Container(
+            shadowColor: blueDark,
+            depth: 4,
+            borderRadius: BorderRadius.circular(14),
+            haptic: false,
+            semanticLabel: tr('mprof_continue_btn'),
+            top: Container(
               padding: const EdgeInsets.symmetric(vertical: 14),
               decoration: BoxDecoration(
-                color: violet,
+                color: blue,
                 borderRadius: BorderRadius.circular(14),
-                boxShadow: const [
-                  BoxShadow(color: violetDark, offset: Offset(0, 4)),
-                ],
               ),
               alignment: Alignment.center,
               child: Text(
@@ -1788,7 +1819,7 @@ class MemoryResultPage extends StatelessWidget {
                 children: [
                   const HugeIcon(
                     icon: HugeIcons.strokeRoundedRefresh,
-                    color: violet,
+                    color: blue,
                     size: 20,
                     strokeWidth: 2.2,
                   ),
@@ -1796,7 +1827,7 @@ class MemoryResultPage extends StatelessWidget {
                   Text(
                     tr('mprof_retake'),
                     style: const TextStyle(
-                      color: violet,
+                      color: blue,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1,
                     ),
@@ -1811,9 +1842,17 @@ class MemoryResultPage extends StatelessWidget {
   }
 }
 
-class _CalibrationCard extends StatelessWidget {
+class _CalibrationCard extends StatefulWidget {
   final List<int> scores;
   const _CalibrationCard({required this.scores});
+
+  @override
+  State<_CalibrationCard> createState() => _CalibrationCardState();
+}
+
+class _CalibrationCardState extends State<_CalibrationCard> {
+  late final Future<({Map<int, LocalNorm> norms, List<List<double>> runs})>
+  _future = _load();
 
   Future<({Map<int, LocalNorm> norms, List<List<double>> runs})> _load() async {
     final norms = await MemoryStore.loadLocalNorms();
@@ -1824,16 +1863,16 @@ class _CalibrationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-      future: _load(),
+      future: _future,
       builder: (context, snap) {
         final norms = snap.data?.norms ?? const <int, LocalNorm>{};
         final runs = snap.data?.runs ?? const <List<double>>[];
         final n = norms.values.isEmpty
             ? 0
             : norms.values.map((v) => v.n).reduce((a, b) => a > b ? a : b);
-        final myAvg = scores.isEmpty
+        final myAvg = widget.scores.isEmpty
             ? 0
-            : scores.reduce((a, b) => a + b) / scores.length;
+            : widget.scores.reduce((a, b) => a + b) / widget.scores.length;
         String line1 = n <= 0
             ? tr('mprof_calibrating')
             : (n == 1

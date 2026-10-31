@@ -14,10 +14,5 @@ const coral = Color(0xFFFF6B6B);
 const coralDark = Color(0xFFC81E1E);
 const sky = Color(0xFF8FCBFF);
 const trail = Color(0xFFC7E4FF);
-
-@Deprecated('Use blue instead')
-const violet = blue;
-@Deprecated('Use blueDark instead')
-const violetDark = blueDark;
-@Deprecated('Use orange instead')
-const amber = orange;
+const success = Color(0xFF16A34A);
+const error = Color(0xFFE5484D);

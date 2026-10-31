@@ -4,6 +4,7 @@ import 'package:hugeicons/hugeicons.dart';
 import '../l10n/app_localizations.dart';
 import '../models/claims_policy.dart';
 import '../services/app_feedback.dart';
+import '../theme/app_colors.dart' show blue;
 import '../theme/app_theme.dart';
 import 'app_buttons.dart';
 
@@ -65,7 +66,7 @@ class _HonestySheet extends StatelessWidget {
                       alignment: Alignment.center,
                       child: const HugeIcon(
                         icon: HugeIcons.strokeRoundedShield01,
-                        color: Color(0xFF45A3FF),
+                        color: blue,
                         size: 24,
                         strokeWidth: 2.0,
                       ),

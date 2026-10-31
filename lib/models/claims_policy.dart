@@ -1,3 +1,7 @@
+/// Claim guardrail: blocks overpromising AI/user text
+/// ("photographic memory", "boost IQ", "prevent dementia", ...).
+/// See `docs/RESEARCH.md` §11–§12: teach first, label everything,
+/// never promise clinical outcomes.
 library;
 
 import '../l10n/app_localizations.dart';

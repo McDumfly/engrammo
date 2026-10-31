@@ -5,6 +5,7 @@ import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../services/app_feedback.dart';
 import '../widgets/ai_help_button.dart';
+import '../widgets/app_buttons.dart';
 import '../theme/app_colors.dart' show blue, blueDark, trail;
 
 class BenchmarkDetailPage extends StatefulWidget {
@@ -247,53 +248,10 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
                     ),
                   ),
           ),
-          const SizedBox(height: 12),
-          _card(
-            title: tr('bstat_community'),
-            subtitle: tr('bstat_compare'),
-            trailing: _pill(tr('bstat_soon')),
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: context.cardBg,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: context.hairline, width: 2),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: blue.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    alignment: Alignment.center,
-                    child: const HugeIcon(
-                      icon: HugeIcons.strokeRoundedUserGroup,
-                      color: blueDark,
-                      size: 20,
-                      strokeWidth: 2.0,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      _attempts.isEmpty
-                          ? tr('bstat_play_first')
-                          : tr('bstat_cloud', {'n': _attempts.length}),
-                      style: TextStyle(
-                        color: context.inkText,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          // A közösségi összehasonlítás még nincs implementálva: a „hamarosan"
+          // kártyát elrejtjük, amíg nincs mögötte valódi funkció.
           const SizedBox(height: 14),
-          GestureDetector(
+          EngramPress3D(
             onTap: () async {
               AppFeedback.light();
               await Navigator.of(context)
@@ -308,17 +266,16 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
                 });
               }
             },
-            child: Container(
+            shadowColor: blueDark.withValues(alpha: 0.5),
+            depth: 4,
+            borderRadius: BorderRadius.circular(14),
+            haptic: false,
+            semanticLabel: tr('bstat_play'),
+            top: Container(
               padding: const EdgeInsets.symmetric(vertical: 15),
               decoration: BoxDecoration(
                 color: blue,
                 borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: blueDark.withValues(alpha: 0.5),
-                    offset: const Offset(0, 4),
-                  ),
-                ],
               ),
               alignment: Alignment.center,
               child: Text(

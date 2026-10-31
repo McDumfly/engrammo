@@ -24,15 +24,16 @@ import 'settings_screen.dart';
 
 import '../models/claims_policy.dart' show levelExplainer, levelFootnote;
 import '../models/collectibles.dart' show engram;
-import 'memory_profile.dart'
+import '../utils/streak_restore.dart';
+import '../theme/app_colors.dart'
     show
         ink,
-        violet,
+        blue,
         teal,
-        amber,
-        coral,
-        memoryKinds,
-        MemoryAssessmentIntroPage;
+        orange,
+        coral;
+import 'memory_profile.dart'
+    show memoryKinds, MemoryAssessmentIntroPage;
 
 class KreedsProfilePage extends StatefulWidget {
   const KreedsProfilePage({super.key});
@@ -83,7 +84,12 @@ class _KreedsProfilePageState extends State<KreedsProfilePage> {
     verdictKind = MemoryStore.lastDominantKind;
     final cachedStreak = MemoryStore.lastStreakState;
     if (cachedStreak != null) {
-      streak = cachedStreak.streak;
+      final now = DateTime.now();
+      streak = StreakRestore.displayStreak(
+        stored: cachedStreak.streak,
+        history: cachedStreak.history,
+        today: DateTime(now.year, now.month, now.day),
+      );
       engrams = cachedStreak.engrams;
       weekDone = _weekDoneFromHistory(cachedStreak.history);
     }
@@ -96,17 +102,24 @@ class _KreedsProfilePageState extends State<KreedsProfilePage> {
           setState(() => battleRating = rating);
         });
     _reloadScores();
+    MemoryStore.addScoresListener(_reloadScores);
     MemoryStore.loadStreakState()
         .then((s) {
           if (!mounted) return;
+          final now = DateTime.now();
+          final shown = StreakRestore.displayStreak(
+            stored: s.streak,
+            history: s.history,
+            today: DateTime(now.year, now.month, now.day),
+          );
           final done = _weekDoneFromHistory(s.history);
-          if (s.streak == streak &&
+          if (shown == streak &&
               s.engrams == engrams &&
               _sameWeek(done, weekDone)) {
             return;
           }
           setState(() {
-            streak = s.streak;
+            streak = shown;
             engrams = s.engrams;
             weekDone = done;
           });
@@ -138,14 +151,6 @@ class _KreedsProfilePageState extends State<KreedsProfilePage> {
     });
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Practice growth (duel wins, finished lessons) persists new scores while
-    // this page is away: reload so the memory level display is always fresh.
-    _reloadScores();
-  }
-
   void _refreshArena() {
     if (!mounted) return;
     // The arena warms up at app start; until then the profile keeps its
@@ -159,6 +164,7 @@ class _KreedsProfilePageState extends State<KreedsProfilePage> {
   @override
   void dispose() {
     botArena.removeListener(_refreshArena);
+    MemoryStore.removeScoresListener(_reloadScores);
     super.dispose();
   }
 
@@ -348,9 +354,6 @@ class _KreedsProfilePageState extends State<KreedsProfilePage> {
               username: username.isEmpty ? tr('kreeds_new_handle') : username,
               streak: streak,
               following: friendCount,
-              // No follower graph exists yet: bots never follow back, so the
-              // honest count is zero instead of mirroring the following list.
-              followers: 0,
               avatarOpts: avatarOpts,
               onAvatarTap: _openAvatarEditor,
               onShareTap: _share,
@@ -408,7 +411,13 @@ class _KreedsProfilePageState extends State<KreedsProfilePage> {
 }
 
 String compactNumber(int n) {
-  if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
+  if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
+  if (n >= 1000) {
+    final k = n / 1000;
+    // A kerekítés nem csordulhat át (999950 → 1000.0K helyett 1.0M).
+    if (k >= 999.95) return '1.0M';
+    return '${k.toStringAsFixed(1)}K';
+  }
   return '$n';
 }
 
@@ -476,7 +485,6 @@ class _Hero extends StatelessWidget {
   final String username;
   final int streak;
   final int following;
-  final int followers;
   final Map<String, String> avatarOpts;
   final VoidCallback onAvatarTap;
   final VoidCallback onShareTap;
@@ -487,7 +495,6 @@ class _Hero extends StatelessWidget {
     required this.username,
     required this.streak,
     this.following = 0,
-    this.followers = 0,
     required this.avatarOpts,
     required this.onAvatarTap,
     required this.onShareTap,
@@ -567,7 +574,7 @@ class _Hero extends StatelessWidget {
                           offset: const Offset(0, 4),
                         ),
                         BoxShadow(
-                          color: violet.withValues(alpha: 0.18),
+                          color: blue.withValues(alpha: 0.18),
                           blurRadius: 16,
                           offset: const Offset(0, 2),
                         ),
@@ -622,7 +629,7 @@ class _Hero extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          _FollowStats(following: following, followers: followers),
+          _FollowStats(following: following),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -639,11 +646,12 @@ class _Hero extends StatelessWidget {
 
 class _FollowStats extends StatelessWidget {
   final int following;
-  final int followers;
-  const _FollowStats({required this.following, required this.followers});
+  const _FollowStats({required this.following});
 
   @override
   Widget build(BuildContext context) {
+    // Nincs követő-gráf (a botok sosem követnek vissza), ezért csak a
+    // követések száma látszik — a fix 0-s csempe töröttnek hatna.
     return Container(
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
@@ -651,71 +659,33 @@ class _FollowStats extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: context.hairline, width: 2),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: context.softBg,
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    '$following',
-                    style: TextStyle(
-                      color: violet,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 26,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    tr('kreeds_following'),
-                    style: TextStyle(
-                      color: context.mutedText,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: context.softBg,
+          borderRadius: BorderRadius.circular(18),
+        ),
+        child: Column(
+          children: [
+            Text(
+              '$following',
+              style: TextStyle(
+                color: blue,
+                fontWeight: FontWeight.w900,
+                fontSize: 26,
               ),
             ),
-          ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: Color(0xFF9B7BFF).withValues(alpha: 0.16),
-
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    '$followers',
-                    style: TextStyle(
-                      color: Color(0xFF9B7BFF),
-                      fontWeight: FontWeight.w900,
-                      fontSize: 26,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    tr('kreeds_followers'),
-                    style: TextStyle(
-                      color: context.mutedText,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
+            const SizedBox(height: 2),
+            Text(
+              tr('kreeds_following'),
+              style: TextStyle(
+                color: context.mutedText,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -961,9 +931,9 @@ class _AssessmentCtaCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: violet.withValues(alpha: 0.10),
+          color: blue.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: violet, width: 2),
+          border: Border.all(color: blue, width: 2),
         ),
         child: Row(
           children: [
@@ -971,13 +941,13 @@ class _AssessmentCtaCard extends StatelessWidget {
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                color: violet.withValues(alpha: 0.16),
+                color: blue.withValues(alpha: 0.16),
                 borderRadius: BorderRadius.circular(14),
               ),
               alignment: Alignment.center,
               child: const HugeIcon(
                 icon: HugeIcons.strokeRoundedBrain01,
-                color: violet,
+                color: blue,
                 size: 26,
                 strokeWidth: 2,
               ),
@@ -1005,7 +975,7 @@ class _AssessmentCtaCard extends StatelessWidget {
             ),
             const HugeIcon(
               icon: HugeIcons.strokeRoundedArrowRight01,
-              color: violet,
+              color: blue,
               size: 26,
               strokeWidth: 2.2,
             ),
@@ -1101,7 +1071,7 @@ class _MemoryIdentityCard extends StatelessWidget {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: amber,
+                  color: orange,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -1178,7 +1148,7 @@ class _MemoryIdentityCard extends StatelessWidget {
                             padding: EdgeInsets.all(4),
                             child: HugeIcon(
                               icon: HugeIcons.strokeRoundedInformationCircle,
-                              color: violet,
+                              color: blue,
                               size: 16,
                               strokeWidth: 2.2,
                             ),
@@ -1205,7 +1175,7 @@ class _MemoryIdentityCard extends StatelessWidget {
                     children: [
                       const HugeIcon(
                         icon: HugeIcons.strokeRoundedRefresh,
-                        color: violet,
+                        color: blue,
                         size: 16,
                         strokeWidth: 2.2,
                       ),
@@ -1213,7 +1183,7 @@ class _MemoryIdentityCard extends StatelessWidget {
                       Text(
                         tr('kreeds_retake'),
                         style: TextStyle(
-                          color: violet,
+                          color: blue,
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
                         ),
@@ -1362,7 +1332,7 @@ class _QuickPills extends StatelessWidget {
         Expanded(
           child: _Pill(
             icon: HugeIcons.strokeRoundedStar,
-            color: violet,
+            color: blue,
             value: compactNumber(xp),
             label: tr('kreeds_xp'),
           ),
@@ -1380,7 +1350,7 @@ class _QuickPills extends StatelessWidget {
         Expanded(
           child: _Pill(
             icon: HugeIcons.strokeRoundedTrophy,
-            color: amber,
+            color: orange,
             value: leagueRank <= 0 ? '—' : '#$leagueRank',
             label: leagueName,
           ),
@@ -1444,8 +1414,13 @@ class _WeekCard extends StatelessWidget {
   final int streak;
   const _WeekCard({required this.weekDone, required this.streak});
 
-  static List<String> get _days =>
-      [for (var i = 0; i < 7; i++) tr('kreeds_day_$i')];
+  /// A gördülő 7 napos ablakhoz forgatott napcímkék: az utolsó oszlop
+  /// mindig a mai nap (a fix H..V sorrend rossz napok alá tenné a pipákat).
+  static List<String> get _days {
+    final base = [for (var i = 0; i < 7; i++) tr('kreeds_day_$i')];
+    final todayIdx = (DateTime.now().weekday - 1) % 7;
+    return [for (var i = 0; i < 7; i++) base[(todayIdx - (6 - i)) % 7]];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1607,7 +1582,7 @@ class _MemoryBadgesState extends State<_MemoryBadges> {
       ),
       (
         HugeIcons.strokeRoundedEye,
-        amber,
+        orange,
         tr('kreeds_badge_eye'),
         _assessed,
         tr('kreeds_badge_eye_sub'),
@@ -1621,7 +1596,7 @@ class _MemoryBadgesState extends State<_MemoryBadges> {
       ),
       (
         HugeIcons.strokeRoundedBrain01,
-        violet,
+        blue,
         tr('kreeds_badge_gym'),
         _battled,
         tr('kreeds_badge_gym_sub'),

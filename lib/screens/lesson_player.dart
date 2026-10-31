@@ -20,6 +20,7 @@ import '../models/marathon.dart'
         variantSeedFor;
 import '../l10n/app_localizations.dart';
 import '../models/meta_task.dart';
+import '../models/palace_drill.dart' show spatialSceneForLesson;
 import '../models/recall_scoring.dart' show RecallScore, scoreTaskRecall;
 import '../models/transfer_targets.dart';
 import '../models/user_goals.dart';
@@ -29,11 +30,13 @@ import '../services/app_feedback.dart';
 import '../services/memory_growth.dart';
 import '../services/memory_store.dart';
 import '../services/meta_ai_service.dart';
+import '../theme/app_colors.dart' show blue, coral, teal;
 import '../theme/app_theme.dart';
 import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
 import '../widgets/dynamic_task_view.dart';
 import '../widgets/recall_inputs.dart';
+import '../widgets/sam_overlay.dart';
 
 String lessonKindFor(int chapter, int lesson) {
   const base = ['sensory', 'sequence', 'spatial', 'visual', 'verbal', 'verbal'];
@@ -130,6 +133,17 @@ String _crossKindFor(String base) {
 
 bool lessonRoundKindWantsImage(String kind) =>
     kind != 'number' && kind != 'sequence' && kind != 'pattern';
+
+/// How many image rounds of ONE lesson run get an AI painting plus SAM
+/// segmentation. Semantics: per lesson run (each `_startDrill` resets it),
+/// counted only over rounds whose kind wants an image.
+/// Palace Builder (chapter 2) is the imagery chapter: every round is
+/// painted, so the walk order always comes from SAM labels on a real
+/// picture. Other chapters keep the cheaper budget of 2.
+int chapterImageBudget(int chapter, int rounds) {
+  if (chapter == 2) return rounds.clamp(0, 1 << 30);
+  return 2;
+}
 
 String lessonRoundKindFor(int chapter, int lesson, int round, int rounds) {
   final base = lessonKindFor(chapter, lesson);
@@ -348,6 +362,68 @@ class LessonPlayerPage extends StatefulWidget {
 
   @override
   State<LessonPlayerPage> createState() => _LessonPlayerPageState();
+}
+
+/// AI-státuszkártya gyorsítótárazott lekérdezéssel: a kulcs/hozzájárulás
+/// ellenőrzése oldalanként egyszer fut, nem minden újraépüléskor.
+class _AiStatusCard extends StatefulWidget {
+  const _AiStatusCard();
+
+  @override
+  State<_AiStatusCard> createState() => _AiStatusCardState();
+}
+
+class _AiStatusCardState extends State<_AiStatusCard> {
+  late final Future<List<bool>> _future = Future.wait([
+    MetaAIService.hasAnyKey(),
+    MetaAIService.cloudConsent(),
+  ]);
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<bool>>(
+      future: _future,
+      builder: (context, snap) {
+        final data = snap.data;
+        final on = data != null && data.length == 2 && data[0] && data[1];
+        return Container(
+          key: const ValueKey('lesson-ai-status'),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: on ? teal.withValues(alpha: 0.10) : context.cardBg,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: on ? teal.withValues(alpha: 0.5) : context.faintBorder,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: on ? teal : context.mutedText.withValues(alpha: 0.5),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  on ? tr('ai_palace_on') : tr('ai_palace_off'),
+                  style: TextStyle(
+                    color: context.inkText,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
 
 enum _Phase { coach, loading, stimulus, question, done }
@@ -575,7 +651,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
         ),
       );
     }
-    final task = await MetaAIService.buildDynamicTask(
+    final built = await MetaAIService.buildDynamicTask(
       DynamicTaskRequest(
         targetId: _effectiveTargetId,
         customLabel: _effectiveCustomLabel,
@@ -586,13 +662,24 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
         difficulty: goal?.analysis?.difficulty ?? 1,
         locale: AppLocalizations.localeCode,
         seed: 'own:${widget.chapterIndex}:${DateTime.now().millisecondsSinceEpoch}',
+        wantsImage: widget.chapterIndex == 2,
       ),
     );
+    // Palace Builder own-material blocks carry an illustration prompt:
+    // paint and segment them so the player's own rooms get real pictures.
+    final task = await MetaAIService.enrichDynamicTask(built);
     if (!mounted) return;
     setState(() {
       _ownBuilding = false;
       _ownDynamic = task;
     });
+  }
+
+  /// Palace Builder coach card: tells the player upfront whether every
+  /// round will be AI-painted and SAM-segmented, or what to switch on
+  /// (cloud consent + API key in Settings) to get the pictures.
+  Widget _aiStatusCard() {
+    return const _AiStatusCard();
   }
 
   Widget _sessionProgressBar() {
@@ -641,9 +728,9 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: _results[i] == true
-                    ? const Color(0xFF14B8A6).withValues(alpha: 0.14)
+                    ? teal.withValues(alpha: 0.14)
                     : _results.containsKey(i)
-                    ? const Color(0xFFFF6B6B).withValues(alpha: 0.12)
+                    ? coral.withValues(alpha: 0.12)
                     : i == current
                     ? context.washBg
                     : context.cardBg,
@@ -686,9 +773,14 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
   int get _answeredCount => _results.length;
   int get _correctCount => _results.values.where((c) => c).length;
 
-  LessonSpec get _lesson => chapters[widget.chapterIndex]
-      .sections[widget.sectionIndex]
-      .lessons[widget.lessonIndex];
+  LessonSpec get _lesson {
+    final ci = widget.chapterIndex.clamp(0, chapters.length - 1);
+    final sections = chapters[ci].sections;
+    final si = widget.sectionIndex.clamp(0, sections.length - 1);
+    final lessons = sections[si].lessons;
+    final li = widget.lessonIndex.clamp(0, lessons.length - 1);
+    return lessons[li];
+  }
 
   Future<MetaTask> _loadRoundTask(int round, {bool withImage = true}) async {
     final kind = lessonRoundKindFor(
@@ -731,6 +823,13 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
           task,
           difficulty: difficulty,
           seed: seed,
+          scene: widget.chapterIndex == 2
+              ? spatialSceneForLesson(
+                  widget.sectionIndex,
+                  widget.lessonIndex,
+                )
+              : '',
+          locale: AppLocalizations.localeCode,
         );
       }
       return await MetaAIService.enrichVisualTask(task, seed: seed);
@@ -782,13 +881,17 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
   }
 
   Future<void> _upgradeInBackground() async {
-    bool hasKey;
+    // SAM-as-default, honestly gated: the upgrade loop runs only when cloud
+    // AI can actually paint and segment (key + consent). Offline lessons
+    // keep their local tasks instead of churning through fallback rounds;
+    // [_aiStatusCard] tells the player how to switch AI on.
+    bool ready;
     try {
-      hasKey = await MetaAIService.hasAnyKey();
+      ready = await MetaAIService.cloudReady();
     } catch (_) {
-      hasKey = false;
+      ready = false;
     }
-    if (!hasKey || !mounted) return;
+    if (!ready || !mounted) return;
     final rounds = _rounds;
     if (rounds <= 0 || !mounted) return;
     setState(() {
@@ -798,7 +901,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       _upgradeTotal = rounds;
     });
     var done = 0;
-    var imageLeft = 2;
+    var imageLeft = chapterImageBudget(widget.chapterIndex, rounds);
     for (var r = 0; r < rounds; r++) {
       final kind = lessonRoundKindFor(
         widget.chapterIndex,
@@ -830,7 +933,10 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       if (!mounted) return;
       done++;
       setState(() {
-        if (r < _tasks.length && !_results.containsKey(r)) {
+        // Csak a jövőbeli köröket cseréljük: az éppen nézett stimulus
+        // memorizálás közben nem változhat meg a játékos alatt.
+        final current = _step?.task ?? -1;
+        if (r < _tasks.length && r > current && !_results.containsKey(r)) {
           _tasks[r] = upgraded;
         }
         _upgradeDone = done;
@@ -1124,6 +1230,335 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
   }
 
   Widget _coachView() {
+    final intro = isTrackIntroLesson(
+      widget.chapterIndex,
+      widget.sectionIndex,
+      widget.lessonIndex,
+    );
+    if (intro) return _coachIntroView();
+    return _coachCompactView();
+  }
+
+  String _sessionInfoText(bool foundation) {
+    if (foundation) return tr('lp_session_foundation', {'n': _rounds});
+    if (_lag <= 0) return tr('lp_session_plain', {'n': _rounds});
+    if (_lag == 1) return tr('lp_session_lag_one', {'n': _rounds});
+    return tr('lp_session_lag_many', {'n': _rounds, 'lag': _lag});
+  }
+
+  Widget _sessionInfoCard(bool foundation) {
+    return Container(
+      key: const ValueKey('lesson-session-info'),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: context.cardBg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: context.faintBorder),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              _sessionInfoText(foundation),
+              style: TextStyle(
+                color: context.mutedText,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _techniqueEssenceCard(CoachContent coach) {
+    return Container(
+      key: const ValueKey('lesson-technique-essence'),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: context.washBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.washBorder, width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            tr('lp_technique_title'),
+            style: TextStyle(
+              color: context.mutedText,
+              fontWeight: FontWeight.w900,
+              fontSize: 11,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 8),
+          for (var i = 0; i < coach.steps.length; i++)
+            Padding(
+              padding: EdgeInsets.only(
+                bottom: i + 1 < coach.steps.length ? 6 : 0,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: context.cardBg,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: context.washBorder, width: 2),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      '${i + 1}',
+                      style: TextStyle(
+                        color: context.inkText,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 3),
+                      child: Text(
+                        coach.steps[i],
+                        style: TextStyle(
+                          color: context.inkText,
+                          fontSize: 14,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _depthChip() {
+    return Container(
+      key: const ValueKey('lesson-depth-chip'),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: context.washBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: context.washBorder),
+      ),
+      child: Row(
+        children: [
+          HugeIcon(
+            icon: HugeIcons.strokeRoundedRepeat,
+            color: context.mutedText,
+            size: 16,
+            strokeWidth: 2.0,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              depthChipLabelIn(AppLocalizations.localeCode, _depth),
+              style: TextStyle(
+                color: context.mutedText,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailsExpander(CoachContent coach, bool foundation) {
+    return Material(
+      color: context.cardBg,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: context.faintBorder),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: ExpansionTile(
+        key: const ValueKey('lesson-details'),
+        title: Text(
+          tr('lp_details_title'),
+          style: TextStyle(
+            color: context.inkText,
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+          ),
+        ),
+        iconColor: context.mutedText,
+        collapsedIconColor: context.mutedText,
+        childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+        children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              tr('lp_about_title'),
+              style: TextStyle(
+                color: context.mutedText,
+                fontWeight: FontWeight.w900,
+                fontSize: 11,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              coach.intro,
+              style: TextStyle(
+                color: context.inkText,
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              tr('lp_how_title'),
+              style: TextStyle(
+                color: context.mutedText,
+                fontWeight: FontWeight.w900,
+                fontSize: 11,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              tr('lp_how_body', {'n': _rounds}),
+              style: TextStyle(
+                color: context.inkText,
+                fontSize: 13,
+                height: 1.5,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              tr('lp_why_title'),
+              style: TextStyle(
+                color: context.mutedText,
+                fontWeight: FontWeight.w900,
+                fontSize: 11,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              coach.why,
+              style: TextStyle(
+                color: context.inkText,
+                fontSize: 13,
+                height: 1.45,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              coach.source,
+              style: TextStyle(
+                color: context.mutedText,
+                fontStyle: FontStyle.italic,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _transferTargetsCard(),
+          if (foundation) ...[
+            const SizedBox(height: 12),
+            _workedExampleCard(),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _coachCompactView() {
+    final coach = coachFor(
+      widget.chapterIndex,
+      widget.sectionIndex,
+      AppLocalizations.localeCode,
+    );
+    final foundation = isFoundationLesson(
+      widget.chapterIndex,
+      widget.sectionIndex,
+      widget.lessonIndex,
+    );
+    final lagIntro = wantsLagIntroduction(
+      widget.chapterIndex,
+      widget.sectionIndex,
+      _lag,
+    );
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+      children: [
+        Text(
+          lessonTitleIn(
+            AppLocalizations.localeCode,
+            widget.chapterIndex,
+            widget.sectionIndex,
+            widget.lessonIndex,
+          ),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontWeight: FontWeight.w900,
+            fontSize: 24,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          coach.title,
+          style: TextStyle(
+            color: context.mutedText,
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+          ),
+        ),
+        const SizedBox(height: 8),
+        _sessionInfoCard(foundation),
+        if (widget.chapterIndex == 2) ...[
+          const SizedBox(height: 12),
+          _aiStatusCard(),
+        ],
+        if (lagIntro) ...[const SizedBox(height: 12), _lagIntroCard()],
+        const SizedBox(height: 12),
+        _techniqueEssenceCard(coach),
+        const SizedBox(height: 16),
+        EngramButton(
+          key: const ValueKey('lesson-coach-next'),
+          label: tr('lp_start'),
+          onPressed: () => _startDrill(),
+        ),
+        const SizedBox(height: 12),
+        _depthChip(),
+        const SizedBox(height: 12),
+        _detailsExpander(coach, foundation),
+      ],
+    );
+  }
+
+  Widget _coachIntroView() {
     final coach = coachFor(
       widget.chapterIndex,
       widget.sectionIndex,
@@ -1197,6 +1632,10 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
             ],
           ),
         ),
+        if (widget.chapterIndex == 2) ...[
+          const SizedBox(height: 12),
+          _aiStatusCard(),
+        ],
         if (foundation) ...[
           const SizedBox(height: 12),
           _workedExampleCard(),
@@ -1609,9 +2048,11 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
   }
 
   Widget _stimulusView() {
-    final task = _activeTask!;
+    final task = _activeTask;
+    final step = _step;
+    if (task == null || step == null) return const SizedBox.shrink();
     final n = _tasks.length;
-    final round = _step!.task;
+    final round = step.task;
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
       children: [
@@ -1722,34 +2163,32 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
     );
   }
 
-  Widget _taskImage(String imageUrl) {
-    if (imageUrl.isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.network(
-          imageUrl,
-          height: 150,
-          width: double.infinity,
-          fit: BoxFit.cover,
-          cacheHeight: 300,
-          loadingBuilder: (context, child, progress) {
-            if (progress == null) return child;
-            return const SizedBox(
-              height: 150,
-              child: Center(
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2.5),
-                ),
-              ),
-            );
-          },
-          errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-        ),
-      ),
+  /// AI picture plus the numbered SAM walk overlaid. In Palace Builder
+  /// lessons a missing picture is never silent: once the background
+  /// upgrade settled, the player sees why there is no painting instead of
+  /// an empty gap.
+  Widget _samImage(MetaTask task) {
+    if (task.imageUrl.isEmpty) {
+      if (widget.chapterIndex == 2 && !_upgrading) {
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text(
+            tr('ai_picture_offline'),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: context.mutedText,
+              fontStyle: FontStyle.italic,
+              fontSize: 12,
+            ),
+          ),
+        );
+      }
+      return const SizedBox.shrink();
+    }
+    return SamOverlay(
+      imageUrl: task.imageUrl,
+      stations: task.stations,
+      samLabels: task.samLabels,
     );
   }
 
@@ -1773,7 +2212,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _taskImage(task.imageUrl),
+        _samImage(task),
         _techniqueCue(tr('lp_cue_loci')),
         for (var i = 0; i < task.stations.length; i++)
           Padding(
@@ -1836,7 +2275,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _taskImage(task.imageUrl),
+        _samImage(task),
         _techniqueCue(tr('lp_cue_picture')),
         Wrap(
           spacing: 6,
@@ -1882,7 +2321,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _taskImage(task.imageUrl),
+        _samImage(task),
         Text(
           task.items.isEmpty ? '···' : task.items.join('   '),
           textAlign: TextAlign.center,
@@ -1898,7 +2337,10 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
   }
 
   Widget _gridStimulus(MetaTask task) {
-    final lit = task.items.map(int.parse).toSet();
+    final lit = {
+      for (final raw in task.items)
+        int.tryParse(raw.trim()) ?? -1,
+    }..remove(-1);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1915,7 +2357,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
                     margin: EdgeInsets.only(left: col == 0 ? 0 : 8),
                     decoration: BoxDecoration(
                       color: lit.contains(row * 3 + col)
-                          ? const Color(0xFF14B8A6)
+                          ? teal
                           : context.hairline,
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -1930,8 +2372,11 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
   Widget _questionView() {
     if (_phase == _Phase.done) _prefillOwnMaterial();
     final task = _phase == _Phase.done && _tasks.isNotEmpty
-        ? _tasks[_plan.isNotEmpty ? _plan.last.task : 0]
-        : _activeTask!;
+        ? _tasks[_plan.isNotEmpty
+              ? _plan.last.task.clamp(0, _tasks.length - 1)
+              : 0]
+        : _activeTask;
+    if (task == null) return const SizedBox.shrink();
     final done = _phase == _Phase.done;
     final n = _tasks.length;
     final showNext =
@@ -2035,20 +2480,16 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
                     ),
                     decoration: BoxDecoration(
                       color: _picked != null && i == task.correct
-                          ? const Color(
-                              0xFF14B8A6,
-                            ).withValues(alpha: 0.14)
+                          ? teal.withValues(alpha: 0.14)
                           : _picked != null && i == _picked
-                          ? const Color(
-                              0xFFFF6B6B,
-                            ).withValues(alpha: 0.12)
+                          ? coral.withValues(alpha: 0.12)
                           : context.cardBg,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
                         color: _picked != null && i == task.correct
-                            ? const Color(0xFF14B8A6)
+                            ? teal
                             : _picked != null && i == _picked
-                            ? const Color(0xFFFF6B6B)
+                            ? coral
                             : context.hairline,
                         width: 2,
                       ),
@@ -2068,7 +2509,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
                         if (_picked != null && i == task.correct)
                           const HugeIcon(
                             icon: HugeIcons.strokeRoundedCheckmarkCircle02,
-                            color: Color(0xFF14B8A6),
+                            color: teal,
                             size: 22,
                             strokeWidth: 2.2,
                           ),
@@ -2077,7 +2518,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
                             _picked != task.correct)
                           const HugeIcon(
                             icon: HugeIcons.strokeRoundedCancelCircle,
-                            color: Color(0xFFFF6B6B),
+                            color: coral,
                             size: 22,
                             strokeWidth: 2.2,
                           ),
@@ -2315,6 +2756,12 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
             key: const ValueKey('own-target-picker'),
             value: _effectiveTargetId,
             isExpanded: true,
+            icon: HugeIcon(
+              icon: HugeIcons.strokeRoundedArrowDown01,
+              color: context.mutedText,
+              size: 20,
+              strokeWidth: 2,
+            ),
             items: [
               for (final t in targets)
                 DropdownMenuItem(
@@ -2358,7 +2805,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
                   style: TextStyle(
                     color: busy
                         ? context.mutedText
-                        : const Color(0xFF45A3FF),
+                        : blue,
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
                   ),

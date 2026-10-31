@@ -5,8 +5,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
-import '../theme/app_colors.dart' show blueDark, tealDark;
+import '../theme/app_colors.dart' show blueDark, blueShadow, teal, tealDark;
 import '../theme/app_theme.dart';
+import 'app_buttons.dart';
 
 class RecallTextField extends StatefulWidget {
   final String hint;
@@ -96,35 +97,30 @@ class _RecallTextFieldState extends State<RecallTextField> {
         ),
         const SizedBox(height: 8),
         if (!widget.submitted)
-          Semantics(
-            button: true,
-            label: tr('recall_check_answer'),
-            child: GestureDetector(
-              key: const ValueKey('recall-check'),
-              onTap: _submit,
-              child: Container(
-                constraints: const BoxConstraints(minHeight: 48),
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                decoration: const BoxDecoration(
-                  color: blueDark,
-                  borderRadius: BorderRadius.all(Radius.circular(14)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0xFF134E8A),
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                alignment: Alignment.center,
-                child: ExcludeSemantics(
-                  child: Text(
-                    tr('recall_check'),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      letterSpacing: 1,
-                    ),
+          EngramPress3D(
+            key: const ValueKey('recall-check'),
+            onTap: _submit,
+            shadowColor: blueShadow,
+            depth: 4,
+            borderRadius: BorderRadius.circular(14),
+            haptic: false,
+            semanticLabel: tr('recall_check_answer'),
+            top: Container(
+              constraints: const BoxConstraints(minHeight: 48),
+              padding: const EdgeInsets.symmetric(vertical: 13),
+              decoration: const BoxDecoration(
+                color: blueDark,
+                borderRadius: BorderRadius.all(Radius.circular(14)),
+              ),
+              alignment: Alignment.center,
+              child: ExcludeSemantics(
+                child: Text(
+                  tr('recall_check'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                    letterSpacing: 1,
                   ),
                 ),
               ),
@@ -135,12 +131,12 @@ class _RecallTextFieldState extends State<RecallTextField> {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               color: widget.exact
-                  ? const Color(0xFF14B8A6).withValues(alpha: 0.12)
+                  ? teal.withValues(alpha: 0.12)
                   : context.cardBg,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: widget.exact
-                    ? const Color(0xFF14B8A6)
+                    ? teal
                     : context.hairline,
                 width: 2,
               ),
@@ -586,47 +582,70 @@ class _CorsiTapGridState extends State<CorsiTapGrid> {
               const SizedBox(width: 8),
               Expanded(
                 flex: 2,
-                child: Semantics(
-                  button: true,
-                  enabled: _taps.isNotEmpty,
-                  label: tr('recall_submit'),
-                  child: GestureDetector(
-                    key: const ValueKey('corsi-done'),
-                    onTap: _taps.isEmpty
-                        ? null
-                        : () => widget.onDone(List.of(_taps)),
-                    child: Container(
-                      constraints: const BoxConstraints(minHeight: 48),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: _taps.isEmpty
-                            ? context.hairline
-                            : blueDark,
+                child: _taps.isEmpty
+                    ? Semantics(
+                        button: true,
+                        enabled: false,
+                        label: tr('recall_submit'),
+                        child: Container(
+                          key: const ValueKey('corsi-done'),
+                          constraints:
+                              const BoxConstraints(minHeight: 48),
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: context.hairline,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          alignment: Alignment.center,
+                          child: ExcludeSemantics(
+                            child: Text(
+                              tr('recall_done'),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                    : EngramPress3D(
+                        key: const ValueKey('corsi-done'),
+                        onTap: () =>
+                            widget.onDone(List.of(_taps)),
+                        shadowColor: blueShadow,
+                        depth: 4,
                         borderRadius: BorderRadius.circular(14),
-                        boxShadow: _taps.isEmpty
-                            ? null
-                            : const [
-                                BoxShadow(
-                                  color: Color(0xFF134E8A),
-                                  offset: Offset(0, 4),
-                                ),
-                              ],
-                      ),
-                      alignment: Alignment.center,
-                      child: ExcludeSemantics(
-                        child: Text(
-                          tr('recall_done'),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            letterSpacing: 1,
+                        haptic: false,
+                        semanticLabel: tr('recall_submit'),
+                        top: Container(
+                          constraints:
+                              const BoxConstraints(minHeight: 48),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                          ),
+                          decoration: const BoxDecoration(
+                            color: blueDark,
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(14),
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: ExcludeSemantics(
+                            child: Text(
+                              tr('recall_done'),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                letterSpacing: 1,
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                ),
               ),
             ],
           ),

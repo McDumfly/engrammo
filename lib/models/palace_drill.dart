@@ -318,15 +318,17 @@ int drillItemCount(int difficulty) => 3 + difficulty.clamp(1, 5);
 
 List<String> get allConcreteNouns => allConcreteNounsFor('en');
 
-List<String> allConcreteNounsFor([String locale = 'en']) =>
-    [...concreteNounsFor(locale), ...extraConcreteNounsFor(locale)];
+List<String> allConcreteNounsFor([String locale = 'en']) => [
+  ...concreteNounsFor(locale),
+  ...extraConcreteNounsFor(locale),
+];
 
 Map<String, List<String>> get allPictureScenes => allPictureScenesFor('en');
 
 Map<String, List<String>> allPictureScenesFor([String locale = 'en']) => {
-      ...pictureScenesFor(locale),
-      ...extraPictureScenesFor(locale),
-    };
+  ...pictureScenesFor(locale),
+  ...extraPictureScenesFor(locale),
+};
 
 int _seedHash(String seed) {
   var h = 0x811c9dc5;
@@ -382,19 +384,74 @@ List<String> stationsFromLabels(
   return merged;
 }
 
-String palaceImagePrompt(String routeName, int difficulty,
-    [String locale = 'en']) {
+/// Scene hint for a Palace Builder (chapters[2]) lesson: every one of the
+/// 12 lessons renders a different viewpoint so the generated palace picture
+/// matches the lesson title (ready-made room, miniature map, first-person
+/// street, …). Unknown sections fall back to a plain room.
+String spatialSceneForLesson(int section, int lesson) {
+  if (section <= 0) {
+    const scenes = ['room', 'viewpoints', 'reverse', 'rooms'];
+    return scenes[lesson.clamp(0, scenes.length - 1)];
+  }
+  if (section == 1) {
+    const scenes = ['map', 'island', 'first-person', 'route'];
+    return scenes[lesson.clamp(0, scenes.length - 1)];
+  }
+  const scenes = ['own-room', 'flat', 'street', 'mind'];
+  return scenes[lesson.clamp(0, scenes.length - 1)];
+}
+
+String _sceneSuffix(String scene) {
+  switch (scene) {
+    case 'map':
+      return 'seen as a miniature treasure map from above, each station '
+          'a labeled landmark icon';
+    case 'island':
+      return 'tropical island flyover view, each station a distinct '
+          'landmark (dock, palm, hut, waterfall)';
+    case 'first-person':
+    case 'route':
+      return 'first-person walking view down a winding path, stations '
+          'as bold foreground objects in walking order';
+    case 'street':
+      return 'familiar city street at golden hour, stations as shop '
+          'fronts and corners in walking order';
+    case 'viewpoints':
+      return 'same cozy room from three fixed camera angles, stations '
+          'marked in each view';
+    case 'reverse':
+      return 'cozy room walk with glowing arrows pointing backwards, '
+          'stations numbered in reverse walking order';
+    case 'rooms':
+    case 'flat':
+      return 'two connected cozy rooms with a visible doorway, stations '
+          'spread across both rooms in walking order';
+    case 'own-room':
+    case 'mind':
+      return 'dreamlike minimal interior, few bold shapes, stations as '
+          'large unmistakable objects';
+    case 'room':
+    default:
+      return 'warm light, storybook style';
+  }
+}
+
+String palaceImagePrompt(
+  String routeName,
+  int difficulty, [
+  String locale = 'en',
+  String scene = '',
+]) {
   final routes = palaceRoutesFor(locale);
   final stations = routes[routeName] ?? routes.values.first;
   final n = drillItemCount(difficulty);
   return 'Cozy memory-palace illustration of a $routeName walk with '
       '${stations.take(n).join(', ')} as clearly separated, numbered '
-      'stations in walking order, warm light, storybook style';
+      'stations in walking order, ${_sceneSuffix(scene)}';
 }
 
 String pictureImagePrompt(String sceneName, [String locale = 'en']) {
-  final elements =
-      allPictureScenesFor(locale)[sceneName] ?? const <String>[];
+  final elements = allPictureScenesFor(locale)[sceneName] ?? const <String>[];
   return 'Vivid, detailed illustration of a $sceneName showing '
       '${elements.take(5).join(', ')}, storybook style, sharp details';
 }
@@ -403,8 +460,12 @@ MetaTask localPalaceTask({
   required int difficulty,
   required String seed,
   String locale = 'en',
+
+  /// Exact station count override for practice rounds whose length sits
+  /// outside the registry 4-8 window (same loci procedure, any length).
+  int? count,
 }) {
-  final n = drillItemCount(difficulty);
+  final n = (count ?? drillItemCount(difficulty)).clamp(3, 10);
   final route = routeForSeed(seed, locale);
   final stations = localStations(seed, n, locale);
   final words = localDrillWords(seed, n, locale);

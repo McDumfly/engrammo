@@ -204,6 +204,47 @@ bool _chapterLocked(Map<String, int> progress, List<int> order, int pos) {
   return !_chapterComplete(progress, order[pos - 1]);
 }
 
+/// Térköz-zár ellenőrzése: ha zárva, üzenetet mutat „ugorj az aktuálisra"
+/// akcióval, és true-val tér vissza (a hívó ne nyissa meg a leckét).
+bool showSpacedGateIfLocked(
+  BuildContext context, {
+  required int nextDepth,
+  required DateTime? lastDone,
+  required DateTime now,
+  required int stars,
+  required VoidCallback onWarp,
+}) {
+  if (!practiceRoundLocked(
+    lastDone: lastDone,
+    depth: nextDepth,
+    stars: stars,
+    now: now,
+  )) {
+    return false;
+  }
+  final daysLeft = daysUntilReviewDue(
+    lastDone: lastDone,
+    depth: nextDepth,
+    now: now,
+  );
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(
+        reviewLockedMessageIn(
+          AppLocalizations.localeCode,
+          depth: nextDepth,
+          daysLeft: daysLeft,
+        ),
+      ),
+      action: SnackBarAction(
+        label: tr('lpt_up_now'),
+        onPressed: onWarp,
+      ),
+    ),
+  );
+  return true;
+}
+
 class _LearningPathPageState extends State<LearningPathPage> {
   static List<SynapseTab> get _navTabs => [
     SynapseTab(HugeIcons.strokeRoundedHome01, tr('lpt_home')),
@@ -228,19 +269,19 @@ class _LearningPathPageState extends State<LearningPathPage> {
     }
   }
 
+  /// Tabváltáskor az oldalak állapota (scroll, kiválasztott altab, félbehagyott
+  /// játék) megmarad: az IndexedStack nem dobja el a rejtett oldalakat.
   Widget _tabBody() {
-    switch (_tab) {
-      case 1:
-        return const BrainLeaguePage();
-      case 2:
-        return const BattleZoneView();
-      case 3:
-        return const BenchmarkHubPage();
-      case 4:
-        return const KreedsProfilePage();
-      default:
-        return _flowView();
-    }
+    return IndexedStack(
+      index: _tab,
+      children: [
+        _flowView(),
+        const BrainLeaguePage(),
+        const BattleZoneView(),
+        const BenchmarkHubPage(),
+        const KreedsProfilePage(),
+      ],
+    );
   }
 
   int _tab = 0;
@@ -510,15 +551,19 @@ class _LearningPathPageState extends State<LearningPathPage> {
                       ),
                     ),
                   ),
+                if (_tab == 2) const SizedBox(height: 12),
                 Expanded(child: _tabBody()),
               ],
             ),
           ),
-          Positioned(
-            left: 16,
-            bottom: 110,
-            child: AiHelpButton(topic: _helpTopic),
-          ),
+          // A Liga és a Gyakorlás oldalnak saját segítőgombja van, oda nem
+          // teszünk másodikat.
+          if (_tab != 1 && _tab != 3)
+            Positioned(
+              left: 16,
+              bottom: 110,
+              child: AiHelpButton(topic: _helpTopic),
+            ),
           if (_tab == 0 && _showBackToNow)
             Positioned(
               right: 16,
@@ -638,20 +683,22 @@ class _LearningPathPageState extends State<LearningPathPage> {
             depth: doneDepth,
             now: DateTime.now(),
           );
+          final weak = stars == 1;
           body.add(
-            GestureDetector(
-              key: ValueKey('path-lesson-$chapterIdx-$s-$l'),
-              onTap: () => _openLesson(chapterIdx, s, l),
-              child: _stationDone(
-                offset: offset,
-                title: lessonTitleIn(
-                  AppLocalizations.localeCode,
-                  chapterIdx,
-                  s,
-                  l,
-                ),
-                sub: doneStatus,
+            _stationDone(
+              offset: offset,
+              title: lessonTitleIn(
+                AppLocalizations.localeCode,
+                chapterIdx,
+                s,
+                l,
               ),
+              sub: weak
+                  ? '${tr('lpt_repeat_suggested')} • $doneStatus'
+                  : doneStatus,
+              weak: weak,
+              onTap: () => _openLesson(chapterIdx, s, l),
+              badgeKey: ValueKey('path-lesson-$chapterIdx-$s-$l'),
             ),
           );
           continue;
@@ -668,20 +715,18 @@ class _LearningPathPageState extends State<LearningPathPage> {
           body.add(
             Container(
               key: _nowKey,
-              child: GestureDetector(
-                key: ValueKey('path-lesson-$chapterIdx-$s-$l'),
-                onTap: () => _openLesson(chapterIdx, s, l),
-                child: _stationNow(
-                  offset: offset,
-                  number: station,
-                  title: lessonTitleIn(
-                    AppLocalizations.localeCode,
-                    chapterIdx,
-                    s,
-                    l,
-                  ),
-                  lessonIcon: lesson.icon,
+              child: _stationNow(
+                offset: offset,
+                number: station,
+                title: lessonTitleIn(
+                  AppLocalizations.localeCode,
+                  chapterIdx,
+                  s,
+                  l,
                 ),
+                lessonIcon: lesson.icon,
+                onTap: () => _openLesson(chapterIdx, s, l),
+                badgeKey: ValueKey('path-lesson-$chapterIdx-$s-$l'),
               ),
             ),
           );
@@ -689,31 +734,24 @@ class _LearningPathPageState extends State<LearningPathPage> {
         }
         station++;
         body.add(
-          GestureDetector(
-            key: ValueKey('path-lesson-$chapterIdx-$s-$l'),
-            onTap: () => _openLesson(chapterIdx, s, l),
-            child: _stationTodo(
-              offset: offset,
-              number: station,
-              title: lessonTitleIn(
-                AppLocalizations.localeCode,
-                chapterIdx,
-                s,
-                l,
-              ),
+          _stationTodo(
+            offset: offset,
+            number: station,
+            title: lessonTitleIn(
+              AppLocalizations.localeCode,
+              chapterIdx,
+              s,
+              l,
             ),
+            onTap: () => _openLesson(chapterIdx, s, l),
+            badgeKey: ValueKey('path-lesson-$chapterIdx-$s-$l'),
           ),
         );
       }
       if (s == 0 && !secLocked) {
         body.add(_riverLink(prev, 0, locked: false));
         body.add(
-          _bonusStop(
-            realm: chapterRealmIn(
-              AppLocalizations.localeCode,
-              chapterIdx,
-            ),
-          ),
+          _bonusStop(track: trackPositionOfChapter(chapterIdx).track),
         );
         body.add(const SizedBox(height: 4));
       } else if (secLocked) {
@@ -828,7 +866,9 @@ class _LearningPathPageState extends State<LearningPathPage> {
                   Text(
                     tr('lpt_part_title', {'i': index + 1}),
                     style: TextStyle(
-                      color: locked ? sub : blue,
+                      color: locked
+                          ? sub
+                          : (context.isDark ? blue : blueDark),
                       fontWeight: FontWeight.bold,
                       fontSize: 11,
                       letterSpacing: 1.2,
@@ -873,11 +913,13 @@ class _LearningPathPageState extends State<LearningPathPage> {
       child: LayoutBuilder(
         builder: (context, c) {
           final cx = c.maxWidth / 2;
-          return CustomPaint(
-            painter: _RiverPainter(
-              fromX: cx + from,
-              toX: cx + to,
-              color: locked ? context.hairline : trail,
+          return RepaintBoundary(
+            child: CustomPaint(
+              painter: _RiverPainter(
+                fromX: cx + from,
+                toX: cx + to,
+                color: locked ? context.hairline : trail,
+              ),
             ),
           );
         },
@@ -895,6 +937,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
     bool faintTitle = false,
     bool dimmed = false,
     String? sub,
+    VoidCallback? onTitleTap,
   }) {
     final labelBg = dimmed ? _dim(context.cardBg) : context.cardBg;
     final labelBorder = dimmed
@@ -903,42 +946,71 @@ class _LearningPathPageState extends State<LearningPathPage> {
     final labelText = dimmed
         ? _dim(faintTitle ? context.mutedText : context.inkText)
         : (faintTitle ? context.mutedText : context.inkText);
+    Widget pillFace() => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      decoration: BoxDecoration(
+        color: labelBg,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: labelBorder),
+      ),
+      child: Text(
+        title,
+        textAlign: TextAlign.center,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: labelText,
+          fontWeight: FontWeight.w600,
+          fontSize: 12.5,
+        ),
+      ),
+    );
+    final pillShadow =
+        dimmed ? _dim(context.faintBorder) : context.faintBorder;
+    final labelPill = ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 200),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        decoration: BoxDecoration(
+          color: labelBg,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: labelBorder),
+          boxShadow: [BoxShadow(color: pillShadow, offset: const Offset(0, 2))],
+        ),
+        child: Text(
+          title,
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: labelText,
+            fontWeight: FontWeight.w600,
+            fontSize: 12.5,
+          ),
+        ),
+      ),
+    );
     final content = Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         badge,
         const SizedBox(height: 8),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 200),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-            decoration: BoxDecoration(
-              color: labelBg,
+        if (onTitleTap != null)
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 200),
+            child: EngramPress3D(
+              onTap: onTitleTap,
+              shadowColor: pillShadow,
+              depth: 2,
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: labelBorder),
-              boxShadow: [
-                BoxShadow(
-                  color: dimmed
-                      ? _dim(context.faintBorder)
-                      : context.faintBorder,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              haptic: false,
+              semanticLabel: title,
+              top: pillFace(),
             ),
-            child: Text(
-              title,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: labelText,
-                fontWeight: FontWeight.w600,
-                fontSize: 12.5,
-              ),
-            ),
-          ),
-        ),
+          )
+        else
+          labelPill,
         if (sub != null) ...[
           const SizedBox(height: 4),
           Text(
@@ -1006,24 +1078,72 @@ class _LearningPathPageState extends State<LearningPathPage> {
     );
   }
 
+  Widget _pressableBlock3d({
+    required double size,
+    required Color top,
+    required Color edge,
+    required Color border,
+    required Widget child,
+    required VoidCallback onTap,
+    required String semanticLabel,
+    Key? badgeKey,
+    double depth = 7,
+    double radius = 18,
+  }) {
+    final r = BorderRadius.circular(radius);
+    return SizedBox(
+      key: badgeKey,
+      width: size,
+      height: size + depth,
+      child: EngramPress3D(
+        onTap: onTap,
+        shadowColor: edge,
+        shadowBorder: Border.all(color: border, width: 2.5),
+        depth: depth,
+        borderRadius: r,
+        haptic: false,
+        semanticLabel: semanticLabel,
+        top: Container(
+          decoration: BoxDecoration(
+            color: top,
+            borderRadius: r,
+            border: Border.all(color: border, width: 2.5),
+          ),
+          alignment: Alignment.center,
+          child: child,
+        ),
+      ),
+    );
+  }
+
   Widget _stationDone({
     required double offset,
     required String title,
+    required VoidCallback onTap,
+    Key? badgeKey,
     String? sub,
+    bool weak = false,
   }) {
+    final accent = weak ? orange : blue;
     return _stationShell(
       offset: offset,
       title: title,
-      faintTitle: true,
+      faintTitle: !weak,
       sub: sub,
-      badge: _block3d(
+      onTitleTap: onTap,
+      badge: _pressableBlock3d(
         size: 62,
         top: context.washBg,
-        edge: blue,
-        border: blue,
-        child: const HugeIcon(
-          icon: HugeIcons.strokeRoundedCheckmarkCircle02,
-          color: blue,
+        edge: accent,
+        border: accent,
+        onTap: onTap,
+        semanticLabel: title,
+        badgeKey: badgeKey,
+        child: HugeIcon(
+          icon: weak
+              ? HugeIcons.strokeRoundedRefresh
+              : HugeIcons.strokeRoundedCheckmarkCircle02,
+          color: accent,
           size: 28,
           strokeWidth: 2.2,
         ),
@@ -1035,15 +1155,21 @@ class _LearningPathPageState extends State<LearningPathPage> {
     required double offset,
     required int number,
     required String title,
+    required VoidCallback onTap,
+    Key? badgeKey,
   }) {
     return _stationShell(
       offset: offset,
       title: title,
-      badge: _block3d(
+      onTitleTap: onTap,
+      badge: _pressableBlock3d(
         size: 62,
         top: context.cardBg,
         edge: context.washBorder,
         border: context.washBorder,
+        onTap: onTap,
+        semanticLabel: title,
+        badgeKey: badgeKey,
         child: Text(
           '$number',
           style: const TextStyle(
@@ -1061,14 +1187,19 @@ class _LearningPathPageState extends State<LearningPathPage> {
     required int number,
     required String title,
     required List<List<dynamic>> lessonIcon,
+    required VoidCallback onTap,
+    Key? badgeKey,
   }) {
-    final badge = _block3d(
+    final badge = _pressableBlock3d(
       size: 76,
       depth: 8,
       radius: 22,
       top: blue,
       edge: blueDark,
       border: blueDark,
+      onTap: onTap,
+      semanticLabel: title,
+      badgeKey: badgeKey,
       child: HugeIcon(
         icon: lessonIcon,
         color: Colors.white,
@@ -1080,55 +1211,63 @@ class _LearningPathPageState extends State<LearningPathPage> {
     final shifted = offset == 0
         ? centered
         : Transform.translate(offset: Offset(offset, 0), child: centered);
+    final upPill = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+      decoration: BoxDecoration(
+        color: blue,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        tr('lpt_station_up', {'n': number}),
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+        ),
+      ),
+    );
+    final titlePill = ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 200),
+      child: EngramPress3D(
+        onTap: onTap,
+        shadowColor: context.faintBorder,
+        depth: 2,
+        borderRadius: BorderRadius.circular(999),
+        haptic: false,
+        semanticLabel: title,
+        top: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          decoration: BoxDecoration(
+            color: context.cardBg,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: context.washBorder),
+          ),
+          child: Text(
+            title,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: context.inkText,
+              fontWeight: FontWeight.w600,
+              fontSize: 12.5,
+            ),
+          ),
+        ),
+      ),
+    );
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         shifted,
         const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-          decoration: BoxDecoration(
-            color: blue,
-            borderRadius: BorderRadius.circular(999),
-          ),
-          child: Text(
-            tr('lpt_station_up', {'n': number}),
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-            ),
-          ),
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: upPill,
         ),
         const SizedBox(height: 6),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 200),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-            decoration: BoxDecoration(
-              color: context.cardBg,
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: context.washBorder),
-              boxShadow: [
-                BoxShadow(
-                  color: context.faintBorder,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Text(
-              title,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: context.inkText,
-                fontWeight: FontWeight.w600,
-                fontSize: 12.5,
-              ),
-            ),
-          ),
-        ),
+        titlePill,
       ],
     );
   }
@@ -1156,8 +1295,20 @@ class _LearningPathPageState extends State<LearningPathPage> {
 
   Future<void> _openLesson(int chapter, int section, int lesson) async {
     final loc = trackPositionOfChapter(chapter);
-    if (_chapterLocked(_progress, chaptersForTrack(loc.track), loc.pos)) return;
-    if (_sectionLocked(_progress, chapter, section)) return;
+    void lockedNote() {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(tr('lpt_locked_note'))));
+    }
+
+    if (_chapterLocked(_progress, chaptersForTrack(loc.track), loc.pos)) {
+      lockedNote();
+      return;
+    }
+    if (_sectionLocked(_progress, chapter, section)) {
+      lockedNote();
+      return;
+    }
     final stars = _effectiveStars(
       _progress,
       chapter,
@@ -1166,6 +1317,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
       chapters[chapter].sections[section].lessons[lesson].stars,
     );
     if (stars <= 0 && _lessonLocked(_progress, chapter, section, lesson)) {
+      lockedNote();
       return;
     }
     final key = MemoryStore.lessonKey(chapter, section, lesson);
@@ -1173,29 +1325,14 @@ class _LearningPathPageState extends State<LearningPathPage> {
     final nextDepth = depthForNextSession(reps: reps, stars: stars);
     final lastDone = _doneDates[key];
     final now = DateTime.now();
-    if (practiceRoundLocked(
+    if (showSpacedGateIfLocked(
+      context,
+      nextDepth: nextDepth,
       lastDone: lastDone,
-      depth: nextDepth,
-      stars: stars,
       now: now,
+      stars: stars,
+      onWarp: _warpToNow,
     )) {
-      final daysLeft = daysUntilReviewDue(
-        lastDone: lastDone,
-        depth: nextDepth,
-        now: now,
-      );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            reviewLockedMessageIn(
-              AppLocalizations.localeCode,
-              depth: nextDepth,
-              daysLeft: daysLeft,
-            ),
-          ),
-        ),
-      );
       return;
     }
     AppFeedback.light();
@@ -1215,20 +1352,25 @@ class _LearningPathPageState extends State<LearningPathPage> {
     }
   }
 
-  Widget _bonusStop({required String realm}) {
+  Widget _bonusStop({required int track}) {
     return Center(
-      child: Container(
-        width: 210,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: context.cardBg,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: context.washBorder,
-            width: 2,
-            strokeAlign: BorderSide.strokeAlignInside,
+      child: GestureDetector(
+        onTap: () {
+          AppFeedback.light();
+          showMissionsSheet(context, track);
+        },
+        child: Container(
+          width: 210,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: context.cardBg,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: context.washBorder,
+              width: 2,
+              strokeAlign: BorderSide.strokeAlignInside,
+            ),
           ),
-        ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -1259,13 +1401,14 @@ class _LearningPathPageState extends State<LearningPathPage> {
               ),
             ),
           ],
+          ),
         ),
       ),
     );
   }
 
   Widget _lockedNote() {
-    final sub = Theme.of(context).colorScheme.onSurfaceVariant;
+    final sub = context.mutedText;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -1330,7 +1473,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
               ),
           ],
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 18),
       ],
     );
   }
@@ -1745,7 +1888,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
             trackProgramLineIn(AppLocalizations.localeCode, track),
             style: TextStyle(
               color: context.mutedText,
-              fontSize: 11,
+              fontSize: 12,
               height: 1.45,
             ),
           ),
@@ -2468,29 +2611,14 @@ class _PartDetailPageState extends State<_PartDetailPage> {
     );
     final lastDone = _doneDates[key];
     final now = DateTime.now();
-    if (practiceRoundLocked(
+    if (showSpacedGateIfLocked(
+      context,
+      nextDepth: nextDepth,
       lastDone: lastDone,
-      depth: nextDepth,
-      stars: stars,
       now: now,
+      stars: stars,
+      onWarp: () => Navigator.of(context).pop(),
     )) {
-      final daysLeft = daysUntilReviewDue(
-        lastDone: lastDone,
-        depth: nextDepth,
-        now: now,
-      );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            reviewLockedMessageIn(
-              AppLocalizations.localeCode,
-              depth: nextDepth,
-              daysLeft: daysLeft,
-            ),
-          ),
-        ),
-      );
       return;
     }
     AppFeedback.light();
@@ -2773,8 +2901,10 @@ class _PartDetailPageState extends State<_PartDetailPage> {
                                       'status': _reviewStatus(i),
                                     }),
                                     style: TextStyle(
-                                      color: blue,
-                                      fontSize: 11,
+                                      color: context.isDark
+                                          ? blue
+                                          : blueDark,
+                                      fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -2832,7 +2962,11 @@ class _TrackPickerPage extends StatelessWidget {
       key: const ValueKey('track-retake-assessment'),
       onTap: () {
         AppFeedback.light();
-        Navigator.of(context).push(
+        // Előbb vissza a tanulási útra, és csak azután a felmérő: így a
+        // vissza gomb nem a pályaválasztóba, hanem a friss útra tér meg.
+        final nav = Navigator.of(context);
+        nav.pop();
+        nav.push(
           MaterialPageRoute(builder: (_) => const MemoryAssessmentIntroPage()),
         );
       },

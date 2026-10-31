@@ -44,7 +44,8 @@ const Map<String, String> huStrings = {
       'Ez a bejelentkezési mód nincs engedélyezve a Firebase-konzolon.',
   'auth_error_code': 'Bejelentkezési hiba ({code}).',
   'auth_unexpected': 'Váratlan hiba: {detail}',
-  'auth_google_unavailable': 'A Google-bejelentkezés ezen a platformon nem érhető el.',
+  'auth_google_unavailable':
+      'A Google-bejelentkezés ezen a platformon nem érhető el.',
   'auth_no_google_token': 'Nem érkezett Google-token.',
   'auth_sign_in_first': 'Kérlek jelentkezz be előbb.',
   'onboarding_skip': 'Kihagyás',
@@ -53,50 +54,38 @@ const Map<String, String> huStrings = {
   'onboarding_find_my_type': 'MEMÓRIATÍPUSOM MEGKERESÉSE',
   'onboarding_opening': 'MEGNYITÁS…',
   'onboarding_welcome_title': 'A memóriatechnikák tanulhatók.',
-  'onboarding_welcome_body':
-      'A memória-atléták nem különleges aggyal születnek — a felvételek átlagos agyat mutatnak. Hónapokig gyakorolják a 2500 éves stratégiákat. Most te is elkezded tanulni ugyanezeket a stratégiákat.',
-  'onboarding_honest_note':
-      'Egy őszinte megjegyzés: a fotografikus memória mítosz — laborban soha nem bizonyították. Amit helyette kapsz, az praktikus: betanult stratégiák, amelyek a begyakorolt anyagon működnek. Önmagukban nem növelik az IQ-t, a jegyeket vagy a munkahelyi teljesítményt, és ez az app nem orvosi tanács.',
+  'onboarding_welcome_body': 'A memória-atléták nem különleges aggyal születnek — a felvételek átlagos agyat mutatnak. Hónapokig gyakorolják a 2500 éves stratégiákat. Most te is elkezded tanulni ugyanezeket a stratégiákat.',
+  'onboarding_honest_note': 'Egy őszinte megjegyzés: a fotografikus memória mítosz — laborban soha nem bizonyították. Amit helyette kapsz, az praktikus: betanult stratégiák, amelyek a begyakorolt anyagon működnek. Önmagukban nem növelik az IQ-t, a jegyeket vagy a munkahelyi teljesítményt, és ez az app nem orvosi tanács.',
   'onboarding_honesty_link': 'Amit ez az app tud — és amit nem →',
   'honesty_title': 'Amit ez az app tud — és amit nem',
   'honesty_got_it': 'ÉRTEM',
   'onboarding_palace_title': 'Memóriapalota',
-  'onboarding_palace_body':
-      'Válassz egy ismert útvonalat — az otthonodat. Helyezz minden megállóhoz egy élénk képet, majd a felidézéshez sétálj végig az útvonalon. Ezzel a módszerrel edzenek a memóriaversenyek résztvevői; laborvizsgálatok szerint hetek gyakorlása átalakítja az agy kódolási módját.',
+  'onboarding_palace_body': 'Válassz egy ismert útvonalat — az otthonodat. Helyezz minden megállóhoz egy élénk képet, majd a felidézéshez sétálj végig az útvonalon. Ezzel a módszerrel edzenek a memóriaversenyek résztvevői; laborvizsgálatok szerint hetek gyakorlása átalakítja az agy kódolási módját.',
   'onboarding_chunking_title': 'Tömbösítés',
-  'onboarding_chunking_body':
-      'Az elméd kb. 4 tömböt tart meg, de egy tömb óriási lehet. A 491625-ből csinálj hat számjegy helyett két képet, és máris befér.',
+  'onboarding_chunking_body': 'Az elméd kb. 4 tömböt tart meg, de egy tömb óriási lehet. A 491625-ből csinálj hat számjegy helyett két képet, és máris befér.',
   'onboarding_vivid_title': 'Élénk képek',
-  'onboarding_vivid_body':
-      'A konkrét képeket gyakran jobban megjegyezzük, mint a puszta szavakat. Minden elem legyen nagy, fényes, mozgó — és az elemek hassanak egymásra.',
+  'onboarding_vivid_body': 'A konkrét képeket gyakran jobban megjegyezzük, mint a puszta szavakat. Minden elem legyen nagy, fényes, mozgó — és az elemek hassanak egymásra.',
   'onboarding_keyword_title': 'Kulcsszó-kapocs',
-  'onboarding_keyword_body':
-      'Idegen szó? Keress egy hasonló hangzású anyanyelvi szót, és képzeld el, hogy a kettő kölcsönhatásba lép. Egy laborvizsgálatban ez átlagban 72%-os felidézést hozott a módszer nélküli 46%-kal szemben.',
+  'onboarding_keyword_body': 'Idegen szó? Keress egy hasonló hangzású anyanyelvi szót, és képzeld el, hogy a kettő kölcsönhatásba lép. Egy laborvizsgálatban ez átlagban 72%-os felidézést hozott a módszer nélküli 46%-kal szemben.',
   'onboarding_spaced_title': 'Elosztott felidézés',
-  'onboarding_spaced_body':
-      'Az újraolvasás helyett teszteld magad, időben elosztva. Az összefoglaló vizsgálatok szerint ez a leghasznosabb tanulási stratégiák közé tartozik.',
+  'onboarding_spaced_body': 'Az újraolvasás helyett teszteld magad, időben elosztva. Az összefoglaló vizsgálatok szerint ez a leghasznosabb tanulási stratégiák közé tartozik.',
   'onboarding_goals_title': 'Saját célok, saját anyag',
-  'onboarding_goals_body':
-      'A beépített példák csak példák. A Saját célok között bármit hozzáadhatsz, amit TE meg akarsz jegyezni, és a MI bevált stratégiára képezi le ismétlési tervvel — majd tanít, és a saját szavaidból készít személyes feladatokat.',
+  'onboarding_goals_body': 'A beépített példák csak példák. A Saját célok között bármit hozzáadhatsz, amit TE meg akarsz jegyezni, és a MI bevált stratégiára képezi le ismétlési tervvel — majd tanít, és a saját szavaidból készít személyes feladatokat.',
   'onboarding_goals_source': 'Ugyanazok a stratégiák, saját anyaggal',
   'onboarding_station_title': 'Így működik egy állomás',
-  'onboarding_station_body':
-      'Minden állomás egy rövid edzőkártyával kezdődik: mit csinálj, hogyan, és miért működik. Aztán 3–5 gyors gyakorlatot játszol egymás után — soha nem csak egyet. Néha a kérdés 1-2 gyakorlattal később érkezik, így a korábbi elemeket fejben kell tartanod. Ez a késleltetés maga az edzés.',
+  'onboarding_station_body': 'Minden állomás egy rövid edzőkártyával kezdődik: mit csinálj, hogyan, és miért működik. Aztán 3–5 gyors gyakorlatot játszol egymás után — soha nem csak egyet. Néha a kérdés 1-2 gyakorlattal később érkezik, így a korábbi elemeket fejben kell tartanod. Ez a késleltetés maga az edzés.',
   'onboarding_station_source': 'Az edzőkártyád mindig hivatkozza a kutatást',
   'onboarding_stars_title': 'Csillagok, sorozatok és engrammok',
-  'onboarding_stars_body':
-      'Egy állomás befejezése mindig 1–3 csillagot ér: ha minden helyes, gyorsaság szerint 3 vagy 2, többnyire helyesnél 2, befejezésért 1. A csillagok oldják fel a következő állomásokat. A napi edzés építi a sorozatodat, és engrammokat szerzel — ez az egyetlen fizetőeszköz — amellyel egy megszakadt sorozat megjavítható.',
-  'onboarding_stars_source': 'Fejezd be minden állomást, tartsd életben a sorozatot',
+  'onboarding_stars_body': 'Egy állomás befejezése mindig 1–3 csillagot ér: ha minden helyes, gyorsaság szerint 3 vagy 2, többnyire helyesnél 2, befejezésért 1. A csillagok oldják fel a következő állomásokat. A napi edzés építi a sorozatodat, és engrammokat szerzel — ez az egyetlen fizetőeszköz — amellyel egy megszakadt sorozat megjavítható.',
+  'onboarding_stars_source':
+      'Fejezd be minden állomást, tartsd életben a sorozatot',
   'onboarding_help_title': 'Elakadtál? Kérj segítséget',
-  'onboarding_help_body':
-      'Minden képernyőn van egy ? gomb. Koppints rá a MI-edzővel való beszélgetéshez: válassz kész kérdést, vagy írd meg a sajátodat. Elmagyarázza a technikát, példákat ad, és a te nyelveden válaszol. Nincs kapcsolat? Akkor is kapsz beépített válaszokat — a segítség sosem marad üresen.',
+  'onboarding_help_body': 'Minden képernyőn van egy ? gomb. Koppints rá a MI-edzővel való beszélgetéshez: válassz kész kérdést, vagy írd meg a sajátodat. Elmagyarázza a technikát, példákat ad, és a te nyelveden válaszol. Nincs kapcsolat? Akkor is kapsz beépített válaszokat — a segítség sosem marad üresen.',
   'onboarding_help_source': 'Keresd a ? jelet minden képernyőn',
   'onboarding_cta_title': 'Először találd meg a típusodat.',
-  'onboarding_cta_body':
-      'Egy 13 feladatos szűrőteszt — 2 gyors próba mind a 6 memóriatípusodra, plusz egy közepes téri feladat. Kb. 3 perc. Kezdő besorolás, nem diagnózis vagy IQ-teszt. Utána az útvonalad a legerősebb típusodat hangsúlyozza, de minden technika nyitva marad.',
+  'onboarding_cta_body': 'Egy 13 feladatos szűrőteszt — 2 gyors próba mind a 6 memóriatípusodra, plusz egy közepes téri feladat. Kb. 3 perc. Kezdő besorolás, nem diagnózis vagy IQ-teszt. Utána az útvonalad a legerősebb típusodat hangsúlyozza, de minden technika nyitva marad.',
   'profile_setup_title': 'Profilod beállítása',
-  'profile_setup_subtitle':
-      'Válassz nevet és egyedi felhasználónevet. Később a Beállításokban módosíthatod őket.',
+  'profile_setup_subtitle': 'Válassz nevet és egyedi felhasználónevet. Később a Beállításokban módosíthatod őket.',
   'profile_name_label': 'Neved',
   'profile_name_hint': 'Minta János',
   'profile_username_label': 'Felhasználónév',
@@ -106,66 +95,54 @@ const Map<String, String> huStrings = {
   'profile_sign_in_again': 'Kérlek jelentkezz be újra.',
   'profile_username_taken': 'Ez a felhasználónév foglalt — próbálj másikat.',
   'profile_no_connection': 'Nincs kapcsolat — próbáld újra.',
+  'profile_cloud_error': 'A felhő elutasította — próbáld később újra.',
   'profile_pick_username': 'Válassz felhasználónevet.',
-  'profile_username_too_short': 'A felhasználónév legalább {n} karakter legyen.',
-  'profile_username_too_long': 'A felhasználónév legfeljebb {n} karakter lehet.',
-  'profile_username_charset':
-      'Csak kisbetűk, számok, pontok és aláhúzájelek.',
+  'profile_username_too_short':
+      'A felhasználónév legalább {n} karakter legyen.',
+  'profile_username_too_long':
+      'A felhasználónév legfeljebb {n} karakter lehet.',
+  'profile_username_charset': 'Csak kisbetűk, számok, pontok és aláhúzájelek.',
   'profile_username_edges':
       'Nem kezdődhet és nem végződhet ponttal vagy aláhúzással.',
   'profile_username_double_dot': 'A pontok nem követhetik egymást.',
   'profile_add_name': 'Add meg a neved.',
   'profile_name_too_long': 'A név legfeljebb {n} karakter lehet.',
   'gate_connect_title': 'Csatlakozz az internethez',
-  'gate_connect_body':
-      'Az Engrammónak internetkapcsolat kell a fiókod és a Meta MI-modellek eléréséhez. Ellenőrizd a kapcsolatot, majd próbáld újra.',
+  'gate_connect_body': 'Az Engrammónak internetkapcsolat kell a fiókod és a Meta MI-modellek eléréséhez. Ellenőrizd a kapcsolatot, majd próbáld újra.',
   'gate_retry': 'Újrapróbálás',
   'gate_offline_duel': 'Offline botpárbaj',
   'gate_offline_title': 'Offline gyakorlás',
   'gate_offline_subtitle': 'Botpárbaj, internet nélkül',
-  'gate_offline_body':
-      'Nincs internet, de az edzés nem áll meg: eszközöd helyben legenerálja mind a 3 párbajfeladatot, az eredmények mentődnek és beleszámítanak a ligába.',
+  'gate_offline_body': 'Nincs internet, de az edzés nem áll meg: eszközöd helyben legenerálja mind a 3 párbajfeladatot, az eredmények mentődnek és beleszámítanak a ligába.',
   'gate_offline_score': 'Pontszámod: {rating} · {matches} mentett meccs',
   'gate_offline_loading': 'Aréna betöltése…',
   'gate_start_bot_duel': 'BOTPÁRBAJ INDÍTÁSA',
   'policy_research_dose':
       'kb. 20 óra 6 hét alatt egyetlen technikára (Dresler et al. 2017)',
-  'policy_foundation_dose':
-      'Egy sáv teljes végigjárása kb. {hours} óra vezetett gyakorlás — az alapozás. A teljesítményt elmozdító laborprotokoll {dose} használt, ezért tervezz ismétléseket plusz saját anyaggal több hónapon át.',
-  'policy_honest_promise':
-      'A gyakorlás a betanult stratégiákat fejleszti a begyakorolt és nagyon hasonló anyagokon. Semmi itt nem növeli önmagában az IQ-t, a jegyeket vagy a munkahelyi teljesítményt.',
-  'policy_assessment_disclaimer':
-      'Ez a 13 feladatos ellenőrzés plusz interjú alacsony tétű szűrő a gyakorlási hangsúlyhoz — nem orvosi vagy pszichológiai teszt, nem IQ-teszt és nem diagnózis. A pontszámok mérési hibával terheltek, és az eredménytől függetlenül minden technika nyitva marad.',
-  'policy_result_disclaimer':
-      'Kezdő besorolás, nem diagnózis. A kis pontkülönbségek zajok — néhány hét gyakorlás után ismételd új párhuzamos formával, hogy lásd, mi tart ki.',
-  'policy_level_footnote':
-      'Alkalmazásbeli pontszámokból számolt gyakorlási mutató — nem az emlékezet klinikai mérőszáma.',
-  'policy_level_explainer':
-      'A 6 memóriatípus mindegyike 0–100 pontot kap a szűrőpróbákból (könnyű max. 40 + nehéz max. 60; a térinél 3 próba 20 + 30 + 50 értékben). A memóriaszint a 6 pontszám 1–11-re képezett átlaga: szint = átlag ÷ 10 + 1, tehát 0–9 az 1. szint, 100 a 11. szint. Az Aréna típusonként ugyanezt a leképezést mutatja. A párbajgyőzelmek és a befejezett leckék növelik ezeket a pontokat, így a gyakorlás emeli a szintet.',
+  'policy_foundation_dose': 'Egy sáv teljes végigjárása kb. {hours} óra vezetett gyakorlás — az alapozás. A teljesítményt elmozdító laborprotokoll {dose} használt, ezért tervezz ismétléseket plusz saját anyaggal több hónapon át.',
+  'policy_honest_promise': 'A gyakorlás a betanult stratégiákat fejleszti a begyakorolt és nagyon hasonló anyagokon. Semmi itt nem növeli önmagában az IQ-t, a jegyeket vagy a munkahelyi teljesítményt.',
+  'policy_assessment_disclaimer': 'Ez a 13 feladatos ellenőrzés plusz interjú alacsony tétű szűrő a gyakorlási hangsúlyhoz — nem orvosi vagy pszichológiai teszt, nem IQ-teszt és nem diagnózis. A pontszámok mérési hibával terheltek, és az eredménytől függetlenül minden technika nyitva marad.',
+  'policy_result_disclaimer': 'Kezdő besorolás, nem diagnózis. A kis pontkülönbségek zajok — néhány hét gyakorlás után ismételd új párhuzamos formával, hogy lásd, mi tart ki.',
+  'policy_level_footnote': 'Alkalmazásbeli pontszámokból számolt gyakorlási mutató — nem az emlékezet klinikai mérőszáma.',
+  'policy_level_explainer': 'A 6 memóriatípus mindegyike 0–100 pontot kap a szűrőpróbákból (könnyű max. 40 + nehéz max. 60; a térinél 3 próba 20 + 30 + 50 értékben). A memóriaszint a 6 pontszám 1–11-re képezett átlaga: szint = átlag ÷ 10 + 1, tehát 0–9 az 1. szint, 100 a 11. szint. Az Aréna típusonként ugyanezt a leképezést mutatja. A párbajgyőzelmek és a befejezett leckék növelik ezeket a pontokat, így a gyakorlás emeli a szintet.',
   'policy_consent_title': 'Felhőalapú MI-elemzés engedélyezése',
-  'policy_consent_body':
-      'Alapból kikapcsolva. Bekapcsolva az interjúválaszaid és pontszámaid a Meta Model API-hoz kerülnek Contributor szinten (Muse Spark), ahol a beküldött tartalom tanításra is felhasználható. Kikapcsolva minden helyben, az eszközön értékelődik ki, és semmi nem hagyja el a telefont.',
+  'policy_consent_body': 'Alapból kikapcsolva. Bekapcsolva az interjúválaszaid és pontszámaid a Meta Model API-hoz kerülnek Contributor szinten (Muse Spark), ahol a beküldött tartalom tanításra is felhasználható. Kikapcsolva minden helyben, az eszközön értékelődik ki, és semmi nem hagyja el a telefont.',
   'policy_honesty_1_title': 'Amit ténylegesen megtanulsz',
-  'policy_honesty_1_body':
-      'Begyakorolt kódolási stratégiák: memóriapalota, tömbösítés, élénk képek, kulcsszó-kapcsok és elosztott felidézés. Mindegyik a begyakorolt anyagon működik — listák, számok, nevek, begyakorolt szavak — és nagyon hasonló anyagokon.',
+  'policy_honesty_1_body': 'Begyakorolt kódolási stratégiák: memóriapalota, tömbösítés, élénk képek, kulcsszó-kapcsok és elosztott felidézés. Mindegyik a begyakorolt anyagon működik — listák, számok, nevek, begyakorolt szavak — és nagyon hasonló anyagokon.',
   'policy_honesty_2_title': 'Amit a gyakorlás fejleszt',
-  'policy_honesty_2_body':
-      'A stratégiák használatának készségét a begyakorolt anyagon, elosztott ismétléssel tartóssá téve. A loci-tréning vizsgálatai szerint hetek gyakorlása átszervezi az agy kódolását, és a nyereség hónapokig megmarad folyamatos ismétlés mellett (Dresler et al. 2017). Az eredményed a folyamatos gyakorláson múlik; egyetlen végigjárás az alapozás, nem a cél.',
+  'policy_honesty_2_body': 'A stratégiák használatának készségét a begyakorolt anyagon, elosztott ismétléssel tartóssá téve. A loci-tréning vizsgálatai szerint hetek gyakorlása átszervezi az agy kódolását, és a nyereség hónapokig megmarad folyamatos ismétlés mellett (Dresler et al. 2017). Az eredményed a folyamatos gyakorláson múlik; egyetlen végigjárás az alapozás, nem a cél.',
   'policy_honesty_3_title': 'Amit NEM ígérünk',
-  'policy_honesty_3_body':
-      'Nincs magasabb IQ, nincsenek jobb jegyek vagy munkahelyi teljesítmény, nincs védelem a kognitív hanyatlás vagy demencia ellen, és nincs fotografikus memória — ez utóbbit laborban soha nem bizonyították. Az általános agytorna-gyakorlatok megbízhatóan csak magát a begyakorolt feladatot javítják (Simons et al. 2016; Owen et al. 2010), ezért ez az app reflexek helyett stratégiákat tanít.',
+  'policy_honesty_3_body': 'Nincs magasabb IQ, nincsenek jobb jegyek vagy munkahelyi teljesítmény, nincs védelem a kognitív hanyatlás vagy demencia ellen, és nincs fotografikus memória — ez utóbbit laborban soha nem bizonyították. Az általános agytorna-gyakorlatok megbízhatóan csak magát a begyakorolt feladatot javítják (Simons et al. 2016; Owen et al. 2010), ezért ez az app reflexek helyett stratégiákat tanít.',
   'policy_honesty_4_title': 'Amennyi a mesteri szinthez őszintén kell',
-  'policy_honesty_4_body':
-      'Egy sáv teljes végigjárása néhány óra vezetett gyakorlás. A teljesítményt elmozdító laborprotokoll kb. 20 órát használt 6 hét alatt EGYETLEN technikára. A tartós készséghez több hónapos elosztott ismétlés kell, saját anyaggal végzett gyakorlás (saját palota, saját nevek, saját tanulnivalók) és új elemeken végzett újratesztek — nem még egy kör ugyanazokon a képernyőkön.',
+  'policy_honesty_4_body': 'Egy sáv teljes végigjárása néhány óra vezetett gyakorlás. A teljesítményt elmozdító laborprotokoll kb. 20 órát használt 6 hét alatt EGYETLEN technikára. A tartós készséghez több hónapos elosztott ismétlés kell, saját anyaggal végzett gyakorlás (saját palota, saját nevek, saját tanulnivalók) és új elemeken végzett újratesztek — nem még egy kör ugyanazokon a képernyőkön.',
   'policy_honesty_5_title': 'Nem orvosi tanács',
-  'policy_honesty_5_body':
-      'Az Engrammo oktatási gyakorlóapp, nem orvostechnikai eszköz. Nem diagnosztizál, nem kezel és nem előz meg semmilyen állapotot. Ha aggódsz a memóriád miatt, fordulj orvoshoz.',
-  'policy_lab_finding':
-      '{study} alapján ({finding}, laborkörülmények) — az egyéni eredmények a gyakorlástól függően változnak.',
+  'policy_honesty_5_body': 'Az Engrammo oktatási gyakorlóapp, nem orvostechnikai eszköz. Nem diagnosztizál, nem kezel és nem előz meg semmilyen állapotot. Ha aggódsz a memóriád miatt, fordulj orvoshoz.',
+  'policy_lab_finding': '{study} alapján ({finding}, laborkörülmények) — az egyéni eredmények a gyakorlástól függően változnak.',
   'stats_track': 'Tanulási útvonal',
   'stats_goals': 'Saját célok',
   'stats_goals_count': 'Saját célok, {n} cél',
   'stats_streak': 'Sorozat, {n} nap',
+  'stats_engrams': 'Engram, {n}',
   'streak_title': 'Sorozat visszaállítása',
   'streak_day_streak': 'NAPOS SOROZAT',
   'streak_missed_one': '1 kihagyott nap',
@@ -179,8 +156,7 @@ const Map<String, String> huStrings = {
   'streak_confirm_title': 'Visszaállítod a sorozatot?',
   'streak_confirm_body': '{cost} engramért. Sorozatod {days} napos lesz.',
   'streak_restore': 'Visszaállítás',
-  'metalog_empty':
-      'Még nem futott Meta-hívás. Offline módban a helyi generátorok adják a tartalmat.',
+  'metalog_empty': 'Még nem futott Meta-hívás. Offline módban a helyi generátorok adják a tartalmat.',
   'metalog_ok': 'ok',
   'metalog_error': 'hiba',
   'metalog_fallback': 'tartalék',
@@ -226,7 +202,8 @@ const Map<String, String> huStrings = {
   'recall_paused': 'Szünet — folytasd, ha kész vagy.',
   'recall_watch': 'Figyeld a sorrendet…',
   'recall_replay_used': 'Az újrajátszás elhasználva — folytasd, ha kész vagy.',
-  'recall_replay_hint': 'Megvan? Ha kell, egyszer újrajátszhatod, aztán folytasd.',
+  'recall_replay_hint':
+      'Megvan? Ha kell, egyszer újrajátszhatod, aztán folytasd.',
   'recall_resume': 'Sorrend folytatása',
   'recall_pause': 'Sorrend szüneteltetése',
   'recall_resume_btn': 'FOLYTATÁS',
@@ -276,20 +253,17 @@ const Map<String, String> huStrings = {
   'help_title': 'Kérdezd a MI-edzőt',
   'help_subtitle': 'Válassz kérdést, vagy írd meg a sajátodat',
   'help_clear': 'Beszélgetés törlése',
-  'help_empty':
-      'Elakadtál ezen a képernyőn? Kérdezz bármit — az edző a te nyelveden magyarázza el a technikát.',
+  'help_empty': 'Elakadtál ezen a képernyőn? Kérdezz bármit — az edző a te nyelveden magyarázza el a technikát.',
   'help_thinking': 'Az edző gondolkodik…',
   'help_hint': 'Írd meg a kérdésedet…',
   'help_send': 'KÜLDÉS',
-  'help_nokey':
-      'Offline: még nincs MI-kulcs. Add hozzá egyszer a Beállítások → Meta MI alatt.',
+  'help_nokey': 'Offline: még nincs MI-kulcs. Add hozzá egyszer a Beállítások → Meta MI alatt.',
   'help_noconsent': 'Offline: a felhő-MI ki van kapcsolva ezen az eszközön.',
   'help_allow': 'ENGEDÉLYEZÉS',
   'help_offline_tag': 'Beépített válasz (offline)',
   'settings_key_first': 'Először adj meg egy kulcsot.',
   'settings_key_saved_live': 'Mentve ✓ Sima indításoknál is élő marad.',
-  'settings_key_saved_consent':
-      'Mentve ✓ Most kapcsold be fent a "Felhőalapú MI-elemzés engedélyezése" opciót az élesítéshez.',
+  'settings_key_saved_consent': 'Mentve ✓ Most kapcsold be fent a "Felhőalapú MI-elemzés engedélyezése" opciót az élesítéshez.',
   'settings_key_saved_type': 'Mentve ✓ Most fedezd fel a memóriatípusodat!',
   'settings_key_deleted': 'Törölve, újra az offline tartalék fut.',
   'settings_saved': 'Mentve ✓',
@@ -306,8 +280,7 @@ const Map<String, String> huStrings = {
   'settings_send_verification': 'MEGERŐSÍTÉS KÜLDÉSE',
   'settings_verification_sent': 'Megerősítés elküldve: {email}',
   'settings_change_password': 'Jelszó módosítása',
-  'settings_change_password_body':
-      'Az új jelszó azonnal érvénybe lép. Előfordulhat, hogy előbb újra be kell jelentkezned.',
+  'settings_change_password_body': 'Az új jelszó azonnal érvénybe lép. Előfordulhat, hogy előbb újra be kell jelentkezned.',
   'settings_new_password': 'Új jelszó',
   'settings_save_password': 'JELSZÓ MENTÉSE',
   'settings_password_updated': 'Jelszó frissítve ✓',
@@ -350,8 +323,7 @@ const Map<String, String> huStrings = {
   'settings_danger': 'Veszélyzóna',
   'settings_danger_sub': 'Visszafordíthatatlan műveletek',
   'settings_delete_account': 'Fiók törlése',
-  'settings_delete_account_body':
-      'Eltávolítja a profilodat, haladásodat és engramjaidat. Ez a felhőmentésedet is törli.',
+  'settings_delete_account_body': 'Eltávolítja a profilodat, haladásodat és engramjaidat. Ez a felhőmentésedet is törli.',
   'settings_delete_account_btn': 'FIÓK TÖRLÉSE',
   'settings_title': 'Beállítások',
   'settings_subtitle': 'Profil, fiók és app',
@@ -372,8 +344,7 @@ const Map<String, String> huStrings = {
   'assess_example': 'Például: úgy látom, mint egy fotót…',
   'assess_back': 'VISSZA',
   'assess_analyze': 'ELEMEZZ KI',
-  'iv_q1_prompt':
-      'Csukd be a szemed, és képzeld magad elé egy közeli barátod arcát. Milyen tiszta a kép?',
+  'iv_q1_prompt': 'Csukd be a szemed, és képzeld magad elé egy közeli barátod arcát. Milyen tiszta a kép?',
   'iv_q1_hint': 'Vizuális élénkség (VVIQ-stílus)',
   'iv_q1_construct': 'Vizuális élénkség',
   'iv_q1_source': 'VVIQ alapján (Marks 1973)',
@@ -381,11 +352,11 @@ const Map<String, String> huStrings = {
   'iv_q1_opt1': 'Tiszta, de egyes részei homályosak',
   'iv_q1_opt2': 'Homályos folt, inkább érzés, mint kép',
   'iv_q1_opt3': 'Semmilyen kép — csak tényeket tudok róla',
-  'iv_q2_prompt':
-      'Sétálj végig fejben gyerekkori otthonodon, szobáról szobára. Meg tudod csinálni, és észreveszel apró részleteket útközben?',
+  'iv_q2_prompt': 'Sétálj végig fejben gyerekkori otthonodon, szobáról szobára. Meg tudod csinálni, és észreveszel apró részleteket útközben?',
   'iv_q2_hint': 'Téri jelenetépítés, technika még nem megnevezve',
   'iv_q2_construct': 'Téri jelenetépítés',
-  'iv_q2_source': 'Hassabis & Maguire 2007; OSIQ-spatial (Blajenkova et al. 2006)',
+  'iv_q2_source':
+      'Hassabis & Maguire 2007; OSIQ-spatial (Blajenkova et al. 2006)',
   'iv_q2_opt0': 'Könnyen — végigsétálok, és mindent látok',
   'iv_q2_opt1': 'Többnyire, de egyes szobákban elvesztem a fonalat',
   'iv_q2_opt2': 'Tényekre emlékszem róla, nem bejárható térre',
@@ -399,8 +370,7 @@ const Map<String, String> huStrings = {
   'iv_q3_opt1': 'Látom magam előtt leírva a számjegyeket',
   'iv_q3_opt2': 'Csoportokra bontom, pl. 49-16-25',
   'iv_q3_opt3': 'Hozzákötöm valami ismerthez — dátumhoz, címhez',
-  'iv_q4_prompt':
-      'Gondolj vissza a tegnap délutánra. Hogyan tér vissza?',
+  'iv_q4_prompt': 'Gondolj vissza a tegnap délutánra. Hogyan tér vissza?',
   'iv_q4_hint': 'Epizodikus újrajátszás vs. szemantikus felsorolás',
   'iv_q4_construct': 'Epizodikus újraélés vs. szemantikus felsorolás',
   'iv_q4_source': 'Tulving 1972 epizodikus/szemantikus felosztása',
@@ -408,8 +378,7 @@ const Map<String, String> huStrings = {
   'iv_q4_opt1': 'Pillanatok ugranak be, de sorrenden kívül',
   'iv_q4_opt2': 'Tények listájaként: hol voltam, kivel találkoztam',
   'iv_q4_opt3': 'Alig — a tegnap már ködös',
-  'iv_q5_prompt':
-      'Új szót tanulsz egy idegen nyelven. Mitől ragad meg?',
+  'iv_q5_prompt': 'Új szót tanulsz egy idegen nyelven. Mitől ragad meg?',
   'iv_q5_hint': 'Kulcsszókép vs. verbális ismétlés vs. jelentéskapcsolat',
   'iv_q5_construct': 'Kulcsszókép vs. verbális ismétlés',
   'iv_q5_source': 'Atkinson & Raugh 1975 kulcsszómódszer',
@@ -424,10 +393,10 @@ const Map<String, String> huStrings = {
   'iv_q6_source': 'SBSOD alapján (Hegarty et al. 2002)',
   'iv_q6_opt0': 'Térkép formálódik a fejemben magától',
   'iv_q6_opt1': 'Feltűnő látványokra emlékszem útközben',
-  'iv_q6_opt2': 'Újrajátszom a kanyarokat utasításként: balra, jobbra, egyenesen',
+  'iv_q6_opt2':
+      'Újrajátszom a kanyarokat utasításként: balra, jobbra, egyenesen',
   'iv_q6_opt3': 'Arra emlékszem, kivel voltam és miről beszélgettünk',
-  'iv_q7_prompt':
-      'Holnap délben fel kell hívnod egy barátodat. Hogyan biztosítod, hogy megtörténjen?',
+  'iv_q7_prompt': 'Holnap délben fel kell hívnod egy barátodat. Hogyan biztosítod, hogy megtörténjen?',
   'iv_q7_hint': 'Prospektív memóriastratégia: eseményjelzés vs. figyelés',
   'iv_q7_construct': 'Prospektív memória (emlékezni az emlékezésre)',
   'iv_q7_source': 'Einstein & McDaniel 1990',
@@ -435,8 +404,7 @@ const Map<String, String> huStrings = {
   'iv_q7_opt1': 'Folyamatosan nézem az időt, míg eljön a dél',
   'iv_q7_opt2': 'Élénken elképzelem, ahogy telefonálok',
   'iv_q7_opt3': 'Ismételgetem: "hívás délben", míg meg nem ragad',
-  'iv_q8_prompt':
-      'Egy összejövetelen hat új emberrel találkozol. Később melyik tér vissza legkönnyebben?',
+  'iv_q8_prompt': 'Egy összejövetelen hat új emberrel találkozol. Később melyik tér vissza legkönnyebben?',
   'iv_q8_hint': 'Arc-név asszociatív memória vs. kontextus vs. beszélgetés',
   'iv_q8_construct': 'Arc-név asszociatív memória',
   'iv_q8_source': 'Morris et al. arc-név mnemonika; McWeeny et al. 1987',
@@ -451,22 +419,15 @@ const Map<String, String> huStrings = {
   'verdict_kind_4': 'epizodikus',
   'verdict_kind_5': 'szemantikus',
   'verdict_default': 'MI-ítélet a tesztpontjaid és interjúválaszaid alapján.',
-  'verdict_blank':
-      'Még semmi mérhető — fejezd be a felmérést az ítélethez.',
-  'verdict_local_one':
-      'Egy interjúválaszod és a tesztpontjaid helyi elemzése {kind} memóriára mutat.',
-  'verdict_local_many':
-      '{n} interjúválaszod és a tesztpontjaid helyi elemzése {kind} memóriára mutat.',
+  'verdict_blank': 'Még semmi mérhető — fejezd be a felmérést az ítélethez.',
+  'verdict_local_one': 'Egy interjúválaszod és a tesztpontjaid helyi elemzése {kind} memóriára mutat.',
+  'verdict_local_many': '{n} interjúválaszod és a tesztpontjaid helyi elemzése {kind} memóriára mutat.',
   'study_default':
       'MI tanulási választás a tesztpontjaid és interjúválaszaid alapján.',
-  'study_no_signal':
-      'Nincs egyértelmű tesztjel, ezért az interjúválaszaid döntenek — {kind} memóriával kezdj.',
-  'study_blank':
-      'Még nincs egyértelmű jel — kezdd az első sávval (szenzoros memória), és néhány hét gyakorlás után ismételd meg.',
-  'study_strongest':
-      '{kind} memóriával kezdj, a legerősebbel — a korai sikerek építik a szokást. Most leggyengébb: {weak} memória — másodikként azt edzd.',
-  'study_balanced':
-      'Kiegyensúlyozott profil ({names}) — {kind} memóriával kezdj, aztán forgasd a többit.',
+  'study_no_signal': 'Nincs egyértelmű tesztjel, ezért az interjúválaszaid döntenek — {kind} memóriával kezdj.',
+  'study_blank': 'Még nincs egyértelmű jel — kezdd az első sávval (szenzoros memória), és néhány hét gyakorlás után ismételd meg.',
+  'study_strongest': '{kind} memóriával kezdj, a legerősebbel — a korai sikerek építik a szokást. Most leggyengébb: {weak} memória — másodikként azt edzd.',
+  'study_balanced': 'Kiegyensúlyozott profil ({names}) — {kind} memóriával kezdj, aztán forgasd a többit.',
   'tier_rookie': 'Újonc',
   'tier_contender': 'Kihívó',
   'tier_sharp': 'Éles',
@@ -474,9 +435,9 @@ const Map<String, String> huStrings = {
   'tier_quantum': 'Kvantum',
   'friend_withdraw': 'KIHÍVVA — KOPPINTS A VISSZAVONÁSHOZ',
   'friend_challenge': 'KIHÍVÁS PÁRBAJRA',
-  'friend_got':
-      '{name} megkapta a kihívásodat. Az online játékosok általában másodpercek alatt válaszolnak.',
-  'friend_send': 'Küldj {name} játékosnak 1v1 kihívást az aktuális játékmódodban.',
+  'friend_got': '{name} megkapta a kihívásodat. Az online játékosok általában másodpercek alatt válaszolnak.',
+  'friend_send':
+      'Küldj {name} játékosnak 1v1 kihívást az aktuális játékmódodban.',
   'friend_now': 'KIHÍVÁS MOST',
   'friend_remove': 'BARÁT TÖRLÉSE',
   'friend_add': 'BARÁT HOZZÁADÁSA',
@@ -503,8 +464,7 @@ const Map<String, String> huStrings = {
   'bstat_soon': 'HAMAROSAN',
   'bstat_play_first':
       'Játssz néhány kört — a közösségi átlagok a felhőfrissítéssel érkeznek.',
-  'bstat_cloud':
-      'A közösségi átlagok a felhőfrissítéssel érkeznek — addig {n} próbálkozásod ezen az eszközön marad.',
+  'bstat_cloud': 'A közösségi átlagok a felhőfrissítéssel érkeznek — addig {n} próbálkozásod ezen az eszközön marad.',
   'bstat_play': 'JÁTÉK',
   'bstat_best_value': '{n} {label}',
   'bstat_best': 'LEGJOBB',
@@ -545,14 +505,11 @@ const Map<String, String> huStrings = {
   'assess_dom_none': 'Még nincs felmérés.',
   'assess_dom_blank': 'Semmi mérhető — nincs győztes.',
   'assess_dom_clear': 'Egyértelmű győztes a tesztpontok alapján.',
-  'assess_dom_hard':
-      'Pontegyenlőség — a nehéz feladatok teljesítménye döntött, ami jobban megkülönböztet, mint a könnyűek.',
-  'assess_dom_fast':
-      'Pontegyenlőség — a gyorsabb felidézés, a folyékonyabb emléknyom döntött.',
+  'assess_dom_hard': 'Pontegyenlőség — a nehéz feladatok teljesítménye döntött, ami jobban megkülönböztet, mint a könnyűek.',
+  'assess_dom_fast': 'Pontegyenlőség — a gyorsabb felidézés, a folyékonyabb emléknyom döntött.',
   'assess_dom_interview':
       'Pontegyenlőség a tesztteljesítményben — az interjúválaszaid döntöttek.',
-  'assess_dom_balanced':
-      'Kiegyensúlyozott profil — {n} típus holtversenyben az élen, ezért nincs egyéni győztes.',
+  'assess_dom_balanced': 'Kiegyensúlyozott profil — {n} típus holtversenyben az élen, ezért nincs egyéni győztes.',
   'mkind_0_sub': 'Hangvillanás és figyelemfókusz',
   'mkind_1_sub': 'Tömbkovács',
   'mkind_2_sub': 'Palotaépítő',
@@ -572,16 +529,17 @@ const Map<String, String> huStrings = {
   'mtask_fwd': 'Írd be a sorrendet ELŐRE.',
   'mtask_type_digits': 'Írd be a számokat',
   'mtask_span3': 'Számterjedelem · 3 (begépelt felidézés, vak irány)',
-  'mtask_k1_hard_title':
-      'Öt szám — az irány jön ezután, tartsd meg mindet!',
+  'mtask_k1_hard_title': 'Öt szám — az irány jön ezután, tartsd meg mindet!',
   'mtask_rev_full': 'Írd be a teljes sorrendet FORDÍTVA.',
   'mtask_fwd_full': 'Írd be a teljes sorrendet ELŐRE.',
   'mtask_span5': 'Számterjedelem · 5, a ~4-es határon túl (vak irány)',
   'mtask_corsi3_title': 'Figyeld a kigyulladó mezőket — 3 sorrendben!',
   'mtask_corsi_tap': 'Koppints a mezőkre UGYANABAN a sorrendben.',
-  'mtask_corsi3': 'Corsi-terjedelem · 3 felvillanás sorrendben, koppintsd vissza',
+  'mtask_corsi3':
+      'Corsi-terjedelem · 3 felvillanás sorrendben, koppintsd vissza',
   'mtask_corsi5_title': 'Figyelj — 5 mező sorrendben!',
-  'mtask_corsi5': 'Corsi-terjedelem · 5 felvillanás, közel a ~6-os terjedelemhez',
+  'mtask_corsi5':
+      'Corsi-terjedelem · 5 felvillanás, közel a ~6-os terjedelemhez',
   'mtask_corsi6_title': 'Figyelj — 6 mező, a határon!',
   'mtask_corsi6': 'Corsi-terjedelem · 6 felvillanás, a ~6-os határon',
   'mtask_vis3_title': 'Jegyezd meg a három színt!',
@@ -606,11 +564,9 @@ const Map<String, String> huStrings = {
   'mprof_before': 'Mielőtt kezdjük',
   'mprof_intro_help': 'Memóriafelmérés bevezető',
   'mprof_nocheat': 'Egy szabály: nincs csalás.',
-  'mprof_nocheat_body':
-      'Nincs leírás, nincs segítségkérés, nincs második pillantás. A csalás csak neked árt: elrejti a valódi domináns memóriatípusodat, és akkor az egész edzésútvonalad egy hazugsághoz alkalmazkodik. Csak emlékezetből válaszolj — a rossz válaszok is hasznos adatok.',
+  'mprof_nocheat_body': 'Nincs leírás, nincs segítségkérés, nincs második pillantás. A csalás csak neked árt: elrejti a valódi domináns memóriatípusodat, és akkor az egész edzésútvonalad egy hazugsághoz alkalmazkodik. Csak emlékezetből válaszolj — a rossz válaszok is hasznos adatok.',
   'mprof_next': 'Mi történik ezután',
-  'mprof_next_body':
-      '• 13 gyors próba — típusonként 2, plusz egy közepes téri\n• Egyeseknél BE KELL GÉPELNED a választ emlékezetből — nincs segítség\n• Egy 8 kérdéses interjú arról, HOGYAN emlékszel\n• Egy MI megnevezi a domináns típusodat, és ajánlja, hol kezdj tanulni\n• Az ismétlések 4 párhuzamos forma között forognak, így a bemagolt válaszok nem fújják fel a pontszámodat',
+  'mprof_next_body': '• 13 gyors próba — típusonként 2, plusz egy közepes téri\n• Egyeseknél BE KELL GÉPELNED a választ emlékezetből — nincs segítség\n• Egy 8 kérdéses interjú arról, HOGYAN emlékszel\n• Egy MI megnevezi a domináns típusodat, és ajánlja, hol kezdj tanulni\n• Az ismétlések 4 párhuzamos forma között forognak, így a bemagolt válaszok nem fújják fel a pontszámodat',
   'mprof_start': 'KEZDÉS — TISZTESSÉGESEN JÁTSZOM',
   'mprof_leave_body': 'Az eddigi válaszaid elvesznek.',
   'mprof_title': 'Memóriafelmérés {n}/{total}',
@@ -645,8 +601,7 @@ const Map<String, String> huStrings = {
   'mprof_avg':
       'Átlagod {mine}% · ezen-eszközös átlag {app}% (ugyanaz a teszt).',
   'mprof_rel_ok': 'Szűrőkonzisztencia: r={r} (tisztes, N={n}).',
-  'mprof_rel_low':
-      'Szűrőkonzisztencia: r={r} (.70 alatt — a kis eltéréseket tekintsd zajnak, N={n}).',
+  'mprof_rel_low': 'Szűrőkonzisztencia: r={r} (.70 alatt — a kis eltéréseket tekintsd zajnak, N={n}).',
   'mprof_quality': 'Mérési minőség',
   'kreeds_copied': '@{handle} felhasználónév a vágólapra másolva',
   'kreeds_new_learner': 'Új tanuló',
@@ -657,8 +612,7 @@ const Map<String, String> huStrings = {
   'kreeds_add_friends': 'BARÁTOK HOZZÁADÁSA',
   'kreeds_share': 'Profil megosztása',
   'kreeds_save': 'Mentsd a haladásodat',
-  'kreeds_save_body':
-      'Jelentkezz be pontjaid, sorozatod és avatarod szinkronizálásához bármely eszközre.',
+  'kreeds_save_body': 'Jelentkezz be pontjaid, sorozatod és avatarod szinkronizálásához bármely eszközre.',
   'kreeds_discover': 'Fedezd fel a memóriatípusodat',
   'kreeds_discover_sub': '12 gyors feladat • kb. 3 perc',
   'kreeds_strongest': 'LEGERŐSEBB TÍPUS',
@@ -721,123 +675,96 @@ const Map<String, String> huStrings = {
   'paradigm_day': 'Nap-újrajátszás',
   'task_iconic_prompt': 'Jegyezd meg ezeket a számokat — egy gyors pillantás!',
   'task_iconic_q': 'Mi volt a {ord} számjegy?',
-  'task_iconic_expl':
-      'Készíts egy vizuális pillanatfelvételt, aztán kérdezd le — a rövid vizuális nyom az ikonikus tár. (Sperling 1960)',
-  'task_peterson_prompt': 'Tartsd meg: {tri} — számolj vissza 3-asával {n} mp-ig, aztán idézd fel!',
+  'task_iconic_expl': 'Készíts egy vizuális pillanatfelvételt, aztán kérdezd le — a rövid vizuális nyom az ikonikus tár. (Sperling 1960)',
+  'task_peterson_prompt':
+      'Tartsd meg: {tri} — számolj vissza 3-asával {n} mp-ig, aztán idézd fel!',
   'task_peterson_q': 'Mi volt a trigram a visszaszámlálás után?',
-  'task_peterson_expl':
-      'Az interferencia másodpercek alatt törli a be nem gyakorolt nyomokat — a figyelemelterelés a lényeg, nem trükk. (Peterson & Peterson 1959)',
-  'task_backward_prompt': 'Tartsd meg ezeket a számokat, aztán fordítsd meg őket!',
+  'task_peterson_expl': 'Az interferencia másodpercek alatt törli a be nem gyakorolt nyomokat — a figyelemelterelés a lényeg, nem trükk. (Peterson & Peterson 1959)',
+  'task_backward_prompt':
+      'Tartsd meg ezeket a számokat, aztán fordítsd meg őket!',
   'task_backward_q': 'Mi a teljes sorrend FORDÍTVA?',
-  'task_backward_expl':
-      'Előbb tartsd meg az egészet, aztán haladj visszafelé egyessével. A fordított terjedelem a központi végrehajtót terheli. (Baddeley & Hitch 1974)',
+  'task_backward_expl': 'Előbb tartsd meg az egészet, aztán haladj visszafelé egyessével. A fordított terjedelem a központi végrehajtót terheli. (Baddeley & Hitch 1974)',
   'task_chunk_prompt': 'Jegyezd meg ezt a számot!',
   'task_chunk_q': 'Melyik számot láttad?',
-  'task_chunk_expl':
-      'Tömbösíts hármasával, és minden tömbből csinálj egy képet — {n} számjegy csak néhány tömb. (Miller 1956; Ericsson et al. 1980)',
+  'task_chunk_expl': 'Tömbösíts hármasával, és minden tömbből csinálj egy képet — {n} számjegy csak néhány tömb. (Miller 1956; Ericsson et al. 1980)',
   'task_pattern_prompt': 'Jegyezd meg a kigyulladt mezőket!',
   'task_pattern_q': 'Mely mezők gyulladtak ki?',
-  'task_pattern_expl':
-      'A kigyulladt mezőket lásd EGY alakzatnak, ne külön pontoknak — a vizuális munkamemória kb. 4 tárgyat tart meg. (Luck & Vogel 1997)',
+  'task_pattern_expl': 'A kigyulladt mezőket lásd EGY alakzatnak, ne külön pontoknak — a vizuális munkamemória kb. 4 tárgyat tart meg. (Luck & Vogel 1997)',
   'task_story_prompt': 'Olvasd el figyelmesen, csak egyszer!',
-  'task_story_expl':
-      'Játszd vissza a jelenetet rövid filmként olvasás közben — a kidolgozott történetek megragadnak. (Craik & Tulving 1975)',
+  'task_story_expl': 'Játszd vissza a jelenetet rövid filmként olvasás közben — a kidolgozott történetek megragadnak. (Craik & Tulving 1975)',
   'task_cat_prompt': 'Gondolj a jelentésre!',
   'task_cat_q': 'Melyik ez?',
-  'task_cat_expl':
-      'Nevezd meg, mitől tag a prototípus — a jelentéshálók verik a magolt listákat. (Rosch 1975)',
+  'task_cat_expl': 'Nevezd meg, mitől tag a prototípus — a jelentéshálók verik a magolt listákat. (Rosch 1975)',
   'task_paired_prompt': 'Tanuld meg ezt a párt: {cue} párja {target}!',
   'task_paired_q': 'Mi tartozott ide: "{cue}"?',
-  'task_paired_expl':
-      'Kösd össze a hívószót és a célt EGY bizarr, kölcsönható képben, aztán teszteld magad — a felidézés veri az újraolvasást. (Karpicke & Roediger 2008)',
+  'task_paired_expl': 'Kösd össze a hívószót és a célt EGY bizarr, kölcsönható képben, aztán teszteld magad — a felidézés veri az újraolvasást. (Karpicke & Roediger 2008)',
   'task_face_prompt': 'Kösd ezt az arcot a nevéhez!',
   'task_face_q': 'Melyik név tartozik ide: "{feature}"?',
-  'task_face_expl':
-      'Előbb a jellegzetesség, aztán a kép, aztán a kölcsönhatás — ragaszd a kapcsot a jellegzetességre. (Morris et al. arc-név mnemonika)',
+  'task_face_expl': 'Előbb a jellegzetesség, aztán a kép, aztán a kölcsönhatás — ragaszd a kapcsot a jellegzetességre. (Morris et al. arc-név mnemonika)',
   'task_keyword_prompt': 'Tanuld meg ezt a szót: {foreign}!',
   'task_keyword_q': 'Mit jelent: "{foreign}"?',
-  'task_keyword_expl':
-      'Képzeld el, hogy a kulcsszó találkozik a jelentéssel egy jelenetben, aztán teszteld mindkét irányba. (Atkinson & Raugh 1975)',
+  'task_keyword_expl': 'Képzeld el, hogy a kulcsszó találkozik a jelentéssel egy jelenetben, aztán teszteld mindkét irányba. (Atkinson & Raugh 1975)',
   'task_prosp_prompt': 'Készítsd el ezt a tervet: HA… AKKOR…!',
   'task_prosp_item': 'HA {when} → AKKOR {then}',
   'task_prosp_q': 'HA {when} — AKKOR mi?',
-  'task_prosp_expl':
-      'Mondd ki a tervet egyszer egy mondatban, és képzeld el a jelzés pillanatát — a ha-akkor tervek maguktól beindulnak. (Gollwitzer 1999)',
+  'task_prosp_expl': 'Mondd ki a tervet egyszer egy mondatban, és képzeld el a jelzés pillanatát — a ha-akkor tervek maguktól beindulnak. (Gollwitzer 1999)',
   'task_poem_prompt': 'Tanuld meg ezt a két sort!',
   'task_poem_q': '„{line}” — mi jön ezután?',
-  'task_poem_expl':
-      'Kettenként tanuld a verssorokat, és az újraolvasás előtt idézd fel a 2. sort — a tömbök közti felidézés a módszer. (Rubin 1995)',
+  'task_poem_expl': 'Kettenként tanuld a verssorokat, és az újraolvasás előtt idézd fel a 2. sort — a tömbök közti felidézés a módszer. (Rubin 1995)',
   'task_day_prompt': 'Játszd vissza ezt a mininapot sorrendben!',
   'task_day_q': '„{event}” után — mi jött ezután?',
-  'task_day_expl':
-      'Játszd vissza a napot előre, eseményről eseményre, lefekvés előtt — a visszajátszás elvárása is a hatás része. (Wilhelm et al. 2011)',
-  'task_palace_prompt': 'Sétáld végig {route} palotádat — állomásonként egy képpel!',
+  'task_day_expl': 'Játszd vissza a napot előre, eseményről eseményre, lefekvés előtt — a visszajátszás elvárása is a hatás része. (Wilhelm et al. 2011)',
+  'task_palace_prompt':
+      'Sétáld végig {route} palotádat — állomásonként egy képpel!',
   'task_palace_q': 'Mit helyeztél el ide: {station}?',
-  'task_palace_expl':
-      'Loci: állomásonként egy bizarr, mozgó kép, mindig sétasorrendben. A bajnokok pontosan ezzel a módszerrel memorizálnak — 6 hét edzés a kezdő agyakat az atléta mintázata felé huzalozza át. (Maguire et al. 2003; Dresler et al. 2017)',
+  'task_palace_expl': 'Loci: állomásonként egy bizarr, mozgó kép, mindig sétasorrendben. A bajnokok pontosan ezzel a módszerrel memorizálnak — 6 hét edzés a kezdő agyakat az atléta mintázata felé huzalozza át. (Maguire et al. 2003; Dresler et al. 2017)',
   'task_picture_prompt': 'Tanulmányozd: {scene} — nevezz meg minden részletet!',
   'task_picture_q': 'Melyik volt benne: {scene}?',
-  'task_picture_expl':
-      'A képek egy helyett két memóriakódot kapnak (vizuális + verbális), és a jellegzetes részletek kiugranak az emlékezetből. Nevezd meg azonnal, amit látsz — a szavak lehorgonyozzák a képeket. (Shepard 1967; Standing 1973; Von Restorff 1933)',
+  'task_picture_expl': 'A képek egy helyett két memóriakódot kapnak (vizuális + verbális), és a jellegzetes részletek kiugranak az emlékezetből. Nevezd meg azonnal, amit látsz — a szavak lehorgonyozzák a képeket. (Shepard 1967; Standing 1973; Von Restorff 1933)',
   'transfer_exam-facts_label': 'Vizsgaanyag',
-  'transfer_exam-facts_situation':
-      'Tények, definíciók és dátumok, amelyeket az iskolában vissza kell adnod.',
-  'transfer_exam-facts_strategy':
-      'Felidézési gyakorlat plusz elosztott ismétlés: teszteld magad, kérj visszajelzést, ismételd napokkal később — soha ne csak újraolvasd.',
+  'transfer_exam-facts_situation': 'Tények, definíciók és dátumok, amelyeket az iskolában vissza kell adnod.',
+  'transfer_exam-facts_strategy': 'Felidézési gyakorlat plusz elosztott ismétlés: teszteld magad, kérj visszajelzést, ismételd napokkal később — soha ne csak újraolvasd.',
   'transfer_names_label': 'Nevek',
-  'transfer_names_situation':
-      'Egy vezetéknév, amit egyszer hallottál, és a következő megbeszélésen kell.',
-  'transfer_names_strategy':
-      'Előbb figyelemkapu (tényleg halld meg), aztán képi kapocs a névhez, azonnal visszamondva.',
+  'transfer_names_situation': 'Egy vezetéknév, amit egyszer hallottál, és a következő megbeszélésen kell.',
+  'transfer_names_strategy': 'Előbb figyelemkapu (tényleg halld meg), aztán képi kapocs a névhez, azonnal visszamondva.',
   'transfer_faces_label': 'Arcok',
   'transfer_faces_situation': 'Egy látott arc összekötése a nevével.',
-  'transfer_faces_strategy':
-      'Három lépés, mindig sorrendben: egy kirívó jellegzetesség, egy kép a névhez, egy kölcsönható jelenet.',
+  'transfer_faces_strategy': 'Három lépés, mindig sorrendben: egy kirívó jellegzetesség, egy kép a névhez, egy kölcsönható jelenet.',
   'transfer_numbers-codes_label': 'Számok és kódok',
   'transfer_numbers-codes_situation':
       'PIN-kódok, ajtókódok és rövid számok, amelyeket érdemes fejben tartani.',
-  'transfer_numbers-codes_strategy':
-      'Tömbösíts 3-as csoportokba, és minden tömbből csinálj egy képet; kb. 4 tömböt tarts meg, soha ne 12 laza számjegyet.',
+  'transfer_numbers-codes_strategy': 'Tömbösíts 3-as csoportokba, és minden tömbből csinálj egy képet; kb. 4 tömböt tarts meg, soha ne 12 laza számjegyet.',
   'transfer_years-dates_label': 'Évszámok és történelmi dátumok',
   'transfer_years-dates_situation':
       'Évszámok, mint 1848 vagy 1956, eseményekhez kötve.',
-  'transfer_years-dates_strategy':
-      'Évenként egy kép, az esemény hívószavára ragasztva — aztán a hívószóról idézd fel az évet, ne a lapról.',
+  'transfer_years-dates_strategy': 'Évenként egy kép, az esemény hívószavára ragasztva — aztán a hívószóról idézd fel az évet, ne a lapról.',
   'transfer_birthdays_label': 'Születésnapok',
   'transfer_birthdays_situation':
       'Család és barátok születési dátumai, névről felidézve.',
-  'transfer_birthdays_strategy':
-      'Nap plusz hónap EGY képként, az archívószóhoz csatolva; egyhetes esti felidézés rögzíti.',
+  'transfer_birthdays_strategy': 'Nap plusz hónap EGY képként, az archívószóhoz csatolva; egyhetes esti felidézés rögzíti.',
   'transfer_deadlines_label': 'Határidők',
-  'transfer_deadlines_situation':
-      'Dolgok, amelyeket egy jövőbeli pillanatban meg kell tenned — számlák, házi feladat.',
-  'transfer_deadlines_strategy':
-      'Határidőnként egy ha-akkor terv: HA eljön a jelzés pillanata, AKKOR az első lépés. Képzeld el egyszer a jelzés pillanatát.',
+  'transfer_deadlines_situation': 'Dolgok, amelyeket egy jövőbeli pillanatban meg kell tenned — számlák, házi feladat.',
+  'transfer_deadlines_strategy': 'Határidőnként egy ha-akkor terv: HA eljön a jelzés pillanata, AKKOR az első lépés. Képzeld el egyszer a jelzés pillanatát.',
   'transfer_todos-errands_label': 'Tennivalók és ügyintézések',
   'transfer_todos-errands_situation':
       'Rövid listák: bevásárlás, házimunka, mai hívások.',
-  'transfer_todos-errands_strategy':
-      'Fűzd az elemeket sorrendben egy vicces történetbe, vagy sétáltasd végig őket egy mini palotán — aztán idézd fel előre.',
+  'transfer_todos-errands_strategy': 'Fűzd az elemeket sorrendben egy vicces történetbe, vagy sétáltasd végig őket egy mini palotán — aztán idézd fel előre.',
   'transfer_poems-verses_label': 'Megtanulandó versek',
   'transfer_poems-verses_situation':
       'Versek, amelyeket az iskolában vagy örömből el kell mondanod.',
-  'transfer_poems-verses_strategy':
-      'Kettenként: olvasd, takard le, idézd fel a 2. sort az 1.-ről — tömbök közti felidézés, napokra elosztva.',
+  'transfer_poems-verses_strategy': 'Kettenként: olvasd, takard le, idézd fel a 2. sort az 1.-ről — tömbök közti felidézés, napokra elosztva.',
   'transfer_phone-numbers_label': 'Telefonszámok',
   'transfer_phone-numbers_situation':
       'Számok, amelyeket tényleg tárcsázol, a névjegyzék megnyitása nélkül.',
-  'transfer_phone-numbers_strategy':
-      'Bontsd 3-as csoportokra, képezd le mindegyiket, fűzd a képeket számonként egy jelenetbe — egy hétig reggeli felidézés.',
+  'transfer_phone-numbers_strategy': 'Bontsd 3-as csoportokra, képezd le mindegyiket, fűzd a képeket számonként egy jelenetbe — egy hétig reggeli felidézés.',
   'transfer_foreign-words_label': 'Idegen szavak',
   'transfer_foreign-words_situation':
       'Szókincs, amely az iskolához, utazáshoz vagy munkához kell.',
-  'transfer_foreign-words_strategy':
-      'Kulcsszómódszer: szavanként egy hasonló hangzású kapocs plusz egy kölcsönható kép, visszajelzéssel tesztelve mindkét irányba.',
+  'transfer_foreign-words_strategy': 'Kulcsszómódszer: szavanként egy hasonló hangzású kapocs plusz egy kölcsönható kép, visszajelzéssel tesztelve mindkét irányba.',
   'transfer_whole-day_label': 'Az egész napod',
   'transfer_whole-day_situation':
       'Minden, ami ma történt, elejétől végig, sorrendben.',
-  'transfer_whole-day_strategy':
-      'Minden este játszd vissza a napot jelenetről jelenetre sorrendben, megállva arcoknál, számoknál és pontos szavaknál — aztán aludj rá egyet.',
+  'transfer_whole-day_strategy': 'Minden este játszd vissza a napot jelenetről jelenetre sorrendben, megállva arcoknál, számoknál és pontos szavaknál — aztán aludj rá egyet.',
   'goal_plan_phone-numbers_0': 'Bontsd a számot 3-as csoportokra.',
   'goal_plan_phone-numbers_1': 'Minden csoportból csinálj egy élénk képet.',
   'goal_plan_phone-numbers_2':
@@ -852,43 +779,54 @@ const Map<String, String> huStrings = {
   'goal_plan_years-dates_0': 'Készíts évenként egy képet.',
   'goal_plan_years-dates_1': 'Ragaszd a képet az esemény hívószavára.',
   'goal_plan_years-dates_2': 'A hívószóról idézd fel az évet, ne a lapról.',
-  'goal_plan_names_0': 'Tényleg halld meg a nevet: állítsd le a belső ismételgetést.',
+  'goal_plan_names_0':
+      'Tényleg halld meg a nevet: állítsd le a belső ismételgetést.',
   'goal_plan_names_1': 'Azonnal mondd vissza a nevet.',
   'goal_plan_names_2':
       'Ragassz egy képi kapcsot a személyre, és teszteld magad ma este.',
   'goal_plan_faces_0': 'Válassz egy kirívó jellegzetességet.',
   'goal_plan_faces_1': 'Készíts egy képet a névhez.',
-  'goal_plan_faces_2': 'Forraszd egybe a jellegzetességet és a képet egy kölcsönható jelenetbe.',
+  'goal_plan_faces_2':
+      'Forraszd egybe a jellegzetességet és a képet egy kölcsönható jelenetbe.',
   'goal_plan_deadlines_0':
       'Írj egy ha-akkor tervet: HA jön a jelzés, AKKOR az első lépés.',
   'goal_plan_deadlines_1': 'Képzeld el egyszer élénken a jelzés pillanatát.',
   'goal_plan_deadlines_2': 'Játszd vissza a tervet lefekvés előtt.',
-  'goal_plan_todos-errands_0': 'Fűzd az elemeket sorrendben egy vicces történetbe.',
-  'goal_plan_todos-errands_1': 'Sétálj végig egyszer a történeten emlékezetből.',
+  'goal_plan_todos-errands_0':
+      'Fűzd az elemeket sorrendben egy vicces történetbe.',
+  'goal_plan_todos-errands_1':
+      'Sétálj végig egyszer a történeten emlékezetből.',
   'goal_plan_todos-errands_2':
       'Sétálj végig rajta újra a bolt ajtajában, mielőtt megnézed a listát.',
   'goal_plan_poems-verses_0': 'Kettenként haladj a sorokkal.',
-  'goal_plan_poems-verses_1': 'Olvasd, takard le, idézd fel a 2. sort az 1.-ről.',
+  'goal_plan_poems-verses_1':
+      'Olvasd, takard le, idézd fel a 2. sort az 1.-ről.',
   'goal_plan_poems-verses_2': 'Oszd el a tömböket napokra a magolás helyett.',
-  'goal_plan_foreign-words_0': 'Keress szavanként egy hasonló hangzású kapcsot.',
-  'goal_plan_foreign-words_1': 'Képzeld el a kapcsot és a jelentést kölcsönhatásban.',
+  'goal_plan_foreign-words_0':
+      'Keress szavanként egy hasonló hangzású kapcsot.',
+  'goal_plan_foreign-words_1':
+      'Képzeld el a kapcsot és a jelentést kölcsönhatásban.',
   'goal_plan_foreign-words_2':
       'Teszteld mindkét irányba visszajelzéssel, napokra elosztva.',
-  'goal_plan_exam-facts_0': 'Csukd be a könyvet, és idézd fel minden tényt a hívószaváról.',
+  'goal_plan_exam-facts_0':
+      'Csukd be a könyvet, és idézd fel minden tényt a hívószaváról.',
   'goal_plan_exam-facts_1': 'Ellenőrizd, javítsd a melléket, idézd fel újra.',
-  'goal_plan_exam-facts_2': 'Ismételd napokkal később — a tesztelés veri az újraolvasást.',
-  'goal_plan_whole-day_0': 'Minden este játszd vissza a napot előre, jelenetről jelenetre.',
+  'goal_plan_exam-facts_2':
+      'Ismételd napokkal később — a tesztelés veri az újraolvasást.',
+  'goal_plan_whole-day_0':
+      'Minden este játszd vissza a napot előre, jelenetről jelenetre.',
   'goal_plan_whole-day_1': 'Állj meg arcoknál, számoknál és pontos szavaknál.',
-  'goal_plan_whole-day_2': 'Írd le a három legnehezebb felidézést, aztán aludj rá.',
-  'goal_default_strategy':
-      'Csukd be a forrást, húzd ki a választ emlékezetből, aztán ellenőrizd és ismételd napokkal később — a tesztelés veri az újraolvasást.',
+  'goal_plan_whole-day_2':
+      'Írd le a három legnehezebb felidézést, aztán aludj rá.',
+  'goal_default_strategy': 'Csukd be a forrást, húzd ki a választ emlékezetből, aztán ellenőrizd és ismételd napokkal később — a tesztelés veri az újraolvasást.',
   'goal_default_plan_0': 'Bontsd az anyagot kis tömbökre.',
-  'goal_default_plan_1': 'Idézd fel minden tömböt emlékezetből, aztán ellenőrizd.',
+  'goal_default_plan_1':
+      'Idézd fel minden tömböt emlékezetből, aztán ellenőrizd.',
   'goal_default_plan_2': 'Ismételd a melléket ma este és újra napokkal később.',
   'teacher_how': 'Így jegyezd meg ({label}): {strategy}.',
-  'teacher_material': ' Anyagod: "{material}" — azon futtasd végig előbb a lépéseket.',
-  'teacher_win':
-      'Egy mai győzelem tíz újraolvasást ver: idézd fel egyszer most, aztán megint ma este.',
+  'teacher_material':
+      ' Anyagod: "{material}" — azon futtasd végig előbb a lépéseket.',
+  'teacher_win': 'Egy mai győzelem tíz újraolvasást ver: idézd fel egyszer most, aztán megint ma este.',
   'teacher_personal': 'személyes cél',
   'teacher_material_fallback': 'anyag',
   'dtask_my_task': 'Memóriafeladatom',
@@ -896,14 +834,14 @@ const Map<String, String> huStrings = {
   'dtask_strategy': 'A stratégia: {s}',
   'dtask_strategy_test': 'Teszteld magad visszajelzéssel.',
   'dtask_cover': 'Takarj le mindent, aztán innen emlékezetből add vissza:',
-  'dtask_write_one': 'Írd le EGY dolgot, amit meg akarsz jegyezni — szóról szóra:',
+  'dtask_write_one':
+      'Írd le EGY dolgot, amit meg akarsz jegyezni — szóról szóra:',
   'dtask_type_exact': 'Írd be pontosan úgy, ahogy felidézni akarod',
   'dtask_type_date': 'Írd be a dátumot (betű vagy szám, mindkettő számít)',
   'dtask_type_digits': 'Csak a számjegyeket írd be',
   'dtask_lockin': 'Rögzítsd ma este:',
   'dtask_mytask': '{label} feladatom',
-  'dtask_instructions':
-      'Saját anyagodból készült{extra}. Válaszolj meg minden blokkot, aztán vesd össze a forrással.',
+  'dtask_instructions': 'Saját anyagodból készült{extra}. Válaszolj meg minden blokkot, aztán vesd össze a forrással.',
   'dtask_instructions_empty': ' (még semmi megadva — írd be a belső mezőbe)',
   'dtask_lock_plan_0': 'Mondd ki egyszer hangosan a ha-akkor tervet',
   'dtask_lock_plan_1': 'Képzeld el 5 másodpercig a jelzés pillanatát',
@@ -920,56 +858,31 @@ const Map<String, String> huStrings = {
   'dtask_lock_default_0': 'Idézd fel még egyszer emlékezetből',
   'dtask_lock_default_1': 'Vesd össze a forrásoddal',
   'dtask_lock_default_2': 'Játszd vissza ma este lefekvés előtt',
-  'coach_greeting':
-      'Szia! Én vagyok a memóriaedződ. Kérdezz állomásról, csillagokról, sorozatokról vagy engramokról — vagy koppints a fenti javaslatokra.',
-  'coach_thanks':
-      'Szívesen! Edz egy kicsit minden nap — a következetesség építi a legerősebb memóriát.',
-  'coach_unlock':
-      'Fejezd be az állomásokat 1-3 csillagért — a csillagok nyitják meg a következő állomásokat az útvonalon. Elakadtál egy állomáson? Játszd újra a gyakorlatait: a befejezés mindig számít, hibákkal is.',
-  'coach_key':
-      'Add hozzá egyszer a kulcsodat a Beállítások → Meta MI alatt: illeszd be a MODEL_API_KEY-t, és nyomd meg: Kulcs mentése. Ezen az eszközön marad, és a sima indítások továbbra is működnek.',
-  'coach_theme':
-      'A sötét módot a Beállítások → Testreszabás alatt válthatod. Azonnal érvényesül, és mentve marad ezen az eszközön.',
-  'coach_signout':
-      'Kijelentkezéshez nyisd meg: Beállítások → Fiók → Kijelentkezés. Az ezen az eszközön mentett haladásod megmarad.',
-  'coach_streak':
-      'A sorozatod nő, ha minden nap edzel. Kihagytál egy napot? Engramokkal megjavíthatod a törést — nyisd meg a sorozatkártyát a költséghez.',
-  'coach_engram':
-      'Az engram az egyetlen fizetőeszköz: edzéssel szerzed, és megszakadt sorozat javítására költheted.',
-  'coach_stars':
-      'Egy állomás befejezése mindig 1-3 csillagot ér: minden helyes és gyors az 3, lassabb vagy többnyire helyes a 2, a befejezés az 1. A csillagok nyitják meg a következő állomásokat, és a befejezés növeli az adott típus pontszámát, emelve a memóriaszintet.',
-  'coach_palace':
-      'Válassz egy ismert útvonalat, például az otthonodat. Helyezz minden megállóhoz egy nagy, élénk, mozgó képet, aztán a felidézéshez sétálj végig sorrendben az útvonalon. Kezdj 3-4 megállóval.',
-  'coach_chunk':
-      'Bontsd a hosszú sorokat 3-as csoportokra, és minden csoportból csinálj egy élénk képet. A memóriád kb. 4 tömböt tart meg — minden tömb számítson.',
-  'coach_delay':
-      'Néha a kérdés 1-2 gyakorlattal a segédlet után érkezik. Ez a késleltetés maga az edzés: ismételgesd magadban az elemet, míg a következő gyakorlatok futnak.',
-  'coach_assess':
-      'A felmérés kezdő besorolás, nem diagnózis: 13 gyors próba (memóriatípusonként 2, térinél 3), plusz egy rövid interjú. Utána az útvonalad a legerősebb típusodat hangsúlyozza, de minden technika nyitva marad.',
-  'coach_battle':
-      'Az Arénában másokkal párbajozol rövid memóriakörökben. Körgyőzelmekkel emeled a pontszámodat — és a párbajgyőzelmek növelik az adott típus pontszámát, emelve a memóriaszintet.',
-  'coach_benchmark':
-      'A gyakorlójátékok szabad edzések: nincs csillag, nincs zár, csak ismétlések. Használd őket bemelegítésre egy állomás előtt, vagy gyenge pont fúrására.',
-  'coach_league':
-      'A Liga az edzésaktivitásodat rangsorolja másokéhoz képest. Edz rendszeresen, és fejezd be az állomásokat a feljebb jutáshoz — a következetesség veri a magolást.',
-  'coach_technique':
-      'Az alaptrükk mindenhol ugyanaz: amit meg kell jegyezned, alakítsd egy nagy, élénk, mozgó képpé, és kösd valamihez, amit már ismersz. Kezdj kicsiben — 3 elemmel — aztán adj hozzá többet, ahogy könnyebbé válik.',
-  'coach_example':
-      'Példa: tej, kulcsok és egy könyv megjegyzéséhez képzelj egy óriási tejesdobozt a bejárati ajtódban, kulcsokat hangosan csörögve a kanapén, és egy könyvet madárként csapkodva az asztalon. A felidézéshez sétálj végig újra az útvonalon.',
-  'coach_goals':
-      'A céljaid bármik lehetnek, amit TE meg akarsz jegyezni: írj címet, add hozzá a pontos anyagot, és a MI bevált stratégiára képezi le ismétlési tervvel. Aztán tanít, személyes feladatokat épít az anyagodból, és elmagyarázza, mi csúszott el.',
-  'coach_doit_path':
-      'Válassz egy állomást az útvonalon, és játszd végig 3-5 rövid gyakorlatát emlékezetből. A befejezés 1-3 csillagot ér, és a csillagok nyitják meg a következő állomásokat.',
-  'coach_doit_assess':
-      'A felmérés kezdő besorolás, nem diagnózis: 13 gyors próba (memóriatípusonként 2, térinél 3), plusz egy rövid interjú. Utána az útvonalad a legerősebb típusodat hangsúlyozza.',
-  'coach_doit_default':
-      'Előbb olvasd el az edzőkártyát, aztán játszd a gyakorlatokat: jegyezd meg mindegyik segédletet, és emlékezetből válaszolj. A befejezés mindig csillagot ér, hibákkal is — a hibák plusz visszajelzés így is tanít.',
-  'coach_topic_path':
-      'Ez az edzésútvonalad: fejezd be az állomásokat 1-3 csillagért, a csillagok nyitják meg a következő állomásokat, és a napi edzés építi a sorozatodat. Mondd meg, melyik állomáson vagy, és végigvezetlek.',
-  'coach_topic_goals':
-      'Itt őrzöd, amit TE meg akarsz jegyezni. Nyiss meg egy célt a tanuláshoz, a saját anyagod gyakorlásához, vagy hogy megkérdezd, miért csúszott el valami — a MI minden lépést a szavaid köré épít.',
-  'coach_fallback':
-      'Mondd meg, mi nem világos — a technika, a feladat, vagy hogy hova koppints ezután — és lépésről lépésre végigvezetlek.',
+  'coach_greeting': 'Szia! Én vagyok a memóriaedződ. Kérdezz állomásról, csillagokról, sorozatokról vagy engramokról — vagy koppints a fenti javaslatokra.',
+  'coach_thanks': 'Szívesen! Edz egy kicsit minden nap — a következetesség építi a legerősebb memóriát.',
+  'coach_unlock': 'Fejezd be az állomásokat 1-3 csillagért — a csillagok nyitják meg a következő állomásokat az útvonalon. Elakadtál egy állomáson? Játszd újra a gyakorlatait: a befejezés mindig számít, hibákkal is.',
+  'coach_key': 'Add hozzá egyszer a kulcsodat a Beállítások → Meta MI alatt: illeszd be a MODEL_API_KEY-t, és nyomd meg: Kulcs mentése. Ezen az eszközön marad, és a sima indítások továbbra is működnek.',
+  'coach_theme': 'A sötét módot a Beállítások → Testreszabás alatt válthatod. Azonnal érvényesül, és mentve marad ezen az eszközön.',
+  'coach_signout': 'Kijelentkezéshez nyisd meg: Beállítások → Fiók → Kijelentkezés. A kijelentkezés törli az eszköz adatait, de a szinkronizált haladásod visszajön, ha újra bejelentkezel.',
+  'coach_streak': 'A sorozatod nő, ha minden nap edzel. Kihagytál egy napot? Engramokkal megjavíthatod a törést — nyisd meg a sorozatkártyát a költséghez.',
+  'coach_engram': 'Az engram az egyetlen fizetőeszköz: edzéssel szerzed, és megszakadt sorozat javítására költheted.',
+  'coach_stars': 'Egy állomás befejezése mindig 1-3 csillagot ér: minden helyes és gyors az 3, lassabb vagy többnyire helyes a 2, a befejezés az 1. A csillagok nyitják meg a következő állomásokat, és a befejezés növeli az adott típus pontszámát, emelve a memóriaszintet.',
+  'coach_palace': 'Válassz egy ismert útvonalat, például az otthonodat. Helyezz minden megállóhoz egy nagy, élénk, mozgó képet, aztán a felidézéshez sétálj végig sorrendben az útvonalon. Kezdj 3-4 megállóval.',
+  'coach_chunk': 'Bontsd a hosszú sorokat 3-as csoportokra, és minden csoportból csinálj egy élénk képet. A memóriád kb. 4 tömböt tart meg — minden tömb számítson.',
+  'coach_delay': 'Néha a kérdés 1-2 gyakorlattal a segédlet után érkezik. Ez a késleltetés maga az edzés: ismételgesd magadban az elemet, míg a következő gyakorlatok futnak.',
+  'coach_assess': 'A felmérés kezdő besorolás, nem diagnózis: 13 gyors próba (memóriatípusonként 2, térinél 3), plusz egy rövid interjú. Utána az útvonalad a legerősebb típusodat hangsúlyozza, de minden technika nyitva marad.',
+  'coach_battle': 'Az Arénában másokkal párbajozol rövid memóriakörökben. Körgyőzelmekkel emeled a pontszámodat — és a párbajgyőzelmek növelik az adott típus pontszámát, emelve a memóriaszintet.',
+  'coach_benchmark': 'A gyakorlójátékok szabad edzések: nincs csillag, nincs zár, csak ismétlések. Használd őket bemelegítésre egy állomás előtt, vagy gyenge pont fúrására.',
+  'coach_league': 'A Liga az edzésaktivitásodat rangsorolja másokéhoz képest. Edz rendszeresen, és fejezd be az állomásokat a feljebb jutáshoz — a következetesség veri a magolást.',
+  'coach_technique': 'Az alaptrükk mindenhol ugyanaz: amit meg kell jegyezned, alakítsd egy nagy, élénk, mozgó képpé, és kösd valamihez, amit már ismersz. Kezdj kicsiben — 3 elemmel — aztán adj hozzá többet, ahogy könnyebbé válik.',
+  'coach_example': 'Példa: tej, kulcsok és egy könyv megjegyzéséhez képzelj egy óriási tejesdobozt a bejárati ajtódban, kulcsokat hangosan csörögve a kanapén, és egy könyvet madárként csapkodva az asztalon. A felidézéshez sétálj végig újra az útvonalon.',
+  'coach_goals': 'A céljaid bármik lehetnek, amit TE meg akarsz jegyezni: írj címet, add hozzá a pontos anyagot, és a MI bevált stratégiára képezi le ismétlési tervvel. Aztán tanít, személyes feladatokat épít az anyagodból, és elmagyarázza, mi csúszott el.',
+  'coach_doit_path': 'Válassz egy állomást az útvonalon, és játszd végig 3-5 rövid gyakorlatát emlékezetből. A befejezés 1-3 csillagot ér, és a csillagok nyitják meg a következő állomásokat.',
+  'coach_doit_assess': 'A felmérés kezdő besorolás, nem diagnózis: 13 gyors próba (memóriatípusonként 2, térinél 3), plusz egy rövid interjú. Utána az útvonalad a legerősebb típusodat hangsúlyozza.',
+  'coach_doit_default': 'Előbb olvasd el az edzőkártyát, aztán játszd a gyakorlatokat: jegyezd meg mindegyik segédletet, és emlékezetből válaszolj. A befejezés mindig csillagot ér, hibákkal is — a hibák plusz visszajelzés így is tanít.',
+  'coach_topic_path': 'Ez az edzésútvonalad: fejezd be az állomásokat 1-3 csillagért, a csillagok nyitják meg a következő állomásokat, és a napi edzés építi a sorozatodat. Mondd meg, melyik állomáson vagy, és végigvezetlek.',
+  'coach_topic_goals': 'Itt őrzöd, amit TE meg akarsz jegyezni. Nyiss meg egy célt a tanuláshoz, a saját anyagod gyakorlásához, vagy hogy megkérdezd, miért csúszott el valami — a MI minden lépést a szavaid köré épít.',
+  'coach_fallback': 'Mondd meg, mi nem világos — a technika, a feladat, vagy hogy hova koppints ezután — és lépésről lépésre végigvezetlek.',
   'mar_tier_durable': 'Tartós',
   'mar_tier_deep': 'Mély',
   'mar_tier_solid': 'Szilárd',
@@ -980,22 +893,19 @@ const Map<String, String> huStrings = {
   'mar_in_days': 'Ismétlés {n} nap múlva',
   'mar_wait_tomorrow': 'holnap',
   'mar_wait_days': '{n} nap múlva',
-  'mar_locked':
-      'A(z) {depth}. gyakorlókör a(z) {total}-ból {wait} oldódik fel — a térközök védik az emléket. Próbálj másik leckét vagy sávot.',
+  'mar_locked': 'A(z) {depth}. gyakorlókör a(z) {total}-ból {wait} oldódik fel — a térközök védik az emléket. Próbálj másik leckét vagy sávot.',
   'mar_due_open': 'Ismétlés esedékes — a következő kör nyitva.',
-  'mar_next_tomorrow': 'Következő ismétlés holnap — a térközök védik az emléket.',
-  'mar_next_days': 'Következő ismétlés {n} nap múlva — a térközök védik az emléket.',
-  'mar_dose_past':
-      '{shown} / {stretch}+ óra gyakorolva ezen az útvonalon — túl a kiterjesztett program vonalán. Tartsd meg elosztott ismétléssel.',
-  'mar_dose_lab':
-      '{shown} / {lab} óra gyakorolva ezen az útvonalon — labordózis-vonal elérve. A kiterjesztett program {stretch} óráig tart.',
-  'mar_dose_progress':
-      '{shown} / {lab} óra gyakorolva ezen az útvonalon — az e dózis mögötti laborprotokoll {lab} órát használt 6 hét alatt (Dresler et al. 2017).',
+  'mar_next_tomorrow':
+      'Következő ismétlés holnap — a térközök védik az emléket.',
+  'mar_next_days':
+      'Következő ismétlés {n} nap múlva — a térközök védik az emléket.',
+  'mar_dose_past': '{shown} / {stretch}+ óra gyakorolva ezen az útvonalon — túl a kiterjesztett program vonalán. Tartsd meg elosztott ismétléssel.',
+  'mar_dose_lab': '{shown} / {lab} óra gyakorolva ezen az útvonalon — labordózis-vonal elérve. A kiterjesztett program {stretch} óráig tart.',
+  'mar_dose_progress': '{shown} / {lab} óra gyakorolva ezen az útvonalon — az e dózis mögötti laborprotokoll {lab} órát használt 6 hét alatt (Dresler et al. 2017).',
   'mar_depth_first': 'Első kör — tanuld meg a mozdulatot',
   'mar_depth_round':
       '{d}. gyakorlókör a(z) {total}-ból — nehezebb készlet, friss tételek',
-  'mar_program_line':
-      'Teljes program: körülbelül {sessions} rövid alkalom (~{hours} óra vezetett gyakorlás) több hónapos elosztott ismétléssel, plusz a saját anyagod. A gyakorlókörök esedékességkor oldódnak fel — az e dózis mögötti laborprotokoll körülbelül 20 órát használt 6 hét alatt egy technikára (Dresler et al. 2017).',
+  'mar_program_line': 'Teljes program: körülbelül {sessions} rövid alkalom (~{hours} óra vezetett gyakorlás) több hónapos elosztott ismétléssel, plusz a saját anyagod. A gyakorlókörök esedékességkor oldódnak fel — az e dózis mögötti laborprotokoll körülbelül 20 órát használt 6 hét alatt egy technikára (Dresler et al. 2017).',
   'bench_hub_title': 'Tedd próbára magad',
   'bench_hub_sub': 'Válassz kihívást, és döntsd meg a csúcsodat!',
   'bench_hub_tip':
@@ -1009,6 +919,14 @@ const Map<String, String> huStrings = {
   'bench_game_verbal_title': 'Szómemória',
   'bench_game_verbal_sub': 'Láttad már ezt a szót?',
   'bench_game_verbal_best': 'pont',
+  'bench_voice_answer': 'VÁLASZ HANGON',
+  'bench_voice_listening': 'Hallgatlak… mondd: LÁTTAM vagy ÚJ',
+  'bench_voice_working': 'Átírás…',
+  'bench_voice_heard': 'Hallottam: „{text}”',
+  'bench_voice_unclear': 'Nem értettem — koppints inkább.',
+  'bench_voice_nomic': 'Nincs mikrofon — koppints inkább.',
+  'bench_voice_nocloud':
+      'A hanghoz API-kulcs + felhő-hozzájárulás kell — koppints inkább.',
   'bench_game_visual_title': 'Vizuális memória',
   'bench_game_visual_sub': 'Rajzold újra a mintát!',
   'bench_game_visual_best': 'szint',
@@ -1020,8 +938,7 @@ const Map<String, String> huStrings = {
   'bench_game_spatial_best': 'állomás',
   'bench_level_n': '{n}. szint',
   'bench_seq_done_title': 'Szép sorozat!',
-  'bench_seq_done_detail':
-      'Elérted a(z) {n}. szintet. Még egy kör, és még magasabbra jutsz — minden kör +XP!',
+  'bench_seq_done_detail': 'Elérted a(z) {n}. szintet. Még egy kör, és még magasabbra jutsz — minden kör +XP!',
   'bench_retry_xp': 'ÚJRA (DUPLA XP ÉRZÉS)',
   'bench_seq_watch': 'Figyeld a sorozatot… ({n} lépés)',
   'bench_seq_turn': 'Te jössz! Ismételd meg a sorozatot.',
@@ -1042,8 +959,7 @@ const Map<String, String> huStrings = {
   'bench_score_n': 'Pont: {n}',
   'bench_seen': 'LÁTTAM',
   'bench_new_word': 'ÚJ SZÓ',
-  'bench_verbal_hint':
-      '3 hiba, és vége. Minél tovább bírod, annál több XP!',
+  'bench_verbal_hint': '3 hiba, és vége. Minél tovább bírod, annál több XP!',
   'bench_visual_done_title': '{n}. szint!',
   'bench_visual_done_detail':
       'Legközelebb rajzold újra emlékezetből — a minta egyre sűrűbb!',
@@ -1062,36 +978,78 @@ const Map<String, String> huStrings = {
   'bench_order_tip': 'Tipp: a helyeket jegyezd meg, ne a számokat magold!',
   'bench_stations_n': '{n} állomás',
   'bench_spatial_done_title': '{n} állomás!',
-  'bench_spatial_done_detail':
-      'Sétáld végig a palotádat sorrendben — állomásonként egy bizarr, mozgó képpel!',
+  'bench_spatial_done_detail': 'Sétáld végig a palotádat sorrendben — állomásonként egy bizarr, mozgó képpel!',
   'bench_spatial_memorize':
       'Jegyezd meg az útvonalat! Minden állomás egy szót rejt.',
   'bench_spatial_palace': 'Palota: {route} — {n} állomás',
   'bench_spatial_gotit': 'MEGVAN, KÉRDEZZ',
   'bench_spatial_q': 'Mit helyeztél el ide: {station}?',
+  'bench_spatial_cam_off':
+      'Az AI-képek ki vannak kapcsolva — a szobád beolvasásához kapcsold be a felhő-AI-t a Beállításokban.',
+  'bench_spatial_camera': 'A SZOBÁM (KAMERA + SAM)',
+  'bench_spatial_cam_busy': 'A szobád olvasása SAM-mel…',
+  'bench_spatial_cam_empty':
+      'A SAM nem talált tiszta részletet — lépj közelebb, és próbáld újra.',
+  'bench_spatial_cam_fail': 'A kamera nem elérhető — a palota-útvonal marad.',
+  'ai_verdict_title': 'MI-ítélet',
+  'ai_verdict_good':
+      '{score} ({game}) — új csúcs. Rögzítsd ezt a formát: ugyanaz a sorrend, ugyanaz a tempó, még egy kör.',
+  'ai_verdict_mid':
+      '{score} ({game}, csúcs {best}). Közel: játszd újra lassan a tévesztetteket, aztán idézd fel őket este is.',
+  'ai_verdict_low':
+      '{score} ({game}, csúcs {best}) — a kezdet is számít. Most: egy lassabb kör, aztán ugyanezek felidézése este.',
+  'bench_ask_ai': 'KÉRDEZD AZ AI-EDZŐT',
+  'bench_wonder_title': 'Wonder útvonal-előzetes',
+  'wonder_fallback_view': 'Nézz {station} felé',
+  'ai_glimmer_good': '{score} — új csúcs. Rögzítve.',
+  'ai_glimmer_mid': '{score} — egy figyelmes ismétlésre a csúcsodtól.',
+  'ai_glimmer_low': '{score} — lassú kezdés, legközelebb erős hajrá.',
+  'bench_ai_models': 'Meta AI ebben a játékban: {models}',
+  'bench_ai_models_local': 'Helyi kör — {models} online kapcsolódik be',
+  'bench_ai_live': 'AI ÉLŐ',
+  'bench_ai_local': 'HELYI MÓD',
+  'bench_transfer_title': 'Vidd ki ezt a tudást a játékból',
+  'bench_transfer_sequence_tech': 'Tördeld a villanásokat 2–3-as csoportokra egy ritmussal, és suttogd az útvonalat nézés közben. Eljárás: sorrendi reprodukció (Corsi 1972; Kessels et al. 2000).',
+  'bench_transfer_sequence_life': 'Ugyanez az eljárás tart rendben többlépéses utasításokat: kanyarok egy útvonalon, receptlépések, táncmozdulatok.',
+  'bench_transfer_sequence_mission': 'Ma: tanulj meg egy valódi 5 lépéses sorozatot 2 tömbre bontva, aztán idézd fel este újra.',
+  'bench_transfer_number_tech': 'Tördeld a számjegyeket 3-asával, és adj minden tömbnek egy gyors képet vagy jelentést. Eljárás: tömbterjedelem (Miller 1956; Cowan 2001; Ericsson, Chase és Faloon 1980).',
+  'bench_transfer_number_life':
+      'Telefonszámok, kapukódok és PIN-kódok: mind ugyanígy tördelhetők.',
+  'bench_transfer_number_mission': 'Ma: tördelj 3-asával egy valódi számot, amire szükséged van, és idézd fel este.',
+  'bench_transfer_verbal_tech': 'Akassz minden új szóra egy élénk, interaktív képet abban a pillanatban, hogy meglátod. Eljárás: régi/új felismerés (Shepard 1967; Standing 1973).',
+  'bench_transfer_verbal_life': 'Nevek rendezvényen, új szókincs, listaelemek: a kép-horgok mindegyiket megtartják.',
+  'bench_transfer_verbal_mission': 'Ma: adj 3 valódi szónak vagy névnek, amivel találkozol, egy interaktív képet, aztán teszteld magad este.',
+  'bench_transfer_visual_tech': 'Lásd a világító mezőket EGY alakzatnak vagy tárgynak, ne külön négyzeteknek. Eljárás: mintaterjedelem (Luck és Vogel 1997; Cowan 2001).',
+  'bench_transfer_visual_life': 'Egy arc, egy polc vagy egy műszerfal egy pillantásra olvasása ugyanezt a vizuális csoportosítást használja.',
+  'bench_transfer_visual_mission': 'Ma: pillants egyszer egy valódi polcra, nézz el, és nevezz meg 4 dolgot egy csoportosított képként.',
+  'bench_transfer_order_tech': 'Járd végig a számokat útvonalként, és meséld el mini-történetként, mielőtt koppintasz. Eljárás: rendezett térbeli felidézés (Corsi 1972; Craik és Tulving 1975).',
+  'bench_transfer_order_life': 'Ügyintéznivalók sorrendben, feladatlépések, beszédpontok: a rendezett útvonalak tartják őket egyenesen.',
+  'bench_transfer_order_mission': 'Ma: helyezz 4 valódi teendőt egy elképzelt lakás-útvonalra, és járd végig kétszer.',
+  'bench_transfer_spatial_tech': 'Helyezz minden állomásra egy bizarr, interaktív képet, és járd végig az útvonalat sorrendben. Eljárás: loci-módszer (Maguire et al. 2003; Dresler et al. 2017).',
+  'bench_transfer_spatial_life': 'Bevásárlólisták, beszédek, tanulnivalók: a paloták bármilyen rendezett anyagot elbírnak.',
+  'bench_transfer_spatial_mission': 'Ma: helyezz 5 valódi elemet a saját lakás-sétádra, és idézd fel őket este.',
   'myg_hint_new': 'Új cél — fuss ma egy rövid alkalmat.',
   'myg_hint_recall': 'Idézd fel egyszer most, aztán este.',
   'myg_hint_today': 'Ma gyakorolva — játszd vissza egyszer lefekvés előtt.',
   'myg_hint_due_today': 'Ma esedékes: idézd fel egyszer most.',
   'myg_hint_due_n': 'Ismétlés esedékes: {n} napja nem gyakoroltad.',
-  'myg_ai_offline': 'Offline útmutató — adj hozzá AI-kulcsot a Beállításokban a többért.',
+  'myg_ai_offline':
+      'Offline útmutató — adj hozzá AI-kulcsot a Beállításokban a többért.',
   'myg_ai_built': 'Az AI építette a szavaidra.',
   'myg_delete_title': 'Törlöd a célt?',
   'myg_delete_body': '„{title}” és anyaga törlődik erről az eszközről.',
   'myg_keep': 'Mégsem',
   'myg_delete': 'Törlés',
+  'myg_gone': 'Ez a cél már nincs meg.',
   'myg_title': 'Céljaim',
-  'myg_intro_empty':
-      'Minden ide tartozik, amit meg akarsz jegyezni — az AI minden vágyból stratégiát, tervet és személyes feladatokat készít.',
+  'myg_intro_empty': 'Minden ide tartozik, amit meg akarsz jegyezni — az AI minden vágyból stratégiát, tervet és személyes feladatokat készít.',
   'myg_intro_one': '1 cél — nyisd meg, és tanuld meg az AI-jal.',
   'myg_intro_many': '{n} cél — nyiss meg egyet, és tanuld meg az AI-jal.',
   'myg_new_goal_btn': 'ÚJ CÉL',
   'myg_examples': 'Ellopható példák',
-  'myg_examples_body':
-      '• Kollégák nevei hétfőig\n• Az új kapukód: 4917\n• Tíz angol szó a dolgozatra\n• Anya szülinapja, március 14.\n• A vers első versszaka',
+  'myg_examples_body': '• Kollégák nevei hétfőig\n• Az új kapukód: 4917\n• Tíz angol szó a dolgozatra\n• Anya szülinapja, március 14.\n• A vers első versszaka',
   'myg_new_title': 'Új cél',
-  'myg_new_blurb':
-      'Írj be bármit, amit meg akarsz jegyezni — célonként egy vágyat, a saját szavaiddal.',
+  'myg_new_blurb': 'Írj be bármit, amit meg akarsz jegyezni — célonként egy vágyat, a saját szavaiddal.',
   'myg_label_title': 'Mit akarsz megjegyezni?',
   'myg_hint_title': 'Kollégák nevei, a kapukód, tíz szó…',
   'myg_label_details': 'Miért / mikor kell? (nem kötelező)',
@@ -1107,29 +1065,26 @@ const Map<String, String> huStrings = {
   'myg_plan_title': 'A TERVED',
   'myg_plan_blurb': 'Haladj sorrendben a lépéseken — apró győzelmek, elosztva.',
   'myg_material_title': 'AZ ANYAGOD',
-  'myg_material_blurb':
-      'A pontos szavak, számok vagy sorok — az AI minden feladatot ebből épít, szóról szóra.',
+  'myg_material_blurb': 'A pontos szavak, számok vagy sorok — az AI minden feladatot ebből épít, szóról szóra.',
   'myg_saving': 'Mentés…',
   'myg_save_material': 'Anyag mentése',
   'myg_teach_title': 'TANÍTS MEG',
-  'myg_teach_blurb': 'A stratégia A TE anyagodra alkalmazva, kidolgozott példával.',
+  'myg_teach_blurb':
+      'A stratégia A TE anyagodra alkalmazva, kidolgozott példával.',
   'myg_teach_btn': 'Taníts meg',
   'myg_teach_busy': 'Az AI készíti a leckédet…',
   'myg_diag_title': 'MIÉRT FELEJTETTEM EL?',
-  'myg_diag_blurb':
-      'Mondd el az AI-nak, mi csúszott ki — megnevezi a valószínű okot és egy konkrét javítást.',
+  'myg_diag_blurb': 'Mondd el az AI-nak, mi csúszott ki — megnevezi a valószínű okot és egy konkrét javítást.',
   'myg_diag_label': 'Mit NEM tudtál felidézni?',
   'myg_diag_hint': 'A második név, az utolsó számjegyek…',
   'myg_diag_btn': 'Miért felejtettem el?',
   'myg_diag_busy': 'Az AI olvassa a mellédet…',
   'myg_build_title': 'A SAJÁT FELADATOM',
-  'myg_build_blurb':
-      'Az AI kis feladatot rak össze gombokból, mezőkből és listákból — az anyagod köré építve.',
+  'myg_build_blurb': 'Az AI kis feladatot rak össze gombokból, mezőkből és listákból — az anyagod köré építve.',
   'myg_build_btn': 'Feladatom felépítése',
   'myg_build_busy': 'Az AI építi a feladatodat…',
   'myg_drill_title': 'GYORS GYAKORLÁS',
-  'myg_drill_blurb':
-      'Egy validált gyakorlat a célod saját eljárásából — friss AI-ösztönző minden körben.',
+  'myg_drill_blurb': 'Egy validált gyakorlat a célod saját eljárásából — friss AI-ösztönző minden körben.',
   'myg_drill_btn': 'Gyors gyakorlás indítása',
   'myg_drill_busy': 'Az AI választja az ösztönződet…',
   'myg_drill_round': '{name} · {n}. kör',
@@ -1166,17 +1121,19 @@ const Map<String, String> huStrings = {
       'Megkérdezem: „Anna egy vagy két n-nel?” — ingyen második találkozás.',
   'fnd_ex_0_payoff':
       'Egy perccel később is tudom a nevét — a befogadás rögzítette.',
-  'fnd_ex_1_situation': 'Egy kapukód: 491625. Hat laza számjegy, jelentés nélkül.',
+  'fnd_ex_1_situation':
+      'Egy kapukód: 491625. Hat laza számjegy, jelentés nélkül.',
   'fnd_ex_1_think0': 'Kettévágom: 491 — 625.',
   'fnd_ex_1_think1': 'A 491 focieredmény lesz, a 625 repülőülés.',
-  'fnd_ex_1_think2': 'Elképzelem, hogy gólt lövök, aztán beszállok a 625-ös ülésre.',
+  'fnd_ex_1_think2':
+      'Elképzelem, hogy gólt lövök, aztán beszállok a 625-ös ülésre.',
   'fnd_ex_1_payoff': 'Hat számjegy helyett két kép — a kód megmarad.',
   'fnd_ex_2_situation': 'Három vennivaló: alma, kulcs, gyertya.',
-  'fnd_ex_2_think0':
-      'Végigsétálok az előszobámon: bejárati ajtó, aztán a kanapé, aztán a lámpa.',
+  'fnd_ex_2_think0': 'Végigsétálok az előszobámon: bejárati ajtó, aztán a kanapé, aztán a lámpa.',
   'fnd_ex_2_think1': 'Óriás alma torlaszolja az ajtót; kulcs nyitja a kanapét;',
   'fnd_ex_2_think2': 'gyertya ég a lámpán, viaszt csepegtetve.',
-  'fnd_ex_2_payoff': 'Végigsétálok fejben az előszobán, és összeszedem mindhármat.',
+  'fnd_ex_2_payoff':
+      'Végigsétálok fejben az előszobán, és összeszedem mindhármat.',
   'fnd_ex_3_situation': 'Elvont teendő: „fejezd be a jelentést péntekre”.',
   'fnd_ex_3_think0': 'Képpé alakítom: egy óriási, égő naptár.',
   'fnd_ex_3_think1': 'A jelentés pénteken ül, füstöl, lapok repkednek.',
@@ -1184,9 +1141,11 @@ const Map<String, String> huStrings = {
   'fnd_ex_3_payoff': 'A kép azonnal visszatér, amint péntekre gondolok.',
   'fnd_ex_4_situation': 'Három ügy: tej, kulcsok, levél.',
   'fnd_ex_4_think0': 'Egy bolondos történetbe fűzöm őket, sorrendben.',
-  'fnd_ex_4_think1': 'Tejet öntök a kulcsaimra, aztán postázom az átázott kulcsokat',
+  'fnd_ex_4_think1':
+      'Tejet öntök a kulcsaimra, aztán postázom az átázott kulcsokat',
   'fnd_ex_4_think2': 'egy óriás levélben, amely odasétál a postaládához.',
-  'fnd_ex_4_payoff': 'A történet újramesélése az ügyeket is újrameséli — sorrendben.',
+  'fnd_ex_4_payoff':
+      'A történet újramesélése az ügyeket is újrameséli — sorrendben.',
   'fnd_ex_5_situation': 'Bemutatnak Mr. Bakernek — a név lepereg.',
   'fnd_ex_5_think0': 'Először egy vonást keresek: bozontos szemöldöke.',
   'fnd_ex_5_think1': 'Bakerből fehér pék sapka lesz — a képi horgom.',
@@ -1200,25 +1159,23 @@ const Map<String, String> huStrings = {
   'lp_exit_body': 'Az alkalom haladása elvész.',
   'lp_exit_stay': 'Játék folytatása',
   'lp_exit_leave': 'Kilépés',
-  'lp_session_foundation':
-      'Lágy indítás: {n} könnyű gyakorlat — jegyezd meg mindegyiket, aztán válaszolj rögtön.',
-  'lp_session_plain': 'Alkalom: {n} gyakorlat egymás után — jegyezd meg, aztán válaszolj.',
-  'lp_session_lag_one':
-      'Alkalom: {n} gyakorlat, a kérdések 1 lépéssel később jönnek — tartsd fejben mindegyik tételt!',
-  'lp_session_lag_many':
-      'Alkalom: {n} gyakorlat, a kérdések {lag} lépéssel később jönnek — tartsd fejben mindegyik tételt!',
+  'lp_session_foundation': 'Lágy indítás: {n} könnyű gyakorlat — jegyezd meg mindegyiket, aztán válaszolj rögtön.',
+  'lp_session_plain':
+      'Alkalom: {n} gyakorlat egymás után — jegyezd meg, aztán válaszolj.',
+  'lp_session_lag_one': 'Alkalom: {n} gyakorlat, a kérdések 1 lépéssel később jönnek — tartsd fejben mindegyik tételt!',
+  'lp_session_lag_many': 'Alkalom: {n} gyakorlat, a kérdések {lag} lépéssel később jönnek — tartsd fejben mindegyik tételt!',
   'lp_how_title': 'ÍGY MŰKÖDIK EZ AZ ÁLLOMÁS',
-  'lp_how_body':
-      '1. Olvasd el lent a technikát.\n2. Játssz {n} rövid gyakorlatot egymás után — jegyezd meg mindegyiket, aztán válaszolj.\n3. A befejezés mindig 1–3 csillagot ad, és feloldja a következő állomást.\nElakadtál? Koppints a ? gombra, és kérdezd az AI-edzőt.',
+  'lp_how_body': '1. Olvasd el lent a technikát.\n2. Játssz {n} rövid gyakorlatot egymás után — jegyezd meg mindegyiket, aztán válaszolj.\n3. A befejezés mindig 1–3 csillagot ad, és feloldja a következő állomást.\nElakadtál? Koppints a ? gombra, és kérdezd az AI-edzőt.',
   'lp_why_title': 'MIÉRT MŰKÖDIK',
+  'lp_technique_title': 'A TECHNIKA',
+  'lp_details_title': 'Részletek',
+  'lp_about_title': 'A TECHNIKÁRÓL',
   'lp_start': 'GYAKORLÁS INDÍTÁSA',
   'lp_watchme': 'ELŐBB NÉZD MEG',
   'lp_lag_title': 'ÚJ SZABÁLY: KÉSLELTETETT KÉRDÉSEK',
-  'lp_lag_body':
-      'Innentől egy kérdés egy gyakorlattal KÉSŐBB érkezhet, mint a saját gyakorlata. Minden gyakorlaton számcímke van (1. gyakorlat a(z) {n}-ból, 2. gyakorlat a(z) {n}-ból…), és minden kérdés megnevezi a gyakorlatát — kövesd a számokat, és mindig tudod, melyiket kérdezik.',
+  'lp_lag_body': 'Innentől egy kérdés egy gyakorlattal KÉSŐBB érkezhet, mint a saját gyakorlata. Minden gyakorlaton számcímke van (1. gyakorlat a(z) {n}-ból, 2. gyakorlat a(z) {n}-ból…), és minden kérdés megnevezi a gyakorlatát — kövesd a számokat, és mindig tudod, melyiket kérdezik.',
   'lp_transfer_title': 'MIRE FOGOD HASZNÁLNI',
-  'lp_transfer_note':
-      'Ugyanaz a stratégia az appban és a való életben — ez a közös eljárás visz át.',
+  'lp_transfer_note': 'Ugyanaz a stratégia az appban és a való életben — ez a közös eljárás visz át.',
   'lp_loading': 'Feladatok előkészítése…',
   'lp_loading_n': 'Feladatok előkészítése… {done}/{total}',
   'lp_upgrade': 'AI-kép + állomások (SAM) betöltése… {done}/{total}',
@@ -1227,10 +1184,8 @@ const Map<String, String> huStrings = {
   'lp_remember_lag':
       'Jegyezd meg {i}. gyakorlatként a(z) {n}-ból — a kérdése később jöhet!',
   'lp_disappears': 'A felszólítás eltűnik — válaszolj emlékezetből!',
-  'lp_cue_loci':
-      'Állomásonként egy bizarr, mozgó kép — mindig sétasorrendben. (Maguire et al. 2003)',
-  'lp_cue_picture':
-      'Nevezz meg minden részletet azonnal — a szavak rögzítik a képeket. (Shepard 1967; Standing 1973)',
+  'lp_cue_loci': 'Állomásonként egy bizarr, mozgó kép — mindig sétasorrendben. (Maguire et al. 2003)',
+  'lp_cue_picture': 'Nevezz meg minden részletet azonnal — a szavak rögzítik a képeket. (Shepard 1967; Standing 1973)',
   'lp_question_count': '{q}. kérdés a(z) {n}-ból — {d}. gyakorlat a(z) {n}-ból',
   'lp_retell': 'Meséld el a történetet a saját szavaiddal.',
   'lp_locked_in': 'Rögzítve — jöhet a következő!',
@@ -1242,8 +1197,7 @@ const Map<String, String> huStrings = {
   'lp_locked_done': 'Rögzítve. A felidézés az edzés.',
   'lp_continue': 'FOLYTATÁS',
   'lp_yours_title': 'TEDD SAJÁTODDÁ',
-  'lp_yours_blurb':
-      'A gyakorlatok a stratégiát edzik — a saját anyagodon térül meg. Mondd el az AI-nak, mit akarsz megjegyezni.',
+  'lp_yours_blurb': 'A gyakorlatok a stratégiát edzik — a saját anyagodon térül meg. Mondd el az AI-nak, mit akarsz megjegyezni.',
   'lp_my_goal': 'Saját: {title}',
   'lp_new_goal': 'Új személyes cél…',
   'lp_manage_goals': 'Céljaim kezelése…',
@@ -1276,25 +1230,20 @@ const Map<String, String> huStrings = {
   'btz_past': 'Elmúlt meccsek',
   'btz_past_empty_sub': 'A párbajaid itt jelennek meg',
   'btz_past_n': '{n} rögzített párbaj',
-  'btz_no_battles':
-      'Még nincs csata — keress ellenfelet fent, és az eredmények itt landolnak.',
+  'btz_no_battles': 'Még nincs csata — keress ellenfelet fent, és az eredmények itt landolnak.',
   'btz_showcases': 'Bemutatók',
   'btz_showcases_sub': 'Arénabotok közötti bemutató meccsek',
   'btz_no_show': 'Most nincs bemutató — nézz vissza később.',
   'btz_how': 'Így működik',
   'btz_how_sub': 'Három lépés, körönként mérve',
   'btz_step1_title': 'Illesztett ellenfelek',
-  'btz_step1_body':
-      'A párosítás ±{w} ponton belül keres. Csapatban a két játékos átlaga számít.',
+  'btz_step1_body': 'A párosítás ±{w} ponton belül keres. Csapatban a két játékos átlaga számít.',
   'btz_step2_title': 'Jegyezd meg, aztán idézd fel',
-  'btz_step2_body':
-      'Minden kör elrejti az ösztönzőt a kérdés előtt: írj számjegyeket, koppints mezőkre, nevezz meg részleteket. Ugyanazok a feladatok, ugyanaz az óra, valódi felidézés.',
+  'btz_step2_body': 'Minden kör elrejti az ösztönzőt a kérdés előtt: írj számjegyeket, koppints mezőkre, nevezz meg részleteket. Ugyanazok a feladatok, ugyanaz az óra, valódi felidézés.',
   'btz_step3_title': 'A győztes viszi a pontokat',
-  'btz_step3_body':
-      'Győzelemmel nő a pontod, vereséggel csökken — 0 alá soha. Döntetlennél feleződik a különbség.',
+  'btz_step3_body': 'Győzelemmel nő a pontod, vereséggel csökken — 0 alá soha. Döntetlennél feleződik a különbség.',
   'btz_fair_title': 'Farmolás ellen védve',
-  'btz_fair_body':
-      'A pont csak párbajban mozog. A gyakorlótér XP-t ad, nem pontot — könnyű feladatok darálásával itt nem jutsz feljebb.',
+  'btz_fair_body': 'A pont csak párbajban mozog. A gyakorlótér XP-t ad, nem pontot — könnyű feladatok darálásával itt nem jutsz feljebb.',
   'btz_presence_friends': '{f} barát · {p} edzőpartner',
   'btz_presence': '{p} edzőpartner',
   'btz_score': 'CSATAPONT',
@@ -1310,20 +1259,20 @@ const Map<String, String> huStrings = {
   'btz_match_duel': '1v1 · {name}',
   'btz_match_squad': '2v2 · {name}',
   'btz_matched_within': 'Illesztés ±{w} ponton belül',
-  'btz_match_duel_body':
-      'Három gyors feladat, egy óra, egy élő ellenfél. A győztes viszi a pontokat.',
+  'btz_match_duel_body': 'Három gyors feladat, egy óra, egy élő ellenfél. A győztes viszi a pontokat.',
   'btz_match_squad_body':
       'Te plusz egy szövetséges bot két bot ellen. A csapatösszeg dönt.',
   'btz_range': 'Meccssáv: {lo}–{hi} pont',
   'btz_find': 'MECCS KERESÉSE',
   'btz_practice': 'GYAKORLÓKÖR',
+  'btz_no_opponent': 'Most nincs ellenfél — próbáld újra.',
+  'btz_offline_wait': '{name} offline — a meghívó függőben marad.',
   'btz_friends_title': 'Csata barátokkal',
   'btz_friends_sub': 'Keress egy barátot, és hívd ki 1v1-re',
   'btz_search_hint': 'Keresés barátnévre…',
   'btz_no_friend': 'Nincs „{q}” nevű barát.',
   'btz_loading': 'Az aréna még töltődik…',
-  'btz_no_friends':
-      'Még nincsenek barátaid — adj hozzá játékosokat a Barátok fülön, aztán hívd ki őket itt 1v1-re.',
+  'btz_no_friends': 'Még nincsenek barátaid — adj hozzá játékosokat a Barátok fülön, aztán hívd ki őket itt 1v1-re.',
   'btz_find_friends': 'BARÁTOK KERESÉSE',
   'btz_matches': 'Meccsek',
   'btz_winrate': 'Győzelmi arány',
@@ -1455,8 +1404,7 @@ const Map<String, String> huStrings = {
   'blg_friends_n': 'Barátaim ({n})',
   'blg_friends_empty_sub': 'Még senki — adj hozzá játékosokat a javaslatokból',
   'blg_friends_sub': 'Az arénaköröd',
-  'blg_no_friends':
-      'Még nincsenek barátaid. Nyiss meg egy javasolt játékost, és koppints az ISMERŐSNEK JELÖLÉS-re.',
+  'blg_no_friends': 'Még nincsenek barátaid. Nyiss meg egy javasolt játékost, és koppints az ISMERŐSNEK JELÖLÉS-re.',
   'blg_activity': 'Aktivitás',
   'blg_activity_sub': 'Frissen a ligádból',
   'blg_no_feed': 'Még semmi — játssz egy párbajt, és itt megjelenik.',
@@ -1471,11 +1419,9 @@ const Map<String, String> huStrings = {
   'blg_bonus': '+{n} bónusz XP',
   'blg_tourn_sub': 'Itt nincs feljutás — a címért játszol',
   'blg_top8': 'TOP 8',
-  'blg_tourn_body':
-      'A hét végén a legjobb 8 kieséses ágon dönti el a bajnokot. Negyeddöntő, elődöntő, döntő.',
+  'blg_tourn_body': 'A hét végén a legjobb 8 kieséses ágon dönti el a bajnokot. Negyeddöntő, elődöntő, döntő.',
   'blg_reward': 'A győztes jutalma',
-  'blg_reward_body':
-      'A bajnok „2026-os tornagyőztes” jelvényt kap a profiljára. A további győzelmek nem adnak új jelvényt — helyette a szorzó nő: „2x 2026-os tornagyőztes”.',
+  'blg_reward_body': 'A bajnok „2026-os tornagyőztes” jelvényt kap a profiljára. A további győzelmek nem adnak új jelvényt — helyette a szorzó nő: „2x 2026-os tornagyőztes”.',
   'blg_no_field': 'Még nincs tornamezőny — játssz ligameccseket a kijutáshoz.',
   'blg_qf': 'Negyeddöntő',
   'blg_sf': 'Elődöntő',
@@ -1517,8 +1463,7 @@ const Map<String, String> huStrings = {
   'lpt_chapter_of': '{i}. fejezet a(z) {n}-ból',
   'lpt_unlock_hint': 'Fejezd be a fenti fejezetet a feloldáshoz',
   'lpt_foundation_done': 'Alapozás kész',
-  'lpt_foundation_body':
-      'Befejezted a(z) {track} alapozást — minden stratégia egyszer gyakorolva. Tartsd meg ismétléssel + a saját anyagoddal.',
+  'lpt_foundation_body': 'Befejezted a(z) {track} alapozást — minden stratégia egyszer gyakorolva. Tartsd meg ismétléssel + a saját anyagoddal.',
   'lpt_foundation_keep': 'Fejezd be ezt a sávot a haladáshoz',
   'lpt_foundation_pill_done': 'Alapozás kész — ismételd tovább',
   'lpt_foundation_pill_next': 'A(z) {i}. fejezet a(z) {n}-ból jön',
@@ -1537,9 +1482,9 @@ const Map<String, String> huStrings = {
   'lpt_retake_sub': '12 gyors próba • friss párhuzamos forma',
   'lpt_honesty': 'Mire képes — és mire nem — a gyakorlás →',
   'lpt_foundation_review': 'Minden út alapozó ismétlésbe torkollik.',
+  'lpt_repeat_suggested': 'Ismétlés javasolt',
   'mission_sensory-names-3_title': 'Három élő bemutatkozás',
-  'mission_sensory-names-3_briefing':
-      'Használd a figyelemkaput három valódi bemutatkozáson ezen a héten: teljes fókusz, nincs belső ismételgetés, a név azonnal visszamondva.',
+  'mission_sensory-names-3_briefing': 'Használd a figyelemkaput három valódi bemutatkozáson ezen a héten: teljes fókusz, nincs belső ismételgetés, a név azonnal visszamondva.',
   'mission_sensory-names-3_step0':
       'Hagyd abba a saját válaszod ismételgetését, amint megszólalnak.',
   'mission_sensory-names-3_step1':
@@ -1549,8 +1494,7 @@ const Map<String, String> huStrings = {
   'mission_sensory-names-3_selfcheck':
       'Másnap reggel írd le mindhárom nevet emlékezetből, és ellenőrizd.',
   'mission_sensory-noisy-cafe_title': 'Zajos szobás felidézés',
-  'mission_sensory-noisy-cafe_briefing':
-      'Kérd meg egy barátodat, hogy olvasson fel 5 szót hangosan zajos helyen, aztán idézd fel őket sorrendben. Ugyanaz a szűrőkészség, mint a zajos mezős gyakorlatokban.',
+  'mission_sensory-noisy-cafe_briefing': 'Kérd meg egy barátodat, hogy olvasson fel 5 szót hangosan zajos helyen, aztán idézd fel őket sorrendben. Ugyanaz a szűrőkészség, mint a zajos mezős gyakorlatokban.',
   'mission_sensory-noisy-cafe_step0':
       'Zárkózz a felolvasó hangjára, a többit hagyd elmosódni.',
   'mission_sensory-noisy-cafe_step1':
@@ -1560,43 +1504,35 @@ const Map<String, String> huStrings = {
   'mission_sensory-noisy-cafe_selfcheck':
       'Ismételd 5 új szóval csendes szobában, és hasonlítsd össze.',
   'mission_sensory-errands-echo_title': 'Ügyintézés hallásból',
-  'mission_sensory-errands-echo_briefing':
-      'Olvastasd fel valakivel egyszer a következő ügyintézési listádat, mondd vissza hangosan, aztán intézd az ügyeket írott lista nélkül.',
+  'mission_sensory-errands-echo_briefing': 'Olvastasd fel valakivel egyszer a következő ügyintézési listádat, mondd vissza hangosan, aztán intézd az ügyeket írott lista nélkül.',
   'mission_sensory-errands-echo_step0':
       'Mondd ki hangosan egyszer az ügyeket, ritmusba csoportosítva.',
   'mission_sensory-errands-echo_step1':
       'Játszd vissza őket még egyszer emlékezetből indulás előtt.',
   'mission_sensory-errands-echo_step2':
       'Az ajtóban idézd fel harmadszor a teljes listát.',
-  'mission_sensory-errands-echo_selfcheck':
-      'Számold meg, hány ügy tért vissza helyesen; jegyezd fel, melyik fakult meg.',
+  'mission_sensory-errands-echo_selfcheck': 'Számold meg, hány ügy tért vissza helyesen; jegyezd fel, melyik fakult meg.',
   'mission_sensory-evening-replay_title': 'Esti hangvisszajátszás',
-  'mission_sensory-evening-replay_briefing':
-      '3 napon át minden este játszd vissza az aznap hallott neveket és számokat lefekvés előtt, aztán aludj rá egyet.',
+  'mission_sensory-evening-replay_briefing': '3 napon át minden este játszd vissza az aznap hallott neveket és számokat lefekvés előtt, aztán aludj rá egyet.',
   'mission_sensory-evening-replay_step0':
       'Ülj csendben, és játszd vissza sorrendben a nap hangjait.',
   'mission_sensory-evening-replay_step1':
       'Állj meg minden névnél és számnál; mondd ki egyszer.',
   'mission_sensory-evening-replay_step2':
       'Írd le a három legnehezebb felidézést egy füzetbe.',
-  'mission_sensory-evening-replay_selfcheck':
-      'A 4. napon idézd fel újra az 1. nap hangjait, és ellenőrizd a jegyzeteket.',
+  'mission_sensory-evening-replay_selfcheck': 'A 4. napon idézd fel újra az 1. nap hangjait, és ellenőrizd a jegyzeteket.',
   'mission_working-phones-2_title': 'Két valódi telefonszám',
-  'mission_working-phones-2_briefing':
-      'Tanulj meg két telefonszámot, amelyet tényleg tárcsázol, képekre tömbösítve — egy hétig nincs névjegyzék.',
+  'mission_working-phones-2_briefing': 'Tanulj meg két telefonszámot, amelyet tényleg tárcsázol, képekre tömbösítve — egy hétig nincs névjegyzék.',
   'mission_working-phones-2_step0':
       'Bontsd mindegyik számot 3-as csoportokra, és képezd le mindegyiket.',
   'mission_working-phones-2_step1':
       'Fűzd a képeket számonként egy rövid jelenetbe.',
   'mission_working-phones-2_step2':
       'Idézd fel mindkét számot minden reggel az ellenőrzés előtt.',
-  'mission_working-phones-2_selfcheck':
-      'Tárcsázd mindkettőt emlékezetből a 7. napon; jegyezd fel a hibákat tömbönként.',
+  'mission_working-phones-2_selfcheck': 'Tárcsázd mindkettőt emlékezetből a 7. napon; jegyezd fel a hibákat tömbönként.',
   'mission_working-shopping-8_title': 'Bevásárlás papír nélkül',
-  'mission_working-shopping-8_briefing':
-      'Kódold a következő 8 tételes bevásárlólistádat képekkel ellátott tömbökbe, aztán vásárolj a listával lezárva a zsebedben.',
-  'mission_working-shopping-8_step0':
-      'Csoportosítsd a tételeket hármasával; képezd le mindegyik csoportot egy jelenetként.',
+  'mission_working-shopping-8_briefing': 'Kódold a következő 8 tételes bevásárlólistádat képekkel ellátott tömbökbe, aztán vásárolj a listával lezárva a zsebedben.',
+  'mission_working-shopping-8_step0': 'Csoportosítsd a tételeket hármasával; képezd le mindegyik csoportot egy jelenetként.',
   'mission_working-shopping-8_step1':
       'Sétálj végig egyszer a jeleneteken a boltba lépés előtt.',
   'mission_working-shopping-8_step2':
@@ -1604,18 +1540,17 @@ const Map<String, String> huStrings = {
   'mission_working-shopping-8_selfcheck':
       'Vesd össze a felidézett tételeket a papírlistával; javítsd a melléket.',
   'mission_working-dates-5_title': 'Öt fontos dátum',
-  'mission_working-dates-5_briefing':
-      'Rögzíts öt születésnapot vagy évfordulót tömbösített képekkel, hogy kimondd mindegyik dátumot, ha látod a személy nevét.',
+  'mission_working-dates-5_briefing': 'Rögzíts öt születésnapot vagy évfordulót tömbösített képekkel, hogy kimondd mindegyik dátumot, ha látod a személy nevét.',
   'mission_working-dates-5_step0':
       'Alakíts minden dátumot egy képpé (nap + hónap együtt).',
   'mission_working-dates-5_step1':
       'Ragaszd a képet egy fotó- vagy archívószóra.',
-  'mission_working-dates-5_step2': 'Idézd fel mind az ötöt minden este egy hétig.',
+  'mission_working-dates-5_step2':
+      'Idézd fel mind az ötöt minden este egy hétig.',
   'mission_working-dates-5_selfcheck':
       'Kérj meg valakit, hogy kérdezzen ki mind az ötből véletlen sorrendben.',
   'mission_working-backwards-day_title': 'Fordított ügyellenőrzés',
-  'mission_working-backwards-day_briefing':
-      'Bármely 4 megállós ügyintéző kör után mondd el a megállókat visszafelé emlékezetből, mielőtt hazamész.',
+  'mission_working-backwards-day_briefing': 'Bármely 4 megállós ügyintéző kör után mondd el a megállókat visszafelé emlékezetből, mielőtt hazamész.',
   'mission_working-backwards-day_step0':
       'Tartsd fejben az összes megállót a megfordítás előtt.',
   'mission_working-backwards-day_step1':
@@ -1625,18 +1560,15 @@ const Map<String, String> huStrings = {
   'mission_working-backwards-day_selfcheck':
       'Csináld meg három külön körön; kövesd a tiszta köröket.',
   'mission_spatial-home-10_title': 'Otthoni útvonalad 10 állomással',
-  'mission_spatial-home-10_briefing':
-      'Sétáld végig a valódi otthonodat, és rögzíts 10 állomást szigorú sorrendben, ajtótól a hálószobáig. Ez az útvonal lesz az alapértelmezett palotád.',
+  'mission_spatial-home-10_briefing': 'Sétáld végig a valódi otthonodat, és rögzíts 10 állomást szigorú sorrendben, ajtótól a hálószobáig. Ez az útvonal lesz az alapértelmezett palotád.',
   'mission_spatial-home-10_step0': 'Írd le papírra a 10 állomást sorrendben.',
-  'mission_spatial-home-10_step1':
-      'Sétáld végig kétszer az útvonalat tárgyak nélkül, megnevezve mindegyik állomást.',
+  'mission_spatial-home-10_step1': 'Sétáld végig kétszer az útvonalat tárgyak nélkül, megnevezve mindegyik állomást.',
   'mission_spatial-home-10_step2':
       'Helyezz el 10 szót a mai listáról, jelenetenként egyet.',
   'mission_spatial-home-10_selfcheck':
       'Holnap sétáld végig vakon az útvonalat, és idézd fel mind a 10 szót.',
   'mission_spatial-street-15_title': 'Utcai útvonalad 15 állomással',
-  'mission_spatial-street-15_briefing':
-      'Rögzíts egy 15 állomásos szabadtéri útvonalat, amelyen gyakran jársz. Csak éles pontok — nincs két pad, nincsenek homályos sarkok.',
+  'mission_spatial-street-15_briefing': 'Rögzíts egy 15 állomásos szabadtéri útvonalat, amelyen gyakran jársz. Csak éles pontok — nincs két pad, nincsenek homályos sarkok.',
   'mission_spatial-street-15_step0':
       'Sétáld végig az utcát, és válassz 15 éles, jól elkülönülő pontot.',
   'mission_spatial-street-15_step1':
@@ -1646,8 +1578,7 @@ const Map<String, String> huStrings = {
   'mission_spatial-street-15_selfcheck':
       'Idézd fel a 15 tételt előre másnap reggel, aztán sétáld újra.',
   'mission_spatial-own-list-20_title': 'Húsz tétel, ami a tiéd',
-  'mission_spatial-own-list-20_briefing':
-      'Tedd egy valódi 20 tételes listádat (tanulás, munka, csomagolás) a két útvonaladra, és idézd fel másnap.',
+  'mission_spatial-own-list-20_briefing': 'Tedd egy valódi 20 tételes listádat (tanulás, munka, csomagolás) a két útvonaladra, és idézd fel másnap.',
   'mission_spatial-own-list-20_step0':
       'Oszd a listát: 10 az otthoni, 10 az utcai útvonalra.',
   'mission_spatial-own-list-20_step1':
@@ -1657,8 +1588,7 @@ const Map<String, String> huStrings = {
   'mission_spatial-own-list-20_selfcheck':
       'Írd le a 20-at emlékezetből; csak a melléket sétáld újra.',
   'mission_spatial-teach-once_title': 'Tanítsd meg egyszer a sétát',
-  'mission_spatial-teach-once_briefing':
-      'Tanítsd meg az otthoni útvonaladat egy embernek, és sétálj vele végig 5 tételen. A tanítás tiszta sorrendet és éles állomásokat kényszerít ki.',
+  'mission_spatial-teach-once_briefing': 'Tanítsd meg az otthoni útvonaladat egy embernek, és sétálj vele végig 5 tételen. A tanítás tiszta sorrendet és éles állomásokat kényszerít ki.',
   'mission_spatial-teach-once_step0':
       'Mutasd meg a 10 állomásodat sorrendben papíron.',
   'mission_spatial-teach-once_step1':
@@ -1668,30 +1598,25 @@ const Map<String, String> huStrings = {
   'mission_spatial-teach-once_selfcheck':
       'Egy nappal később idézd fel magad is ugyanazt az 5 tételt.',
   'mission_visual-grocery-images_title': 'Képezd le az elvont feladataidat',
-  'mission_visual-grocery-images_briefing':
-      'Alakíts 6 elvont munkatételt (hívások, űrlapok, határidők) nagy, mozgó képekké, és idézd fel őket délben.',
+  'mission_visual-grocery-images_briefing': 'Alakíts 6 elvont munkatételt (hívások, űrlapok, határidők) nagy, mozgó képekké, és idézd fel őket délben.',
   'mission_visual-grocery-images_step0':
       'Adj minden elvont tételnek egy konkrét képet.',
   'mission_visual-grocery-images_step1':
       'Legyen minden kép nagy, élénk és mozgó.',
-  'mission_visual-grocery-images_step2':
-      'Kösd minden képet egy szobasarokhoz.',
+  'mission_visual-grocery-images_step2': 'Kösd minden képet egy szobasarokhoz.',
   'mission_visual-grocery-images_selfcheck':
       'Délben sorold fel mind a 6-ot a képekből; ellenőrizd a listádat.',
   'mission_visual-photo-next-day_title': 'Fotorészletek másnap',
-  'mission_visual-photo-next-day_briefing':
-      'Tanulmányozz egy zsúfolt fotót egy percig, aztán idézz fel 6 részletet másnap, újbóli megnézés nélkül.',
+  'mission_visual-photo-next-day_briefing': 'Tanulmányozz egy zsúfolt fotót egy percig, aztán idézz fel 6 részletet másnap, újbóli megnézés nélkül.',
   'mission_visual-photo-next-day_step0':
       'Nevezz meg 6 részletet hangosan, miközben egyszer megnézed.',
-  'mission_visual-photo-next-day_step1':
-      'Túlozz el egy vonást részletenként.',
+  'mission_visual-photo-next-day_step1': 'Túlozz el egy vonást részletenként.',
   'mission_visual-photo-next-day_step2':
       'Építsd újra a fotót emlékezetből az ellenőrzés előtt.',
   'mission_visual-photo-next-day_selfcheck':
       'Pontozd a helyes részleteket 6-ból; ismételd új fotóval.',
   'mission_visual-meeting-5_title': 'Öt megbeszéléspont képekben',
-  'mission_visual-meeting-5_briefing':
-      'A következő megbeszéléseden képezd le az 5 kulcspont mindegyikét, ahogy elhangzik, és játszd vissza a csíkot rögtön utána.',
+  'mission_visual-meeting-5_briefing': 'A következő megbeszéléseden képezd le az 5 kulcspont mindegyikét, ahogy elhangzik, és játszd vissza a csíkot rögtön utána.',
   'mission_visual-meeting-5_step0':
       'Képezd le mindegyik pontot abban a pillanatban, ahogy hallod.',
   'mission_visual-meeting-5_step1':
@@ -1701,8 +1626,7 @@ const Map<String, String> huStrings = {
   'mission_visual-meeting-5_selfcheck':
       'Másnap reggel játszd vissza a csíkot, és ellenőrizd a jegyzőkönyvet.',
   'mission_visual-study-pages_title': 'Tanulóoldalak jelenetekként',
-  'mission_visual-study-pages_briefing':
-      'Alakíts egy tanulóoldalt 4 összekapcsolt jelenetté, és idézd fel másnap az oldal szerkezetét a jelenetekből.',
+  'mission_visual-study-pages_briefing': 'Alakíts egy tanulóoldalt 4 összekapcsolt jelenetté, és idézd fel másnap az oldal szerkezetét a jelenetekből.',
   'mission_visual-study-pages_step0':
       'Bekezdésenként egy jelenet; tartsd az oldal sorrendjét.',
   'mission_visual-study-pages_step1':
@@ -1712,8 +1636,7 @@ const Map<String, String> huStrings = {
   'mission_visual-study-pages_selfcheck':
       'Magyarázd el az oldalt hangosan emlékezetből; ellenőrizd a hézagokat.',
   'mission_episodic-7-day-journal_title': 'Hét este visszajátszás',
-  'mission_episodic-7-day-journal_briefing':
-      'Játszd vissza minden napot visszafelé 7 estén át, és naplózd a három legnehezebb felidézést. A visszajátszás várása a hatás része.',
+  'mission_episodic-7-day-journal_briefing': 'Játszd vissza minden napot visszafelé 7 estén át, és naplózd a három legnehezebb felidézést. A visszajátszás várása a hatás része.',
   'mission_episodic-7-day-journal_step0':
       'Minden este játszd vissza a napot jelenetről jelenetre, visszafelé.',
   'mission_episodic-7-day-journal_step1':
@@ -1723,30 +1646,25 @@ const Map<String, String> huStrings = {
   'mission_episodic-7-day-journal_selfcheck':
       'A 8. napon idézd fel az 1. napot csak a napló hívószavaiból.',
   'mission_episodic-story-study_title': 'Tanulnivaló egy történetként',
-  'mission_episodic-story-study_briefing':
-      'Fűzz 10 tanulási fogalmat egyetlen bolondos kalandba, és meséld el elejétől végéig másnap.',
+  'mission_episodic-story-study_briefing': 'Fűzz 10 tanulási fogalmat egyetlen bolondos kalandba, és meséld el elejétől végéig másnap.',
   'mission_episodic-story-study_step0':
       'Kösd össze az 1→2 fogalmat egy cselekvéssel, aztán a 2→3-at, egy lánc.',
   'mission_episodic-story-study_step1':
       'Meséld el hangosan a történetet rögtön a felépítés után.',
   'mission_episodic-story-study_step2':
       'Meséld el újra másnap reggel az ellenőrzés előtt.',
-  'mission_episodic-story-study_selfcheck':
-      'Sorold fel a 10 fogalmat a történetből; jegyezd fel a szakadt láncszemeket.',
+  'mission_episodic-story-study_selfcheck': 'Sorold fel a 10 fogalmat a történetből; jegyezd fel a szakadt láncszemeket.',
   'mission_episodic-walkback-week_title': 'Sétálj vissza a héten',
-  'mission_episodic-walkback-week_briefing':
-      'Vasárnap sétálj végig egy palotán hétfői tételekkel, plusz játszd vissza a hetet napról napra, aztán aludj, és idézd fel újra a hétfőt.',
+  'mission_episodic-walkback-week_briefing': 'Vasárnap sétálj végig egy palotán hétfői tételekkel, plusz játszd vissza a hetet napról napra, aztán aludj, és idézd fel újra a hétfőt.',
   'mission_episodic-walkback-week_step0':
       'Sétáld végig egyszer a hétfői palotát lefekvés előtt.',
   'mission_episodic-walkback-week_step1':
       'Játszd vissza a kedd→vasárnap napokat rövid jelenetekként.',
   'mission_episodic-walkback-week_step2':
       'Idézd fel a hétfői sétát reggel elsőként.',
-  'mission_episodic-walkback-week_selfcheck':
-      'Számold meg a hétfői tételeket: mennyi maradt meg éjszaka, mennyit kellett újrasétálni.',
+  'mission_episodic-walkback-week_selfcheck': 'Számold meg a hétfői tételeket: mennyi maradt meg éjszaka, mennyit kellett újrasétálni.',
   'mission_episodic-retell-once_title': 'Mesélj el egy történetet hangosan',
-  'mission_episodic-retell-once_briefing':
-      'Olvass el egyszer egy rövid cikket, aztán meséld el hangosan valakinek még aznap este, csak emlékezetből.',
+  'mission_episodic-retell-once_briefing': 'Olvass el egyszer egy rövid cikket, aztán meséld el hangosan valakinek még aznap este, csak emlékezetből.',
   'mission_episodic-retell-once_step0':
       'Olvasd el egyszer, mint egy rövid filmet, újbóli olvasás nélkül.',
   'mission_episodic-retell-once_step1':
@@ -1756,8 +1674,7 @@ const Map<String, String> huStrings = {
   'mission_episodic-retell-once_selfcheck':
       'Meséld el újra másnap; hasonlítsd össze a kihagyott részeket.',
   'mission_semantic-live-names-5_title': 'Öt név egy eseményen',
-  'mission_semantic-live-names-5_briefing':
-      'A következő összejövetelen kódolj 5 valódi nevet a 3 lépéses módszerrel, és kettőt szólíts nevén később.',
+  'mission_semantic-live-names-5_briefing': 'A következő összejövetelen kódolj 5 valódi nevet a 3 lépéses módszerrel, és kettőt szólíts nevén később.',
   'mission_semantic-live-names-5_step0':
       'Először keress egy-egy kiugró vonást arconként.',
   'mission_semantic-live-names-5_step1':
@@ -1767,8 +1684,7 @@ const Map<String, String> huStrings = {
   'mission_semantic-live-names-5_selfcheck':
       'Másnap sorold fel mind az 5 nevet a vonásokból.',
   'mission_semantic-foreign-20_title': 'Húsz szó két hét alatt',
-  'mission_semantic-foreign-20_briefing':
-      'Tanulj meg 20 valódi idegen szót, amelyre szükséged van, kulcsszavas képekkel, napi 2-t, mindkét irányban tesztelve visszajelzéssel.',
+  'mission_semantic-foreign-20_briefing': 'Tanulj meg 20 valódi idegen szót, amelyre szükséged van, kulcsszavas képekkel, napi 2-t, mindkét irányban tesztelve visszajelzéssel.',
   'mission_semantic-foreign-20_step0':
       'Napi két új szó, mindegyik kulcsszavas jelenettel.',
   'mission_semantic-foreign-20_step1':
@@ -1778,8 +1694,7 @@ const Map<String, String> huStrings = {
   'mission_semantic-foreign-20_selfcheck':
       'A 14. napon teszteld mind a 20-at keverve; naplózd a megmaradtakat.',
   'mission_semantic-talk-5_title': 'Ötpontos beszéd jegyzet nélkül',
-  'mission_semantic-talk-5_briefing':
-      'Tarts egy valódi 5 pontos beszámolót vagy köszöntőt loci-vázról, jegyzet nélkül a kezedben.',
+  'mission_semantic-talk-5_briefing': 'Tarts egy valódi 5 pontos beszámolót vagy köszöntőt loci-vázról, jegyzet nélkül a kezedben.',
   'mission_semantic-talk-5_step0':
       'Helyezd az 5 pontot 5 állomásra sorrendben.',
   'mission_semantic-talk-5_step1':
@@ -1789,16 +1704,14 @@ const Map<String, String> huStrings = {
   'mission_semantic-talk-5_selfcheck':
       'Kérj meg egy hallgatót, hogy mondja vissza az 5 pontodat.',
   'mission_semantic-facts-own-15_title': 'Tizenöt saját tény',
-  'mission_semantic-facts-own-15_briefing':
-      'Iktass 15 tényt a saját tanulmányaidból vagy munkádból egy palotaszobakészletbe, és idézz fel bármely tényt az állomásáról.',
+  'mission_semantic-facts-own-15_briefing': 'Iktass 15 tényt a saját tanulmányaidból vagy munkádból egy palotaszobakészletbe, és idézz fel bármely tényt az állomásáról.',
   'mission_semantic-facts-own-15_step0':
       'Kérdezz rá minden ténynél a miértre, és kösd két ismert dologhoz.',
   'mission_semantic-facts-own-15_step1':
       'Helyezd el a tényeket sorrendben, állomásonként egy jelenettel.',
   'mission_semantic-facts-own-15_step2':
       'Mond el hangosan mindegyik tényt a saját szavaiddal.',
-  'mission_semantic-facts-own-15_selfcheck':
-      'Kérj meg valakit, hogy hívjon véletlen állomásokat; válaszolj mindegyikre.',
+  'mission_semantic-facts-own-15_selfcheck': 'Kérj meg valakit, hogy hívjon véletlen állomásokat; válaszolj mindegyikre.',
   'auth_no_backend':
       'Nincs Firebase-háttér: futtasd a `flutterfire configure` parancsot.',
   'btl_round': '{round}. kör',
@@ -1806,67 +1719,48 @@ const Map<String, String> huStrings = {
   'ai_teacher_default_label': 'anyag',
   'ai_teacher_material':
       ' Saját anyagod: "{material}" — először ezen futtasd végig a lépéseket.',
-  'ai_teacher_how':
-      'Így jegyezd meg ({label}): {strategy}.{material} Egy mai siker többet ér tíz újraolvasásnál: idézd fel egyszer most, aztán este újra.',
+  'ai_teacher_how': 'Így jegyezd meg ({label}): {strategy}.{material} Egy mai siker többet ér tíz újraolvasásnál: idézd fel egyszer most, aztán este újra.',
   'ai_diagnose_what': 'azt',
-  'ai_diagnose_custom':
-      'Ha ezt felejted: {what}, az általában azt jelenti, hogy az első bevésés túl felszínes volt: nem kapcsolódott hozzá erős hívóinger. Javíts a saját stratégiáddal — {strategy} — aztán teszteld magad újra este és napokkal később.',
-  'ai_diagnose_names':
-      'Ha ezt felejted: {what}, az általában azt jelenti, hogy be sem vésődött: a köszönéskor megoszlott a figyelmed. Javítás: legközelebb állítsd le a belső ismételgetést, ismételd vissza azonnal a nevet, és ragassz egy képi horgot egy arcvonásra.',
-  'ai_diagnose_numbers':
-      'Ha ezt felejted: {what}, az általában azt jelenti, hogy túl sok laza elem van tömbösítés nélkül. Javítás: bontsd 3-as csoportokra, minden csoportból csinálj egy képet, és idézd fel a képeket — reggel és este egy héten át.',
-  'ai_diagnose_deadlines':
-      'Ha ezt felejted: {what}, az általában azt jelenti, hogy nem kapcsolódott hívóinger a teendőhöz. Javítás: csinálj egy ha-akkor tervet — AMIKOR jön a hívó-pillanat, AKKOR az első lépés — és képzeld el egyszer a hívó-pillanatot.',
-  'ai_diagnose_poems':
-      'Ha ezt felejted: {what}, az általában azt jelenti, hogy felidézés nélküli újraolvasás volt. Javítás: takard le a sorokat, idézd fel a 2. sort az 1. alapján, és oszd el a darabokat napokra magolás helyett.',
-  'ai_diagnose_wholeday':
-      'Ha ezt felejted: {what}, az általában azt jelenti, hogy nem volt esti visszajátszás: a nap sosem rögzült. Javítás: este játszd vissza a napot előre, jelenetről jelenetre, megállva arcoknál, számoknál és pontos szavaknál.',
-  'ai_diagnose_default':
-      'Ha ezt felejted: {what}, az általában azt jelenti, hogy felidézés nélküli tanulás volt. Javítás: csukd be a forrást, húzd elő a választ emlékezetből, ellenőrizd, és ismételd napokkal később — a tesztelés veri az újraolvasást.',
+  'ai_diagnose_custom': 'Ha ezt felejted: {what}, az általában azt jelenti, hogy az első bevésés túl felszínes volt: nem kapcsolódott hozzá erős hívóinger. Javíts a saját stratégiáddal — {strategy} — aztán teszteld magad újra este és napokkal később.',
+  'ai_diagnose_names': 'Ha ezt felejted: {what}, az általában azt jelenti, hogy be sem vésődött: a köszönéskor megoszlott a figyelmed. Javítás: legközelebb állítsd le a belső ismételgetést, ismételd vissza azonnal a nevet, és ragassz egy képi horgot egy arcvonásra.',
+  'ai_diagnose_numbers': 'Ha ezt felejted: {what}, az általában azt jelenti, hogy túl sok laza elem van tömbösítés nélkül. Javítás: bontsd 3-as csoportokra, minden csoportból csinálj egy képet, és idézd fel a képeket — reggel és este egy héten át.',
+  'ai_diagnose_deadlines': 'Ha ezt felejted: {what}, az általában azt jelenti, hogy nem kapcsolódott hívóinger a teendőhöz. Javítás: csinálj egy ha-akkor tervet — AMIKOR jön a hívó-pillanat, AKKOR az első lépés — és képzeld el egyszer a hívó-pillanatot.',
+  'ai_diagnose_poems': 'Ha ezt felejted: {what}, az általában azt jelenti, hogy felidézés nélküli újraolvasás volt. Javítás: takard le a sorokat, idézd fel a 2. sort az 1. alapján, és oszd el a darabokat napokra magolás helyett.',
+  'ai_diagnose_wholeday': 'Ha ezt felejted: {what}, az általában azt jelenti, hogy nem volt esti visszajátszás: a nap sosem rögzült. Javítás: este játszd vissza a napot előre, jelenetről jelenetre, megállva arcoknál, számoknál és pontos szavaknál.',
+  'ai_diagnose_default': 'Ha ezt felejted: {what}, az általában azt jelenti, hogy felidézés nélküli tanulás volt. Javítás: csukd be a forrást, húzd elő a választ emlékezetből, ellenőrizd, és ismételd napokkal később — a tesztelés veri az újraolvasást.',
   'ai_note_no_key':
       'nincs AI-kulcs — add meg a Beállítások → Meta AI alatt, {tail}',
-  'ai_note_consent_off':
-      'a felhő-AI ki van kapcsolva (Beállítások → Felhő-AI elemzés engedélyezése), {tail}',
+  'ai_note_consent_off': 'a felhő-AI ki van kapcsolva (Beállítások → Felhő-AI elemzés engedélyezése), {tail}',
   'ai_recap_title': 'AI-összegzés',
-  'ai_recap_good':
-      '{correct} találat {total}-ból, {track} területen — erős menet. Következő lépés: egy fokkal nehezebb, és este idézd fel még egyszer.',
-  'ai_recap_mid':
-      '{correct} találat {total}-ból, {track} területen. Szép középút: a hibázottakat most játszd vissza, holnap pedig idézd fel újra.',
-  'ai_recap_low':
-      '{correct} találat {total}-ból, {track} területen — a kezdet is számít. Következő lépés: egy könnyebb kör lassan, este pedig ugyanazok felidézése.',
+  'ai_recap_good': '{correct} találat {total}-ból, {track} területen — erős menet. Következő lépés: egy fokkal nehezebb, és este idézd fel még egyszer.',
+  'ai_recap_mid': '{correct} találat {total}-ból, {track} területen. Szép középút: a hibázottakat most játszd vissza, holnap pedig idézd fel újra.',
+  'ai_recap_low': '{correct} találat {total}-ból, {track} területen — a kezdet is számít. Következő lépés: egy könnyebb kör lassan, este pedig ugyanazok felidézése.',
   'ai_tip_title': 'AI-gyakorlótipp',
-  'ai_tip_sequence':
-      '{n}. szinten: dúdold a koppintásokat ritmusként — a ritmus darabokra szedi a sorozatot, így tovább megmarad.',
-  'ai_tip_number':
-      '{n} számjegynél: párokra bontsd a számot, és minden párból csinálj egy képet.',
+  'ai_tip_sequence': '{n}. szinten: dúdold a koppintásokat ritmusként — a ritmus darabokra szedi a sorozatot, így tovább megmarad.',
+  'ai_tip_number': '{n} számjegynél: párokra bontsd a számot, és minden párból csinálj egy képet.',
   'ai_tip_verbal':
       '{n} pontnál: minden új szót köss egy képhez a körülötted lévő szobából.',
-  'ai_tip_visual':
-      '{n}. szinten: a világító cellákat nevezd el egy alakzatnak (L betű, sarok), ne külön pöttyöknek.',
-  'ai_tip_order':
-      '{n} cellánál: a koppintás előtt egyszer rajzold le a levegőbe az 1-2-3 útvonalat.',
-  'ai_tip_spatial':
-      '{n} állomásnál: mindig ugyanabban a sorrendben járd végig a palotádat — a sorrend a memória fele.',
-  'ai_tip_default':
-      '{n}. szinten: a következő körben lassíts — egy gondos felidézés többet ér három kapkodottnál.',
+  'ai_tip_visual': '{n}. szinten: a világító cellákat nevezd el egy alakzatnak (L betű, sarok), ne külön pöttyöknek.',
+  'ai_tip_order': '{n} cellánál: a koppintás előtt egyszer rajzold le a levegőbe az 1-2-3 útvonalat.',
+  'ai_tip_spatial': '{n} állomásnál: mindig ugyanabban a sorrendben járd végig a palotádat — a sorrend a memória fele.',
+  'ai_tip_default': '{n}. szinten: a következő körben lassíts — egy gondos felidézés többet ér három kapkodottnál.',
   'ai_picture_loading': 'Festem az egyedi képedet…',
   'ai_picture_sam': 'A SAM {n} részletet talált',
+  'ai_picture_offline': 'Most nincs AI-kép (offline vagy kikapcsolt AI) — a listáról járd végig az állomásokat.',
+  'sam_overlay_title': 'SAM-séta · {n} állomás a képen',
+  'ai_palace_on': 'Az AI-képek + SAM BE van kapcsolva: a lecke minden köre saját festett palotát és szegmentált sétát kap.',
+  'ai_palace_off': 'Az AI-képek KI vannak kapcsolva: a Beállításokban kapcsold be a felhő-AI-t és add meg a kulcsod.',
   'lp_missed_title': 'Miért csúsztak el ezek?',
   'lp_missed_button': 'AI: miért hibáztam?',
   'lp_missed_hint': 'Most nincs hiba — tiszta menet volt.',
   'duel_ai_title': 'AI-párbajösszegzés',
   'duel_hype_title': 'AI-felvezetés',
-  'duel_hype_default':
-      '{foe} vár a {kind}-arénában — koncentrálj, idézz fel egyszer, csapj le gyorsan.',
+  'duel_hype_default': '{foe} vár a {kind}-arénában — koncentrálj, idézz fel egyszer, csapj le gyorsan.',
   'duel_round_title': 'AI-körjegyzet',
-  'duel_round_good':
-      'Bevágtad — vidd tovább ugyanezt a kezdőbetűs fogódzót a következő körre.',
-  'duel_round_miss':
-      'Kicsúszott — a következő körben képzeld el a választ egyszer, mielőtt zárolod.',
+  'duel_round_good': 'Bevágtad — vidd tovább ugyanezt a kezdőbetűs fogódzót a következő körre.',
+  'duel_round_miss': 'Kicsúszott — a következő körben képzeld el a választ egyszer, mielőtt zárolod.',
   'duel_sam_title': 'Az AI ezt szúrta ki a képen',
   'duel_scout_title': 'AI-felderítőjelentés',
-  'duel_scout_first':
-      'Első {kind}-párbajod — jegyezz meg lassan, válaszolj gyorsan, és bízz az első felidézésben.',
-  'duel_scout_default':
-      '{w} győzelem {m} párbajból. {kind} tipp: képzeld el a választ egyszer, mielőtt zárolod.',
+  'duel_scout_first': 'Első {kind}-párbajod — jegyezz meg lassan, válaszolj gyorsan, és bízz az első felidézésben.',
+  'duel_scout_default': '{w} győzelem {m} párbajból. {kind} tipp: képzeld el a választ egyszer, mielőtt zárolod.',
 };

@@ -10,6 +10,7 @@ import '../services/auth_service.dart';
 import '../services/cloud_sync.dart';
 import '../services/memory_store.dart';
 import '../services/profile_setup.dart';
+import '../theme/app_colors.dart' show error, success;
 import '../theme/app_theme.dart';
 import '../widgets/app_buttons.dart';
 
@@ -108,7 +109,10 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       _error = null;
     });
     try {
-      await CloudSync.claimUsername(uid: uid, username: username);
+      await CloudSync.claimUsername(
+        uid: uid,
+        username: username,
+      ).timeout(const Duration(seconds: 10));
       final previous = await MemoryStore.loadProfile();
       if (previous.username.isNotEmpty && previous.username != username) {
         await CloudSync.releaseUsername(
@@ -146,6 +150,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       setState(() {
         _busy = false;
         _error = tr('profile_no_connection');
+      });
+    } on CloudPermissionException {
+      AppFeedback.heavy();
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _error = tr('profile_cloud_error');
       });
     } catch (e) {
       AppFeedback.heavy();
@@ -238,7 +249,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                         _error!,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                          color: Color(0xFFE5484D),
+                          color: error,
                           fontWeight: FontWeight.w700,
                           fontSize: 13,
                         ),
@@ -251,6 +262,17 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                           : tr('profile_save_continue'),
                       isLoading: _busy,
                       onPressed: _busy ? null : _save,
+                    ),
+                    // Menekülőút tartós felhő-hiba esetére: a képernyő
+                    // egyébként nem bezárható (PopScope canPop:false).
+                    TextButton(
+                      onPressed: _busy
+                          ? null
+                          : () {
+                              AppFeedback.light();
+                              authService.signOut();
+                            },
+                      child: Text(tr('settings_sign_out')),
                     ),
                   ],
                 ),
@@ -278,7 +300,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         padding: EdgeInsets.only(right: 12),
         child: HugeIcon(
           icon: HugeIcons.strokeRoundedCheckmarkCircle02,
-          color: Color(0xFF16A34A),
+          color: success,
           size: 20,
           strokeWidth: 2.2,
         ),
@@ -289,7 +311,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
         padding: EdgeInsets.only(right: 12),
         child: HugeIcon(
           icon: HugeIcons.strokeRoundedCancelCircle,
-          color: Color(0xFFE5484D),
+          color: error,
           size: 20,
           strokeWidth: 2.2,
         ),

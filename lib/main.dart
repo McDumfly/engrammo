@@ -21,8 +21,58 @@ import 'screens/learning_path.dart';
 import 'screens/onboarding.dart';
 import 'screens/profile_setup.dart';
 
+/// Rendszer-sáv stílus sötét/világos módhoz (egyetlen igazságforrás).
+SystemUiOverlayStyle overlayStyleFor(bool dark) {
+  return SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    systemNavigationBarColor: Colors.transparent,
+    statusBarIconBrightness: dark ? Brightness.light : Brightness.dark,
+    statusBarBrightness: dark ? Brightness.dark : Brightness.light,
+    systemNavigationBarIconBrightness: dark
+        ? Brightness.light
+        : Brightness.dark,
+    systemNavigationBarDividerColor: Colors.transparent,
+    systemNavigationBarContrastEnforced: false,
+    systemStatusBarContrastEnforced: false,
+  );
+}
+
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  await runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
+      FlutterError.onError = (details) {
+        debugPrint('FlutterError: ${details.exceptionAsString()}');
+        FlutterError.presentError(details);
+      };
+      ErrorWidget.builder = (details) => const _ErrorFallback();
+      await _boot();
+    },
+    (error, stack) {
+      debugPrint('Zoned error: $error');
+    },
+  );
+}
+
+/// Hibahelyettesítő nézet: piros halálképernyő helyett nyugodt üzenet.
+class _ErrorFallback extends StatelessWidget {
+  const _ErrorFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Material(
+      child: Center(
+        child: Text('Something went wrong — please restart the app.'),
+      ),
+    );
+  }
+}
+
+Future<void> _boot() async {
+  // Az app nem forgatható: álló (portrait) nézetre rögzítve.
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -51,20 +101,7 @@ Future<void> main() async {
   // The global default is transparent too, so no route can bring back a
   // thin dark divider line above the bottom exit strip.
   final dark = appSettings.darkMode;
-  SystemChrome.setSystemUIOverlayStyle(
-    SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      systemNavigationBarColor: Colors.transparent,
-      statusBarIconBrightness: dark ? Brightness.light : Brightness.dark,
-      statusBarBrightness: dark ? Brightness.dark : Brightness.light,
-      systemNavigationBarIconBrightness: dark
-          ? Brightness.light
-          : Brightness.dark,
-      systemNavigationBarDividerColor: Colors.transparent,
-      systemNavigationBarContrastEnforced: false,
-      systemStatusBarContrastEnforced: false,
-    ),
-  );
+  SystemChrome.setSystemUIOverlayStyle(overlayStyleFor(dark));
   runApp(const MyApp());
 }
 
@@ -77,18 +114,7 @@ class MyApp extends StatelessWidget {
       listenable: appSettings,
       builder: (context, _) {
         final dark = appSettings.darkMode;
-        final overlay = SystemUiOverlayStyle(
-          statusBarColor: Colors.transparent,
-          systemNavigationBarColor: Colors.transparent,
-          statusBarIconBrightness: dark ? Brightness.light : Brightness.dark,
-          statusBarBrightness: dark ? Brightness.dark : Brightness.light,
-          systemNavigationBarIconBrightness: dark
-              ? Brightness.light
-              : Brightness.dark,
-          systemNavigationBarDividerColor: Colors.transparent,
-          systemNavigationBarContrastEnforced: false,
-          systemStatusBarContrastEnforced: false,
-        );
+        final overlay = overlayStyleFor(dark);
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: overlay,
           child: MaterialApp(
@@ -139,6 +165,7 @@ class _StartRouterState extends State<_StartRouter> {
   bool _needsOnboarding = false;
   bool _needsSetup = false;
   bool _resolving = false;
+  bool _dirty = false;
 
   @override
   void initState() {
@@ -154,13 +181,18 @@ class _StartRouterState extends State<_StartRouter> {
   }
 
   void _onAuthChanged() {
-    if (!_ready || _resolving) return;
+    if (!_ready) return;
+    if (_resolving) {
+      _dirty = true;
+      return;
+    }
     _resolve();
   }
 
   Future<void> _resolve() async {
     if (_resolving) return;
     _resolving = true;
+    _dirty = false;
     var needs = false;
     var setup = false;
     try {
@@ -185,6 +217,10 @@ class _StartRouterState extends State<_StartRouter> {
     }
     _resolving = false;
     if (!mounted) return;
+    if (_dirty) {
+      _resolve();
+      return;
+    }
     if (_ready && _needsOnboarding == needs && _needsSetup == setup) return;
     setState(() {
       _needsOnboarding = needs;

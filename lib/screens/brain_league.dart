@@ -9,9 +9,11 @@ import '../l10n/app_localizations.dart';
 import '../models/battle_match.dart' show battleDateLabelIn;
 import '../services/bot_arena_store.dart';
 import '../widgets/ai_help_button.dart';
+import '../widgets/app_buttons.dart';
 import 'friend_profile.dart';
 
-import 'memory_profile.dart' show violet, violetDark, teal, amber, coral, sky;
+import '../theme/app_colors.dart'
+    show blue, blueDark, error, success, teal, tealDark, orange, coral, sky;
 
 class BrainTier {
   final String name;
@@ -225,6 +227,21 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
   bool get _isTop => _selected == brainTiers.length - 1;
   bool get _isTournament => _selected == brainTiers.length;
 
+  Widget _leagueRow(int rank, _Rival rival) {
+    final row = _BoardRow(
+      key: ValueKey('league-$rank'),
+      rank: rank,
+      rival: rival,
+      isMe: rival.isMe,
+    );
+    final botId = rival.botId;
+    if (rival.isMe || botId == null) return row;
+    return GestureDetector(
+      onTap: () => _openLeagueBot(context, botId),
+      child: row,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final daysLeft = 8 - DateTime.now().weekday;
@@ -241,6 +258,10 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
         elevation: 0,
         scrolledUnderElevation: 0,
         automaticallyImplyLeading: false,
+        // Tabként nincs hova visszalépni, push-olt útként viszont kell.
+        leading: Navigator.of(context).canPop()
+            ? const EngramBackButton()
+            : null,
         title: Text(
           tr('blg_title'),
           style: TextStyle(
@@ -257,7 +278,7 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
         bottom: TabBar(
           controller: _tabs,
           dividerColor: Colors.transparent,
-          indicatorColor: violet,
+          indicatorColor: blue,
           indicatorWeight: 3,
           labelColor: Theme.of(context).colorScheme.onSurface,
           unselectedLabelColor: context.mutedText,
@@ -363,6 +384,13 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
                     SliverToBoxAdapter(
                       child: _TournamentCard(qualifiers: rivals),
                     )
+                  else if (!botArena.isLoaded)
+                    const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.all(32),
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                    )
                   else if (rivals.isEmpty)
                     const SliverToBoxAdapter(child: _EmptyBoard())
                   else if (isTop)
@@ -373,12 +401,7 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
                         final row = slot > 20 ? slot - 1 : slot;
                         final rival = rivals[row];
                         final rank = row + 1;
-                        return _BoardRow(
-                          key: ValueKey('league-$rank'),
-                          rank: rank,
-                          rival: rival,
-                          isMe: rival.isMe,
-                        );
+                        return _leagueRow(rank, rival);
                       },
                     )
                   else
@@ -392,12 +415,7 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
                             : (slot > 10 ? slot - 1 : slot);
                         final rival = rivals[row];
                         final rank = row + 1;
-                        return _BoardRow(
-                          key: ValueKey('league-$rank'),
-                          rank: rank,
-                          rival: rival,
-                          isMe: rival.isMe,
-                        );
+                        return _leagueRow(rank, rival);
                       },
                     ),
                   const SliverToBoxAdapter(child: SizedBox(height: 120)),
@@ -410,22 +428,22 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
   }
 }
 
+void _openLeagueBot(BuildContext context, String botId) {
+  final bot = botArena.botById(botId);
+  if (bot == null) return;
+  AppFeedback.light();
+  Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => FriendProfilePage(
+        friend: botArena.botToFriend(bot),
+        botId: bot.id,
+      ),
+    ),
+  );
+}
+
 class _FriendsTab extends StatelessWidget {
   const _FriendsTab();
-
-  void _openBot(BuildContext context, String botId) {
-    final bot = botArena.botById(botId);
-    if (bot == null) return;
-    AppFeedback.light();
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => FriendProfilePage(
-          friend: botArena.botToFriend(bot),
-          botId: bot.id,
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -435,6 +453,9 @@ class _FriendsTab extends StatelessWidget {
         final friends = botArena.friendBots();
         final suggestions = botArena.suggestions();
         final feed = botArena.feed;
+        if (!botArena.isLoaded) {
+          return const Center(child: CircularProgressIndicator());
+        }
         if (!botArena.hasSeason && friends.isEmpty) {
           return const Center(child: _EmptyBoard());
         }
@@ -447,7 +468,7 @@ class _FriendsTab extends StatelessWidget {
             ),
             for (var i = 0; i < suggestions.length; i++)
               GestureDetector(
-                onTap: () => _openBot(context, suggestions[i].id),
+                onTap: () => _openLeagueBot(context, suggestions[i].id),
                 child: _BoardRow(
                   key: ValueKey('suggest-${suggestions[i].id}'),
                   rank: i + 1,
@@ -475,7 +496,7 @@ class _FriendsTab extends StatelessWidget {
               ),
             for (var i = 0; i < friends.length; i++)
               GestureDetector(
-                onTap: () => _openBot(context, friends[i].id),
+                onTap: () => _openLeagueBot(context, friends[i].id),
                 child: _BoardRow(
                   key: ValueKey('friend-${friends[i].id}'),
                   rank: i + 1,
@@ -584,16 +605,16 @@ class _SeasonCountdownChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
-        color: violet.withValues(alpha: 0.12),
+        color: blue.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(99),
-        border: Border.all(color: violet.withValues(alpha: 0.45)),
+        border: Border.all(color: blue.withValues(alpha: 0.45)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           const HugeIcon(
             icon: HugeIcons.strokeRoundedClock01,
-            color: violetDark,
+            color: blueDark,
             size: 14,
             strokeWidth: 2.2,
           ),
@@ -601,7 +622,7 @@ class _SeasonCountdownChip extends StatelessWidget {
           Text(
             label,
             style: const TextStyle(
-              color: violetDark,
+              color: blueDark,
               fontWeight: FontWeight.w800,
               fontSize: 12,
             ),
@@ -813,6 +834,9 @@ class _BrainEmblem extends StatelessWidget {
     final meta = brainTiers[tier.clamp(0, brainTiers.length - 1)];
     final size = big ? 76.0 : 64.0;
     final base = locked ? context.mutedText : meta.color;
+    final lockedTint = context.isDark
+        ? Color.lerp(meta.color, Colors.white, 0.45)!
+        : Color.lerp(meta.color, Colors.black, 0.3)!;
     final epic = tier >= 11 && !locked;
     return SizedBox(
       width: size + 24,
@@ -834,14 +858,21 @@ class _BrainEmblem extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: locked
-                  ? (context.isDark ? context.faintBg : const Color(0xFFE7DFD2))
+                  ? meta.color.withValues(alpha: 0.08)
                   : base.withValues(alpha: 0.14),
               border: Border.all(
-                color: locked ? context.mutedText.withValues(alpha: 0.5) : base,
+                color: locked
+                    ? meta.color.withValues(alpha: 0.45)
+                    : base,
                 width: epic ? 3 : 2,
               ),
               boxShadow: locked
-                  ? null
+                  ? [
+                      BoxShadow(
+                        color: meta.color.withValues(alpha: 0.16),
+                        blurRadius: 14,
+                      ),
+                    ]
                   : [
                       BoxShadow(
                         color: base.withValues(alpha: epic ? 0.45 : 0.25),
@@ -853,9 +884,9 @@ class _BrainEmblem extends StatelessWidget {
             alignment: Alignment.center,
             child: locked
                 ? HugeIcon(
-                    icon: HugeIcons.strokeRoundedLock,
-                    color: context.mutedText,
-                    size: 26,
+                    icon: HugeIcons.strokeRoundedLockKeyhole,
+                    color: lockedTint,
+                    size: big ? 30 : 26,
                     strokeWidth: 2,
                   )
                 : HugeIcon(
@@ -1013,7 +1044,7 @@ class _ZoneDivider extends StatelessWidget {
             child: Text(
               up ? tr('blg_promo') : tr('blg_releg'),
               style: TextStyle(
-                color: up ? const Color(0xFF0B7E72) : const Color(0xFFB3261E),
+                color: up ? tealDark : error,
                 fontWeight: FontWeight.w800,
                 fontSize: 11,
               ),
@@ -1055,7 +1086,7 @@ class _BoardRow extends StatelessWidget {
         color: isMe ? context.washBg : context.cardBg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isMe ? violet : context.hairline,
+          color: isMe ? blue : context.hairline,
           width: isMe ? 2 : 1.5,
         ),
       ),
@@ -1086,12 +1117,12 @@ class _BoardRow extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: (isMe ? violet : sky).withValues(alpha: 0.16),
+              color: (isMe ? blue : sky).withValues(alpha: 0.16),
             ),
             child: Text(
               rival.name.characters.first,
               style: TextStyle(
-                color: isMe ? violetDark : context.inkText,
+                color: isMe ? blueDark : context.inkText,
                 fontWeight: FontWeight.w900,
                 fontSize: 17,
               ),
@@ -1124,7 +1155,7 @@ class _BoardRow extends StatelessWidget {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: violet,
+                          color: blue,
                           borderRadius: BorderRadius.circular(99),
                         ),
                         child: Text(
@@ -1143,7 +1174,7 @@ class _BoardRow extends StatelessWidget {
                   children: [
                     HugeIcon(
                       icon: HugeIcons.strokeRoundedFire02,
-                      color: amber,
+                      color: orange,
                       size: 13,
                       strokeWidth: 2.2,
                     ),
@@ -1162,7 +1193,7 @@ class _BoardRow extends StatelessWidget {
                         'n': botArena.rewards.totalBonusXp,
                       }),
                       style: const TextStyle(
-                        color: Color(0xFF16A34A),
+                        color: success,
                         fontWeight: FontWeight.w800,
                         fontSize: 11,
                       ),
@@ -1174,13 +1205,13 @@ class _BoardRow extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: violet.withValues(alpha: 0.1),
+              color: blue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(99),
             ),
             child: Text(
               '${rival.xp} XP',
               style: const TextStyle(
-                color: violetDark,
+                color: blueDark,
                 fontWeight: FontWeight.w900,
                 fontSize: 12,
               ),
@@ -1658,40 +1689,107 @@ class _LockedCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 180),
-      child: Column(
-        children: [
-          Container(
-            width: 96,
-            height: 96,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Color(0xFFE7DFD2),
-            ),
-            alignment: Alignment.center,
-            child: HugeIcon(
-              icon: HugeIcons.strokeRoundedLock,
-              color: context.mutedText,
-              size: 34,
-              strokeWidth: 2,
-            ),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [context.cardBg, context.faintBg],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-          const SizedBox(height: 16),
-          Text(
-            tr('blg_locked_title'),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface,
-              fontWeight: FontWeight.w900,
-              fontSize: 17,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: context.hairline, width: 1.5),
+        ),
+        child: Column(
+          children: [
+            SizedBox(
+              width: 120,
+              height: 120,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 116,
+                    height: 116,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: blue.withValues(alpha: 0.08),
+                      border: Border.all(
+                        color: blue.withValues(alpha: 0.32),
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    width: 88,
+                    height: 88,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: context.softBg,
+                      border: Border.all(color: context.hairline, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: blue.withValues(alpha: 0.22),
+                          blurRadius: 20,
+                        ),
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    child: HugeIcon(
+                      icon: HugeIcons.strokeRoundedSquareLock02,
+                      color: context.mutedText,
+                      size: 36,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                  Positioned(
+                    right: 8,
+                    bottom: 8,
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: blueDark,
+                        border: Border.all(
+                          color: context.cardBg,
+                          width: 2.5,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: const HugeIcon(
+                        icon: HugeIcons.strokeRoundedKey01,
+                        color: Colors.white,
+                        size: 15,
+                        strokeWidth: 2.2,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            tr('blg_locked_body'),
-            textAlign: TextAlign.center,
-            style: TextStyle(color: context.mutedText, fontSize: 13),
-          ),
-        ],
+            const SizedBox(height: 16),
+            Text(
+              tr('blg_locked_title'),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontWeight: FontWeight.w900,
+                fontSize: 17,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              tr('blg_locked_body'),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: context.mutedText,
+                fontSize: 13,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

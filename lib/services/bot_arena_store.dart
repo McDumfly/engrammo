@@ -65,6 +65,12 @@ class BotArenaStore extends ChangeNotifier {
   int _playerStreak = 0;
   String _playerName = 'You';
   Future<void>? _loading;
+  bool _loadedOnce = false;
+  Future<void> _refreshChain = Future.value();
+
+  /// True once the first load finished (even if it degraded to empty).
+  /// Screens use it to tell "still loading" from "genuinely empty".
+  bool get isLoaded => _loadedOnce;
 
   List<BotPersona> get roster => List<BotPersona>.unmodifiable(_roster);
   LeagueSeason? get season => _season;
@@ -93,7 +99,11 @@ class BotArenaStore extends ChangeNotifier {
   /// Sets the resolved tier display name. The league page owns the tier
   /// list, so it pushes the name down after loading.
   void setCachedTierName(String name) {
+    if (_cachedTierName == name) return;
     _cachedTierName = name;
+    try {
+      notifyListeners();
+    } catch (_) {}
   }
 
   int get friendCount => _friends.length;
@@ -243,6 +253,7 @@ class BotArenaStore extends ChangeNotifier {
     } catch (_) {
       // Degrade to empty arena; screens render their empty states.
     } finally {
+      _loadedOnce = true;
       try {
         notifyListeners();
       } catch (_) {}
@@ -678,9 +689,16 @@ class BotArenaStore extends ChangeNotifier {
 
   /// Reloads everything from local storage. Called after a cloud pull so
   /// the arena reflects the Firebase state instead of the pre-login cache.
+  /// Serialized: concurrent refreshers queue instead of racing two loads.
   Future<void> refresh() {
-    _loading = null;
-    return ensureLoaded();
+    final run = _refreshChain.then((_) async {
+      final pending = _loading;
+      if (pending != null) await pending;
+      _loading = null;
+      await ensureLoaded();
+    });
+    _refreshChain = run.then((_) {}, onError: (_) {});
+    return run;
   }
 
   @visibleForTesting
@@ -700,6 +718,7 @@ class BotArenaStore extends ChangeNotifier {
     _playerName = 'You';
     _cachedTierName = null;
     _loading = null;
+    _loadedOnce = false;
   }
 }
 

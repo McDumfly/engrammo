@@ -3,13 +3,20 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../services/meta_ai_service.dart';
 
-class MetaCallLogView extends StatelessWidget {
+class MetaCallLogView extends StatefulWidget {
   const MetaCallLogView({super.key});
+
+  @override
+  State<MetaCallLogView> createState() => _MetaCallLogViewState();
+}
+
+class _MetaCallLogViewState extends State<MetaCallLogView> {
+  late final Future<List<MetaCallEntry>> _future = MetaAIService.loadLog();
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-      future: MetaAIService.loadLog(),
+      future: _future,
       builder: (context, snapshot) {
         final calls =
             snapshot.data ?? MetaAIService.lastCalls;

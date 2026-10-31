@@ -41,5 +41,9 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Spatial practice can photograph your own room so SAM can turn the spotted details into memory-palace stations.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Word practice can listen to your spoken SEEN or NEW answer so Voice Transcribe can score it.</string>
 </dict>
 </plist>

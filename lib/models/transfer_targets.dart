@@ -179,10 +179,6 @@ TransferTarget? transferTargetById(String id) {
   return null;
 }
 
-String? huLabelForTarget(String id) => null;
-
-String? huStrategyForTarget(String id) => null;
-
 List<TransferTarget> transferTargetsForTrack(int track) {
   const byTrack = <int, List<String>>{
     0: ['names', 'phone-numbers', 'todos-errands'],

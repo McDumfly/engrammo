@@ -254,13 +254,20 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
     future.then((_) => markReady(), onError: (_) => markReady());
   }
 
+  final Map<String, Future<String>> _previewCache = {};
+
   Future<String> _previewFor(Map<String, String> opts) {
     final display = DicebearGenerator.withoutBackground(opts);
     final hit = DicebearGenerator.cachedSvg(display);
     if (hit != null) return Future.value(hit);
+    final key = display.toString();
+    final cached = _previewCache[key];
+    if (cached != null) return cached;
     final batch = _batchFuture;
     if (batch == null) return Future.value('');
-    return batch.then((m) => m[display.toString()] ?? '');
+    final future = batch.then((m) => m[key] ?? '');
+    _previewCache[key] = future;
+    return future;
   }
 
   Color _stageColor() {
@@ -451,7 +458,6 @@ class _Header extends StatelessWidget {
             size: 52,
             background: isSaving ? context.mutedText : blueDark,
             foreground: Colors.white,
-            shadowColor: isSaving ? context.hairline : blueDark,
             isLoading: isSaving,
             semanticLabel: tr('avatar_save'),
           ),
@@ -505,11 +511,12 @@ class _Stage extends StatelessWidget {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(26),
-                child: CustomPaint(
-                  painter: _DotsPainter(
-                    dot: Colors.white.withValues(alpha: 0.35),
-                  ),
-                  child: AnimatedContainer(
+                child: RepaintBoundary(
+                  child: CustomPaint(
+                    painter: _DotsPainter(
+                      dot: Colors.white.withValues(alpha: 0.35),
+                    ),
+                    child: AnimatedContainer(
                     duration: const Duration(milliseconds: 450),
                     curve: Curves.easeOut,
                     color: color,
@@ -582,6 +589,7 @@ class _Stage extends StatelessWidget {
                 ),
               ),
             ),
+          ),
           ),
         ],
       ),

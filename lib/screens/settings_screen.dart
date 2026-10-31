@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../l10n/app_localizations.dart';
@@ -10,7 +11,7 @@ import '../theme/app_theme.dart';
 import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
 import '../widgets/google_g_logo.dart';
-import '../theme/app_colors.dart' show coral, ink, teal, blue;
+import '../theme/app_colors.dart' show coral, error, ink, success, teal, blue;
 import '../services/app_feedback.dart';
 import '../services/app_settings.dart';
 import '../services/auth_service.dart';
@@ -48,6 +49,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _profileSaved = false;
   bool _profileError = false;
   String? _apiKeyNote;
+  bool _suggestAssessment = false;
   bool _hasStoredKey = false;
   bool _hasBundledKey = false;
   bool _apiKeyBusy = false;
@@ -73,7 +75,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Color? get _profileBorder {
-    if (_profileSaved) return const Color(0xFF16A34A);
+    if (_profileSaved) return success;
     if (_profileError) return coral;
     return null;
   }
@@ -114,10 +116,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final scores = await MemoryStore.loadScores();
       if (!mounted) return;
       if (scores == null || scores.isEmpty) {
-        setState(() => _apiKeyNote = tr('settings_key_saved_type'));
-        await Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const MemoryAssessmentIntroPage()),
-        );
+        // Nem navigálunk automatikusan: a felmérést gomb kínálja fel.
+        setState(() {
+          _apiKeyNote = tr('settings_key_saved_type');
+          _suggestAssessment = true;
+        });
       }
     } catch (e) {
       if (!mounted) return;
@@ -157,6 +160,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (_profileSaving) return;
     final name = _nameCtrl.text.trim();
     final username = ProfileSetupRules.normalizeUsername(_usernameCtrl.text);
+    final nameError = ProfileSetupRules.validateDisplayName(name);
+    if (nameError != null) {
+      if (!mounted) return;
+      setState(() {
+        _profileNote = nameError;
+        _profileSaved = false;
+        _profileError = true;
+      });
+      return;
+    }
     if (username.isNotEmpty) {
       final userError = ProfileSetupRules.validateUsername(username);
       if (userError != null) {
@@ -176,13 +189,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _profileSaved = false;
       _profileError = false;
     });
-    var previousUsername = '';
+    // A régi nevet mindig beolvassuk (helyi olvasás, offline is megy),
+    // hogy a felszabadítás később se vesszen el.
+    final previous = await MemoryStore.loadProfile();
+    final previousUsername = previous.username;
     try {
       if (uid != null &&
           username.isNotEmpty &&
           authService.backendAvailable) {
-        final previous = await MemoryStore.loadProfile();
-        previousUsername = previous.username;
         if (previous.username != username) {
           await CloudSync.claimUsername(
             uid: uid,
@@ -211,6 +225,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _profileSaving = false;
         _profileNote = tr('auth_no_connection');
+        _profileError = true;
+      });
+      return;
+    } on CloudPermissionException {
+      if (!mounted) return;
+      setState(() {
+        _profileSaving = false;
+        _profileNote = tr('profile_cloud_error');
         _profileError = true;
       });
       return;
@@ -319,7 +341,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Text(
                     note,
                     style: const TextStyle(
-                      color: Color(0xFFE5484D),
+                      color: error,
                       fontWeight: FontWeight.w700,
                       fontSize: 13,
                     ),
@@ -436,7 +458,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Text(
                     note,
                     style: const TextStyle(
-                      color: Color(0xFFE5484D),
+                      color: error,
                       fontWeight: FontWeight.w700,
                       fontSize: 13,
                     ),
@@ -596,6 +618,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               prefix: '@',
                               enabled: !_profileSaving,
                               borderColor: _profileBorder,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(
+                                  RegExp(r'[a-zA-Z0-9_. ]'),
+                                ),
+                                LengthLimitingTextInputFormatter(20),
+                              ],
                             ),
                             const SizedBox(height: 14),
                             EngramButton(
@@ -634,15 +662,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         _Card(
                           child: Column(
                             children: [
-                              _AccountRow(
-                                icon: HugeIcons.strokeRoundedMail01,
-                                title: tr('settings_email'),
-                                subtitle: authService.isAnonymous
-                                    ? tr('settings_guest')
-                                    : (widget.initialEmail.isEmpty
-                                          ? tr('settings_not_signed')
-                                          : widget.initialEmail),
-                                onTap: _openEmailEditor,
+                              ListenableBuilder(
+                                listenable: authService,
+                                builder: (context, _) {
+                                  final liveEmail = authService.email.isNotEmpty
+                                      ? authService.email
+                                      : widget.initialEmail;
+                                  return _AccountRow(
+                                    icon: HugeIcons.strokeRoundedMail01,
+                                    title: tr('settings_email'),
+                                    subtitle: authService.isAnonymous
+                                        ? tr('settings_guest')
+                                        : (liveEmail.isEmpty
+                                              ? tr('settings_not_signed')
+                                              : liveEmail),
+                                    onTap: _openEmailEditor,
+                                  );
+                                },
                               ),
                               Divider(
                                 color: context.hairline,
@@ -789,6 +825,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   color: context.mutedText,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 12,
+                                ),
+                              ),
+                            ],
+                            if (_suggestAssessment) ...[
+                              const SizedBox(height: 4),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: TextButton(
+                                  onPressed: () {
+                                    AppFeedback.light();
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            const MemoryAssessmentIntroPage(),
+                                      ),
+                                    );
+                                  },
+                                  child: Text(tr('kreeds_discover')),
                                 ),
                               ),
                             ],
@@ -1006,6 +1060,7 @@ class _Field extends StatelessWidget {
   final bool obscure;
   final bool enabled;
   final Color? borderColor;
+  final List<TextInputFormatter>? inputFormatters;
   const _Field({
     required this.controller,
     required this.hint,
@@ -1013,6 +1068,7 @@ class _Field extends StatelessWidget {
     this.obscure = false,
     this.enabled = true,
     this.borderColor,
+    this.inputFormatters,
   });
 
   @override
@@ -1021,6 +1077,7 @@ class _Field extends StatelessWidget {
       controller: controller,
       obscureText: obscure,
       enabled: enabled,
+      inputFormatters: inputFormatters,
       style: TextStyle(
         color: context.inkText,
         fontWeight: FontWeight.w700,

@@ -3,7 +3,7 @@ import 'package:hugeicons/hugeicons.dart';
 
 import 'app_buttons.dart';
 import '../l10n/app_localizations.dart';
-import '../theme/app_colors.dart' show blue, coral;
+import '../theme/app_colors.dart' show blue;
 import '../theme/app_theme.dart';
 import '../models/collectibles.dart' show engram;
 
@@ -116,7 +116,9 @@ class StatsTopBar extends StatelessWidget {
                 children: [
                   HugeIcon(
                     icon: HugeIcons.strokeRoundedFire,
-                    color: streakBroken ? context.mutedText : coral,
+                    color: streakBroken
+                        ? context.mutedText
+                        : context.dangerText,
                     size: 18,
                     strokeWidth: 2.0,
                   ),
@@ -135,34 +137,37 @@ class StatsTopBar extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        Container(
-          constraints: const BoxConstraints(minHeight: 48),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: context.washBg,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: context.washBorder),
-          ),
-          alignment: Alignment.center,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              HugeIcon(
-                icon: engram.icon,
-                color: engram.color,
-                size: 18,
-                strokeWidth: 2.0,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                '$engrams',
-                style: TextStyle(
-                  color: context.inkText,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
+        Semantics(
+          label: tr('stats_engrams', {'n': engrams}),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 48),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: context.washBg,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: context.washBorder),
+            ),
+            alignment: Alignment.center,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                HugeIcon(
+                  icon: engram.icon,
+                  color: engram.color,
+                  size: 18,
+                  strokeWidth: 2.0,
                 ),
-              ),
-            ],
+                const SizedBox(width: 6),
+                Text(
+                  '$engrams',
+                  style: TextStyle(
+                    color: context.inkText,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ],

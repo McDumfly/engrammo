@@ -88,6 +88,9 @@ BattleResponseKind battleResponseKindForParadigm(String paradigm) {
 /// labels. The picture is the stimulus itself for picture-recall, and a
 /// memory hook next to the words otherwise. Digit spans and the tap grid
 /// stay clean: extra pixels would only add noise to the trace.
+/// Loci-drill is deliberately NOT here: duels never deal it (their spatial
+/// slot is pattern-span), while the lesson path paints it via
+/// `lessonRoundKindWantsImage` — see `chapterImageBudget` for the quota.
 const battleImageryParadigms = <String>{
   'picture-recall',
   'paired-associate',

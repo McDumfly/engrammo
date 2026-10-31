@@ -22,15 +22,17 @@ import '../services/bot_arena_store.dart';
 import 'battle_duel_page.dart';
 import 'brain_league.dart';
 import 'friend_profile.dart';
-import 'memory_profile.dart'
+import '../theme/app_colors.dart'
     show
         ink,
-        violet,
-        violetDark,
+        blue,
+        blueDark,
+        error,
+        success,
         teal,
-        amber,
-        memoryKinds,
-        MemoryAssessmentIntroPage;
+        orange;
+import 'memory_profile.dart'
+    show memoryKinds, MemoryAssessmentIntroPage;
 import '../services/memory_store.dart';
 import '../services/meta_ai_service.dart';
 
@@ -121,19 +123,28 @@ class _BattleZoneViewState extends State<BattleZoneView> {
     });
   }
 
+  int _arenaToken = 0;
+
   void _onArena() {
-    MemoryStore.loadBattleRating(defaultRating: BattleRating.startingRating)
-        .then((rating) {
-          if (!mounted) return;
-          setState(() {
-            _rating = rating;
-            _arenaStats = botArena.stats;
-            _arenaHistory = botArena.history;
-            _liveDuels = botArena.liveDuels(
-              locale: AppLocalizations.localeCode,
-            );
-          });
+    // Token + mikrotask-összevonás: gyors egymásutáni értesítésekből csak
+    // a legfrissebb épít újra, és a régi async válaszok eldobódnak.
+    final token = ++_arenaToken;
+    scheduleMicrotask(() {
+      if (!mounted || token != _arenaToken) return;
+      MemoryStore.loadBattleRating(
+        defaultRating: BattleRating.startingRating,
+      ).then((rating) {
+        if (!mounted || token != _arenaToken) return;
+        setState(() {
+          _rating = rating;
+          _arenaStats = botArena.stats;
+          _arenaHistory = botArena.history;
+          _liveDuels = botArena.liveDuels(
+            locale: AppLocalizations.localeCode,
+          );
         });
+      });
+    });
   }
 
   int? _levelForKind(int i) {
@@ -188,11 +199,21 @@ class _BattleZoneViewState extends State<BattleZoneView> {
     }
   }
 
+  void _noOpponentNote() {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(tr('btz_no_opponent'))));
+  }
+
   void _findMatch() {
     AppFeedback.medium();
     if (_mode == BattleMode.team) {
       final squad = botArena.matchSquad();
-      if (squad == null || !mounted) return;
+      if (!mounted) return;
+      if (squad == null) {
+        _noOpponentNote();
+        return;
+      }
       _rememberOpponent(squad.foe1.id);
       _rememberOpponent(squad.foe2.id);
       Navigator.of(context)
@@ -209,7 +230,11 @@ class _BattleZoneViewState extends State<BattleZoneView> {
     final opponent = botArena.matchOpponent(
       excludeIds: _recentOpponents.toSet(),
     );
-    if (opponent == null || !mounted) return;
+    if (!mounted) return;
+    if (opponent == null) {
+      _noOpponentNote();
+      return;
+    }
     _rememberOpponent(opponent.id);
     Navigator.of(context)
         .push(
@@ -225,7 +250,11 @@ class _BattleZoneViewState extends State<BattleZoneView> {
 
   void _duelWithBot(String name) {
     final bot = botArena.botByName(name);
-    if (bot == null || !mounted) return;
+    if (!mounted) return;
+    if (bot == null) {
+      _noOpponentNote();
+      return;
+    }
     AppFeedback.medium();
     _rememberOpponent(bot.id);
     Navigator.of(context)
@@ -255,7 +284,17 @@ class _BattleZoneViewState extends State<BattleZoneView> {
   void _onInviteChanged(BattleFriend friend, bool invited) {
     if (!invited) return;
     final bot = botArena.botByName(friend.name);
-    if (bot == null || !friend.online) return;
+    if (bot == null) return;
+    if (!friend.online) {
+      // Offline bot sosem fogadná el: a meghívó függőben marad, és ezt
+      // meg is mondjuk a csend helyett.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(tr('btz_offline_wait', {'name': friend.name})),
+        ),
+      );
+      return;
+    }
     final delay = Duration(seconds: 3 + Random().nextInt(6));
     Future<void>.delayed(delay).then((_) {
       if (!mounted) return;
@@ -341,7 +380,14 @@ class _BattleZoneViewState extends State<BattleZoneView> {
                 : tr('btz_past_n', {'n': _arenaHistory.length}),
           ),
           const SizedBox(height: 10),
-          if (_arenaHistory.isEmpty)
+          if (!botArena.isLoaded)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (_arenaHistory.isEmpty)
             Text(
               tr('btz_no_battles'),
               style: TextStyle(color: context.mutedText, fontSize: 13),
@@ -412,7 +458,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF45A3FF), Color(0xFF1F6FC4)],
+          colors: [blue, Color(0xFF1F6FC4)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -465,7 +511,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
             child: _ModeCard(
               selected: _mode == BattleMode.duel,
               icon: engram.icon,
-              tint: violet,
+              tint: blue,
               title: tr('btz_duel_title'),
               body: tr('btz_duel_body'),
               onTap: () {
@@ -575,8 +621,9 @@ class _BattleZoneViewState extends State<BattleZoneView> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (sheetContext) => SafeArea(
+        top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -852,7 +899,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
             children: [
               HugeIcon(
                 icon: HugeIcons.strokeRoundedUserGroup,
-                color: violet,
+                color: blue,
                 size: 22,
                 strokeWidth: 2,
               ),
@@ -935,7 +982,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: violet, width: 2),
+                borderSide: const BorderSide(color: blue, width: 2),
               ),
             ),
           ),
@@ -1032,25 +1079,26 @@ class _BattleZoneViewState extends State<BattleZoneView> {
   }
 
   Widget _statsRow() {
+    final loading = !botArena.isLoaded;
     return Row(
       children: [
         Expanded(
           child: _StatCard(
-            value: '${_arenaStats.matches}',
+            value: loading ? '…' : '${_arenaStats.matches}',
             label: tr('btz_matches'),
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: _StatCard(
-            value: _arenaStats.winRateLabel,
+            value: loading ? '…' : _arenaStats.winRateLabel,
             label: tr('btz_winrate'),
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
           child: _StatCard(
-            value: _arenaStats.bestStreakLabel,
+            value: loading ? '…' : _arenaStats.bestStreakLabel,
             label: tr('btz_streak'),
           ),
         ),
@@ -1161,10 +1209,10 @@ class _BattleZoneViewState extends State<BattleZoneView> {
                   : tr('btz_loss', {'d': match.delta}),
               style: TextStyle(
                 color: won
-                    ? const Color(0xFF16A34A)
+                    ? success
                     : drawn
                     ? context.mutedText
-                    : const Color(0xFFDC2626),
+                    : error,
                 fontWeight: FontWeight.w800,
                 fontSize: 13,
               ),
@@ -1331,11 +1379,11 @@ class _ScoutCardState extends State<_ScoutCard> {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: violet.withValues(alpha: 0.14),
+                  color: blue.withValues(alpha: 0.14),
                 ),
                 child: const HugeIcon(
                   icon: HugeIcons.strokeRoundedTelescope02,
-                  color: violetDark,
+                  color: blueDark,
                   size: 18,
                   strokeWidth: 2.2,
                 ),
@@ -1513,7 +1561,7 @@ class _LiveBattleRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDuel = mode == '1v1';
-    final badge = isDuel ? violet : teal;
+    final badge = isDuel ? blue : teal;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -1603,7 +1651,7 @@ class _StepRow extends StatelessWidget {
           Text(
             index,
             style: const TextStyle(
-              color: amber,
+              color: orange,
               fontWeight: FontWeight.w900,
               fontSize: 16,
             ),
@@ -1674,10 +1722,10 @@ class _PastMatchRow extends StatelessWidget {
     final won = match.outcome == BattleOutcome.win;
     final drawn = match.outcome == BattleOutcome.draw;
     final accent = won
-        ? const Color(0xFF16A34A)
+        ? success
         : drawn
         ? context.mutedText
-        : const Color(0xFFDC2626);
+        : error;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -1798,7 +1846,7 @@ class _FriendInviteRow extends StatelessWidget {
         color: invited ? context.washBg : context.softBg,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: invited ? violet.withValues(alpha: 0.5) : context.hairline,
+          color: invited ? blue.withValues(alpha: 0.5) : context.hairline,
           width: invited ? 2 : 1.5,
         ),
       ),
@@ -1816,12 +1864,12 @@ class _FriendInviteRow extends StatelessWidget {
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: violet.withValues(alpha: 0.14),
+                      color: blue.withValues(alpha: 0.14),
                     ),
                     child: Text(
                       friend.name.characters.first,
                       style: const TextStyle(
-                        color: violet,
+                        color: blue,
                         fontWeight: FontWeight.w900,
                         fontSize: 16,
                       ),
@@ -1853,7 +1901,7 @@ class _FriendInviteRow extends StatelessWidget {
                                 height: 8,
                                 decoration: const BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: Color(0xFF22C55E),
+                                  color: success,
                                 ),
                               ),
                             ],
@@ -1880,7 +1928,7 @@ class _FriendInviteRow extends StatelessWidget {
           const SizedBox(width: 8),
           EngramMiniButton(
             label: invited ? tr('btz_challenged') : tr('btz_challenge'),
-            background: invited ? violetDark : ink,
+            background: invited ? blueDark : ink,
             haptic: false,
             onTap: _toggle,
           ),

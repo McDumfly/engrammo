@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../utils/streak_utils.dart' show dayId;
 import 'memory_store.dart';
 
 /// Hard ceiling for every memory-kind score.
@@ -45,10 +46,6 @@ List<int> applyPracticeGain(List<int> scores, int kind, int base) {
   return next;
 }
 
-String _growthDayString(DateTime now) =>
-    '${now.year}-${now.month.toString().padLeft(2, '0')}-'
-    '${now.day.toString().padLeft(2, '0')}';
-
 /// Applies one practice gain to the stored scores.
 ///
 /// Loads via [MemoryStore.loadScores], enforces the +5/kind daily cap, and
@@ -66,7 +63,7 @@ Future<List<int>?> applyGrowth({
   if (kind < 0 || kind >= scores.length) return scores;
   if (base <= 0) return scores;
 
-  final day = _growthDayString(now ?? DateTime.now());
+  final day = dayId(now ?? DateTime.now());
   final prefs = await SharedPreferences.getInstance();
   final raw = prefs.getStringList(MemoryGrowthDay.key) ?? const <String>[];
   final used = <int, int>{};

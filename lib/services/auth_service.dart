@@ -20,6 +20,14 @@ class AuthBackendUnavailable implements Exception {
       'No Firebase backend: run `flutterfire configure` first.';
 }
 
+/// A felhasználó megszakította a Google-bejelentkezést (nem hiba).
+class GoogleSignInCanceled implements Exception {
+  const GoogleSignInCanceled();
+
+  @override
+  String toString() => 'GoogleSignInCanceled';
+}
+
 class AuthService extends ChangeNotifier {
   bool _backendAvailable = false;
   bool _guestMode = false;
@@ -46,6 +54,8 @@ class AuthService extends ChangeNotifier {
 
   String get email => _user?.email ?? '';
 
+  Future<void> _authEventChain = Future.value();
+
   Future<void> init() async {
     try {
       if (Firebase.apps.isEmpty) {
@@ -53,14 +63,20 @@ class AuthService extends ChangeNotifier {
       } else {
         _backendAvailable = true;
         _setUser(FirebaseAuth.instance.currentUser);
-        _sub = FirebaseAuth.instance.authStateChanges().listen((u) async {
-          _setUser(u);
-          if (u != null) {
-            _guestMode = false;
-            await CloudSync.pullToLocal(u.uid);
-            await _refreshArena();
-          }
-          notifyListeners();
+        _sub = FirebaseAuth.instance.authStateChanges().listen((u) {
+          // Sorosítjuk az auth-eseményeket: gyors egymásutáni
+          // bejelentkezés/kijelentkezés nem indíthat átfedő pull+refresh
+          // párokat (az utolsó esemény nyer, de mindegyik lefut).
+          final run = _authEventChain.then((_) async {
+            _setUser(u);
+            if (u != null) {
+              _guestMode = false;
+              await CloudSync.pullToLocal(u.uid);
+              await _refreshArena();
+            }
+            notifyListeners();
+          });
+          _authEventChain = run.then((_) {}, onError: (_) {});
         });
         if (_user != null) {
           await CloudSync.pullToLocal(_user!.uid);
@@ -128,7 +144,8 @@ class AuthService extends ChangeNotifier {
           await _refreshArena();
         }
         return;
-      } catch (_) {
+      } catch (e) {
+        debugPrint('AuthService.guest anonymous sign-in failed: $e');
       }
     }
     _guestMode = true;
@@ -204,7 +221,15 @@ class AuthService extends ChangeNotifier {
     if (!GoogleSignIn.instance.supportsAuthenticate()) {
       throw StateError(tr('auth_google_unavailable'));
     }
-    final account = await GoogleSignIn.instance.authenticate();
+    late final GoogleSignInAccount account;
+    try {
+      account = await GoogleSignIn.instance.authenticate();
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        throw const GoogleSignInCanceled();
+      }
+      rethrow;
+    }
     final idToken = account.authentication.idToken;
     if (idToken == null || idToken.isEmpty) {
       throw StateError(tr('auth_no_google_token'));
@@ -275,10 +300,10 @@ class AuthService extends ChangeNotifier {
     if (_user != null) await CloudSync.pushFromLocal(_user!.uid);
   });
 
-  Future<void> sendPasswordReset(String email) async {
+  Future<void> sendPasswordReset(String email) => _run(() async {
     _requireBackend();
     await FirebaseAuth.instance.sendPasswordResetEmail(email: email.trim());
-  }
+  });
 
   Future<void> updateDisplayName(String name) async {
     final u = _user;
@@ -311,6 +336,9 @@ class AuthService extends ChangeNotifier {
       return;
     }
     if (_backendAvailable) {
+      // Előbb az Auth-fiók törlése: ha ez dob (pl. requires-recent-login),
+      // a felhő-adat és a felhasználónév érintetlen marad, nincs adatvesztés.
+      await u.delete();
       try {
         final profile = await MemoryStore.loadProfile();
         if (profile.username.isNotEmpty) {
@@ -325,7 +353,6 @@ class AuthService extends ChangeNotifier {
         await CloudSync.deleteUserDoc(u.uid);
       } catch (_) {
       }
-      await u.delete();
     }
     await MemoryStore.clearAccountData();
     _setUser(null);
@@ -353,8 +380,12 @@ class AuthService extends ChangeNotifier {
       } catch (_) {
       }
     }
+    // Helyi fiókadatok törlése: a következő bejelentkező nem örökölhet
+    // profilt, pontot, streaket vagy csatákat az előző felhasználótól.
+    await MemoryStore.clearAccountData();
     _setUser(null);
     _guestMode = false;
+    await _refreshArena();
   });
 
   static String messageFor(Object e) {

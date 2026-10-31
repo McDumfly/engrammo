@@ -1,11 +1,11 @@
 {
-    "name": "engrammo",
-    "short_name": "engrammo",
+    "name": "Engrammo — memory training",
+    "short_name": "Engrammo",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#FFFFFF",
+    "theme_color": "#1F6FC4",
+    "description": "Engrammo: gamified memory training with palace, duel and AI coach.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -186,7 +186,9 @@ bool practiceRoundLocked({
   required int stars,
   required DateTime now,
 }) {
-  if (stars <= 0 || depth <= 0) return false;
+  // Gyenge (1 csillagos) menet után nincs térköz-zár: aki épp akkor
+  // tanulná meg az anyagot, azonnal ismételhet. A zár 2+ csillagtól él.
+  if (stars < 2 || depth <= 0) return false;
   return daysUntilReviewDue(lastDone: lastDone, depth: depth, now: now) > 0;
 }
 

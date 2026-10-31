@@ -1,3 +1,8 @@
+/// AI-built task guardrail: `validateDynamicTask` keeps generated
+/// blocks inside the fixed schema (known block types, sane option
+/// counts, no banned claims). Used before any AI task is shown or
+/// scored; a deterministic local builder is the fallback.
+/// See `docs/RESEARCH.md` §12 and `docs/META_TERV.md` §6.
 library;
 
 import '../l10n/app_localizations.dart';
@@ -65,6 +70,16 @@ class DynamicBlock {
 
   final String answer;
 
+  /// Optional illustration prompt for this block (Muse Image). Empty means
+  /// no picture: the block renders exactly as before.
+  final String imagePrompt;
+
+  /// Generated illustration URL, filled by [enrichDynamicTask].
+  final String imageUrl;
+
+  /// Raw SAM detail labels spotted on [imageUrl].
+  final List<String> samLabels;
+
   const DynamicBlock({
     required this.type,
     required this.id,
@@ -72,6 +87,9 @@ class DynamicBlock {
     this.hint = '',
     this.options = const [],
     this.answer = '',
+    this.imagePrompt = '',
+    this.imageUrl = '',
+    this.samLabels = const [],
   });
 
   DynamicBlock copyWith({
@@ -81,6 +99,9 @@ class DynamicBlock {
     String? hint,
     List<String>? options,
     String? answer,
+    String? imagePrompt,
+    String? imageUrl,
+    List<String>? samLabels,
   }) {
     return DynamicBlock(
       type: type ?? this.type,
@@ -89,6 +110,9 @@ class DynamicBlock {
       hint: hint ?? this.hint,
       options: options ?? List<String>.of(this.options),
       answer: answer ?? this.answer,
+      imagePrompt: imagePrompt ?? this.imagePrompt,
+      imageUrl: imageUrl ?? this.imageUrl,
+      samLabels: samLabels ?? List<String>.of(this.samLabels),
     );
   }
 
@@ -99,6 +123,9 @@ class DynamicBlock {
     'hint': hint,
     'options': options,
     'answer': answer,
+    'imagePrompt': imagePrompt,
+    'imageUrl': imageUrl,
+    'samLabels': samLabels,
   };
 
   factory DynamicBlock.fromJson(Map<String, dynamic> json) {
@@ -111,6 +138,11 @@ class DynamicBlock {
         for (final e in (json['options'] as List? ?? const [])) e.toString(),
       ],
       answer: (json['answer'] as String?) ?? '',
+      imagePrompt: (json['imagePrompt'] as String?) ?? '',
+      imageUrl: (json['imageUrl'] as String?) ?? '',
+      samLabels: [
+        for (final e in (json['samLabels'] as List? ?? const [])) e.toString(),
+      ],
     );
   }
 
@@ -123,11 +155,23 @@ class DynamicBlock {
           label == other.label &&
           hint == other.hint &&
           answer == other.answer &&
-          _listEq(options, other.options);
+          imagePrompt == other.imagePrompt &&
+          imageUrl == other.imageUrl &&
+          _listEq(options, other.options) &&
+          _listEq(samLabels, other.samLabels);
 
   @override
-  int get hashCode =>
-      Object.hash(type, id, label, hint, Object.hashAll(options), answer);
+  int get hashCode => Object.hash(
+    type,
+    id,
+    label,
+    hint,
+    Object.hashAll(options),
+    answer,
+    imagePrompt,
+    imageUrl,
+    Object.hashAll(samLabels),
+  );
 }
 
 class DynamicTask {
@@ -199,7 +243,10 @@ class DynamicTask {
       targetId: (json['targetId'] as String?) ?? '',
       blocks: [
         for (final e in (json['blocks'] as List? ?? const []))
-          if (e is Map<String, dynamic>) DynamicBlock.fromJson(e),
+          if (e is Map)
+            DynamicBlock.fromJson(
+              e.map((k, v) => MapEntry(k.toString(), v)),
+            ),
       ],
       source: (json['source'] as String?) ?? '',
       model: (json['model'] as String?) ?? 'local',
@@ -255,6 +302,11 @@ class DynamicTaskRequest {
   final String customStrategy;
   final String customSource;
 
+  /// When true, the material block also gets an illustration prompt so the
+  /// player's own place can be painted (Muse Image) and segmented (SAM).
+  /// Set for the Palace Builder lessons.
+  final bool wantsImage;
+
   const DynamicTaskRequest({
     required this.targetId,
     this.userMaterial = '',
@@ -265,6 +317,7 @@ class DynamicTaskRequest {
     this.customLabel = '',
     this.customStrategy = '',
     this.customSource = '',
+    this.wantsImage = false,
   });
 
   bool get isCustomGoal => isCustomGoalTarget(targetId);
@@ -323,11 +376,14 @@ String dynamicTaskPrompt(DynamicTaskRequest req) {
       '{"type":"checklist","label":"do these","options":[2-5 steps]}; '
       '{"type":"order","label":"tap in order","options":[3-6 items in '
       'CORRECT order],"answer":"0,1,2…"} (the app shuffles them). '
+      'Any block may also carry an optional "imagePrompt" key: a short '
+      'illustration prompt for the block (use it when the material is a '
+      'place or a set of objects, e.g. a memory-palace room). '
       'Rules: 1-5 blocks, the FIRST block teaches the strategy in one '
       'sentence, at least one block must be answerable (choice/text/'
-      'date/phone/order), every label non-empty, no other keys, no '
-      'explanation outside the JSON. Strategy to teach: $strategy '
-      '$material $forgot';
+      'date/phone/order), every label non-empty, no other keys besides '
+      '"imagePrompt", no explanation outside the JSON. Strategy to teach: '
+      '$strategy $material $forgot';
 }
 
 List<String> validateDynamicTask(DynamicTaskRequest req, DynamicTask task) {
@@ -407,6 +463,9 @@ DynamicTask localDynamicTask(DynamicTaskRequest req) {
     ),
   ];
   if (material.isNotEmpty) {
+    final snippet = material.length > 120
+        ? '${material.substring(0, 120)}…'
+        : material;
     blocks.add(
       DynamicBlock(
         type: req.isCustomGoal
@@ -418,6 +477,11 @@ DynamicTask localDynamicTask(DynamicTaskRequest req) {
             ? _customMaterialHint(material)
             : _materialHint(req.targetId),
         answer: material,
+        imagePrompt: req.wantsImage
+            ? 'Cozy memory-palace illustration of $snippet as clearly '
+                'separated, numbered stations in walking order, warm '
+                'light, storybook style'
+            : '',
       ),
     );
   } else {

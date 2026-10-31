@@ -1,26 +1,33 @@
 import '../theme/app_theme.dart';
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:record/record.dart';
 
 import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
 import '../l10n/app_localizations.dart';
+import '../models/meta_segment.dart';
 import '../models/meta_task.dart';
 import '../models/palace_drill.dart'
     show
         allConcreteNounsFor,
         localPalaceTask,
         localPictureTask,
-        palaceRoutesFor;
+        palaceRoutesFor,
+        stationsFromLabels;
 import '../services/app_feedback.dart';
 import '../services/memory_store.dart';
 import '../services/meta_ai_service.dart';
 import 'benchmark_stats.dart' show BenchmarkDetailPage;
-import 'memory_profile.dart' show violet, violetDark, teal, amber, coral, sky;
+import '../theme/app_colors.dart' show blue, blueDark, teal, orange, coral, sky;
 
 final _rnd = Random();
 
@@ -30,6 +37,7 @@ class BenchmarkStore {
   static int xp = 0;
   static int plays = 0;
   static bool bonusClaimed = false;
+  static bool loaded = false;
   static Future<void>? _loading;
   static Future<void> _persistQueue = Future.value();
 
@@ -54,7 +62,10 @@ class BenchmarkStore {
       xp = saved.xp;
       plays = saved.plays;
       bonusClaimed = saved.bonusClaimed;
-    } catch (_) {}
+    } catch (_) {
+    } finally {
+      loaded = true;
+    }
   }
 
   static void submit(
@@ -109,77 +120,153 @@ class BenchmarkStore {
     xp = 0;
     plays = 0;
     bonusClaimed = false;
+    loaded = false;
     _loading = null;
     _persistQueue = Future.value();
   }
 }
 
+/// Practice-game stimulus deals. Every method returns the stimulus PLUS
+/// whether it came from a live model (`live: false` = local deal). The
+/// game pages feed that flag into the AI strip, so the strip always names
+/// the models that actually dealt the current round — never more.
 class BenchmarkMeta {
-  static Future<String> numberStimulus(int digits) async {
+  static Future<({String text, bool live})> numberStimulus(int digits) async {
     try {
       final task = await MetaAIService.generateTask(
         MetaTaskRequest(kind: 'number', difficulty: digits.clamp(1, 9)),
       );
-      if (!task.fallback && task.items.isNotEmpty) return task.items.first;
-    } catch (_) {
-    }
-    return NumberGamePage.make(digits);
+      if (!task.fallback && task.items.isNotEmpty) {
+        return (text: task.items.first, live: true);
+      }
+    } catch (_) {}
+    return (text: NumberGamePage.make(digits), live: false);
   }
 
-  static Future<String> wordStimulus([String locale = 'en']) async {
+  /// Fresh nouns for the verbal game, batched from Muse Spark. Never
+  /// throws: offline this is local nouns the player has not seen yet.
+  static Future<({List<String> words, bool live})> wordBatch({
+    int count = 12,
+    List<String> avoid = const [],
+    String locale = 'en',
+  }) async {
     try {
-      final task = await MetaAIService.generateTask(
-        MetaTaskRequest(kind: 'verbal', difficulty: 2, locale: locale),
+      final answer = await MetaAIService.fetchWordBatch(
+        count: count,
+        avoid: avoid,
+        locale: locale,
       );
-      if (!task.fallback && task.items.isNotEmpty) return task.items.first;
+      return (words: answer.words, live: !answer.fallback);
     } catch (_) {
+      return (words: const <String>[], live: false);
     }
-    return VerbalGamePage.pickFresh(locale);
   }
 
-  static Future<List<int>> sequenceStimulus(int length) async {
+  /// Ordered Wonder viewpoints for a palace walk. Never throws:
+  /// offline this is one local caption per station.
+  static Future<({List<String> views, bool live})> wonderPreview({
+    required String route,
+    required List<String> stations,
+    String locale = 'en',
+  }) async {
+    try {
+      final answer = await MetaAIService.wonderRoutePreview(
+        route: route,
+        stations: stations,
+        locale: locale,
+      );
+      return (views: answer.viewpoints, live: !answer.fallback);
+    } catch (_) {
+      return (views: const <String>[], live: false);
+    }
+  }
+
+  /// Folds AI digits into a shuffling seed so the text model can deal
+  /// layouts (number-order game) without inventing a new format.
+  static int seedFromDigits(List<int> digits) {
+    var h = 0;
+    for (final d in digits) {
+      h = (h * 31 + d) & 0x7fffffff;
+    }
+    return h ^ digits.length;
+  }
+
+  static Future<({List<int> digits, bool live})> sequenceStimulus(
+    int length,
+  ) async {
     try {
       final task = await MetaAIService.generateTask(
         MetaTaskRequest(kind: 'sequence', difficulty: length.clamp(1, 5)),
       );
       if (!task.fallback && task.items.isNotEmpty) {
-        return [for (final e in task.items) int.tryParse(e) ?? 0];
+        return (
+          digits: [for (final e in task.items) int.tryParse(e) ?? 0],
+          live: true,
+        );
       }
-    } catch (_) {
-    }
-    return SequenceGamePage.make(length);
+    } catch (_) {}
+    return (digits: SequenceGamePage.make(length), live: false);
   }
 
-  static Future<Set<int>> visualPattern(int size, int count) async {
+  /// Pattern-span layout with the EXACT cell count the grid needs, dealt
+  /// by Muse Spark when online. Offline this is a local deal (no image).
+  static Future<({Set<int> cells, bool live})> visualPattern(
+    int size,
+    int count,
+  ) async {
     try {
-      final task = await MetaAIService.generateTask(
-        const MetaTaskRequest(kind: 'pattern', difficulty: 2),
-      );
-      if (!task.fallback && task.items.isNotEmpty) {
-        final cells = <int>{};
-        for (final e in task.items) {
-          final v = int.tryParse(e);
-          if (v != null && v >= 0 && v < size) cells.add(v);
-        }
-        if (cells.isNotEmpty) return cells;
-      }
+      return await MetaAIService.generatePatternCells(size: size, count: count);
     } catch (_) {
+      return (
+        cells: MetaAIService.localPatternCells(size: size, count: count),
+        live: false,
+      );
     }
-    return VisualGamePage.makePattern(size, count);
   }
 
-  /// Picture-recall round: a unique Muse Image illustration plus SAM-spotted
-  /// details. Offline this is just the local picture task (no image).
+  /// Picture-recall round: Muse Spark fills the scene stimulus, Muse Image
+  /// paints it, SAM spots the details. Offline this is just the local
+  /// picture task (no image). Mirrors the lesson path (Spark then enrich).
   static Future<MetaTask> pictureRound({
     required String seed,
     int difficulty = 2,
     String locale = 'en',
   }) async {
-    final base = localPictureTask(
-      difficulty: difficulty,
-      seed: seed,
-      locale: locale,
-    );
+    bool live = false;
+    try {
+      live = await MetaAIService.hasAnyKey();
+    } catch (_) {}
+    if (!live) {
+      return localPictureTask(
+        difficulty: difficulty,
+        seed: seed,
+        locale: locale,
+      );
+    }
+    MetaTask base;
+    try {
+      base = await MetaAIService.generateTask(
+        MetaTaskRequest(
+          kind: 'visual',
+          difficulty: difficulty.clamp(1, 5),
+          seed: seed,
+          locale: locale,
+        ),
+      );
+      if (base.fallback) {
+        base = localPictureTask(
+          difficulty: difficulty,
+          seed: seed,
+          locale: locale,
+        );
+      }
+    } catch (_) {
+      base = localPictureTask(
+        difficulty: difficulty,
+        seed: seed,
+        locale: locale,
+      );
+    }
     try {
       return await MetaAIService.enrichVisualTask(base, seed: seed);
     } catch (_) {
@@ -187,19 +274,54 @@ class BenchmarkMeta {
     }
   }
 
-  /// Spatial practice round: palace illustration plus SAM loci stations.
-  /// Offline this is just the local palace task (no image).
+  /// Spatial practice round: Muse Spark fills the loci stimulus, Muse
+  /// Image paints the palace, SAM turns it into ordered stations.
+  /// Offline this is just the local palace task (no image). Mirrors the
+  /// lesson path (Spark then enrich).
   static Future<MetaTask> spatialRound({
     required String seed,
     required int stations,
     String locale = 'en',
   }) async {
     final difficulty = (stations - 3).clamp(1, 5);
-    final base = localPalaceTask(
-      difficulty: difficulty,
-      seed: seed,
-      locale: locale,
-    );
+    bool live = false;
+    try {
+      live = await MetaAIService.hasAnyKey();
+    } catch (_) {}
+    if (!live) {
+      return localPalaceTask(
+        difficulty: difficulty,
+        seed: seed,
+        locale: locale,
+        count: stations,
+      );
+    }
+    MetaTask base;
+    try {
+      base = await MetaAIService.generateTask(
+        MetaTaskRequest(
+          kind: 'spatial',
+          difficulty: difficulty,
+          seed: seed,
+          locale: locale,
+        ),
+      );
+      if (base.fallback || base.items.length != stations) {
+        base = localPalaceTask(
+          difficulty: difficulty,
+          seed: seed,
+          locale: locale,
+          count: stations,
+        );
+      }
+    } catch (_) {
+      base = localPalaceTask(
+        difficulty: difficulty,
+        seed: seed,
+        locale: locale,
+        count: stations,
+      );
+    }
     try {
       return await MetaAIService.enrichSpatialTask(
         base,
@@ -222,7 +344,7 @@ class _AiTip extends StatefulWidget {
 }
 
 class _AiTipState extends State<_AiTip> {
-  late final Future<CoachAnswer> _future = MetaAIService.practiceTip(
+  late final Future<CoachAnswer> _future = MetaAIService.openPracticeTip(
     gameId: widget.gameId,
     level: widget.level.clamp(1, 99),
     locale: AppLocalizations.localeCode,
@@ -247,14 +369,29 @@ class _AiTipState extends State<_AiTip> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                tr('ai_tip_title'),
-                style: TextStyle(
-                  color: context.mutedText,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 11,
-                  letterSpacing: 1.2,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      tr('ai_tip_title'),
+                      style: TextStyle(
+                        color: context.mutedText,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 11,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    snap.data?.fallback == false ? 'SPARK OPEN' : 'LOCAL',
+                    style: TextStyle(
+                      color: context.mutedText,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 10,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 4),
               Text(
@@ -267,6 +404,197 @@ class _AiTipState extends State<_AiTip> {
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+}
+
+/// One-line strip naming the Meta models behind the current round, with
+/// an honest live/local badge: [live] is true only when the CURRENT
+/// round's stimulus actually came from a live model (the game pages feed
+/// it from each deal's fallback flag). Local rounds say so instead of
+/// borrowing the models' names.
+class _AiModelsStrip extends StatelessWidget {
+  final String models;
+  final bool live;
+  const _AiModelsStrip(this.models, {this.live = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final dot = live ? teal : context.mutedText;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          HugeIcon(
+            icon: HugeIcons.strokeRoundedSparkles,
+            color: context.mutedText,
+            size: 14,
+            strokeWidth: 2.0,
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              live
+                  ? tr('bench_ai_models', {'models': models})
+                  : tr('bench_ai_models_local', {'models': models}),
+              style: TextStyle(color: context.mutedText, fontSize: 12),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: dot.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: dot.withValues(alpha: 0.4)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  live ? tr('bench_ai_live') : tr('bench_ai_local'),
+                  style: TextStyle(
+                    color: dot,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 10,
+                    letterSpacing: 1.0,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// End-of-run verdict from the text model (Muse Spark) plus a button
+/// that opens the AI coach, pre-briefed on this run, for questions.
+class _AiVerdict extends StatefulWidget {
+  final String gameId;
+  final int score;
+  const _AiVerdict({required this.gameId, required this.score});
+
+  @override
+  State<_AiVerdict> createState() => _AiVerdictState();
+}
+
+class _AiVerdictState extends State<_AiVerdict> {
+  late final Future<CoachAnswer> _future = MetaAIService.gameRecap(
+    gameId: widget.gameId,
+    score: widget.score,
+    best: BenchmarkStore.best[widget.gameId] ?? widget.score,
+    locale: AppLocalizations.localeCode,
+  );
+  late final Future<CoachAnswer> _glimmer = MetaAIService.glimmerTake(
+    gameId: widget.gameId,
+    score: widget.score,
+    best: BenchmarkStore.best[widget.gameId] ?? widget.score,
+    locale: AppLocalizations.localeCode,
+  );
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<CoachAnswer>(
+      future: _future,
+      builder: (context, snap) {
+        final text = snap.data?.text ?? '';
+        if (text.isEmpty) return const SizedBox.shrink();
+        return FutureBuilder<CoachAnswer>(
+          future: _glimmer,
+          builder: (context, gsnap) {
+            final line = gsnap.data?.text ?? '';
+            final sparkLive = snap.data?.fallback == false;
+            final glimmerLive = gsnap.data?.fallback == false;
+            final source = sparkLive && glimmerLive
+                ? 'SPARK • GLIMMER'
+                : sparkLive
+                ? 'SPARK'
+                : glimmerLive
+                ? 'GLIMMER'
+                : 'LOCAL';
+            return Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(top: 10),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: context.cardBg,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: context.hairline, width: 2),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          tr('ai_verdict_title'),
+                          style: TextStyle(
+                            color: context.mutedText,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 11,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        source,
+                        style: TextStyle(
+                          color: context.mutedText,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 10,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  if (line.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Text(
+                        line,
+                        style: TextStyle(
+                          color: context.mutedText,
+                          fontStyle: FontStyle.italic,
+                          fontSize: 12,
+                          height: 1.45,
+                        ),
+                      ),
+                    ),
+                  Text(
+                    text,
+                    style: TextStyle(
+                      color: context.inkText,
+                      fontSize: 13,
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _bigButton(
+                    context,
+                    label: tr('bench_ask_ai'),
+                    color: blue,
+                    onTap: () => openAiHelpSheet(
+                      context,
+                      topic: AiHelpTopics.benchmark,
+                      helpContext:
+                          '${widget.gameId} practice, just scored ${widget.score}',
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
@@ -299,7 +627,7 @@ final _games = <_GameDef>[
   _GameDef(
     id: 'sequence',
     icon: HugeIcons.strokeRoundedLayers01,
-    tint: violet,
+    tint: blue,
     build: () => const SequenceGamePage(),
   ),
   _GameDef(
@@ -317,13 +645,13 @@ final _games = <_GameDef>[
   _GameDef(
     id: 'visual',
     icon: HugeIcons.strokeRoundedEye,
-    tint: violetDark,
+    tint: blueDark,
     build: () => const VisualGamePage(),
   ),
   _GameDef(
     id: 'order',
     icon: HugeIcons.strokeRoundedBrain01,
-    tint: amber,
+    tint: orange,
     build: () => const NumberOrderGamePage(),
   ),
   _GameDef(
@@ -381,6 +709,13 @@ class _BenchmarkHubPageState extends State<BenchmarkHubPage> {
               style: TextStyle(color: context.mutedText, fontSize: 14),
             ),
             const SizedBox(height: 16),
+            if (!BenchmarkStore.loaded)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: CircularProgressIndicator(),
+                ),
+              ),
             for (final g in _games) ...[
               _BenchmarkCard(
                 def: g,
@@ -511,6 +846,8 @@ Widget _gameScaffold({
   required String title,
   required String counter,
   required Widget body,
+  String aiModels = '',
+  bool aiLive = false,
 }) {
   final scheme = Theme.of(context).colorScheme;
   return Scaffold(
@@ -544,21 +881,112 @@ Widget _gameScaffold({
         ),
         const Padding(
           padding: EdgeInsets.only(right: 12),
-          child: Center(
-            child: AiHelpButton(topic: AiHelpTopics.benchmark),
-          ),
+          child: Center(child: AiHelpButton(topic: AiHelpTopics.benchmark)),
         ),
       ],
     ),
-    body: body,
+    body: aiModels.isEmpty
+        ? body
+        : Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: _AiModelsStrip(aiModels, live: aiLive),
+              ),
+              Expanded(child: body),
+            ],
+          ),
   );
+}
+
+/// Lumosity-trap guard for practice games. Drills alone improve mostly
+/// the drilled screen (Simons et al. 2016; Owen et al. 2010) — durable
+/// daily-life skill comes from the SAME procedure on the user's OWN
+/// material (Dresler et al. 2017; Dunlosky et al. 2013). This card names
+/// the strategy the game rehearses (with its source procedure), one
+/// real-life destination, and one own-material micro-mission. Static
+/// copy (claims-safe), shown on every result screen.
+class _TransferCard extends StatelessWidget {
+  final String gameId;
+  const _TransferCard(this.gameId);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: context.cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: teal, width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            tr('bench_transfer_title'),
+            style: TextStyle(
+              color: context.mutedText,
+              fontWeight: FontWeight.w900,
+              fontSize: 11,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            tr('bench_transfer_${gameId}_tech'),
+            style: TextStyle(
+              color: context.inkText,
+              fontSize: 13,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            tr('bench_transfer_${gameId}_life'),
+            style: TextStyle(
+              color: context.mutedText,
+              fontStyle: FontStyle.italic,
+              fontSize: 12,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              HugeIcon(
+                icon: HugeIcons.strokeRoundedTarget02,
+                color: teal,
+                size: 16,
+                strokeWidth: 2.2,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  tr('bench_transfer_${gameId}_mission'),
+                  style: TextStyle(
+                    color: context.inkText,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    height: 1.45,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 Widget _bigButton(
   BuildContext context, {
   required String label,
   required VoidCallback? onTap,
-  Color color = violet,
+  Color color = blue,
 }) {
   final disabled = onTap == null;
   final top = disabled ? context.hairline : color;
@@ -607,13 +1035,13 @@ Widget _resultBox(
         decoration: BoxDecoration(
           color: context.cardBg,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: amber, width: 2),
+          border: Border.all(color: orange, width: 2),
         ),
         child: Column(
           children: [
             HugeIcon(
               icon: HugeIcons.strokeRoundedTrophy,
-              color: amber,
+              color: orange,
               size: 40,
               strokeWidth: 1.8,
             ),
@@ -661,6 +1089,8 @@ class _SequenceGamePageState extends State<SequenceGamePage> {
   bool _busy = false;
   bool _over = false;
   int? _aiNext;
+  bool _aiNextLive = false;
+  bool _roundLive = false;
 
   @override
   void initState() {
@@ -670,13 +1100,16 @@ class _SequenceGamePageState extends State<SequenceGamePage> {
 
   void _nextRound() {
     final ai = _aiNext;
+    final live = ai != null && _aiNextLive;
     _aiNext = null;
+    _aiNextLive = false;
     setState(() {
       _busy = true;
       _over = false;
       _seq.add(ai ?? _rnd.nextInt(9));
       _input = 0;
       _level = _seq.length;
+      _roundLive = live;
     });
     _play();
     unawaited(_prefetchNext());
@@ -684,8 +1117,11 @@ class _SequenceGamePageState extends State<SequenceGamePage> {
 
   Future<void> _prefetchNext() async {
     try {
-      final s = await BenchmarkMeta.sequenceStimulus(1);
-      if (s.isNotEmpty && mounted && !_over) _aiNext = s.first % 9;
+      final res = await BenchmarkMeta.sequenceStimulus(1);
+      if (res.digits.isNotEmpty && mounted && !_over) {
+        _aiNext = res.digits.first % 9;
+        _aiNextLive = res.live;
+      }
     } catch (_) {}
   }
 
@@ -730,6 +1166,8 @@ class _SequenceGamePageState extends State<SequenceGamePage> {
       context: context,
       title: tr('bench_game_sequence_title'),
       counter: tr('bench_level_n', {'n': _level}),
+      aiModels: 'Muse Spark',
+      aiLive: _roundLive,
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
@@ -737,18 +1175,17 @@ class _SequenceGamePageState extends State<SequenceGamePage> {
             _resultBox(
               context,
               title: tr('bench_seq_done_title'),
-              detail: tr('bench_seq_done_detail', {
-                'n': _seq.length - 1,
-              }),
+              detail: tr('bench_seq_done_detail', {'n': _seq.length - 1}),
               onRetry: () => setState(() {
                 _seq.clear();
                 _nextRound();
               }),
               retryLabel: tr('bench_retry_xp'),
             ),
+            _TransferCard('sequence'),
             _AiTip(gameId: 'sequence', level: _seq.length - 1),
-          ]
-          else ...[
+            _AiVerdict(gameId: 'sequence', score: _seq.length - 1),
+          ] else ...[
             Text(
               _busy
                   ? tr('bench_seq_watch', {'n': _level})
@@ -778,16 +1215,16 @@ class _SequenceGamePageState extends State<SequenceGamePage> {
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
                     decoration: BoxDecoration(
-                      color: lit ? amber : context.cardBg,
+                      color: lit ? orange : context.cardBg,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: lit ? amber : context.hairline,
+                        color: lit ? orange : context.hairline,
                         width: 2,
                       ),
                       boxShadow: lit
                           ? [
                               BoxShadow(
-                                color: amber.withValues(alpha: 0.5),
+                                color: orange.withValues(alpha: 0.5),
                                 blurRadius: 16,
                               ),
                             ]
@@ -802,7 +1239,7 @@ class _SequenceGamePageState extends State<SequenceGamePage> {
               value: _busy ? 0 : _input / _seq.length,
               minHeight: 8,
               backgroundColor: context.hairline,
-              valueColor: const AlwaysStoppedAnimation(violet),
+              valueColor: const AlwaysStoppedAnimation(blue),
             ),
           ],
         ],
@@ -834,6 +1271,9 @@ class _NumberGamePageState extends State<NumberGamePage> {
   List<String> _options = [];
   bool _over = false;
   String? _aiNext;
+  bool _aiNextLive = false;
+  bool _roundLive = false;
+  int _dealId = 0;
 
   static String _make(int digits) {
     final sb = StringBuffer();
@@ -852,11 +1292,17 @@ class _NumberGamePageState extends State<NumberGamePage> {
 
   void _deal() {
     final ai = _aiNext;
+    final aiLive = _aiNextLive;
     _aiNext = null;
+    _aiNextLive = false;
     final cleaned = (ai ?? '').replaceAll(RegExp('[^0-9]'), '');
-    _number = cleaned.length >= _digits
-        ? cleaned.substring(0, _digits)
-        : _make(_digits);
+    if (cleaned.length >= _digits) {
+      _number = cleaned.substring(0, _digits);
+      _roundLive = aiLive;
+    } else {
+      _number = _make(_digits);
+      _roundLive = false;
+    }
     final set = <String>{_number};
     while (set.length < 4) {
       final d = _make(_digits);
@@ -864,16 +1310,22 @@ class _NumberGamePageState extends State<NumberGamePage> {
     }
     _options = set.toList()..shuffle();
     _show = true;
+    final deal = ++_dealId;
     Future.delayed(const Duration(milliseconds: 2500), () {
-      if (mounted && _show && !_over) setState(() => _show = false);
+      if (mounted && _show && !_over && deal == _dealId) {
+        setState(() => _show = false);
+      }
     });
     unawaited(_prefetchNext());
   }
 
   Future<void> _prefetchNext() async {
     try {
-      final s = await BenchmarkMeta.numberStimulus(_digits + 1);
-      if (mounted && !_over) _aiNext = s;
+      final res = await BenchmarkMeta.numberStimulus(_digits + 1);
+      if (mounted && !_over) {
+        _aiNext = res.text;
+        _aiNextLive = res.live;
+      }
     } catch (_) {}
   }
 
@@ -907,6 +1359,8 @@ class _NumberGamePageState extends State<NumberGamePage> {
       context: context,
       title: tr('bench_game_number_title'),
       counter: tr('bench_digits_n', {'n': _digits}),
+      aiModels: 'Muse Spark',
+      aiLive: _roundLive,
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
@@ -922,9 +1376,10 @@ class _NumberGamePageState extends State<NumberGamePage> {
               }),
               retryLabel: tr('bench_restart'),
             ),
+            _TransferCard('number'),
             _AiTip(gameId: 'number', level: _digits - 1),
-          ]
-          else if (_show) ...[
+            _AiVerdict(gameId: 'number', score: _digits - 1),
+          ] else if (_show) ...[
             Text(
               tr('bench_num_memorize'),
               style: TextStyle(
@@ -1108,15 +1563,126 @@ const _wordPoolHu = [
   'szikla',
 ];
 
-List<String> _wordPoolFor(String locale) =>
-    locale == 'hu' ? _wordPoolHu : _wordPool;
-
 class VerbalGamePage extends StatefulWidget {
   const VerbalGamePage({super.key});
 
+  /// Fresh-word pool for [locale]: the built-in game words plus the shared
+  /// concrete-noun bank, de-duplicated to single words.
+  static List<String> wordPool([String locale = 'en']) {
+    final base = locale == 'hu' ? _wordPoolHu : _wordPool;
+    final extra = allConcreteNounsFor(locale);
+    final seen = <String>{};
+    final out = <String>[];
+    for (final w in [...base, ...extra]) {
+      final t = w.trim();
+      if (t.length < 2 || t.length > 24 || t.contains(' ')) continue;
+      if (seen.add(t)) out.add(t);
+    }
+    return out;
+  }
+
+  /// Endless local fallback for the verbal game: when the fresh pool runs
+  /// out, deal a novel compound of two pool words that is guaranteed not
+  /// to be in [seen], so "SEEN" can never become always-correct.
+  static String freshFallback(
+    List<String> pool,
+    Set<String> seen, [
+    Random? random,
+  ]) {
+    final rnd = random ?? _rnd;
+    if (pool.length >= 2) {
+      for (var i = 0; i < 64; i++) {
+        final a = pool[rnd.nextInt(pool.length)];
+        final b = pool[rnd.nextInt(pool.length)];
+        if (a == b) continue;
+        final w = '$a-$b';
+        if (!seen.contains(w)) return w;
+      }
+    }
+    var n = seen.length + 1;
+    var w = '${pool.first}-$n';
+    while (seen.contains(w)) {
+      n++;
+      w = '${pool.first}-$n';
+    }
+    return w;
+  }
+
   static String pickFresh([String locale = 'en']) {
-    final pool = _wordPoolFor(locale);
+    final pool = wordPool(locale);
     return pool[_rnd.nextInt(pool.length)];
+  }
+
+  /// Pops the first queued AI word the player has not seen yet
+  /// (case-insensitive). Returns null when the queue holds nothing new.
+  static String? takeAiWord(List<String> queue, Set<String> seen) {
+    final banned = {for (final s in seen) s.toLowerCase()};
+    while (queue.isNotEmpty) {
+      final w = queue.removeAt(0).trim();
+      if (w.length < 2 || w.length > 24 || w.contains(' ')) continue;
+      if (banned.contains(w.toLowerCase())) continue;
+      return w;
+    }
+    return null;
+  }
+
+  /// Maps a Voice Transcribe transcript onto a guess: true for SEEN,
+  /// false for NEW, null when the transcript is empty, ambiguous or
+  /// says neither. Whole-word matching only, so "known" never counts
+  /// as "no"; explicit negated phrases ("not seen", "nem láttam")
+  /// always count as NEW.
+  static bool? voiceGuessFromTranscript(
+    String transcript, [
+    String locale = 'en',
+  ]) {
+    final lower = transcript.toLowerCase();
+    const negated = {
+      'not seen',
+      'never seen',
+      'have not seen',
+      "haven't seen",
+      'did not see',
+      "didn't see",
+      'nem láttam',
+      'nem lattam',
+      'sosem láttam',
+      'sosem lattam',
+    };
+    for (final phrase in negated) {
+      if (lower.contains(phrase)) return false;
+    }
+    final tokens = lower
+        .split(RegExp('[^a-záéíóöőúüű]+'))
+        .where((t) => t.isNotEmpty)
+        .toSet();
+    if (tokens.isEmpty) return null;
+    const seen = {
+      'seen',
+      'yes',
+      'saw',
+      'remember',
+      'known',
+      'láttam',
+      'lattam',
+      'igen',
+      'ismerem',
+      'tudom',
+    };
+    const fresh = {
+      'new',
+      'no',
+      'not',
+      'never',
+      'új',
+      'uj',
+      'nem',
+      'soha',
+      'nemlattam',
+    };
+    final saysSeen = tokens.intersection(seen).isNotEmpty;
+    final saysNew = tokens.intersection(fresh).isNotEmpty;
+    if (saysSeen == saysNew) return null;
+    return saysSeen;
   }
 
   @override
@@ -1127,49 +1693,210 @@ class _VerbalGamePageState extends State<VerbalGamePage> {
   final Set<String> _seen = {};
   late final List<String> _fresh;
   late final List<String> _pool;
+  final List<String> _aiQueue = [];
+  final Set<String> _liveWords = {};
+  bool _fetchingAi = false;
+  bool _wordLive = false;
   String _word = '';
   int _score = 0;
   int _lives = 3;
   bool _over = false;
-  String? _aiNext;
+  final _recorder = AudioRecorder();
+  bool _voiceBusy = false;
+  bool _recording = false;
+  String _voiceNote = '';
+  Timer? _voiceTimer;
 
   @override
   void initState() {
     super.initState();
-    _pool = _wordPoolFor(AppLocalizations.localeCode);
+    _pool = VerbalGamePage.wordPool(AppLocalizations.localeCode);
     _fresh = List.of(_pool)..shuffle();
     _next();
   }
 
-  void _next() {
-    String w;
-    final ai = _aiNext;
-    _aiNext = null;
-    final aiOk =
-        ai != null &&
-        ai.trim().length >= 2 &&
-        ai.trim().length <= 24 &&
-        !ai.contains(' ') &&
-        !_seen.contains(ai.trim()) &&
-        !_fresh.contains(ai.trim());
-    if (_seen.isNotEmpty && _rnd.nextDouble() < 0.35) {
-      w = _seen.elementAt(_rnd.nextInt(_seen.length));
-    } else if (aiOk) {
-      w = ai.trim();
-    } else if (_fresh.isNotEmpty) {
-      w = _fresh.removeLast();
-    } else {
-      w = _pool[_rnd.nextInt(_pool.length)];
-    }
-    setState(() => _word = w);
-    unawaited(_prefetchWord());
+  @override
+  void dispose() {
+    _voiceTimer?.cancel();
+    _recorder.dispose();
+    super.dispose();
   }
 
-  Future<void> _prefetchWord() async {
+  void _next() {
+    String w;
+    var live = false;
+    if (_seen.isNotEmpty && _rnd.nextDouble() < 0.35) {
+      w = _seen.elementAt(_rnd.nextInt(_seen.length));
+      live = _liveWords.contains(w);
+    } else {
+      final ai = VerbalGamePage.takeAiWord(_aiQueue, _seen);
+      if (ai != null) {
+        _fresh.remove(ai);
+        w = ai;
+        live = _liveWords.remove(ai);
+      } else if (_fresh.isNotEmpty) {
+        w = _fresh.removeLast();
+      } else {
+        // The pool is exhausted: deal a guaranteed-novel compound instead
+        // of recycling a seen word (which would make "SEEN" always right).
+        w = VerbalGamePage.freshFallback(_pool, _seen);
+      }
+    }
+    setState(() {
+      _word = w;
+      _wordLive = live;
+    });
+    unawaited(_prefetchWords());
+  }
+
+  /// Keeps a buffer of Spark-generated words coming so the game never
+  /// runs out, even hundreds of rounds in. Offline the queue simply
+  /// stays empty and the local pool plus compounds take over.
+  Future<void> _prefetchWords() async {
+    if (_fetchingAi || _over || _aiQueue.length >= 6) return;
+    _fetchingAi = true;
     try {
-      final s = await BenchmarkMeta.wordStimulus(AppLocalizations.localeCode);
-      if (mounted && !_over) _aiNext = s;
-    } catch (_) {}
+      final res = await BenchmarkMeta.wordBatch(
+        count: 12,
+        avoid: [..._seen, ..._fresh, ..._aiQueue],
+        locale: AppLocalizations.localeCode,
+      );
+      if (!mounted || _over) return;
+      final known = {
+        for (final s in [..._seen, ..._fresh, ..._aiQueue]) s.toLowerCase(),
+      };
+      for (final w in res.words) {
+        final t = w.trim();
+        if (t.length < 2 || t.length > 24 || t.contains(' ')) continue;
+        if (known.add(t.toLowerCase())) {
+          _aiQueue.add(t);
+          if (res.live) _liveWords.add(t);
+        }
+      }
+    } catch (_) {
+    } finally {
+      _fetchingAi = false;
+    }
+  }
+
+  /// Voice answer: records a short clip, has Voice Transcribe turn it
+  /// into text, and maps the transcript onto a SEEN/NEW guess. Tapping
+  /// again finishes early; otherwise the clip auto-stops after 6
+  /// seconds. Never throws and never pops anything up — every failure
+  /// stays as one inline line and the tap buttons keep working.
+  Future<void> _voiceAnswer() async {
+    if (_over) return;
+    if (_recording) {
+      await _finishVoice();
+      return;
+    }
+    if (_voiceBusy) return;
+    // Átírás csak felhővel megy: kulcs/hozzájárulás nélkül nem indítunk
+    // rögzítést, mert az eredmény úgyis csak „nem értettem" lenne.
+    if (!await MetaAIService.cloudReady()) {
+      if (!mounted) return;
+      setState(() => _voiceNote = tr('bench_voice_nocloud'));
+      return;
+    }
+    setState(() {
+      _voiceBusy = true;
+      _recording = true;
+      _voiceNote = '';
+    });
+    try {
+      if (!await _recorder.hasPermission()) {
+        if (!mounted) return;
+        setState(() {
+          _voiceBusy = false;
+          _recording = false;
+          _voiceNote = tr('bench_voice_nomic');
+        });
+        return;
+      }
+      var dir = '';
+      try {
+        dir = (await getTemporaryDirectory()).path;
+      } catch (_) {}
+      final path = dir.isEmpty
+          ? 'engrammo_voice.m4a'
+          : '$dir/engrammo_voice.m4a';
+      await _recorder.start(
+        const RecordConfig(
+          encoder: AudioEncoder.aacLc,
+          bitRate: 64000,
+          sampleRate: 16000,
+          numChannels: 1,
+        ),
+        path: path,
+      );
+      if (!mounted) return;
+      setState(() {});
+      _voiceTimer?.cancel();
+      _voiceTimer = Timer(const Duration(seconds: 6), () {
+        if (mounted) _finishVoice();
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _voiceBusy = false;
+        _recording = false;
+        _voiceNote = tr('bench_voice_nomic');
+      });
+    }
+  }
+
+  Future<void> _finishVoice() async {
+    if (!_recording) return;
+    _voiceTimer?.cancel();
+    _recording = false;
+    if (!mounted) {
+      _voiceBusy = false;
+      return;
+    }
+    setState(() => _voiceNote = tr('bench_voice_working'));
+    try {
+      final path = await _recorder.stop();
+      if (path == null || path.isEmpty) throw StateError('no audio');
+      final bytes = await XFile(path).readAsBytes();
+      // A felvétel fix nevű ideiglenes fájlba megy, így minden új rögzítés
+      // felülírja az előzőt: legfeljebb egy 6 mp-es klip marad a temp
+      // mappában (törlésre nincs keresztplatformos API a record+XFile
+      // rétegben, ezért a forgatás a védelem a felhalmozódás ellen).
+      if (bytes.isEmpty || bytes.length > 1500000) {
+        throw StateError('bad audio');
+      }
+      final answer = await MetaAIService.transcribe(
+        audioDataUrl: 'data:audio/aac;base64,${base64Encode(bytes)}',
+        locale: AppLocalizations.localeCode,
+      );
+      if (!mounted) return;
+      setState(() => _voiceBusy = false);
+      if (_over) return;
+      final heard = answer.text.trim();
+      final guess = VerbalGamePage.voiceGuessFromTranscript(
+        heard,
+        AppLocalizations.localeCode,
+      );
+      if (guess == null) {
+        setState(() {
+          _voiceNote = heard.isEmpty
+              ? tr('bench_voice_unclear')
+              : '${tr('bench_voice_heard', {'text': heard})}\n'
+                    '${tr('bench_voice_unclear')}';
+        });
+        return;
+      }
+      setState(() {
+        _voiceNote = tr('bench_voice_heard', {'text': heard});
+      });
+      _guess(guess);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _voiceBusy = false;
+        _voiceNote = tr('bench_voice_nomic');
+      });
+    }
   }
 
   void _guess(bool saysSeen) {
@@ -1204,10 +1931,9 @@ class _VerbalGamePageState extends State<VerbalGamePage> {
     return _gameScaffold(
       context: context,
       title: tr('bench_game_verbal_title'),
-      counter: tr('bench_verbal_counter', {
-        'score': _score,
-        'lives': _lives,
-      }),
+      counter: tr('bench_verbal_counter', {'score': _score, 'lives': _lives}),
+      aiModels: 'Muse Spark • Voice Transcribe',
+      aiLive: _wordLive,
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
@@ -1225,6 +1951,7 @@ class _VerbalGamePageState extends State<VerbalGamePage> {
                 _fresh
                   ..clear()
                   ..addAll(List.of(_pool)..shuffle());
+                _aiQueue.clear();
                 _score = 0;
                 _lives = 3;
                 _over = false;
@@ -1232,20 +1959,16 @@ class _VerbalGamePageState extends State<VerbalGamePage> {
               }),
               retryLabel: tr('bench_verbal_retry'),
             ),
+            _TransferCard('verbal'),
             _AiTip(gameId: 'verbal', level: _score),
-          ]
-          else ...[
+            _AiVerdict(gameId: 'verbal', score: _score),
+          ] else ...[
             Row(
               children: [
                 for (var i = 0; i < 3; i++)
                   Padding(
                     padding: const EdgeInsets.only(right: 6),
-                    child: HugeIcon(
-                      icon: HugeIcons.strokeRoundedFavourite,
-                      color: i < _lives ? coral : context.hairline,
-                      size: 24,
-                      strokeWidth: 2.2,
-                    ),
+                    child: LifeHeart(filled: i < _lives),
                   ),
                 const Spacer(),
                 Text(
@@ -1268,12 +1991,19 @@ class _VerbalGamePageState extends State<VerbalGamePage> {
                 border: Border.all(color: context.hairline, width: 2),
               ),
               alignment: Alignment.center,
-              child: Text(
-                _word,
-                style: TextStyle(
-                  fontSize: 40,
-                  fontWeight: FontWeight.bold,
-                  color: context.inkText,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    _word,
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontSize: 40,
+                      fontWeight: FontWeight.bold,
+                      color: context.inkText,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -1298,6 +2028,62 @@ class _VerbalGamePageState extends State<VerbalGamePage> {
                 ),
               ],
             ),
+            const SizedBox(height: 10),
+            GestureDetector(
+              onTap: _voiceAnswer,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: teal, width: 2),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (_voiceBusy)
+                      SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: teal,
+                        ),
+                      )
+                    else
+                      const HugeIcon(
+                        icon: HugeIcons.strokeRoundedMic01,
+                        color: teal,
+                        size: 22,
+                        strokeWidth: 2.0,
+                      ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        _recording
+                            ? tr('bench_voice_listening')
+                            : tr('bench_voice_answer'),
+                        style: const TextStyle(
+                          color: teal,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (_voiceNote.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(
+                _voiceNote,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: context.mutedText, fontSize: 12),
+              ),
+            ],
             const SizedBox(height: 8),
             Text(
               tr('bench_verbal_hint'),
@@ -1309,6 +2095,67 @@ class _VerbalGamePageState extends State<VerbalGamePage> {
       ),
     );
   }
+}
+
+/// Remaining lives as filled hearts; lost lives stay empty outlines.
+/// The free HugeIcons set ships stroke icons only, so a painted fill sits
+/// under the stroke icon — the outline on top guarantees the heart is
+/// always visible, even if the custom paint ever fails.
+class LifeHeart extends StatelessWidget {
+  final bool filled;
+  const LifeHeart({super.key, required this.filled});
+
+  @override
+  Widget build(BuildContext context) {
+    if (!filled) {
+      return HugeIcon(
+        icon: HugeIcons.strokeRoundedFavourite,
+        color: context.hairline,
+        size: 24,
+        strokeWidth: 2.2,
+      );
+    }
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        CustomPaint(
+          painter: const _HeartFillPainter(color: coral),
+          child: const SizedBox(width: 24, height: 24),
+        ),
+        const HugeIcon(
+          icon: HugeIcons.strokeRoundedFavourite,
+          color: Color(0xFFE14D4D),
+          size: 24,
+          strokeWidth: 2.2,
+        ),
+      ],
+    );
+  }
+}
+
+class _HeartFillPainter extends CustomPainter {
+  final Color color;
+  const _HeartFillPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final path = Path()
+      ..moveTo(w * 0.50, h * 0.86)
+      ..cubicTo(w * 0.22, h * 0.66, w * 0.12, h * 0.54, w * 0.12, h * 0.38)
+      ..cubicTo(w * 0.12, h * 0.26, w * 0.22, h * 0.18, w * 0.32, h * 0.18)
+      ..cubicTo(w * 0.40, h * 0.18, w * 0.47, h * 0.23, w * 0.50, h * 0.30)
+      ..cubicTo(w * 0.53, h * 0.23, w * 0.60, h * 0.18, w * 0.68, h * 0.18)
+      ..cubicTo(w * 0.78, h * 0.18, w * 0.88, h * 0.26, w * 0.88, h * 0.38)
+      ..cubicTo(w * 0.88, h * 0.54, w * 0.78, h * 0.66, w * 0.50, h * 0.86)
+      ..close();
+    canvas.drawPath(path, Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(_HeartFillPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 class VisualGamePage extends StatefulWidget {
@@ -1334,11 +2181,11 @@ class _VisualGamePageState extends State<VisualGamePage> {
   Set<int> _picked = {};
   bool _show = true;
   bool _over = false;
-  Set<int>? _aiPattern;
-  int _aiPatternSize = 0;
+  ({Set<int> cells, int size, bool live})? _aiPattern;
   MetaTask? _aiRound;
   bool _aiLoading = false;
   int _aiDealId = 0;
+  bool _roundLive = false;
 
   int get _size => _level >= 4 ? 16 : 9;
   int get _cols => _level >= 4 ? 4 : 3;
@@ -1360,21 +2207,28 @@ class _VisualGamePageState extends State<VisualGamePage> {
   void _dealGrid() {
     final count = (_level + 2).clamp(3, _size - 1);
     final ai = _aiPattern;
-    if (ai != null && _aiPatternSize == _size && ai.length == count) {
-      _pattern = Set.of(ai);
+    if (ai != null && ai.size == _size && ai.cells.length == count) {
+      _pattern = Set.of(ai.cells);
+      _roundLive = ai.live;
     } else {
       _pattern = {};
       while (_pattern.length < count) {
         _pattern.add(_rnd.nextInt(_size));
       }
+      _roundLive = false;
     }
     _aiPattern = null;
     _aiRound = null;
     _aiLoading = false;
     _picked = {};
     _show = true;
+    final deal = ++_aiDealId;
     Future.delayed(const Duration(milliseconds: 2200), () {
-      if (mounted && _show && !_over && _aiRound == null) {
+      if (mounted &&
+          _show &&
+          !_over &&
+          deal == _aiDealId &&
+          _aiRound == null) {
         setState(() => _show = false);
       }
     });
@@ -1414,6 +2268,10 @@ class _VisualGamePageState extends State<VisualGamePage> {
       _aiRound = task;
       _aiLoading = false;
       _show = true;
+      // A picture round is live when any model contributed: Spark filled
+      // the scene (!fallback) or Image painted it (only live calls yield
+      // a URL — offline rounds never carry one).
+      _roundLive = !task.fallback || task.imageUrl.isNotEmpty;
     });
     Future.delayed(const Duration(milliseconds: 3500), () {
       if (mounted && _show && !_over && id == _aiDealId && _aiRound != null) {
@@ -1428,10 +2286,9 @@ class _VisualGamePageState extends State<VisualGamePage> {
     final size = next >= 4 ? 16 : 9;
     final count = (next + 2).clamp(3, size - 1);
     try {
-      final p = await BenchmarkMeta.visualPattern(size, count);
-      if (mounted && !_over && p.length == count) {
-        _aiPattern = p;
-        _aiPatternSize = size;
+      final res = await BenchmarkMeta.visualPattern(size, count);
+      if (mounted && !_over && res.cells.length == count) {
+        _aiPattern = (cells: res.cells, size: size, live: res.live);
       }
     } catch (_) {}
   }
@@ -1495,6 +2352,8 @@ class _VisualGamePageState extends State<VisualGamePage> {
       context: context,
       title: tr('bench_game_visual_title'),
       counter: tr('bench_level_n', {'n': _level}),
+      aiModels: 'Muse Spark • Muse Image • SAM 3.1',
+      aiLive: _roundLive,
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
@@ -1513,7 +2372,9 @@ class _VisualGamePageState extends State<VisualGamePage> {
               }),
               retryLabel: tr('bench_restart'),
             ),
+            _TransferCard('visual'),
             _AiTip(gameId: 'visual', level: _level - 1),
+            _AiVerdict(gameId: 'visual', score: _level - 1),
           ] else if (_aiLoading) ...[
             const SizedBox(height: 40),
             const Center(child: CircularProgressIndicator()),
@@ -1541,6 +2402,20 @@ class _VisualGamePageState extends State<VisualGamePage> {
                   height: 200,
                   width: double.infinity,
                   fit: BoxFit.cover,
+                  cacheWidth: 800,
+                  loadingBuilder: (context, child, progress) {
+                    if (progress == null) return child;
+                    return const SizedBox(
+                      height: 200,
+                      child: Center(
+                        child: SizedBox(
+                          width: 28,
+                          height: 28,
+                          child: CircularProgressIndicator(strokeWidth: 3),
+                        ),
+                      ),
+                    );
+                  },
                   errorBuilder: (context, error, stack) =>
                       const SizedBox.shrink(),
                 ),
@@ -1579,6 +2454,18 @@ class _VisualGamePageState extends State<VisualGamePage> {
                   tr('ai_picture_sam', {'n': ai.stations.length}),
                   textAlign: TextAlign.center,
                   style: TextStyle(color: context.mutedText, fontSize: 12),
+                ),
+              ],
+              if (ai.explanation.trim().isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '${ai.explanation.trim()}\n${ai.paradigm} (${ai.source})',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: context.mutedText,
+                    fontSize: 12,
+                    height: 1.5,
+                  ),
                 ),
               ],
               const SizedBox(height: 12),
@@ -1662,10 +2549,10 @@ class _VisualGamePageState extends State<VisualGamePage> {
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
                     decoration: BoxDecoration(
-                      color: on ? violet : context.cardBg,
+                      color: on ? blue : context.cardBg,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: on ? violet : context.hairline,
+                        color: on ? blue : context.hairline,
                         width: 2,
                       ),
                     ),
@@ -1699,6 +2586,9 @@ class _NumberOrderGamePageState extends State<NumberOrderGamePage> {
   int _next = 1;
   bool _hidden = false;
   bool _over = false;
+  int? _aiSeed;
+  bool _aiSeedLive = false;
+  bool _roundLive = false;
 
   @override
   void initState() {
@@ -1707,12 +2597,31 @@ class _NumberOrderGamePageState extends State<NumberOrderGamePage> {
   }
 
   void _deal() {
-    final all = List.generate(12, (i) => i)..shuffle();
+    final seed = _aiSeedLive ? _aiSeed : null;
+    _aiSeed = null;
+    _aiSeedLive = false;
+    _roundLive = seed != null;
+    final rnd = seed == null ? _rnd : Random(seed);
+    final all = List.generate(12, (i) => i)..shuffle(rnd);
     _cells = all.take(_count).toList();
     _next = 1;
     _hidden = false;
     _over = false;
     setState(() {});
+    unawaited(_prefetchLayout());
+  }
+
+  /// Lets Muse Spark deal the next layout: its digits fold into the
+  /// shuffle seed. Offline the seed stays null and the local shuffle
+  /// takes over.
+  Future<void> _prefetchLayout() async {
+    try {
+      final res = await BenchmarkMeta.sequenceStimulus(4);
+      if (mounted && !_over && res.digits.isNotEmpty) {
+        _aiSeed = BenchmarkMeta.seedFromDigits(res.digits);
+        _aiSeedLive = res.live;
+      }
+    } catch (_) {}
   }
 
   void _tapCell(int cellIndex) {
@@ -1753,6 +2662,8 @@ class _NumberOrderGamePageState extends State<NumberOrderGamePage> {
       context: context,
       title: tr('bench_game_order_title'),
       counter: tr('bench_order_counter', {'n': _count, 'next': _next}),
+      aiModels: 'Muse Spark',
+      aiLive: _roundLive,
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
@@ -1760,18 +2671,17 @@ class _NumberOrderGamePageState extends State<NumberOrderGamePage> {
             _resultBox(
               context,
               title: tr('bench_order_done_title', {'n': _count - 1}),
-              detail: _count >= 7
-                  ? tr('bench_order_hi')
-                  : tr('bench_order_lo'),
+              detail: _count >= 7 ? tr('bench_order_hi') : tr('bench_order_lo'),
               onRetry: () => setState(() {
                 _count = 3;
                 _deal();
               }),
               retryLabel: tr('bench_order_retry'),
             ),
+            _TransferCard('order'),
             _AiTip(gameId: 'order', level: _count - 1),
-          ]
-          else ...[
+            _AiVerdict(gameId: 'order', score: _count - 1),
+          ] else ...[
             Text(
               tr('bench_order_how'),
               style: TextStyle(
@@ -1805,10 +2715,10 @@ class _NumberOrderGamePageState extends State<NumberOrderGamePage> {
                           ? context.cardBg
                           : done
                           ? context.hairline
-                          : violet,
+                          : blue,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: filled ? violet : context.hairline,
+                        color: filled ? blue : context.hairline,
                         width: 2,
                       ),
                     ),
@@ -1869,6 +2779,16 @@ class SpatialGamePage extends StatefulWidget {
     return route.take(count.clamp(minStations, maxStations)).toList();
   }
 
+  /// Offline Wonder preview: one local caption per station, in walking
+  /// order. The live Wonder viewpoints replace these when available.
+  static List<String> localWonderPreview(
+    List<String> stations, [
+    String locale = 'en',
+  ]) => [
+    for (final s in stations)
+      trFor(locale, 'wonder_fallback_view', {'station': s}),
+  ];
+
   static List<String> pickWords(
     int count, [
     Random? random,
@@ -1914,6 +2834,14 @@ class _SpatialGamePageState extends State<SpatialGamePage> {
   Timer? _hideTimer;
   String _palaceImage = '';
   String? _palaceLine;
+  Uint8List? _camBytes;
+  bool _camBusy = false;
+  String _camError = '';
+  List<String> _wonder = [];
+  bool _wonderLoading = false;
+  int _wonderToken = 0;
+  bool _wonderLive = false;
+  bool _taskLive = false;
 
   @override
   void initState() {
@@ -1940,24 +2868,69 @@ class _SpatialGamePageState extends State<SpatialGamePage> {
     );
     _words = SpatialGamePage.pickWords(_stations, null, locale);
     _target = _rnd.nextInt(_stationList.length);
-    _options = SpatialGamePage.makeOptions(_words[_target], _words, null, locale);
+    _options = SpatialGamePage.makeOptions(
+      _words[_target],
+      _words,
+      null,
+      locale,
+    );
     _show = true;
     _palaceImage = '';
     _palaceLine = null;
+    _camBytes = null;
+    _camBusy = false;
+    _camError = '';
+    _wonder = [];
+    _wonderLoading = false;
+    _wonderLive = false;
+    _taskLive = false;
+    _armHideTimer(id);
+    unawaited(_upgradeSpatial(id, _stations, locale));
+    unawaited(_refreshWonder());
+  }
+
+  /// (Re)loads the Wonder route preview for the current stations. Stale
+  /// responses are dropped, so palace upgrades and camera rooms always
+  /// win over older previews.
+  Future<void> _refreshWonder() async {
+    final token = ++_wonderToken;
+    final stations = List.of(_stationList);
+    final route = _route;
+    setState(() => _wonderLoading = true);
+    final res = await BenchmarkMeta.wonderPreview(
+      route: route,
+      stations: stations,
+      locale: AppLocalizations.localeCode,
+    );
+    if (!mounted || token != _wonderToken) return;
+    setState(() {
+      _wonder = res.views.isEmpty
+          ? SpatialGamePage.localWonderPreview(
+              stations,
+              AppLocalizations.localeCode,
+            )
+          : res.views;
+      _wonderLoading = false;
+      _wonderLive = res.live && res.views.isNotEmpty;
+    });
+  }
+
+  void _armHideTimer(int id) {
+    _hideTimer?.cancel();
     final ms = 2500 + _stations * 900;
     _hideTimer = Timer(Duration(milliseconds: ms), () {
       if (mounted && _show && !_over && id == _dealId) {
         setState(() => _show = false);
       }
     });
-    unawaited(_upgradeSpatial(id, _stations, locale));
   }
 
   Future<void> _upgradeSpatial(int id, int stations, String locale) async {
     MetaTask task;
     try {
       task = await BenchmarkMeta.spatialRound(
-        seed: 'bench:spatial:$stations:${DateTime.now().millisecondsSinceEpoch}',
+        seed:
+            'bench:spatial:$stations:${DateTime.now().millisecondsSinceEpoch}',
         stations: stations,
         locale: locale,
       );
@@ -1965,7 +2938,19 @@ class _SpatialGamePageState extends State<SpatialGamePage> {
       return;
     }
     if (!mounted || id != _dealId || _over) return;
+    // The illustration upgrades the round even when the word deal does
+    // not match: a live palace picture is still a live contribution.
+    if (task.imageUrl.isNotEmpty) {
+      setState(() {
+        _palaceImage = task.imageUrl;
+        _palaceLine = task.prompt;
+        _taskLive = true;
+      });
+    }
     if (task.fallback && task.imageUrl.isEmpty) return;
+    // Words/options swap only during the memorize phase: a slow network
+    // must never rewrite the question under the player's eyes.
+    if (!_show) return;
     if (task.items.length != stations || task.stations.length != stations) {
       return;
     }
@@ -1981,7 +2966,82 @@ class _SpatialGamePageState extends State<SpatialGamePage> {
       _options = List.of(task.options);
       _palaceImage = task.imageUrl;
       _palaceLine = task.prompt;
+      _taskLive = !task.fallback || task.imageUrl.isNotEmpty;
     });
+    unawaited(_refreshWonder());
+  }
+
+  /// Camera palace: photographs the player's own room and lets SAM 3.1
+  /// turn the spotted details into palace stations. The memorize timer
+  /// pauses while the camera is open. Never throws and never pops
+  /// anything up — failures stay as one inline line.
+  Future<void> _useCameraRoom() async {
+    if (_camBusy || _over || !_show) return;
+    final deal = _dealId;
+    _hideTimer?.cancel();
+    setState(() {
+      _camBusy = true;
+      _camError = '';
+    });
+    try {
+      // Without cloud AI (no key or consent off) SAM never runs: say so
+      // instead of the misleading 'no clear details' line.
+      if (!await MetaAIService.cloudReady()) {
+        if (!mounted || deal != _dealId || _over) return;
+        setState(() {
+          _camBusy = false;
+          _camError = tr('bench_spatial_cam_off');
+        });
+        if (_show) _armHideTimer(deal);
+        return;
+      }
+      final shot = await ImagePicker().pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1024,
+        imageQuality: 70,
+      );
+      if (!mounted || deal != _dealId || _over) return;
+      if (shot == null) {
+        setState(() => _camBusy = false);
+        if (_show) _armHideTimer(deal);
+        return;
+      }
+      final bytes = await shot.readAsBytes();
+      if (!mounted || deal != _dealId || _over) return;
+      setState(() => _camBytes = bytes);
+      final seg = await MetaAIService.segment(
+        MetaSegmentRequest(
+          imageRef: 'data:image/jpeg;base64,${base64Encode(bytes)}',
+        ),
+      );
+      if (!mounted || deal != _dealId || _over || !_show) return;
+      if (seg.labels.isEmpty) {
+        setState(() {
+          _camBusy = false;
+          _camError = tr('bench_spatial_cam_empty');
+        });
+        _armHideTimer(deal);
+        return;
+      }
+      setState(() {
+        _stationList = stationsFromLabels(
+          seg.labels,
+          'cam:${DateTime.now().millisecondsSinceEpoch}',
+          _stations,
+          AppLocalizations.localeCode,
+        );
+        _camBusy = false;
+      });
+      unawaited(_refreshWonder());
+      _armHideTimer(deal);
+    } catch (_) {
+      if (!mounted || deal != _dealId) return;
+      setState(() {
+        _camBusy = false;
+        _camError = tr('bench_spatial_cam_fail');
+      });
+      if (_show && !_over) _armHideTimer(deal);
+    }
   }
 
   void _pick(String v) {
@@ -2008,12 +3068,161 @@ class _SpatialGamePageState extends State<SpatialGamePage> {
     }
   }
 
+  Widget _wonderBox(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: context.cardBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: context.hairline, width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            tr('bench_wonder_title'),
+            style: TextStyle(
+              color: context.mutedText,
+              fontWeight: FontWeight.w900,
+              fontSize: 11,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 6),
+          if (_wonderLoading && _wonder.isEmpty)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: context.mutedText,
+                  ),
+                ),
+              ],
+            )
+          else
+            for (var i = 0; i < _wonder.length; i++)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  '${i + 1}. ${_wonder[i]}',
+                  style: TextStyle(
+                    color: context.inkText,
+                    fontSize: 13,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+
+  Widget _cameraBox(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: context.cardBg,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: context.hairline, width: 2),
+      ),
+      child: Column(
+        children: [
+          if (_camBytes != null) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.memory(
+                _camBytes!,
+                height: 120,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stack) =>
+                    const SizedBox.shrink(),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+          if (_camBusy)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: context.mutedText,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  tr('bench_spatial_cam_busy'),
+                  style: TextStyle(color: context.mutedText, fontSize: 13),
+                ),
+              ],
+            )
+          else
+            GestureDetector(
+              onTap: _useCameraRoom,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: coral, width: 2),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const HugeIcon(
+                      icon: HugeIcons.strokeRoundedCamera01,
+                      color: coral,
+                      size: 22,
+                      strokeWidth: 2.0,
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        tr('bench_spatial_camera'),
+                        style: const TextStyle(
+                          color: coral,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          if (_camError.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              _camError,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: context.mutedText, fontSize: 12),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return _gameScaffold(
       context: context,
       title: tr('bench_game_spatial_title'),
       counter: tr('bench_stations_n', {'n': _stations}),
+      aiModels: 'Muse Spark • Muse Image • SAM 3.1 • Wonder • Camera',
+      aiLive: _taskLive || _wonderLive,
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
@@ -2029,9 +3238,10 @@ class _SpatialGamePageState extends State<SpatialGamePage> {
               }),
               retryLabel: tr('bench_restart'),
             ),
+            _TransferCard('spatial'),
             _AiTip(gameId: 'spatial', level: _stations - 1),
-          ]
-          else if (_show) ...[
+            _AiVerdict(gameId: 'spatial', score: _stations - 1),
+          ] else if (_show) ...[
             Text(
               tr('bench_spatial_memorize'),
               style: TextStyle(
@@ -2058,6 +3268,20 @@ class _SpatialGamePageState extends State<SpatialGamePage> {
                   height: 170,
                   width: double.infinity,
                   fit: BoxFit.cover,
+                  cacheWidth: 800,
+                  loadingBuilder: (context, child, progress) {
+                    if (progress == null) return child;
+                    return const SizedBox(
+                      height: 170,
+                      child: Center(
+                        child: SizedBox(
+                          width: 28,
+                          height: 28,
+                          child: CircularProgressIndicator(strokeWidth: 3),
+                        ),
+                      ),
+                    );
+                  },
                   errorBuilder: (context, error, stack) =>
                       const SizedBox.shrink(),
                 ),
@@ -2088,6 +3312,10 @@ class _SpatialGamePageState extends State<SpatialGamePage> {
                 ),
               ),
             const SizedBox(height: 4),
+            _wonderBox(context),
+            const SizedBox(height: 8),
+            _cameraBox(context),
+            const SizedBox(height: 8),
             _bigButton(
               context,
               label: tr('bench_spatial_gotit'),
@@ -2096,9 +3324,7 @@ class _SpatialGamePageState extends State<SpatialGamePage> {
             ),
           ] else ...[
             Text(
-              tr('bench_spatial_q', {
-                'station': _stationList[_target],
-              }),
+              tr('bench_spatial_q', {'station': _stationList[_target]}),
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.bold,

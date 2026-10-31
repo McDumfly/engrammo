@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'app_colors.dart' show blueDark, coral, coralDark, ink, line, muted, blue;
+import 'app_colors.dart'
+    show blueDark, coral, coralDark, ink, line, muted, orange, teal, blue;
 
 class AppTheme {
   static const OutlinedBorder buttonShape = StadiumBorder();
@@ -22,8 +23,8 @@ class AppTheme {
           seedColor: blue,
           brightness: Brightness.dark,
           primary: blue,
-          secondary: const Color(0xFF14B8A6),
-          tertiary: const Color(0xFFFF9500),
+          secondary: teal,
+          tertiary: orange,
           surface: darkScaffold,
         ).copyWith(
           onSurface: darkOnSurface,
@@ -153,12 +154,15 @@ class AppTheme {
         ColorScheme.fromSeed(
           seedColor: blue,
           primary: blue,
-          secondary: const Color(0xFF14B8A6),
-          tertiary: const Color(0xFFFF9500),
+          secondary: teal,
+          tertiary: orange,
           surface: Colors.white,
         ).copyWith(
           onSurface: ink,
           onSurfaceVariant: muted,
+          surfaceContainerHigh: Colors.white,
+          surfaceContainerHighest: const Color(0xFFF4F8FE),
+          outlineVariant: line,
         );
 
     const heavy = TextStyle(fontWeight: FontWeight.w900, fontSize: 15);
@@ -170,7 +174,19 @@ class AppTheme {
       primaryColor: blue,
       fontFamily: fontFamily,
       scaffoldBackgroundColor: Colors.white,
+      cardColor: Colors.white,
+      canvasColor: Colors.white,
       dividerTheme: const DividerThemeData(color: line, thickness: 1.5),
+      dialogTheme: const DialogThemeData(backgroundColor: Colors.white),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: Colors.white,
+        contentTextStyle: const TextStyle(color: ink),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(color: line, width: 1.5),
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: const Color(0xFFF4F8FE),
@@ -183,6 +199,15 @@ class AppTheme {
           borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: blue, width: 2),
         ),
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.white,
+        foregroundColor: ink,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: Colors.white,
       ),
       splashFactory: NoSplash.splashFactory,
       splashColor: Colors.transparent,

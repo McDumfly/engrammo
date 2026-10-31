@@ -3,8 +3,10 @@ import 'package:hugeicons/hugeicons.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/dynamic_task.dart';
+import '../theme/app_colors.dart' show coral, teal;
 import '../theme/app_theme.dart';
 import 'app_buttons.dart';
+import 'sam_overlay.dart';
 
 class DynamicTaskView extends StatefulWidget {
   final DynamicTask task;
@@ -29,7 +31,32 @@ class _DynamicTaskViewState extends State<DynamicTaskView> {
   @override
   void initState() {
     super.initState();
-    for (final b in widget.task.blocks) {
+    _seedBlockState(widget.task);
+  }
+
+  @override
+  void didUpdateWidget(covariant DynamicTaskView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Új feladat ugyanazzal a kulccsal: a régi válaszok nem maradhatnak meg,
+    // és a befejezett-jelző sem ragadhat be (különben az onDone elvész).
+    if (oldWidget.task.id != widget.task.id) {
+      for (final c in _controllers.values) {
+        c.dispose();
+      }
+      _controllers.clear();
+      _done.clear();
+      _correct.clear();
+      _checks.clear();
+      _orderPicks.clear();
+      _orderShown.clear();
+      _picked.clear();
+      _finished = false;
+      _seedBlockState(widget.task);
+    }
+  }
+
+  void _seedBlockState(DynamicTask task) {
+    for (final b in task.blocks) {
       if (b.type == DynamicBlockType.checklist) {
         _checks[b.id] = List<bool>.filled(b.options.length, false);
       }
@@ -91,9 +118,22 @@ class _DynamicTaskViewState extends State<DynamicTaskView> {
     );
   }
 
+  /// A helyes opció indexe számmal vagy szöveggel megadva, -1 ha
+  /// az AI válaszkulcsa egyikre sem illeszkedik (akkor nem pontozzuk).
+  int _choiceRight(DynamicBlock b) {
+    final byIndex = int.tryParse(b.answer.trim());
+    if (byIndex != null && byIndex >= 0 && byIndex < b.options.length) {
+      return byIndex;
+    }
+    return b.options.indexWhere(
+      (o) => o.trim().toLowerCase() == b.answer.trim().toLowerCase(),
+    );
+  }
+
   bool _isKeyed(DynamicBlock b) {
     switch (b.type) {
       case DynamicBlockType.choice:
+        return _choiceRight(b) >= 0;
       case DynamicBlockType.order:
         return true;
       case DynamicBlockType.text:
@@ -227,7 +267,7 @@ class _DynamicTaskViewState extends State<DynamicTaskView> {
               if (_done.contains(b.id))
                 const HugeIcon(
                   icon: HugeIcons.strokeRoundedCheckmarkCircle02,
-                  color: Color(0xFF14B8A6),
+                  color: teal,
                   size: 20,
                   strokeWidth: 2.2,
                 ),
@@ -238,6 +278,14 @@ class _DynamicTaskViewState extends State<DynamicTaskView> {
             Text(
               b.hint,
               style: TextStyle(color: context.mutedText, fontSize: 12),
+            ),
+          ],
+          if (b.imageUrl.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            SamOverlay(
+              imageUrl: b.imageUrl,
+              samLabels: b.samLabels,
+              height: 140,
             ),
           ],
           const SizedBox(height: 8),
@@ -270,7 +318,8 @@ class _DynamicTaskViewState extends State<DynamicTaskView> {
 
   Widget _choiceBlock(DynamicBlock b) {
     final picked = _picked[b.id];
-    final right = int.tryParse(b.answer.trim()) ?? -1;
+    final right = _choiceRight(b);
+    final keyed = right >= 0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -283,7 +332,7 @@ class _DynamicTaskViewState extends State<DynamicTaskView> {
                   ? null
                   : () {
                       setState(() => _picked[b.id] = i);
-                      _markDone(b, correct: i == right);
+                      _markDone(b, correct: keyed ? i == right : null);
                     },
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -291,17 +340,17 @@ class _DynamicTaskViewState extends State<DynamicTaskView> {
                   vertical: 10,
                 ),
                 decoration: BoxDecoration(
-                  color: picked != null && i == right
-                      ? const Color(0xFF14B8A6).withValues(alpha: 0.14)
-                      : picked != null && i == picked
-                      ? const Color(0xFFFF6B6B).withValues(alpha: 0.12)
+                  color: keyed && picked != null && i == right
+                      ? teal.withValues(alpha: 0.14)
+                      : keyed && picked != null && i == picked
+                      ? coral.withValues(alpha: 0.12)
                       : context.washBg,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: picked != null && i == right
-                        ? const Color(0xFF14B8A6)
-                        : picked != null && i == picked
-                        ? const Color(0xFFFF6B6B)
+                    color: keyed && picked != null && i == right
+                        ? teal
+                        : keyed && picked != null && i == picked
+                        ? coral
                         : context.faintBorder,
                     width: 2,
                   ),
@@ -383,7 +432,7 @@ class _DynamicTaskViewState extends State<DynamicTaskView> {
                       : tr('dtask_wrong', {'answer': b.answer}))
                 : tr('dtask_done_source'),
             style: TextStyle(
-              color: keyed && !ok ? const Color(0xFFFF6B6B) : context.mutedText,
+              color: keyed && !ok ? coral : context.mutedText,
               fontSize: 13,
             ),
           ),
@@ -392,11 +441,23 @@ class _DynamicTaskViewState extends State<DynamicTaskView> {
   }
 
   Widget _checklistBlock(DynamicBlock b) {
+    // Üres opciólista: nincs mit pipálni, azonnal kész (különben a
+    // befejező gomb sosem jelenne meg).
+    if (b.options.isEmpty) {
+      if (!_done.contains(b.id)) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && !_done.contains(b.id)) {
+            setState(() => _done.add(b.id));
+          }
+        });
+      }
+      return const SizedBox.shrink();
+    }
     final checks = _checks[b.id] ?? const <bool>[];
     void toggle(int i, bool? v) {
       if (_done.contains(b.id)) return;
       setState(() {
-        _checks[b.id]![i] = v ?? false;
+        _checks[b.id]![i] = v ?? !_checks[b.id]![i];
         if (_checks[b.id]!.every((e) => e)) {
           _done.add(b.id);
         }
@@ -408,7 +469,9 @@ class _DynamicTaskViewState extends State<DynamicTaskView> {
         for (var i = 0; i < b.options.length; i++)
           GestureDetector(
             key: ValueKey('dynamic-checklist-${b.id}-$i'),
-            onTap: _done.contains(b.id) ? null : () => toggle(i, true),
+            onTap: _done.contains(b.id)
+                ? null
+                : () => toggle(i, null),
             behavior: HitTestBehavior.opaque,
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
@@ -502,7 +565,7 @@ class _DynamicTaskViewState extends State<DynamicTaskView> {
             style: TextStyle(
               color: _correct[b.id] == true
                   ? context.mutedText
-                  : const Color(0xFFFF6B6B),
+                  : coral,
               fontSize: 13,
             ),
           ),

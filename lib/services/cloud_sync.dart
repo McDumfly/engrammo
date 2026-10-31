@@ -19,6 +19,14 @@ class NoConnectionException implements Exception {
   String toString() => 'NoConnectionException';
 }
 
+/// A Firestore-szabályok utasították el a műveletet (nem hálózati hiba).
+class CloudPermissionException implements Exception {
+  const CloudPermissionException();
+
+  @override
+  String toString() => 'CloudPermissionException';
+}
+
 class CloudSync {
   static bool get available {
     try {
@@ -77,7 +85,6 @@ class CloudSync {
       final feed = await MemoryStore.loadFriendFeed();
       final goals = await MemoryStore.loadUserGoals();
       final missions = await MemoryStore.loadDoneMissions();
-      final materials = await MemoryStore.loadAllOwnMaterials();
       final benchmark = await MemoryStore.loadBenchmark();
       final invites = await MemoryStore.loadBattleInvites();
       final aiConsent = await MetaAIService.cloudConsent();
@@ -121,7 +128,8 @@ class CloudSync {
         'friendFeed': [for (final e in feed) e.toJson()],
         'userGoals': [for (final g in goals) g.toJson()],
         'doneMissions': missions.toList()..sort(),
-        'ownMaterial': materials,
+        // ownMaterial is intentionally NOT synced: the user's private
+        // study material stays on the device (see docs/RESEARCH.md §12).
         'benchmark': benchmark.toJson(),
         'battleInvites': invites.toList()..sort(),
         'aiCloudConsent': aiConsent,
@@ -132,7 +140,20 @@ class CloudSync {
     }
   }
 
+  static bool _pulling = false;
+
   static Future<void> pullToLocal(String uid) async {
+    final doc = _doc(uid);
+    if (doc == null || _pulling) return;
+    _pulling = true;
+    try {
+      await _pullLocked(uid);
+    } finally {
+      _pulling = false;
+    }
+  }
+
+  static Future<void> _pullLocked(String uid) async {
     final doc = _doc(uid);
     if (doc == null) return;
     try {
@@ -158,9 +179,16 @@ class CloudSync {
 
       final scores = data['scores'];
       if (scores is List && scores.isNotEmpty) {
-        await MemoryStore.saveScoresWithoutNotify([
-          for (final s in scores) (s as num?)?.toInt() ?? 0,
-        ]);
+        final cloud = [for (final s in scores) (s as num?)?.toInt() ?? 0];
+        final local = await MemoryStore.loadScores() ?? const <int>[];
+        final len = cloud.length > local.length ? cloud.length : local.length;
+        final merged = <int>[];
+        for (var i = 0; i < len; i++) {
+          final c = i < cloud.length ? cloud[i] : 0;
+          final l = i < local.length ? local[i] : 0;
+          merged.add(c > l ? c : l);
+        }
+        await MemoryStore.saveScoresWithoutNotify(merged);
       }
       final dominant = data['dominantKind'];
       if (dominant is int && dominant >= 0) {
@@ -193,19 +221,20 @@ class CloudSync {
       if (statsCloud is Map) {
         final local = await MemoryStore.loadBattleStats();
         int numOf(Object? v) => (v as num?)?.toInt() ?? 0;
-        final merged = BattleStats(
-          matches: numOf(statsCloud['matches']).clamp(local.matches, 1 << 30),
-          wins: numOf(statsCloud['wins']).clamp(local.wins, 1 << 30),
-          losses: numOf(statsCloud['losses']).clamp(local.losses, 1 << 30),
-          draws: numOf(statsCloud['draws']).clamp(local.draws, 1 << 30),
-          bestStreak: numOf(
-            statsCloud['bestStreak'],
-          ).clamp(local.bestStreak, 1 << 30),
-          currentStreak: numOf(
-            statsCloud['currentStreak'],
-          ).clamp(local.currentStreak, 1 << 30),
-        );
-        await MemoryStore.saveBattleStatsWithoutNotify(merged);
+        // Sor-szinten döntünk a meccsszám alapján: a független max-olás
+        // inkonzisztens sort adna (győzelem+vereség+döntetlen > meccs).
+        if (numOf(statsCloud['matches']) >= local.matches) {
+          await MemoryStore.saveBattleStatsWithoutNotify(
+            BattleStats(
+              matches: numOf(statsCloud['matches']),
+              wins: numOf(statsCloud['wins']),
+              losses: numOf(statsCloud['losses']),
+              draws: numOf(statsCloud['draws']),
+              bestStreak: numOf(statsCloud['bestStreak']),
+              currentStreak: numOf(statsCloud['currentStreak']),
+            ),
+          );
+        }
       }
       final historyCloud = data['battleHistory'];
       if (historyCloud is List && historyCloud.isNotEmpty) {
@@ -256,25 +285,40 @@ class CloudSync {
           best != null ||
           engrams != null ||
           history.isNotEmpty) {
-        await MemoryStore.saveStreakStateDirect(
-          history: history.isEmpty ? null : history,
-          streak: streak,
-          bestStreak: best,
-          engrams: engrams,
-        );
+        // Előzmény+számlálók egyben mozognak: a hosszabb előzmény nyer,
+        // különben a régi számok üres előzménnyel keverednének.
+        final localStreak = await MemoryStore.loadStreakState();
+        final takeCloud = history.length > localStreak.history.length;
+        final mergedEngrams = engrams != null && engrams > localStreak.engrams
+            ? engrams
+            : localStreak.engrams;
+        if (takeCloud || mergedEngrams != localStreak.engrams) {
+          await MemoryStore.saveStreakStateDirect(
+            history: takeCloud ? history : null,
+            streak: takeCloud ? streak : null,
+            bestStreak: takeCloud ? best : null,
+            engrams: mergedEngrams,
+          );
+        }
       }
 
       final fsrsCloud = data['fsrsCards'];
       if (fsrsCloud is Map && fsrsCloud.isNotEmpty) {
-        await MemoryStore.saveFsrsCardsWithoutNotify(
-          fsrsCloud.map((k, v) => MapEntry(k.toString(), v.toString())),
-        );
+        final local = await MemoryStore.loadFsrsCards();
+        await MemoryStore.saveFsrsCardsWithoutNotify({
+          for (final e in fsrsCloud.entries)
+            e.key.toString(): e.value.toString(),
+          ...local,
+        });
       }
       final metaCloud = data['metaCache'];
       if (metaCloud is Map && metaCloud.isNotEmpty) {
-        await MemoryStore.saveMetaCacheWithoutNotify(
-          metaCloud.map((k, v) => MapEntry(k.toString(), v.toString())),
-        );
+        final local = await MemoryStore.loadMetaCache();
+        await MemoryStore.saveMetaCacheWithoutNotify({
+          for (final e in metaCloud.entries)
+            e.key.toString(): e.value.toString(),
+          ...local,
+        });
       }
       final chaptersCloud = data['chapterProgress'];
       if (chaptersCloud is Map && chaptersCloud.isNotEmpty) {
@@ -437,16 +481,8 @@ class CloudSync {
         };
         await MemoryStore.saveDoneMissionsWithoutNotify(merged);
       }
-      final materialsCloud = data['ownMaterial'];
-      if (materialsCloud is Map && materialsCloud.isNotEmpty) {
-        final local = await MemoryStore.loadAllOwnMaterials();
-        final merged = {
-          for (final e in materialsCloud.entries)
-            if (e.key.toString().isNotEmpty) e.key.toString(): e.value.toString(),
-          ...local,
-        };
-        await MemoryStore.saveAllOwnMaterialsWithoutNotify(merged);
-      }
+      // ownMaterial is never pulled either: device-local by design
+      // (see docs/RESEARCH.md §12).
       final benchmarkCloud = data['benchmark'];
       if (benchmarkCloud is Map) {
         try {
@@ -495,6 +531,9 @@ class CloudSync {
       if (language is String && language != appSettings.languageCode) {
         await appSettings.setLanguage(language);
       }
+      // A mergelt helyi állapotot azonnal visszaírjuk, hogy a felhő is
+      // konvergáljon (a push merge-módban ír, helyi adatot nem töröl).
+      await pushFromLocal(uid);
     } catch (e) {
       debugPrint('CloudSync.pull skipped: $e');
     }
@@ -502,7 +541,10 @@ class CloudSync {
 
   static Future<void> pushNow() async {
     final uid = _uid;
-    if (uid == null) return;
+    // Pull közben nem pusholunk: a félig mergelt helyi állapot
+    // felülírná a felhőben lévő újabb adatot. A pull végén úgyis
+    // egy konvergáló push fut le.
+    if (uid == null || _pulling) return;
     await pushFromLocal(uid);
   }
 
@@ -553,6 +595,9 @@ class CloudSync {
       rethrow;
     } catch (e) {
       if (e is StateError) rethrow;
+      if (e is FirebaseException && e.code == 'permission-denied') {
+        throw const CloudPermissionException();
+      }
       throw const NoConnectionException();
     }
   }

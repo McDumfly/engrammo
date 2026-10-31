@@ -169,10 +169,13 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
 
   void _startTrack(int track) {
     AppFeedback.medium();
-    Navigator.of(context).push(
+    // Nem sima push: a felmérési verem helyére kerül az új tanulási út,
+    // különben minden újramérés egy újabb duplikált gyökéroldalt halmozna.
+    Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(
         builder: (_) => LearningPathPage(initialTrack: track),
       ),
+      (route) => route.isFirst,
     );
   }
 
@@ -291,7 +294,7 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
                 value: _step / interviewQuestions.length,
                 minHeight: 6,
                 backgroundColor: context.hairline,
-                valueColor: const AlwaysStoppedAnimation(violet),
+                valueColor: const AlwaysStoppedAnimation(blue),
               ),
             ),
           ),
@@ -302,7 +305,7 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const CircularProgressIndicator(color: violet),
+                  const CircularProgressIndicator(color: blue),
                   const SizedBox(height: 16),
                   Text(
                     tr('assess_analyzing'),
@@ -329,13 +332,13 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: violet.withValues(alpha: 0.12),
+                    color: blue.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(99),
                   ),
                   child: Text(
                     tr(q.hintKey),
                     style: const TextStyle(
-                      color: violetDark,
+                      color: blueDark,
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
@@ -378,12 +381,12 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
                         ),
                         decoration: BoxDecoration(
                           color: _picked[_step] == i
-                              ? violet.withValues(alpha: 0.12)
+                              ? blue.withValues(alpha: 0.12)
                               : context.cardBg,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
                             color: _picked[_step] == i
-                                ? violet
+                                ? blue
                                 : context.hairline,
                             width: 2,
                           ),
@@ -404,7 +407,7 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
                               const HugeIcon(
                                 icon:
                                     HugeIcons.strokeRoundedCheckmarkCircle02,
-                                color: violet,
+                                color: blue,
                                 size: 22,
                                 strokeWidth: 2.2,
                               ),
@@ -456,7 +459,7 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
                     ),
                     focusedBorder: const OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(14)),
-                      borderSide: BorderSide(color: violet, width: 2),
+                      borderSide: BorderSide(color: blue, width: 2),
                     ),
                   ),
                 ),

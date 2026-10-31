@@ -152,7 +152,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         minHeight: 6,
                         backgroundColor: context.hairline,
                         valueColor: const AlwaysStoppedAnimation(
-                          Color(0xFF45A3FF),
+                          blue,
                         ),
                       ),
                     ),
@@ -275,7 +275,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 child: Text(
                   tr('onboarding_honesty_link'),
                   style: const TextStyle(
-                    color: Color(0xFF45A3FF),
+                    color: blue,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
@@ -303,7 +303,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
           alignment: Alignment.center,
           child: HugeIcon(
             icon: p.icon,
-            color: const Color(0xFF45A3FF),
+            color: blue,
             size: 30,
             strokeWidth: 2.0,
           ),
@@ -324,7 +324,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
         ),
         const SizedBox(height: 16),
         Text(
-          p.sourceKey == null ? p.source! : tr(p.sourceKey!),
+          p.sourceKey == null ? (p.source ?? '') : tr(p.sourceKey!),
           style: TextStyle(
             color: context.mutedText,
             fontStyle: FontStyle.italic,

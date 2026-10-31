@@ -138,7 +138,10 @@ class LeagueSeason {
       tierIndex: (json['tierIndex'] as num?)?.toInt() ?? 0,
       entries: [
         for (final e in (json['entries'] as List? ?? const []))
-          if (e is Map<String, dynamic>) LeagueEntry.fromJson(e),
+          if (e is Map)
+            LeagueEntry.fromJson(
+              e.map((k, v) => MapEntry(k.toString(), v)),
+            ),
       ],
       updatedAt: updatedAt,
       lastTickDay: (json['lastTickDay'] as String?) ?? '',

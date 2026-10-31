@@ -1,17 +1,27 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Meta AI hálózati hívásokhoz kell (best-effort, offline módban elhagyható). -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- No auto-backup: the Meta API key lives in SharedPreferences and
-         must never leave the device via cloud backup. Signed-in users
-         restore from Firestore; guests keep device-local data. -->
+    <!-- Spatial practice "camera palace": photograph the player's own
+         room so SAM can turn the spotted details into stations. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- Verbal practice voice answers: record a short clip for Voice
+         Transcribe to score as SEEN or NEW. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+    <!-- No auto-backup: scores, streak and the Meta API key (secure
+         storage) must never leave the device via cloud backup.
+         Signed-in users restore from Firestore; guests keep
+         device-local data. -->
     <application
-        android:label="engrammo"
+        android:label="Engrammo"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:screenOrientation="portrait"
             android:launchMode="singleTop"
             android:taskAffinity=""
             android:theme="@style/LaunchTheme"

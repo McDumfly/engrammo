@@ -21,7 +21,9 @@ import '../services/meta_ai_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_buttons.dart';
 import '../widgets/recall_inputs.dart' show RecallTextField;
-import 'memory_profile.dart' show violet, violetDark, teal, amber, memoryKinds;
+import '../theme/app_colors.dart'
+    show blue, blueDark, error, success, teal, orange;
+import 'memory_profile.dart' show memoryKinds;
 
 enum _Phase { matchmaking, countdown, encode, recall, reveal, result }
 
@@ -107,6 +109,65 @@ class BattleDuelPage extends StatefulWidget {
   State<BattleDuelPage> createState() => _BattleDuelPageState();
 }
 
+/// Órasáv: a 100 ms-os időzítő jelére csak ez épül újra, nem az oldal.
+class _ClockBar extends StatelessWidget {
+  final ValueNotifier<int> ms;
+  final int totalMs;
+  final bool circular;
+  const _ClockBar({
+    required this.ms,
+    required this.totalMs,
+    this.circular = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<int>(
+      valueListenable: ms,
+      builder: (context, elapsed, _) {
+        final progress = totalMs <= 0
+            ? 0.0
+            : (elapsed / totalMs).clamp(0.0, 1.0);
+        if (!circular) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(99),
+            child: LinearProgressIndicator(
+              value: 1 - progress,
+              minHeight: 8,
+              backgroundColor: context.hairline,
+              color: blue,
+            ),
+          );
+        }
+        final secondsLeft = ((totalMs - elapsed) / 1000).ceil().clamp(0, 60);
+        return SizedBox(
+          width: 44,
+          height: 44,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              CircularProgressIndicator(
+                value: 1 - progress,
+                strokeWidth: 5,
+                backgroundColor: context.hairline,
+                color: secondsLeft <= 5 ? error : blue,
+              ),
+              Text(
+                '$secondsLeft',
+                style: TextStyle(
+                  color: context.inkText,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _BattleDuelPageState extends State<BattleDuelPage> {
   static const _questionCount = 3;
   static const _difficulties = [2, 2, 3];
@@ -124,6 +185,10 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
   List<MetaTask> _tasks = const [];
   int _encodeMs = 5000;
   int _encodeElapsedMs = 0;
+
+  /// Az óra-UI hajtása: a 100 ms-os időzítők ezt pöccintik meg, így nem
+  /// az egész oldal épül újra tizedmásodpercenként, csak az órasáv.
+  final ValueNotifier<int> _clockMs = ValueNotifier<int>(0);
   int _recallMs = BattleScore.questionClockMs;
   int _elapsedMs = 0;
 
@@ -216,6 +281,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
       t.cancel();
     }
     _timers.clear();
+    _clockMs.dispose();
     super.dispose();
   }
 
@@ -241,7 +307,19 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
       _phase = _Phase.countdown;
       _countdown = 3;
     });
-    await (_taskFuture ?? _generateTasks());
+    try {
+      await (_taskFuture ?? _generateTasks());
+    } catch (_) {
+      // Váratlan generálási hiba: helyi feladatokkal folytatjuk.
+      if (_active) {
+        setState(() {
+          _tasks = [
+            for (var i = 0; i < _questionCount; i++)
+              localValidatedTask(_reqFor(i)),
+          ];
+        });
+      }
+    }
     _taskFuture = null;
     if (!_active) return;
     AppFeedback.light();
@@ -259,18 +337,21 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
     _startEncode(0);
   }
 
+  MetaTaskRequest _reqFor(int i) {
+    return MetaTaskRequest(
+      kind: battleRequestKindFor(_roundKinds[i]),
+      difficulty: _difficulties[i],
+      seed: 'battle:$_matchId:q$i',
+      locale: AppLocalizations.localeCode,
+    );
+  }
+
   Future<void> _generateTasks() async {
     // Offline-first: when the gate measured no connection, skip the network
     // entirely so bot duels start instantly with local tasks.
     final offline = connectivityService.online == false;
     Future<MetaTask> one(int i) async {
-      final seed = 'battle:$_matchId:q$i';
-      final req = MetaTaskRequest(
-        kind: battleRequestKindFor(_roundKinds[i]),
-        difficulty: _difficulties[i],
-        seed: seed,
-        locale: AppLocalizations.localeCode,
-      );
+      final req = _reqFor(i);
       if (offline) return localValidatedTask(req);
       MetaTask task;
       try {
@@ -282,15 +363,24 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
       // (stored on stations); digit spans and the tap grid stay clean.
       if (battleTaskWantsImage(task)) {
         try {
-          task = await MetaAIService.enrichVisualTask(task, seed: seed);
+          task = await MetaAIService.enrichVisualTask(task, seed: req.seed);
         } catch (_) {}
       }
       return task;
     }
 
-    final tasks = await Future.wait([
-      for (var i = 0; i < _questionCount; i++) one(i),
-    ]);
+    List<MetaTask> tasks;
+    try {
+      // Kombinált határidő: a 3 kérdés együtt legfeljebb ~45 mp-et várhat,
+      // különben a visszaszámláló a végtelenségig állna.
+      tasks = await Future.wait([
+        for (var i = 0; i < _questionCount; i++) one(i),
+      ]).timeout(const Duration(seconds: 45));
+    } on TimeoutException {
+      tasks = [
+        for (var i = 0; i < _questionCount; i++) localValidatedTask(_reqFor(i)),
+      ];
+    }
     if (!_active) return;
     setState(() => _tasks = tasks);
   }
@@ -304,6 +394,11 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
   void _startEncode(int index) {
     if (!_active) return;
     _cancelTimers();
+    // Versenyhelyzeti védelem: ha a feladatlista valamiért rövid,
+    // helyben pótoljuk, nem omlunk össze indexeléssel.
+    while (_tasks.length <= index) {
+      _tasks = [..._tasks, localValidatedTask(_reqFor(_tasks.length))];
+    }
     final task = _tasks[index];
     final kind = _responseKindFor(task);
     final encodeMs = battleEncodeMs(task, difficulty: _difficulties[index]);
@@ -320,12 +415,14 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
       _botLocks = {};
       _botPlanned.clear();
     });
+    _clockMs.value = 0;
     final clock = Timer.periodic(const Duration(milliseconds: 100), (timer) {
       if (!_active || _phase != _Phase.encode) {
         timer.cancel();
         return;
       }
-      setState(() => _encodeElapsedMs += 100);
+      _encodeElapsedMs += 100;
+      _clockMs.value = _encodeElapsedMs;
       if (_encodeElapsedMs >= _encodeMs) {
         timer.cancel();
         _startRecall(index);
@@ -352,6 +449,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
       _botLocks = {};
       _botPlanned.clear();
     });
+    _clockMs.value = 0;
     final roundKind = _roundKinds[index];
     final stats = botArena.stats;
     for (var b = 0; b < _bots.length; b++) {
@@ -416,7 +514,8 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
         timer.cancel();
         return;
       }
-      setState(() => _elapsedMs += 100);
+      _elapsedMs += 100;
+      _clockMs.value = _elapsedMs;
       if (_elapsedMs >= _recallMs) {
         timer.cancel();
         _finishQuestion();
@@ -929,12 +1028,12 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: violet.withValues(alpha: 0.14),
+                    color: blue.withValues(alpha: 0.14),
                   ),
                   child: Text(
                     _foeLabel.characters.first,
                     style: const TextStyle(
-                      color: violetDark,
+                      color: blueDark,
                       fontWeight: FontWeight.w900,
                       fontSize: 30,
                     ),
@@ -962,13 +1061,13 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                         vertical: 5,
                       ),
                       decoration: BoxDecoration(
-                        color: violet.withValues(alpha: 0.12),
+                        color: blue.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(99),
                       ),
                       child: Text(
                         opp.tierLabel,
                         style: const TextStyle(
-                          color: violetDark,
+                          color: blueDark,
                           fontWeight: FontWeight.w800,
                           fontSize: 12,
                         ),
@@ -1093,6 +1192,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
           height: height,
           width: double.infinity,
           fit: BoxFit.cover,
+          cacheWidth: 800,
           loadingBuilder: (context, child, progress) {
             if (progress == null) return child;
             return SizedBox(
@@ -1121,7 +1221,6 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
       return const Center(child: CircularProgressIndicator());
     }
     final task = _tasks[_questionIndex];
-    final progress = (_encodeElapsedMs / _encodeMs).clamp(0.0, 1.0);
     return ListView(
       key: ValueKey('duel-encode-$_questionIndex'),
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
@@ -1140,15 +1239,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
           ),
         ),
         const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(99),
-          child: LinearProgressIndicator(
-            value: 1 - progress,
-            minHeight: 8,
-            backgroundColor: context.hairline,
-            color: violet,
-          ),
-        ),
+        _ClockBar(ms: _clockMs, totalMs: _encodeMs),
         const SizedBox(height: 10),
         Container(
           width: double.infinity,
@@ -1188,13 +1279,13 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: violet.withValues(alpha: 0.1),
+                          color: blue.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           item,
                           style: const TextStyle(
-                            color: violetDark,
+                            color: blueDark,
                             fontWeight: FontWeight.w800,
                             fontSize: 14,
                           ),
@@ -1228,8 +1319,6 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
     }
     final task = _tasks[_questionIndex];
     final kind = _responseKindFor(task);
-    final progress = (_elapsedMs / _recallMs).clamp(0.0, 1.0);
-    final secondsLeft = ((_recallMs - _elapsedMs) / 1000).ceil().clamp(0, 60);
     return ListView(
       key: ValueKey('duel-question-$_questionIndex'),
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
@@ -1238,31 +1327,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
         const SizedBox(height: 10),
         Row(
           children: [
-            SizedBox(
-              width: 44,
-              height: 44,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  CircularProgressIndicator(
-                    value: 1 - progress,
-                    strokeWidth: 5,
-                    backgroundColor: context.hairline,
-                    color: secondsLeft <= 5
-                        ? const Color(0xFFDC2626)
-                        : violet,
-                  ),
-                  Text(
-                    '$secondsLeft',
-                    style: TextStyle(
-                      color: context.inkText,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            _ClockBar(ms: _clockMs, totalMs: _recallMs, circular: true),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -1304,13 +1369,13 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: violet.withValues(alpha: 0.1),
+                          color: blue.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           item,
                           style: const TextStyle(
-                            color: violetDark,
+                            color: blueDark,
                             fontWeight: FontWeight.w800,
                             fontSize: 14,
                           ),
@@ -1430,7 +1495,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF45A3FF), Color(0xFF1F6FC4)],
+          colors: [blue, Color(0xFF1F6FC4)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -1488,7 +1553,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: (lock?.exact ?? false)
-            ? const Color(0xFF16A34A).withValues(alpha: 0.08)
+            ? success.withValues(alpha: 0.08)
             : context.softBg,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: context.hairline, width: 2),
@@ -1561,15 +1626,15 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
     Color bg = context.cardBg;
     if (reveal) {
       if (isCorrect) {
-        border = const Color(0xFF16A34A);
-        bg = const Color(0xFF16A34A).withValues(alpha: 0.1);
+        border = success;
+        bg = success.withValues(alpha: 0.1);
       } else if (picked) {
-        border = const Color(0xFFDC2626);
-        bg = const Color(0xFFDC2626).withValues(alpha: 0.08);
+        border = error;
+        bg = error.withValues(alpha: 0.08);
       }
     } else if (picked) {
-      border = violet;
-      bg = violet.withValues(alpha: 0.1);
+      border = blue;
+      bg = blue.withValues(alpha: 0.1);
     }
     return GestureDetector(
       onTap: locked || reveal ? null : () => _lockPlayerChoice(index),
@@ -1597,14 +1662,14 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
             if (reveal && isCorrect)
               const HugeIcon(
                 icon: HugeIcons.strokeRoundedCheckmarkCircle02,
-                color: Color(0xFF16A34A),
+                color: success,
                 size: 20,
                 strokeWidth: 2.2,
               ),
             if (reveal && picked && !isCorrect)
               const HugeIcon(
                 icon: HugeIcons.strokeRoundedCancel01,
-                color: Color(0xFFDC2626),
+                color: error,
                 size: 20,
                 strokeWidth: 2.2,
               ),
@@ -1640,12 +1705,12 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: (entry.isFoe ? amber : teal).withValues(alpha: 0.16),
+                      color: (entry.isFoe ? orange : teal).withValues(alpha: 0.16),
                     ),
                     child: Text(
                       entry.bot.name.characters.first,
                       style: TextStyle(
-                        color: entry.isFoe ? amber : teal,
+                        color: entry.isFoe ? orange : teal,
                         fontWeight: FontWeight.w900,
                         fontSize: 14,
                       ),
@@ -1705,7 +1770,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
         children: [
           HugeIcon(
             icon: icon,
-            color: total ? violetDark : amber,
+            color: total ? blueDark : orange,
             size: 16,
             strokeWidth: 2.2,
           ),
@@ -1723,7 +1788,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
           Text(
             '+$xp XP',
             style: TextStyle(
-              color: total ? violetDark : const Color(0xFF16A34A),
+              color: total ? blueDark : success,
               fontWeight: FontWeight.w900,
               fontSize: 12,
             ),
@@ -1744,9 +1809,9 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
             BattleOutcome.draw => tr('btd_draw'),
           };
     final color = switch (outcome) {
-      BattleOutcome.win => const Color(0xFF16A34A),
-      BattleOutcome.loss => const Color(0xFFDC2626),
-      BattleOutcome.draw => violet,
+      BattleOutcome.win => success,
+      BattleOutcome.loss => error,
+      BattleOutcome.draw => blue,
     };
     return ListView(
       key: const ValueKey('duel-result'),
@@ -1818,13 +1883,13 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: violet.withValues(alpha: 0.12),
+                        color: blue.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(99),
                       ),
                       child: Text(
                         '+$_xp XP',
                         style: const TextStyle(
-                          color: violetDark,
+                          color: blueDark,
                           fontWeight: FontWeight.w900,
                           fontSize: 13,
                         ),
@@ -2100,7 +2165,7 @@ class _BattleGridStimulus extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
       decoration: BoxDecoration(
-        color: violet.withValues(alpha: 0.06),
+        color: blue.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: context.hairline, width: 2),
       ),

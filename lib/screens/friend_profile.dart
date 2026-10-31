@@ -10,7 +10,8 @@ import '../models/battle_invites.dart';
 import '../services/bot_arena_store.dart';
 import '../services/memory_store.dart';
 import 'battle_duel_page.dart';
-import 'memory_profile.dart' show violet, violetDark, teal;
+import '../theme/app_colors.dart'
+    show blue, blueDark, orange, success, teal;
 
 class FriendProfilePage extends StatelessWidget {
   final BattleFriend friend;
@@ -176,16 +177,16 @@ class _HeroCard extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: violet.withValues(alpha: 0.14),
+                  color: blue.withValues(alpha: 0.14),
                   border: Border.all(
-                    color: violet.withValues(alpha: 0.4),
+                    color: blue.withValues(alpha: 0.4),
                     width: 2,
                   ),
                 ),
                 child: Text(
                   friend.name.characters.first,
                   style: const TextStyle(
-                    color: violetDark,
+                    color: blueDark,
                     fontWeight: FontWeight.w900,
                     fontSize: 40,
                   ),
@@ -199,9 +200,9 @@ class _HeroCard extends StatelessWidget {
                     width: 20,
                     height: 20,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF22C55E),
+                      color: success,
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 3),
+                      border: Border.all(color: context.cardBg, width: 3),
                     ),
                   ),
                 ),
@@ -221,7 +222,7 @@ class _HeroCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: friend.online
-                  ? const Color(0xFF22C55E).withValues(alpha: 0.12)
+                  ? success.withValues(alpha: 0.12)
                   : context.inkText.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(99),
             ),
@@ -229,7 +230,7 @@ class _HeroCard extends StatelessWidget {
               friend.online ? tr('friend_online') : tr('friend_offline'),
               style: TextStyle(
                 color: friend.online
-                    ? const Color(0xFF15803D)
+                    ? success
                     : context.mutedText,
                 fontWeight: FontWeight.w800,
                 fontSize: 12,
@@ -248,12 +249,13 @@ class _StatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final h2h = botArena.headToHead(friend.name);
     return Row(
       children: [
         Expanded(
           child: _StatTile(
             icon: HugeIcons.strokeRoundedStar,
-            color: violet,
+            color: blue,
             value: tr('friend_xp', {'n': friend.xp}),
             label: tr('friend_total_xp'),
           ),
@@ -262,7 +264,7 @@ class _StatsRow extends StatelessWidget {
         Expanded(
           child: _StatTile(
             icon: HugeIcons.strokeRoundedFire,
-            color: const Color(0xFFF97316),
+            color: orange,
             value: tr('friend_streak_value', {'n': friend.streak}),
             label: tr('friend_streak'),
           ),
@@ -272,8 +274,8 @@ class _StatsRow extends StatelessWidget {
           child: _StatTile(
             icon: HugeIcons.strokeRoundedSwords,
             color: teal,
-            value: '1v1',
-            label: tr('friend_battle'),
+            value: '${h2h.wins}W–${h2h.losses}L',
+            label: tr('friend_h2h'),
           ),
         ),
       ],
@@ -294,13 +296,13 @@ class _BotTierLine extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: violet.withValues(alpha: 0.12),
+            color: blue.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(99),
           ),
           child: Text(
             tr('friend_tier', {'tier': tier, 'rating': rating}),
             style: const TextStyle(
-              color: violetDark,
+              color: blueDark,
               fontWeight: FontWeight.w800,
               fontSize: 12,
             ),

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -74,10 +75,32 @@ class GoalAnalysisAnswer {
   const GoalAnalysisAnswer({required this.analysis, this.fallback = true});
 }
 
+class WordBatchAnswer {
+  final List<String> words;
+  final bool fallback;
+  const WordBatchAnswer({required this.words, this.fallback = true});
+}
+
+class TranscriptAnswer {
+  final String text;
+  final bool fallback;
+  const TranscriptAnswer({required this.text, this.fallback = true});
+}
+
+class WonderPreviewAnswer {
+  final List<String> viewpoints;
+  final bool fallback;
+  const WonderPreviewAnswer({required this.viewpoints, this.fallback = true});
+}
+
 class MetaAIService {
   static const String taskModel = 'muse-spark-1.3-contributor';
   static const String imageModel = 'muse-image-1.0';
   static const String segmentModel = 'sam-3.1';
+  static const String wonderModel = 'wonder-1.0';
+  static const String voiceModel = 'voice-transcribe-1.0';
+  static const String glimmerModel = 'glimmer-1.0';
+  static const String sparkOpenModel = 'muse-spark-open-1.0';
 
   static const String defaultBaseUrl = 'https://api.meta.ai/v1';
 
@@ -135,6 +158,7 @@ class MetaAIService {
     }
     await _secureStorage.delete(key: key);
   }
+
   static const int logCap = 50;
 
   static const int httpTimeoutSec = 12;
@@ -142,13 +166,47 @@ class MetaAIService {
   static const int imageTimeoutSec = 25;
 
   static const int coachMaxCompletionTokens = 1000;
+  static const int glimmerMaxCompletionTokens = 200;
   static const int taskMaxCompletionTokens = 3000;
   static const int interviewMaxCompletionTokens = 2000;
 
   static final List<MetaCallEntry> _calls = [];
+  static bool _logRestored = false;
 
   static List<MetaCallEntry> get lastCalls =>
       List<MetaCallEntry>.unmodifiable(_calls);
+
+  /// Session-level image/segment caches: the same palace prompt or image
+  /// must not cost a new Muse Image / SAM call every round. Keyed by
+  /// [MetaImageRequest.cacheKey] and by image URL. Only successful,
+  /// non-fallback results are stored; the cap keeps memory bounded.
+  static const int imageCacheCap = 40;
+  static final Map<String, MetaImage> _imageCache = {};
+  static final Map<String, MetaSegment> _segmentCache = {};
+
+  @visibleForTesting
+  static void clearImageCaches() {
+    _imageCache.clear();
+    _segmentCache.clear();
+  }
+
+  static void _storeImage(MetaImageRequest req, MetaImage img) {
+    if (img.url.isEmpty || img.fallback) return;
+    if (_imageCache.length >= imageCacheCap &&
+        !_imageCache.containsKey(req.cacheKey)) {
+      _imageCache.remove(_imageCache.keys.first);
+    }
+    _imageCache[req.cacheKey] = img;
+  }
+
+  static void _storeSegment(String imageRef, MetaSegment seg) {
+    if (seg.fallback) return;
+    if (_segmentCache.length >= imageCacheCap &&
+        !_segmentCache.containsKey(imageRef)) {
+      _segmentCache.remove(_segmentCache.keys.first);
+    }
+    _segmentCache[imageRef] = seg;
+  }
 
   static String get apiKey {
     final key = const String.fromEnvironment(_apiKeyEnv, defaultValue: '');
@@ -189,6 +247,15 @@ class MetaAIService {
     return (await storedApiKey()).isNotEmpty;
   }
 
+  /// True when cloud AI can actually run right now: an API key is on hand
+  /// ([hasAnyKey]) AND the player switched cloud consent on ([cloudConsent]).
+  /// Mirrors [_liveKey] without an override — the UI gate behind
+  /// SAM-as-default messaging (camera room, lesson upgrade).
+  static Future<bool> cloudReady() async {
+    if (!await hasAnyKey()) return false;
+    return cloudConsent();
+  }
+
   static Future<String> storedApiKey() async {
     try {
       final current = (await _secureRead(_storedKeyKey) ?? '').trim();
@@ -214,20 +281,17 @@ class MetaAIService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_storedKeyKey);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   static Future<void> clearStoredApiKey() async {
     try {
       await _secureDelete(_storedKeyKey);
-    } catch (_) {
-    }
+    } catch (_) {}
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_storedKeyKey);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   static Future<bool> persistLaunchKeyIfPresent() async {
@@ -274,8 +338,7 @@ class MetaAIService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_consentKey, value);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   static Future<String> _liveKey(String? apiKeyOverride) async {
@@ -298,20 +361,29 @@ class MetaAIService {
   }
 
   static Future<List<MetaCallEntry>> loadLog() async {
+    if (_logRestored) return lastCalls;
+    _logRestored = true;
     try {
       final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getStringList(_logKey) ?? const [];
-      return [
-        for (final e in raw)
-          if (e.isNotEmpty)
-            MetaCallEntry.fromJson(jsonDecode(e) as Map<String, dynamic>),
-      ];
-    } catch (_) {
-      return const [];
-    }
+      // Elrontott bejegyzés nem dobhatja el a teljes naplót.
+      for (final e in raw) {
+        if (e.isEmpty) continue;
+        try {
+          _calls.add(MetaCallEntry.fromJson(jsonDecode(e) as Map<String, dynamic>));
+        } catch (_) {}
+      }
+      if (_calls.length > logCap) {
+        _calls.removeRange(logCap, _calls.length);
+      }
+    } catch (_) {}
+    return lastCalls;
   }
 
   static Future<void> _log(MetaCallEntry entry) async {
+    // Előbb visszaállítjuk a lemezen lévőt, különben az első naplózás
+    // törölné az előző indítások bejegyzéseit.
+    await loadLog();
     _calls.insert(0, entry);
     if (_calls.length > logCap) {
       _calls.removeRange(logCap, _calls.length);
@@ -321,8 +393,7 @@ class MetaAIService {
       await prefs.setStringList(_logKey, [
         for (final e in _calls.take(logCap)) jsonEncode(e.toJson()),
       ]);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   static Map<String, String> _headers(String key) => {
@@ -500,7 +571,30 @@ class MetaAIService {
           body: jsonEncode(b),
         )
         .timeout(Duration(seconds: timeoutSec));
-    final first = await once(body);
+    // Átmeneti hibákra (időtúllépés, kapcsolódás, 429/5xx) egyszer, ~1 mp
+    // múlva újrapróbálkozunk; a hívók a második hibát is fallbackre váltják.
+    Future<http.Response> onceResilient(Map<String, dynamic> b) async {
+      try {
+        final res = await once(b);
+        if (res.statusCode == 429 || res.statusCode >= 500) {
+          await Future.delayed(const Duration(seconds: 1));
+          try {
+            return await once(b);
+          } catch (_) {
+            return res;
+          }
+        }
+        return res;
+      } on TimeoutException {
+        await Future.delayed(const Duration(seconds: 1));
+        return once(b);
+      } on http.ClientException {
+        await Future.delayed(const Duration(seconds: 1));
+        return once(b);
+      }
+    }
+
+    final first = await onceResilient(body);
     if (first.statusCode < 200 || first.statusCode >= 300) return first;
     Map<String, dynamic>? data;
     try {
@@ -595,6 +689,198 @@ class MetaAIService {
     }
   }
 
+  /// Request body for a pattern-span layout deal: the model fills ONLY
+  /// the stimulus slots (which cells light up), never a new format.
+  /// Same paradigm as the registry `pattern-span` (Luck & Vogel 1997;
+  /// Cowan 2001); grid size is a parameter (3x3 canonical, 4x4 in
+  /// practice), exactly [count] distinct cells on 0..[size]-1.
+  @visibleForTesting
+  static Map<String, dynamic> patternRequestBody({
+    required int size,
+    required int count,
+    String seed = '',
+  }) {
+    final s = size == 16 ? 16 : 9;
+    final c = count.clamp(2, s - 1);
+    return {
+      'model': taskModel,
+      'temperature': 0.2,
+      'reasoning_effort': 'minimal',
+      'max_completion_tokens': 300,
+      'messages': [
+        const {
+          'role': 'system',
+          'content':
+              'You are a memory-task stimulus filler for the pattern-span '
+              'paradigm (Luck & Vogel 1997; Cowan 2001). You NEVER invent a '
+              'task format: you only pick which grid cells light up. Always '
+              'return a single valid JSON object with exactly one key: '
+              '"cells" (list of distinct cell indices, row by row from 0). '
+              'No explanation, no other keys.',
+        },
+        {
+          'role': 'user',
+          'content':
+              'Deal a pattern-span layout: grid of $s cells (indices '
+              '0..${s - 1}), exactly $c distinct lit cells. Spread them so '
+              'the lit set reads as one memorable shape, never a full row, '
+              'column or block. ${seed.isEmpty ? '' : 'Seed: $seed. '}Answer '
+              'with the JSON object only.',
+        },
+      ],
+    };
+  }
+
+  /// Parses a dealt layout. Returns null on ANY violation (bad JSON,
+  /// wrong count, duplicates, out-of-range cells): there is no silent
+  /// repair, because clamping would crown cells the model did not mean.
+  @visibleForTesting
+  static Set<int>? parsePatternCells(
+    String content, {
+    required int size,
+    required int count,
+  }) {
+    try {
+      final s = size == 16 ? 16 : 9;
+      final c = count.clamp(2, s - 1);
+      var text = content.trim();
+      if (text.startsWith('```')) {
+        final start = text.indexOf('{');
+        final end = text.lastIndexOf('}');
+        if (start < 0 || end <= start) return null;
+        text = text.substring(start, end + 1);
+      }
+      final data = jsonDecode(text);
+      if (data is! Map<String, dynamic>) return null;
+      final raw = data['cells'];
+      if (raw is! List) return null;
+      final cells = <int>{};
+      for (final e in raw) {
+        final v = (e as num?)?.toInt();
+        if (v == null || v < 0 || v >= s) return null;
+        cells.add(v);
+      }
+      if (cells.length != c || raw.length != c) return null;
+      return cells;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Local pattern deal. Seeded (deterministic) when [seed] is non-empty,
+  /// fresh random otherwise. Same slot the live model fills.
+  static Set<int> localPatternCells({
+    required int size,
+    required int count,
+    String seed = '',
+    Random? random,
+  }) {
+    final s = size == 16 ? 16 : 9;
+    final c = count.clamp(2, s - 1);
+    final Random rnd;
+    if (random != null) {
+      rnd = random;
+    } else if (seed.isEmpty) {
+      rnd = Random();
+    } else {
+      var h = 0x811c9dc5;
+      for (final cu in seed.codeUnits) {
+        h ^= cu;
+        h = (h * 0x01000193) & 0xffffffff;
+      }
+      rnd = Random(h);
+    }
+    final cells = <int>{};
+    while (cells.length < c) {
+      cells.add(rnd.nextInt(s));
+    }
+    return cells;
+  }
+
+  /// Lets Muse Spark deal one pattern-span layout with the EXACT cell
+  /// count the grid needs. Returns the cells plus whether they came from
+  /// the live model (`live: false` = local deal, offline or failed call).
+  /// Never throws: failures fall back to [localPatternCells].
+  static Future<({Set<int> cells, bool live})> generatePatternCells({
+    required int size,
+    required int count,
+    String seed = '',
+    http.Client? client,
+    String? apiKeyOverride,
+    String? baseUrlOverride,
+  }) async {
+    final s = size == 16 ? 16 : 9;
+    final c = count.clamp(2, s - 1);
+    Future<({Set<int> cells, bool live})> local({
+      required bool success,
+      required String note,
+    }) async {
+      await _log(
+        MetaCallEntry(
+          model: taskModel,
+          kind: 'pattern',
+          at: DateTime.now(),
+          success: success,
+          fallback: true,
+          note: note,
+        ),
+      );
+      return (
+        cells: localPatternCells(size: s, count: c, seed: seed),
+        live: false,
+      );
+    }
+
+    final key = await _liveKey(apiKeyOverride);
+    final base = resolveBaseUrl(baseUrlOverride);
+    if (key.isEmpty) {
+      return local(
+        success: true,
+        note: await _gatedOfflineNote(apiKeyOverride, 'local pattern'),
+      );
+    }
+    final cl = client ?? http.Client();
+    final owned = client == null;
+    try {
+      final res = await _postChat(
+        cl,
+        base: base,
+        key: key,
+        body: patternRequestBody(size: s, count: c, seed: seed),
+        timeoutSec: httpTimeoutSec,
+      );
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        final data = jsonDecode(res.body);
+        if (data is Map<String, dynamic>) {
+          final cells = parsePatternCells(
+            _choicesText(data),
+            size: s,
+            count: c,
+          );
+          if (cells != null) {
+            await _log(
+              MetaCallEntry(
+                model: taskModel,
+                kind: 'pattern',
+                at: DateTime.now(),
+                success: true,
+                fallback: false,
+              ),
+            );
+            return (cells: cells, live: true);
+          }
+          throw StateError(_emptyChatNote(res, data));
+        }
+      }
+      throw StateError('HTTP ${res.statusCode}: ${_snip(res.body)}');
+    } catch (e) {
+      debugPrint('MetaAIService.generatePatternCells fallback: $e');
+      return local(success: false, note: e.toString());
+    } finally {
+      if (owned) cl.close();
+    }
+  }
+
   @visibleForTesting
   static String interviewAnswersText(List<InterviewAnswer> answers) {
     final byId = {for (final q in interviewQuestions) q.id: q};
@@ -603,9 +889,7 @@ class MetaAIService {
       final q = byId[a.questionId];
       if (q == null) continue;
       sb.writeln('Q: ${enText(q.promptKey)}');
-      if (a.picked != null &&
-          a.picked! >= 0 &&
-          a.picked! < q.options.length) {
+      if (a.picked != null && a.picked! >= 0 && a.picked! < q.options.length) {
         sb.writeln('Picked: ${enText(q.options[a.picked!].labelKey)}');
       }
       if (a.custom.trim().isNotEmpty) {
@@ -621,21 +905,20 @@ class MetaAIService {
     required String answersText,
     List<int>? tiedTop,
   }) {
-    const kinds =
-        'sensory, working, spatial, visual, episodic, semantic';
+    const kinds = 'sensory, working, spatial, visual, episodic, semantic';
     final tieRule = tiedTop == null || tiedTop.isEmpty
         ? 'Decide their dominant memory type from BOTH legs: '
-            'test scores first, interview answers to break ties and to '
-            'describe their natural strategy. '
+              'test scores first, interview answers to break ties and to '
+              'describe their natural strategy. '
         : tiedTop.length == 1
         ? 'The test scores have a CLEAR winner (index ${tiedTop.first}). '
-            'You MUST return that index as "dominant"; use the interview '
-            'answers only to describe their natural strategy in '
-            '"rationale". '
+              'You MUST return that index as "dominant"; use the interview '
+              'answers only to describe their natural strategy in '
+              '"rationale". '
         : 'The test scores are TIED at the top between indices '
-            '${tiedTop.join(', ')}. You MUST pick "dominant" from ONLY '
-            'those tied indices, using the interview answers to break the '
-            'tie. Never pick an index outside the tied set. ';
+              '${tiedTop.join(', ')}. You MUST pick "dominant" from ONLY '
+              'those tied indices, using the interview answers to break the '
+              'tie. Never pick an index outside the tied set. ';
     return {
       'model': taskModel,
       'temperature': 0.3,
@@ -757,19 +1040,18 @@ class MetaAIService {
     required String answersText,
     List<int>? tiedTop,
   }) {
-    const kinds =
-        'sensory, working, spatial, visual, episodic, semantic';
+    const kinds = 'sensory, working, spatial, visual, episodic, semantic';
     final tieRule = tiedTop == null || tiedTop.isEmpty
         ? 'Recommend ONE track (0-5) for the user to START learning, from '
-            'test scores first and interview answers second. '
+              'test scores first and interview answers second. '
         : tiedTop.length == 1
         ? 'The test scores have a CLEAR winner (index ${tiedTop.first}). '
-            'You MUST recommend that index as "track"; use the interview '
-            'answers only to explain why in "rationale". '
+              'You MUST recommend that index as "track"; use the interview '
+              'answers only to explain why in "rationale". '
         : 'The test scores are TIED at the top between indices '
-            '${tiedTop.join(', ')}. You MUST recommend "track" from ONLY '
-            'those tied indices, using the interview answers to break the '
-            'tie. Never pick an index outside the tied set. ';
+              '${tiedTop.join(', ')}. You MUST recommend "track" from ONLY '
+              'those tied indices, using the interview answers to break the '
+              'tie. Never pick an index outside the tied set. ';
     return {
       'model': taskModel,
       'temperature': 0.3,
@@ -829,10 +1111,7 @@ class MetaAIService {
           at: DateTime.now(),
           success: true,
           fallback: true,
-          note: await _gatedOfflineNote(
-            apiKeyOverride,
-            'local recommendation',
-          ),
+          note: await _gatedOfflineNote(apiKeyOverride, 'local recommendation'),
         ),
       );
       return local();
@@ -940,6 +1219,8 @@ class MetaAIService {
         createdAt: DateTime.now(),
       );
     }
+    final cached = _imageCache[req.cacheKey];
+    if (cached != null) return cached;
     final c = client ?? http.Client();
     final owned = client == null;
     try {
@@ -964,7 +1245,7 @@ class MetaAIService {
                 fallback: false,
               ),
             );
-            return MetaImage(
+            final img = MetaImage(
               url: url,
               promptHash: req.promptHash,
               cacheKey: req.cacheKey,
@@ -972,6 +1253,8 @@ class MetaAIService {
               createdAt: DateTime.now(),
               fallback: false,
             );
+            _storeImage(req, img);
+            return img;
           }
           throw StateError(
             'HTTP ${res.statusCode} empty/unparseable content: ${_snip(res.body)}',
@@ -1132,6 +1415,8 @@ class MetaAIService {
       );
       return MetaSegment(createdAt: DateTime.now());
     }
+    final cached = _segmentCache[req.imageRef];
+    if (cached != null) return cached;
     final c = client ?? http.Client();
     final owned = client == null;
     try {
@@ -1156,6 +1441,7 @@ class MetaAIService {
                 fallback: false,
               ),
             );
+            _storeSegment(req.imageRef, seg);
             return seg;
           }
           throw StateError(
@@ -1186,6 +1472,8 @@ class MetaAIService {
     MetaTask task, {
     required int difficulty,
     required String seed,
+    String scene = '',
+    String locale = 'en',
     http.Client? client,
     String? apiKeyOverride,
     String? baseUrlOverride,
@@ -1195,32 +1483,42 @@ class MetaAIService {
     var out = task;
     if (out.stations.length != count) {
       out = out.copyWith(
-        stations: stationsFromLabels(out.stations, seed, count),
+        stations: stationsFromLabels(out.stations, seed, count, locale),
       );
     }
     try {
-      final route = routeForSeed(seed);
+      final route = routeForSeed(seed, locale);
       final img = await generateImage(
-        MetaImageRequest(prompt: palaceImagePrompt(route, difficulty)),
+        MetaImageRequest(
+          prompt: palaceImagePrompt(route, difficulty, locale, scene),
+        ),
         client: client,
         apiKeyOverride: apiKeyOverride,
         baseUrlOverride: baseUrlOverride,
       );
-      final seg = await segment(
-        MetaSegmentRequest(imageRef: img.url.isEmpty ? 'palace:$route' : img.url),
-        client: client,
-        apiKeyOverride: apiKeyOverride,
-        baseUrlOverride: baseUrlOverride,
-      );
+      // SAM only ever sees a real picture: the freshly painted palace, or —
+      // when generation failed — the task's existing image. A synthetic
+      // 'palace:…' ref would short-circuit to an empty fallback, so skip
+      // the call instead of logging a phantom segmentation.
+      final ref = img.url.isEmpty ? out.imageUrl : img.url;
+      final seg = isImageRef(ref)
+          ? await segment(
+              MetaSegmentRequest(imageRef: ref),
+              client: client,
+              apiKeyOverride: apiKeyOverride,
+              baseUrlOverride: baseUrlOverride,
+            )
+          : MetaSegment(createdAt: DateTime.now());
       final merged = seg.labels.isEmpty
           ? out.stations
-          : stationsFromLabels(seg.labels, seed, count);
+          : stationsFromLabels(seg.labels, seed, count, locale);
       out = out.copyWith(
         stations: merged,
         imageUrl: img.url.isEmpty ? out.imageUrl : img.url,
+        samLabels: seg.labels.isEmpty ? out.samLabels : seg.labels,
+        samModel: seg.labels.isEmpty ? out.samModel : seg.model,
       );
-    } catch (_) {
-    }
+    } catch (_) {}
     return out;
   }
 
@@ -1236,15 +1534,34 @@ class MetaAIService {
       final prompt = out.items.isEmpty
           ? pictureImagePrompt(sceneForSeed(seed))
           : 'Vivid, detailed illustration showing '
-              '${out.items.take(5).join(', ')}, storybook style, '
-              'sharp details';
+                '${out.items.take(5).join(', ')}, storybook style, '
+                'sharp details';
       final img = await generateImage(
         MetaImageRequest(prompt: prompt),
         client: client,
         apiKeyOverride: apiKeyOverride,
         baseUrlOverride: baseUrlOverride,
       );
-      if (img.url.isEmpty) return out;
+      if (img.url.isEmpty) {
+        // Fresh paint failed: still segment the task's existing picture so
+        // SAM stays the default wherever a real image already exists.
+        if (isImageRef(out.imageUrl)) {
+          final seg = await segment(
+            MetaSegmentRequest(imageRef: out.imageUrl),
+            client: client,
+            apiKeyOverride: apiKeyOverride,
+            baseUrlOverride: baseUrlOverride,
+          );
+          if (seg.labels.isNotEmpty) {
+            out = out.copyWith(
+              stations: seg.labels,
+              samLabels: seg.labels,
+              samModel: seg.model,
+            );
+          }
+        }
+        return out;
+      }
       out = out.copyWith(imageUrl: img.url);
       final seg = await segment(
         MetaSegmentRequest(imageRef: img.url),
@@ -1252,10 +1569,90 @@ class MetaAIService {
         apiKeyOverride: apiKeyOverride,
         baseUrlOverride: baseUrlOverride,
       );
-      if (seg.labels.isNotEmpty) out = out.copyWith(stations: seg.labels);
-    } catch (_) {
-    }
+      if (seg.labels.isNotEmpty) {
+        out = out.copyWith(
+          stations: seg.labels,
+          samLabels: seg.labels,
+          samModel: seg.model,
+        );
+      }
+    } catch (_) {}
     return out;
+  }
+
+  /// Generates a Muse Image illustration plus SAM detail labels for every
+  /// [DynamicBlock] that carries an [DynamicBlock.imagePrompt] but no image
+  /// yet. Used by the own-material branch of the Palace Builder lessons so
+  /// the player's own rooms and routes also get real pictures. Blocks
+  /// without a prompt are returned untouched; failures keep the block.
+  static Future<DynamicTask> enrichDynamicTask(
+    DynamicTask task, {
+    http.Client? client,
+    String? apiKeyOverride,
+    String? baseUrlOverride,
+  }) async {
+    var changed = false;
+    final blocks = <DynamicBlock>[];
+    for (final b in task.blocks) {
+      // Blocks that already carry a picture get SAM labels too: SAM runs
+      // wherever a real image exists instead of only on fresh paints.
+      if (b.imageUrl.isNotEmpty) {
+        if (b.samLabels.isNotEmpty || !isImageRef(b.imageUrl)) {
+          blocks.add(b);
+          continue;
+        }
+        try {
+          final seg = await segment(
+            MetaSegmentRequest(imageRef: b.imageUrl),
+            client: client,
+            apiKeyOverride: apiKeyOverride,
+            baseUrlOverride: baseUrlOverride,
+          );
+          if (seg.labels.isEmpty) {
+            blocks.add(b);
+            continue;
+          }
+          changed = true;
+          blocks.add(b.copyWith(samLabels: seg.labels));
+        } catch (_) {
+          blocks.add(b);
+        }
+        continue;
+      }
+      if (b.imagePrompt.trim().isEmpty) {
+        blocks.add(b);
+        continue;
+      }
+      try {
+        final img = await generateImage(
+          MetaImageRequest(prompt: b.imagePrompt),
+          client: client,
+          apiKeyOverride: apiKeyOverride,
+          baseUrlOverride: baseUrlOverride,
+        );
+        if (img.url.isEmpty) {
+          blocks.add(b);
+          continue;
+        }
+        final seg = await segment(
+          MetaSegmentRequest(imageRef: img.url),
+          client: client,
+          apiKeyOverride: apiKeyOverride,
+          baseUrlOverride: baseUrlOverride,
+        );
+        changed = true;
+        blocks.add(
+          b.copyWith(
+            imageUrl: img.url,
+            samLabels: seg.labels.isEmpty ? b.samLabels : seg.labels,
+          ),
+        );
+      } catch (_) {
+        blocks.add(b);
+      }
+    }
+    if (!changed) return task;
+    return task.copyWith(blocks: blocks);
   }
 
   @visibleForTesting
@@ -1468,14 +1865,7 @@ class MetaAIService {
         .replaceAll(RegExp('[^a-z]'), '')
         .replaceAllMapped(RegExp(r'(.)\1+'), (m) => m.group(1)!);
     if (core.isEmpty || core.length > 12) return false;
-    const greetings = {
-      'he',
-      'hey',
-      'hi',
-      'hello',
-      'helo',
-      'yo',
-    };
+    const greetings = {'he', 'hey', 'hi', 'hello', 'helo', 'yo'};
     return greetings.contains(core);
   }
 
@@ -1490,14 +1880,14 @@ class MetaAIService {
     String? baseUrlOverride,
   }) async {
     final q = question.trim();
-    CoachAnswer local({required bool success, String note = ''}) {
+    Future<CoachAnswer> local({required bool success, String note = ''}) async {
       final answer = CoachAnswer(
         text: q.isEmpty
             ? localCoachAnswer('help', topic: topic)
             : localCoachAnswer(q, topic: topic),
         fallback: true,
       );
-      _log(
+      await _log(
         MetaCallEntry(
           model: taskModel,
           kind: 'coach:$topic',
@@ -1580,11 +1970,11 @@ class MetaAIService {
     final material = userMaterial.trim().isEmpty
         ? 'No user material given; use one everyday example.'
         : 'User material (verbatim, build the example on THIS): '
-            '"${userMaterial.trim()}".';
+              '"${userMaterial.trim()}".';
     final forgot = forgotNote.trim().isEmpty
         ? ''
         : 'They say they forgot THIS before: "${forgotNote.trim()}". '
-            'Name the likely cause and the fix in one sentence each.';
+              'Name the likely cause and the fix in one sentence each.';
     return {
       'model': taskModel,
       'temperature': 0.4,
@@ -1602,10 +1992,7 @@ class MetaAIService {
               'diagnose, never promise grades, IQ gains or job performance. '
               'Strategy to teach: $strategy $material $forgot',
         },
-        {
-          'role': 'user',
-          'content': 'Teach me how to remember my $label.',
-        },
+        {'role': 'user', 'content': 'Teach me how to remember my $label.'},
       ],
     };
   }
@@ -1618,7 +2005,8 @@ class MetaAIService {
     String locale = 'en',
   }) {
     final target = transferTargetById(targetId);
-    var strategy = target?.strategyIn(locale) ??
+    var strategy =
+        target?.strategyIn(locale) ??
         trFor(locale, 'ai_teacher_default_strategy');
     var label =
         target?.labelIn(locale) ?? trFor(locale, 'ai_teacher_default_label');
@@ -1655,7 +2043,7 @@ class MetaAIService {
     String? apiKeyOverride,
     String? baseUrlOverride,
   }) async {
-    CoachAnswer local({required bool success, String note = ''}) {
+    Future<CoachAnswer> local({required bool success, String note = ''}) async {
       final answer = CoachAnswer(
         text: localTeacherAnswer(
           targetId,
@@ -1666,7 +2054,7 @@ class MetaAIService {
         ),
         fallback: true,
       );
-      _log(
+      await _log(
         MetaCallEntry(
           model: taskModel,
           kind: 'teacher:$targetId',
@@ -1904,10 +2292,7 @@ class MetaAIService {
               'Answer in the SAME language the user writes in. '
               '$verdictPromptGuard',
         },
-        {
-          'role': 'user',
-          'content': 'I could not remember: $forgotNote',
-        },
+        {'role': 'user', 'content': 'I could not remember: $forgotNote'},
       ],
     };
   }
@@ -1958,7 +2343,7 @@ class MetaAIService {
     String? apiKeyOverride,
     String? baseUrlOverride,
   }) async {
-    CoachAnswer local({required bool success, String note = ''}) {
+    Future<CoachAnswer> local({required bool success, String note = ''}) async {
       final answer = CoachAnswer(
         text: localDiagnoseAnswer(
           targetId,
@@ -1968,7 +2353,7 @@ class MetaAIService {
         ),
         fallback: true,
       );
-      _log(
+      await _log(
         MetaCallEntry(
           model: taskModel,
           kind: 'diagnose:$targetId',
@@ -2056,7 +2441,8 @@ class MetaAIService {
       'messages': [
         {
           'role': 'system',
-          'content': 'You are a memory-science classifier inside the Engrammo app. '
+          'content':
+              'You are a memory-science classifier inside the Engrammo app. '
               'You NEVER invent a procedure: you only map the wish onto the '
               'given tracks, strategies, and paradigm ids. Always return a '
               'single valid JSON object, no explanation. Keys: "track", '
@@ -2085,7 +2471,7 @@ class MetaAIService {
     String? apiKeyOverride,
     String? baseUrlOverride,
   }) async {
-    GoalAnalysisAnswer local({required bool success, String note = ''}) {
+    Future<GoalAnalysisAnswer> local({required bool success, String note = ''}) async {
       final answer = GoalAnalysisAnswer(
         analysis: localGoalAnalysis(
           title: title,
@@ -2095,7 +2481,7 @@ class MetaAIService {
         ),
         fallback: true,
       );
-      _log(
+      await _log(
         MetaCallEntry(
           model: taskModel,
           kind: 'goal:analyze',
@@ -2116,11 +2502,7 @@ class MetaAIService {
     if (key.isEmpty) {
       return local(
         success: true,
-        note: await _gatedOfflineNote(
-          apiKeyOverride,
-          'offline match',
-          locale,
-        ),
+        note: await _gatedOfflineNote(apiKeyOverride, 'offline match', locale),
       );
     }
     final c = client ?? http.Client();
@@ -2229,7 +2611,7 @@ class MetaAIService {
     String? apiKeyOverride,
     String? baseUrlOverride,
   }) async {
-    CoachAnswer local({required bool success, String note = ''}) {
+    Future<CoachAnswer> local({required bool success, String note = ''}) async {
       final answer = CoachAnswer(
         text: localSessionRecap(
           correct: correct,
@@ -2239,7 +2621,7 @@ class MetaAIService {
         ),
         fallback: true,
       );
-      _log(
+      await _log(
         MetaCallEntry(
           model: taskModel,
           kind: 'recap',
@@ -2257,11 +2639,7 @@ class MetaAIService {
     if (key.isEmpty) {
       return local(
         success: true,
-        note: await _gatedOfflineNote(
-          apiKeyOverride,
-          'built-in recap',
-          locale,
-        ),
+        note: await _gatedOfflineNote(apiKeyOverride, 'built-in recap', locale),
       );
     }
     final c = client ?? http.Client();
@@ -2330,16 +2708,16 @@ class MetaAIService {
               'sentences. Answer in $lang. Never give medical advice, never '
               'diagnose, never promise grades, IQ gains or job performance.',
         },
-        {
-          'role': 'user',
-          'content': 'One tip for "$gameId" at level $level?',
-        },
+        {'role': 'user', 'content': 'One tip for "$gameId" at level $level?'},
       ],
     };
   }
 
-  static String localPracticeTip(String gameId, int level,
-      [String locale = 'en']) {
+  static String localPracticeTip(
+    String gameId,
+    int level, [
+    String locale = 'en',
+  ]) {
     const known = {
       'sequence',
       'number',
@@ -2360,12 +2738,12 @@ class MetaAIService {
     String? apiKeyOverride,
     String? baseUrlOverride,
   }) async {
-    CoachAnswer local({required bool success, String note = ''}) {
+    Future<CoachAnswer> local({required bool success, String note = ''}) async {
       final answer = CoachAnswer(
         text: localPracticeTip(gameId, level, locale),
         fallback: true,
       );
-      _log(
+      await _log(
         MetaCallEntry(
           model: taskModel,
           kind: 'tip:$gameId',
@@ -2383,11 +2761,7 @@ class MetaAIService {
     if (key.isEmpty) {
       return local(
         success: true,
-        note: await _gatedOfflineNote(
-          apiKeyOverride,
-          'built-in tip',
-          locale,
-        ),
+        note: await _gatedOfflineNote(apiKeyOverride, 'built-in tip', locale),
       );
     }
     final c = client ?? http.Client();
@@ -2463,8 +2837,11 @@ class MetaAIService {
     };
   }
 
-  static String localDuelHype(String foeName, String kindLabel,
-      [String locale = 'en']) {
+  static String localDuelHype(
+    String foeName,
+    String kindLabel, [
+    String locale = 'en',
+  ]) {
     return trFor(locale, 'duel_hype_default', {
       'foe': foeName,
       'kind': kindLabel,
@@ -2479,12 +2856,12 @@ class MetaAIService {
     String? apiKeyOverride,
     String? baseUrlOverride,
   }) async {
-    CoachAnswer local({required bool success, String note = ''}) {
+    Future<CoachAnswer> local({required bool success, String note = ''}) async {
       final answer = CoachAnswer(
         text: localDuelHype(foeName, kindLabel, locale),
         fallback: true,
       );
-      _log(
+      await _log(
         MetaCallEntry(
           model: taskModel,
           kind: 'hype',
@@ -2502,11 +2879,7 @@ class MetaAIService {
     if (key.isEmpty) {
       return local(
         success: true,
-        note: await _gatedOfflineNote(
-          apiKeyOverride,
-          'built-in hype',
-          locale,
-        ),
+        note: await _gatedOfflineNote(apiKeyOverride, 'built-in hype', locale),
       );
     }
     final c = client ?? http.Client();
@@ -2576,10 +2949,7 @@ class MetaAIService {
               'never diagnose, never promise grades, IQ gains or job '
               'performance.',
         },
-        {
-          'role': 'user',
-          'content': 'One line on this $paradigm round?',
-        },
+        {'role': 'user', 'content': 'One line on this $paradigm round?'},
       ],
     };
   }
@@ -2596,12 +2966,12 @@ class MetaAIService {
     String? apiKeyOverride,
     String? baseUrlOverride,
   }) async {
-    CoachAnswer local({required bool success, String note = ''}) {
+    Future<CoachAnswer> local({required bool success, String note = ''}) async {
       final answer = CoachAnswer(
         text: localDuelRound(correct, locale),
         fallback: true,
       );
-      _log(
+      await _log(
         MetaCallEntry(
           model: taskModel,
           kind: 'round',
@@ -2694,10 +3064,7 @@ class MetaAIService {
               'Never give medical advice, never diagnose, never promise '
               'grades, IQ gains or job performance.',
         },
-        {
-          'role': 'user',
-          'content': 'Scout my next $kindLabel duel!',
-        },
+        {'role': 'user', 'content': 'Scout my next $kindLabel duel!'},
       ],
     };
   }
@@ -2728,7 +3095,7 @@ class MetaAIService {
     String? apiKeyOverride,
     String? baseUrlOverride,
   }) async {
-    CoachAnswer local({required bool success, String note = ''}) {
+    Future<CoachAnswer> local({required bool success, String note = ''}) async {
       final answer = CoachAnswer(
         text: localDuelScout(
           kindLabel: kindLabel,
@@ -2738,7 +3105,7 @@ class MetaAIService {
         ),
         fallback: true,
       );
-      _log(
+      await _log(
         MetaCallEntry(
           model: taskModel,
           kind: 'scout',
@@ -2756,11 +3123,7 @@ class MetaAIService {
     if (key.isEmpty) {
       return local(
         success: true,
-        note: await _gatedOfflineNote(
-          apiKeyOverride,
-          'built-in scout',
-          locale,
-        ),
+        note: await _gatedOfflineNote(apiKeyOverride, 'built-in scout', locale),
       );
     }
     final c = client ?? http.Client();
@@ -2801,6 +3164,785 @@ class MetaAIService {
       throw StateError('HTTP ${res.statusCode}: ${_snip(res.body)}');
     } catch (e) {
       debugPrint('MetaAIService.duelScout fallback: $e');
+      return local(success: false, note: e.toString());
+    } finally {
+      if (owned) c.close();
+    }
+  }
+
+  @visibleForTesting
+  static Map<String, dynamic> wordBatchRequestBody({
+    required int count,
+    List<String> avoid = const [],
+    String locale = 'en',
+  }) {
+    final n = count.clamp(1, 24);
+    final lang = locale == 'hu' ? 'Hungarian' : 'English';
+    final avoidLine = avoid.isEmpty
+        ? ''
+        : 'Never repeat any of these: ${avoid.take(60).join(', ')}.';
+    return {
+      'model': taskModel,
+      'temperature': 0.9,
+      'reasoning_effort': 'minimal',
+      'max_completion_tokens': coachMaxCompletionTokens,
+      'response_format': {'type': 'json_object'},
+      'messages': [
+        {
+          'role': 'system',
+          'content':
+              'You are a word-list filler inside the Engrammo memory app. '
+              'Always return a single valid JSON object, no explanation. '
+              'Key: "words" (a list of exactly $n single-word, everyday '
+              'concrete nouns a child knows — apple, bridge, lamp — no '
+              'proper nouns, no repeats, no multi-word entries). '
+              'Answer language: $lang. $avoidLine',
+        },
+        {'role': 'user', 'content': 'Give exactly $n fresh $lang nouns.'},
+      ],
+    };
+  }
+
+  /// Parses a word batch from model output. Accepts `{"words": [...]}` or
+  /// a bare `[...]`, with or without code fences. Drops multi-word,
+  /// too-short, too-long and duplicated entries.
+  @visibleForTesting
+  static List<String> parseWordBatch(String content, {int max = 24}) {
+    try {
+      var text = content.trim();
+      if (text.startsWith('```')) {
+        final start = text.indexOf('[');
+        final brace = text.indexOf('{');
+        int from = -1;
+        int to = -1;
+        if (brace >= 0 && (brace < start || start < 0)) {
+          from = brace;
+          to = text.lastIndexOf('}');
+        } else if (start >= 0) {
+          from = start;
+          to = text.lastIndexOf(']');
+        }
+        if (from < 0 || to <= from) return const [];
+        text = text.substring(from, to + 1);
+      }
+      final data = jsonDecode(text);
+      final raw = data is List
+          ? data
+          : data is Map<String, dynamic>
+          ? (data['words'] as List? ?? const [])
+          : const [];
+      final seen = <String>{};
+      final out = <String>[];
+      for (final e in raw) {
+        final w = e.toString().trim();
+        if (w.length < 2 || w.length > 24) continue;
+        if (w.contains(RegExp(r'\s'))) continue;
+        if (!seen.add(w.toLowerCase())) continue;
+        out.add(w);
+        if (out.length >= max.clamp(1, 48)) break;
+      }
+      return out;
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  /// Fresh words for the verbal game, straight from Muse Spark. Never
+  /// throws: offline it returns local nouns the player has not seen yet.
+  static Future<WordBatchAnswer> fetchWordBatch({
+    required int count,
+    List<String> avoid = const [],
+    String locale = 'en',
+    http.Client? client,
+    String? apiKeyOverride,
+    String? baseUrlOverride,
+  }) async {
+    Future<WordBatchAnswer> local({required bool success, String note = ''}) async {
+      final banned = {for (final w in avoid) w.trim().toLowerCase()};
+      final pool = [
+        for (final w in allConcreteNounsFor(locale))
+          if (w.trim().length >= 2 &&
+              w.trim().length <= 24 &&
+              !w.contains(' ') &&
+              !banned.contains(w.trim().toLowerCase()))
+            w.trim(),
+      ]..shuffle();
+      final answer = WordBatchAnswer(
+        words: pool.take(count.clamp(1, 24)).toList(),
+        fallback: true,
+      );
+      await _log(
+        MetaCallEntry(
+          model: taskModel,
+          kind: 'words',
+          at: DateTime.now(),
+          success: success,
+          fallback: true,
+          note: note,
+        ),
+      );
+      return answer;
+    }
+
+    final key = await _liveKey(apiKeyOverride);
+    final base = resolveBaseUrl(baseUrlOverride);
+    if (key.isEmpty) {
+      return local(
+        success: true,
+        note: await _gatedOfflineNote(apiKeyOverride, 'local nouns', locale),
+      );
+    }
+    final c = client ?? http.Client();
+    final owned = client == null;
+    try {
+      final res = await _postChat(
+        c,
+        base: base,
+        key: key,
+        body: wordBatchRequestBody(count: count, avoid: avoid, locale: locale),
+        timeoutSec: coachTimeoutSec,
+      );
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        final data = jsonDecode(res.body);
+        if (data is Map<String, dynamic>) {
+          final words = parseWordBatch(_choicesText(data));
+          if (words.isNotEmpty) {
+            await _log(
+              MetaCallEntry(
+                model: taskModel,
+                kind: 'words',
+                at: DateTime.now(),
+                success: true,
+                fallback: false,
+              ),
+            );
+            return WordBatchAnswer(words: words, fallback: false);
+          }
+          throw StateError(_emptyChatNote(res, data));
+        }
+      }
+      throw StateError('HTTP ${res.statusCode}: ${_snip(res.body)}');
+    } catch (e) {
+      debugPrint('MetaAIService.fetchWordBatch fallback: $e');
+      return local(success: false, note: e.toString());
+    } finally {
+      if (owned) c.close();
+    }
+  }
+
+  @visibleForTesting
+  static Map<String, dynamic> gameRecapRequestBody({
+    required String gameId,
+    required int score,
+    required int best,
+    String locale = 'en',
+  }) {
+    final lang = locale == 'hu' ? 'Hungarian' : 'English';
+    return {
+      'model': taskModel,
+      'temperature': 0.5,
+      'reasoning_effort': 'minimal',
+      'max_completion_tokens': coachMaxCompletionTokens,
+      'messages': [
+        {
+          'role': 'system',
+          'content':
+              'You are the friendly memory coach inside the Engrammo app. '
+              'The user just finished the "$gameId" practice game with '
+              'score $score (personal best $best). In at most 3 short '
+              'sentences: judge the run honestly against the best, name '
+              'the most likely cause of the misses (if any), and give ONE '
+              'concrete next step. Answer in $lang. Never give medical '
+              'advice, never diagnose, never promise grades, IQ gains or '
+              'job performance.',
+        },
+        {
+          'role': 'user',
+          'content': 'Verdict on my "$gameId" run: $score (best $best)?',
+        },
+      ],
+    };
+  }
+
+  static String localGameRecap({
+    required String gameId,
+    required int score,
+    required int best,
+    String locale = 'en',
+  }) {
+    final key = score > 0 && score >= best
+        ? 'ai_verdict_good'
+        : score * 2 >= best && best > 0
+        ? 'ai_verdict_mid'
+        : 'ai_verdict_low';
+    return trFor(locale, key, {'game': gameId, 'score': score, 'best': best});
+  }
+
+  /// End-of-run verdict from the text model (Muse Spark). Never throws:
+  /// offline it returns the built-in verdict template.
+  static Future<CoachAnswer> gameRecap({
+    required String gameId,
+    required int score,
+    required int best,
+    String locale = 'en',
+    http.Client? client,
+    String? apiKeyOverride,
+    String? baseUrlOverride,
+  }) async {
+    Future<CoachAnswer> local({required bool success, String note = ''}) async {
+      final answer = CoachAnswer(
+        text: localGameRecap(
+          gameId: gameId,
+          score: score,
+          best: best,
+          locale: locale,
+        ),
+        fallback: true,
+      );
+      await _log(
+        MetaCallEntry(
+          model: taskModel,
+          kind: 'verdict:$gameId',
+          at: DateTime.now(),
+          success: success,
+          fallback: true,
+          note: note,
+        ),
+      );
+      return answer;
+    }
+
+    final key = await _liveKey(apiKeyOverride);
+    final base = resolveBaseUrl(baseUrlOverride);
+    if (key.isEmpty) {
+      return local(
+        success: true,
+        note: await _gatedOfflineNote(
+          apiKeyOverride,
+          'built-in verdict',
+          locale,
+        ),
+      );
+    }
+    final c = client ?? http.Client();
+    final owned = client == null;
+    try {
+      final res = await _postChat(
+        c,
+        base: base,
+        key: key,
+        body: gameRecapRequestBody(
+          gameId: gameId,
+          score: score,
+          best: best,
+          locale: locale,
+        ),
+        timeoutSec: coachTimeoutSec,
+      );
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        final data = jsonDecode(res.body);
+        if (data is Map<String, dynamic>) {
+          final text = _choicesText(data).trim();
+          if (text.isNotEmpty) {
+            await _log(
+              MetaCallEntry(
+                model: taskModel,
+                kind: 'verdict:$gameId',
+                at: DateTime.now(),
+                success: true,
+                fallback: false,
+              ),
+            );
+            return CoachAnswer(text: text, fallback: false);
+          }
+          throw StateError(_emptyChatNote(res, data));
+        }
+      }
+      throw StateError('HTTP ${res.statusCode}: ${_snip(res.body)}');
+    } catch (e) {
+      debugPrint('MetaAIService.gameRecap fallback: $e');
+      return local(success: false, note: e.toString());
+    } finally {
+      if (owned) c.close();
+    }
+  }
+
+  @visibleForTesting
+  static Map<String, dynamic> wonderPreviewRequestBody({
+    required String route,
+    required List<String> stations,
+    String locale = 'en',
+  }) {
+    final lang = locale == 'hu' ? 'Hungarian' : 'English';
+    return {
+      'model': wonderModel,
+      'temperature': 0.7,
+      'reasoning_effort': 'minimal',
+      'max_completion_tokens': coachMaxCompletionTokens,
+      'response_format': {'type': 'json_object'},
+      'messages': [
+        {
+          'role': 'system',
+          'content':
+              'You are the Wonder world-model inside the Engrammo memory app. '
+              'The player walks a memory palace called "$route" with these '
+              'stations in order: ${stations.join(', ')}. Always return a '
+              'single valid JSON object, no explanation. Key: "viewpoints" '
+              '(a list of exactly ${stations.length} short first-person '
+              'viewpoint captions, one per station in walking order, each '
+              'at most 10 words). Answer language: $lang.',
+        },
+        {'role': 'user', 'content': 'Preview my walk through "$route".'},
+      ],
+    };
+  }
+
+  /// Parses Wonder viewpoints. Accepts `{"viewpoints": [...]}` or a bare
+  /// `[...]`, with or without code fences. Drops empty entries.
+  @visibleForTesting
+  static List<String> parseWonderPreview(String content, {int max = 10}) {
+    try {
+      var text = content.trim();
+      if (text.startsWith('```')) {
+        final start = text.indexOf('[');
+        final brace = text.indexOf('{');
+        int from = -1;
+        int to = -1;
+        if (brace >= 0 && (brace < start || start < 0)) {
+          from = brace;
+          to = text.lastIndexOf('}');
+        } else if (start >= 0) {
+          from = start;
+          to = text.lastIndexOf(']');
+        }
+        if (from < 0 || to <= from) return const [];
+        text = text.substring(from, to + 1);
+      }
+      final data = jsonDecode(text);
+      final raw = data is List
+          ? data
+          : data is Map<String, dynamic>
+          ? (data['viewpoints'] as List? ?? const [])
+          : const [];
+      final out = <String>[];
+      for (final e in raw) {
+        final v = e.toString().trim();
+        if (v.isEmpty) continue;
+        out.add(v);
+        if (out.length >= max.clamp(1, 12)) break;
+      }
+      return out;
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  static String localWonderCaption(String station, [String locale = 'en']) =>
+      trFor(locale, 'wonder_fallback_view', {'station': station});
+
+  /// Ordered Wonder viewpoints for a palace walk. Never throws: offline
+  /// it returns one local caption per station. A live answer is only
+  /// accepted when it covers every station, so captions can never
+  /// misalign with the walk.
+  static Future<WonderPreviewAnswer> wonderRoutePreview({
+    required String route,
+    required List<String> stations,
+    String locale = 'en',
+    http.Client? client,
+    String? apiKeyOverride,
+    String? baseUrlOverride,
+  }) async {
+    Future<WonderPreviewAnswer> local({required bool success, String note = ''}) async {
+      final answer = WonderPreviewAnswer(
+        viewpoints: [for (final s in stations) localWonderCaption(s, locale)],
+        fallback: true,
+      );
+      await _log(
+        MetaCallEntry(
+          model: wonderModel,
+          kind: 'wonder:route',
+          at: DateTime.now(),
+          success: success,
+          fallback: true,
+          note: note,
+        ),
+      );
+      return answer;
+    }
+
+    final key = await _liveKey(apiKeyOverride);
+    final base = resolveBaseUrl(baseUrlOverride);
+    if (key.isEmpty) {
+      return local(
+        success: true,
+        note: await _gatedOfflineNote(
+          apiKeyOverride,
+          'local viewpoints',
+          locale,
+        ),
+      );
+    }
+    final c = client ?? http.Client();
+    final owned = client == null;
+    try {
+      final res = await _postChat(
+        c,
+        base: base,
+        key: key,
+        body: wonderPreviewRequestBody(
+          route: route,
+          stations: stations,
+          locale: locale,
+        ),
+        timeoutSec: coachTimeoutSec,
+      );
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        final data = jsonDecode(res.body);
+        if (data is Map<String, dynamic>) {
+          final views = parseWonderPreview(_choicesText(data));
+          if (views.length == stations.length && views.isNotEmpty) {
+            await _log(
+              MetaCallEntry(
+                model: wonderModel,
+                kind: 'wonder:route',
+                at: DateTime.now(),
+                success: true,
+                fallback: false,
+              ),
+            );
+            return WonderPreviewAnswer(viewpoints: views, fallback: false);
+          }
+          throw StateError(
+            'Wonder returned ${views.length} viewpoints '
+            'for ${stations.length} stations',
+          );
+        }
+      }
+      throw StateError('HTTP ${res.statusCode}: ${_snip(res.body)}');
+    } catch (e) {
+      debugPrint('MetaAIService.wonderRoutePreview fallback: $e');
+      return local(success: false, note: e.toString());
+    } finally {
+      if (owned) c.close();
+    }
+  }
+
+  @visibleForTesting
+  static bool isAudioRef(String ref) => ref.trim().startsWith('data:audio');
+
+  @visibleForTesting
+  static Map<String, dynamic> transcribeRequestBody({
+    required String audioDataUrl,
+    String locale = 'en',
+  }) => {
+    'model': voiceModel,
+    'audio': audioDataUrl,
+    'language': locale == 'hu' ? 'hu' : 'en',
+  };
+
+  @visibleForTesting
+  static String parseTranscript(Map<String, dynamic> data) =>
+      (data['text'] as String? ?? '').trim();
+
+  /// Transcribes a short voice answer with Voice Transcribe. Never throws
+  /// and never invents speech: without audio, key, consent or a usable
+  /// answer it returns empty text with the fallback flag set.
+  static Future<TranscriptAnswer> transcribe({
+    required String audioDataUrl,
+    String locale = 'en',
+    http.Client? client,
+    String? apiKeyOverride,
+    String? baseUrlOverride,
+  }) async {
+    Future<TranscriptAnswer> local({required bool success, String note = ''}) async {
+      await _log(
+        MetaCallEntry(
+          model: voiceModel,
+          kind: 'voice',
+          at: DateTime.now(),
+          success: success,
+          fallback: true,
+          note: note,
+        ),
+      );
+      return const TranscriptAnswer(text: '', fallback: true);
+    }
+
+    if (!isAudioRef(audioDataUrl)) {
+      return local(success: true, note: 'no audio payload');
+    }
+    final key = await _liveKey(apiKeyOverride);
+    final base = resolveBaseUrl(baseUrlOverride);
+    if (key.isEmpty) {
+      return local(
+        success: true,
+        note: await _gatedOfflineNote(
+          apiKeyOverride,
+          'empty transcript',
+          locale,
+        ),
+      );
+    }
+    final c = client ?? http.Client();
+    final owned = client == null;
+    try {
+      final res = await c
+          .post(
+            Uri.parse('$base/audio/transcriptions'),
+            headers: _headers(key),
+            body: jsonEncode(
+              transcribeRequestBody(audioDataUrl: audioDataUrl, locale: locale),
+            ),
+          )
+          .timeout(const Duration(seconds: httpTimeoutSec));
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        final data = jsonDecode(res.body);
+        if (data is Map<String, dynamic>) {
+          final text = parseTranscript(data);
+          if (text.isNotEmpty) {
+            await _log(
+              MetaCallEntry(
+                model: voiceModel,
+                kind: 'voice',
+                at: DateTime.now(),
+                success: true,
+                fallback: false,
+              ),
+            );
+            return TranscriptAnswer(text: text, fallback: false);
+          }
+          throw StateError(
+            'HTTP ${res.statusCode} empty transcript: ${_snip(res.body)}',
+          );
+        }
+      }
+      throw StateError('HTTP ${res.statusCode}: ${_snip(res.body)}');
+    } catch (e) {
+      debugPrint('MetaAIService.transcribe fallback: $e');
+      return local(success: false, note: e.toString());
+    } finally {
+      if (owned) c.close();
+    }
+  }
+
+  @visibleForTesting
+  static Map<String, dynamic> glimmerTakeRequestBody({
+    required String gameId,
+    required int score,
+    required int best,
+    String locale = 'en',
+  }) {
+    final lang = locale == 'hu' ? 'Hungarian' : 'English';
+    return {
+      'model': glimmerModel,
+      'temperature': 0.6,
+      'reasoning_effort': 'minimal',
+      'max_completion_tokens': glimmerMaxCompletionTokens,
+      'messages': [
+        {
+          'role': 'system',
+          'content':
+              'You are Glimmer, the instant memory-coach inside the Engrammo '
+              'app. The user scored $score (personal best $best) in the '
+              '"$gameId" practice game. Reply with ONE punchy sentence, at '
+              'most 15 words. Answer in $lang. Never give medical advice, '
+              'never diagnose, never promise grades, IQ gains or job '
+              'performance.',
+        },
+        {'role': 'user', 'content': 'One line on $score (best $best)?'},
+      ],
+    };
+  }
+
+  static String localGlimmerTake({
+    required int score,
+    required int best,
+    String locale = 'en',
+  }) {
+    final key = score > 0 && score >= best
+        ? 'ai_glimmer_good'
+        : score * 2 >= best && best > 0
+        ? 'ai_glimmer_mid'
+        : 'ai_glimmer_low';
+    return trFor(locale, key, {'score': score});
+  }
+
+  /// Glimmer's instant one-line take on a finished run. Never throws:
+  /// offline it returns the built-in one-liner.
+  static Future<CoachAnswer> glimmerTake({
+    required String gameId,
+    required int score,
+    required int best,
+    String locale = 'en',
+    http.Client? client,
+    String? apiKeyOverride,
+    String? baseUrlOverride,
+  }) async {
+    Future<CoachAnswer> local({required bool success, String note = ''}) async {
+      final answer = CoachAnswer(
+        text: localGlimmerTake(score: score, best: best, locale: locale),
+        fallback: true,
+      );
+      await _log(
+        MetaCallEntry(
+          model: glimmerModel,
+          kind: 'glimmer:$gameId',
+          at: DateTime.now(),
+          success: success,
+          fallback: true,
+          note: note,
+        ),
+      );
+      return answer;
+    }
+
+    final key = await _liveKey(apiKeyOverride);
+    final base = resolveBaseUrl(baseUrlOverride);
+    if (key.isEmpty) {
+      return local(
+        success: true,
+        note: await _gatedOfflineNote(apiKeyOverride, 'built-in take', locale),
+      );
+    }
+    final c = client ?? http.Client();
+    final owned = client == null;
+    try {
+      final res = await _postChat(
+        c,
+        base: base,
+        key: key,
+        body: glimmerTakeRequestBody(
+          gameId: gameId,
+          score: score,
+          best: best,
+          locale: locale,
+        ),
+        timeoutSec: coachTimeoutSec,
+      );
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        final data = jsonDecode(res.body);
+        if (data is Map<String, dynamic>) {
+          final text = _choicesText(data).trim();
+          if (text.isNotEmpty) {
+            await _log(
+              MetaCallEntry(
+                model: glimmerModel,
+                kind: 'glimmer:$gameId',
+                at: DateTime.now(),
+                success: true,
+                fallback: false,
+              ),
+            );
+            return CoachAnswer(text: text, fallback: false);
+          }
+          throw StateError(_emptyChatNote(res, data));
+        }
+      }
+      throw StateError('HTTP ${res.statusCode}: ${_snip(res.body)}');
+    } catch (e) {
+      debugPrint('MetaAIService.glimmerTake fallback: $e');
+      return local(success: false, note: e.toString());
+    } finally {
+      if (owned) c.close();
+    }
+  }
+
+  @visibleForTesting
+  static Map<String, dynamic> openTipRequestBody({
+    required String gameId,
+    required int level,
+    String locale = 'en',
+  }) {
+    final lang = locale == 'hu' ? 'Hungarian' : 'English';
+    return {
+      'model': sparkOpenModel,
+      'temperature': 0.5,
+      'reasoning_effort': 'minimal',
+      'max_completion_tokens': coachMaxCompletionTokens,
+      'messages': [
+        {
+          'role': 'system',
+          'content':
+              'You are the friendly memory coach inside the Engrammo app. '
+              'The user just played the "$gameId" memory practice game and '
+              'reached level $level. Give ONE concrete, game-specific '
+              'technique tip for the next round, in at most 2 short '
+              'sentences. Answer in $lang. Never give medical advice, never '
+              'diagnose, never promise grades, IQ gains or job performance.',
+        },
+        {'role': 'user', 'content': 'One tip for "$gameId" at level $level?'},
+      ],
+    };
+  }
+
+  /// Practice tips from the open model (Muse Spark Open). Same built-in
+  /// tips offline as the classic tip call; only the live model differs.
+  static Future<CoachAnswer> openPracticeTip({
+    required String gameId,
+    required int level,
+    String locale = 'en',
+    http.Client? client,
+    String? apiKeyOverride,
+    String? baseUrlOverride,
+  }) async {
+    Future<CoachAnswer> local({required bool success, String note = ''}) async {
+      final answer = CoachAnswer(
+        text: localPracticeTip(gameId, level, locale),
+        fallback: true,
+      );
+      await _log(
+        MetaCallEntry(
+          model: sparkOpenModel,
+          kind: 'opentip:$gameId',
+          at: DateTime.now(),
+          success: success,
+          fallback: true,
+          note: note,
+        ),
+      );
+      return answer;
+    }
+
+    final key = await _liveKey(apiKeyOverride);
+    final base = resolveBaseUrl(baseUrlOverride);
+    if (key.isEmpty) {
+      return local(
+        success: true,
+        note: await _gatedOfflineNote(apiKeyOverride, 'built-in tip', locale),
+      );
+    }
+    final c = client ?? http.Client();
+    final owned = client == null;
+    try {
+      final res = await _postChat(
+        c,
+        base: base,
+        key: key,
+        body: openTipRequestBody(gameId: gameId, level: level, locale: locale),
+        timeoutSec: coachTimeoutSec,
+      );
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        final data = jsonDecode(res.body);
+        if (data is Map<String, dynamic>) {
+          final text = _choicesText(data).trim();
+          if (text.isNotEmpty) {
+            await _log(
+              MetaCallEntry(
+                model: sparkOpenModel,
+                kind: 'opentip:$gameId',
+                at: DateTime.now(),
+                success: true,
+                fallback: false,
+              ),
+            );
+            return CoachAnswer(text: text, fallback: false);
+          }
+          throw StateError(_emptyChatNote(res, data));
+        }
+      }
+      throw StateError('HTTP ${res.statusCode}: ${_snip(res.body)}');
+    } catch (e) {
+      debugPrint('MetaAIService.openPracticeTip fallback: $e');
       return local(success: false, note: e.toString());
     } finally {
       if (owned) c.close();

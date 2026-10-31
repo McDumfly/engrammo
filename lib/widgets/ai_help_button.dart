@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../l10n/app_localizations.dart';
 import '../services/app_feedback.dart';
 import '../services/meta_ai_service.dart';
+import '../theme/app_colors.dart' show blue;
 import '../theme/app_theme.dart';
 import 'app_buttons.dart';
 
@@ -122,7 +123,7 @@ class AiHelpButton extends StatelessWidget {
         alignment: Alignment.center,
         child: const HugeIcon(
           icon: HugeIcons.strokeRoundedBubbleChatQuestion,
-          color: Color(0xFF45A3FF),
+          color: blue,
           size: 24,
           strokeWidth: 2.2,
         ),
@@ -342,7 +343,7 @@ class _AiHelpSheetState extends State<_AiHelpSheet> {
                   children: [
                     const HugeIcon(
                       icon: HugeIcons.strokeRoundedBubbleChatQuestion,
-                      color: Color(0xFF45A3FF),
+                      color: blue,
                       size: 26,
                       strokeWidth: 2.2,
                     ),
@@ -466,9 +467,10 @@ class _AiHelpSheetState extends State<_AiHelpSheet> {
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
+                child: IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
                     Expanded(
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(minHeight: 56),
@@ -504,7 +506,8 @@ class _AiHelpSheetState extends State<_AiHelpSheet> {
                         onPressed: () => _send(_input.text),
                       ),
                     ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -532,7 +535,7 @@ class _AiHelpSheetState extends State<_AiHelpSheet> {
               icon: noKey
                   ? HugeIcons.strokeRoundedKey01
                   : HugeIcons.strokeRoundedShield01,
-              color: const Color(0xFF45A3FF),
+              color: blue,
               size: 22,
               strokeWidth: 2,
             ),
@@ -580,7 +583,7 @@ class _AiHelpSheetState extends State<_AiHelpSheet> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         constraints: const BoxConstraints(maxWidth: 300),
         decoration: BoxDecoration(
-          color: m.mine ? const Color(0xFF45A3FF) : context.washBg,
+          color: m.mine ? blue : context.washBg,
           borderRadius: BorderRadius.circular(14),
           border: m.mine
               ? null

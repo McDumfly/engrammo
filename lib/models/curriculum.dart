@@ -158,36 +158,41 @@ String chapterTaglineIn(String locale, int chapter) {
   return chapters[chapter].tagline;
 }
 
+/// Magyar szöveg, ha kérik és van; különben az angol (lustán kiértékelve,
+/// hogy az érvénytelen indexek viselkedése változatlan maradjon).
+String _pickHu(String locale, String? hu, String Function() en) =>
+    (_isHu(locale) && hu != null && hu.isNotEmpty) ? hu : en();
+
 String sectionNameIn(String locale, int chapter, int section) {
-  if (_isHu(locale)) {
-    final hu = _huSection(chapter, section);
-    if (hu != null && hu.name.isNotEmpty) return hu.name;
-  }
-  return chapters[chapter].sections[section].name;
+  return _pickHu(
+    locale,
+    _huSection(chapter, section)?.name,
+    () => chapters[chapter].sections[section].name,
+  );
 }
 
 String sectionTechniqueIn(String locale, int chapter, int section) {
-  if (_isHu(locale)) {
-    final hu = _huSection(chapter, section);
-    if (hu != null && hu.technique.isNotEmpty) return hu.technique;
-  }
-  return chapters[chapter].sections[section].technique;
+  return _pickHu(
+    locale,
+    _huSection(chapter, section)?.technique,
+    () => chapters[chapter].sections[section].technique,
+  );
 }
 
 String lessonTitleIn(String locale, int chapter, int section, int lesson) {
-  if (_isHu(locale)) {
-    final hu = _huLesson(chapter, section, lesson);
-    if (hu != null && hu.title.isNotEmpty) return hu.title;
-  }
-  return chapters[chapter].sections[section].lessons[lesson].title;
+  return _pickHu(
+    locale,
+    _huLesson(chapter, section, lesson)?.title,
+    () => chapters[chapter].sections[section].lessons[lesson].title,
+  );
 }
 
 String lessonDetailIn(String locale, int chapter, int section, int lesson) {
-  if (_isHu(locale)) {
-    final hu = _huLesson(chapter, section, lesson);
-    if (hu != null && hu.detail.isNotEmpty) return hu.detail;
-  }
-  return chapters[chapter].sections[section].lessons[lesson].detail;
+  return _pickHu(
+    locale,
+    _huLesson(chapter, section, lesson)?.detail,
+    () => chapters[chapter].sections[section].lessons[lesson].detail,
+  );
 }
 
 SectionHu? _huSection(int chapter, int section) {

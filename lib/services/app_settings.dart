@@ -5,7 +5,9 @@ import '../l10n/app_localizations.dart';
 
 class AppSettings extends ChangeNotifier {
   static const _darkKey = 'settings_dark_mode_v1';
-  static const _hapticsKey = 'settings_sounds_v1';
+  static const _hapticsKey = 'settings_haptics_v1';
+  // Régi, félrevezető nevű kulcs: csak olvasásra, migrációhoz.
+  static const _legacyHapticsKey = 'settings_sounds_v1';
   static const _languageKey = 'settings_language_v1';
 
   bool _darkMode = false;
@@ -26,7 +28,10 @@ class AppSettings extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       _darkMode = prefs.getBool(_darkKey) ?? false;
-      _haptics = prefs.getBool(_hapticsKey) ?? true;
+      _haptics =
+          prefs.getBool(_hapticsKey) ??
+          prefs.getBool(_legacyHapticsKey) ??
+          true;
       final stored = prefs.getString(_languageKey);
       _languageCode = stored == AppLocalizations.hungarianCode
           ? AppLocalizations.hungarianCode

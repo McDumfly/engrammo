@@ -188,6 +188,26 @@ class MemoryStore {
 
   static Future<void> Function()? onChanged;
 
+  /// Pontváltozás-figyelők (UI-frissítéshez; a tabok állapota megmarad,
+  /// így a profiloldal innen tudja meg, hogy újratöltsön).
+  static final _scoresListeners = <void Function()>[];
+
+  static void addScoresListener(void Function() cb) {
+    _scoresListeners.add(cb);
+  }
+
+  static void removeScoresListener(void Function() cb) {
+    _scoresListeners.remove(cb);
+  }
+
+  static void _announceScores() {
+    for (final cb in _scoresListeners.toList()) {
+      try {
+        cb();
+      } catch (_) {}
+    }
+  }
+
   static void _notifyChanged() {
     final cb = onChanged;
     if (cb != null) unawaited(cb());
@@ -214,6 +234,7 @@ class MemoryStore {
       for (final s in scores) s.toString(),
     ]);
     _scoresMemory = List<int>.of(scores);
+    _announceScores();
   }
 
   static Future<List<int>?> loadScores() async {
@@ -293,6 +314,7 @@ class MemoryStore {
         'at=${DateTime.now().toIso8601String()}',
       ]);
       _dominantKindMemory = kind;
+      _announceScores();
     } catch (_) {
     }
   }
@@ -1183,7 +1205,47 @@ class MemoryStore {
     final goals = await loadUserGoals();
     goals.removeWhere((g) => g.id == goalId);
     await saveUserGoals(goals);
+    await saveGoalPlanDone(goalId, const {});
     return loadUserGoals();
+  }
+
+  static const _goalPlanDoneKey = 'goal_plan_done_v1';
+
+  /// Tervlépés-pipák célonként (csak helyben, nem szinkronizáljuk).
+  static Future<Set<int>> loadGoalPlanDone(String goalId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getStringList(_goalPlanDoneKey) ?? const [];
+      for (final e in raw) {
+        final i = e.indexOf('=');
+        if (i <= 0) continue;
+        if (e.substring(0, i) != goalId) continue;
+        final rest = e.substring(i + 1);
+        if (rest.isEmpty) return {};
+        return {
+          for (final c in rest.split(',')) int.tryParse(c) ?? -1,
+        }..remove(-1);
+      }
+      return {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  static Future<void> saveGoalPlanDone(String goalId, Set<int> done) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getStringList(_goalPlanDoneKey) ?? const [];
+      final kept = [
+        for (final e in raw)
+          if (!(e.startsWith('$goalId='))) e,
+      ];
+      if (done.isNotEmpty) {
+        final sorted = done.toList()..sort();
+        kept.add('$goalId=${sorted.join(',')}');
+      }
+      await prefs.setStringList(_goalPlanDoneKey, kept);
+    } catch (_) {}
   }
 
   static Future<UserGoal?> loadUserGoal(String goalId) async {
@@ -1264,6 +1326,7 @@ class MemoryStore {
 
   static Future<void> clearAccountData() async {
     clearMemoryCache();
+    _announceScores();
     try {
       final prefs = await SharedPreferences.getInstance();
       for (final key in [
@@ -1295,12 +1358,29 @@ class MemoryStore {
         _missionsDoneKey,
         _ownMaterialKey,
         _userGoalsKey,
+        _goalPlanDoneKey,
         _fsrsCardsKey,
         _metaCacheKey,
         _benchmarkKey,
         _battleInvitesKey,
+        _onboardingDoneKey,
+        _localNormsKey,
+        _assessmentRunsDataKey,
+        _streakHistoryKey,
+        _streakKey,
+        _bestStreakKey,
+        _engramsKey,
+        _restorePromptDayKey,
+        // memory_growth napi ledger (literal: oda-vissza import lenne).
+        'growth_day_v1',
       ]) {
         await prefs.remove(key);
+      }
+      // AI-segítő csevegési előzmények témánként ('ai_help_history_v1_<téma>').
+      for (final key in prefs.getKeys().toList()) {
+        if (key.startsWith('ai_help_history_v1_')) {
+          await prefs.remove(key);
+        }
       }
     } catch (_) {
     }
@@ -1366,21 +1446,30 @@ class MemoryStore {
   }
 
   static Future<StreakState> loadStreakState() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getStringList(_streakHistoryKey) ?? const [];
-    final state = StreakState(
-      history: parseStreakHistory(raw),
-      streak: prefs.getInt(_streakKey) ?? 0,
-      bestStreak: prefs.getInt(_bestStreakKey) ?? 0,
-      engrams: prefs.getInt(_engramsKey) ?? 0,
-    );
-    _streakMemory = StreakState(
-      history: List<DateTime>.of(state.history),
-      streak: state.streak,
-      bestStreak: state.bestStreak,
-      engrams: state.engrams,
-    );
-    return state;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getStringList(_streakHistoryKey) ?? const [];
+      final state = StreakState(
+        history: parseStreakHistory(raw),
+        streak: prefs.getInt(_streakKey) ?? 0,
+        bestStreak: prefs.getInt(_bestStreakKey) ?? 0,
+        engrams: prefs.getInt(_engramsKey) ?? 0,
+      );
+      _streakMemory = StreakState(
+        history: List<DateTime>.of(state.history),
+        streak: state.streak,
+        bestStreak: state.bestStreak,
+        engrams: state.engrams,
+      );
+      return state;
+    } catch (_) {
+      return const StreakState(
+        history: [],
+        streak: 0,
+        bestStreak: 0,
+        engrams: 0,
+      );
+    }
   }
 
   static Future<void> _saveStreakState(
@@ -1410,6 +1499,18 @@ class MemoryStore {
   static Future<StreakState> recordStreakDay([DateTime? now]) async {
     final prefs = await SharedPreferences.getInstance();
     final current = await loadStreakState();
+    try {
+      return await _recordStreakDayLocked(prefs, current, now);
+    } catch (_) {
+      return current;
+    }
+  }
+
+  static Future<StreakState> _recordStreakDayLocked(
+    SharedPreferences prefs,
+    StreakState current,
+    DateTime? now,
+  ) async {
     final today = now ?? DateTime.now();
     final t = DateTime(today.year, today.month, today.day);
     final days = current.history.where((d) => !d.isAfter(t)).toList();

@@ -4,6 +4,7 @@ import 'package:hugeicons/hugeicons.dart';
 import '../l10n/app_localizations.dart';
 import '../services/app_feedback.dart';
 import '../services/auth_service.dart';
+import '../theme/app_colors.dart' show error;
 import '../theme/app_theme.dart';
 import '../widgets/app_buttons.dart';
 import '../widgets/google_g_logo.dart';
@@ -40,6 +41,8 @@ class _AuthScreenState extends State<AuthScreen> {
     });
   }
 
+  static final _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
   Future<void> _submit() async {
     setState(() {
       _error = null;
@@ -47,7 +50,7 @@ class _AuthScreenState extends State<AuthScreen> {
     });
     final email = _emailCtrl.text.trim();
     final password = _passwordCtrl.text;
-    if (!email.contains('@')) {
+    if (!_emailPattern.hasMatch(email)) {
       return _fail(StateError(tr('auth_invalid_email')));
     }
     if (password.length < 6) {
@@ -79,9 +82,9 @@ class _AuthScreenState extends State<AuthScreen> {
       if (mounted && Navigator.of(context).canPop()) {
         Navigator.of(context).pop();
       }
+    } on GoogleSignInCanceled {
+      return;
     } catch (e) {
-      final msg = '$e';
-      if (msg.contains('canceled')) return;
       _fail(e);
     }
   }
@@ -92,7 +95,7 @@ class _AuthScreenState extends State<AuthScreen> {
       _resetSent = false;
     });
     final email = _emailCtrl.text.trim();
-    if (!email.contains('@')) {
+    if (!_emailPattern.hasMatch(email)) {
       return _fail(StateError(tr('auth_reset_prompt')));
     }
     try {
@@ -119,6 +122,12 @@ class _AuthScreenState extends State<AuthScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Push-olt útként (pl. profilból) bezárható legyen.
+                    if (Navigator.of(context).canPop())
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: EngramBackButton.close(),
+                      ),
                     const SizedBox(height: 12),
                     Text(
                       _register
@@ -153,6 +162,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       _Field(
                         controller: _nameCtrl,
                         hint: tr('auth_display_name_hint'),
+                        enabled: !authService.busy,
                       ),
                       const SizedBox(height: 10),
                     ],
@@ -160,6 +170,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       controller: _emailCtrl,
                       hint: tr('auth_email_hint'),
                       keyboard: TextInputType.emailAddress,
+                      enabled: !authService.busy,
                     ),
                     const SizedBox(height: 10),
                     _Field(
@@ -168,6 +179,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       obscure: _obscure,
                       onToggleObscure: () =>
                           setState(() => _obscure = !_obscure),
+                      enabled: !authService.busy,
                     ),
                     if (_error != null) ...[
                       const SizedBox(height: 10),
@@ -175,7 +187,7 @@ class _AuthScreenState extends State<AuthScreen> {
                         _error!,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                          color: Color(0xFFE5484D),
+                          color: error,
                           fontWeight: FontWeight.w700,
                           fontSize: 13,
                         ),
@@ -348,12 +360,14 @@ class _Field extends StatelessWidget {
   final bool obscure;
   final VoidCallback? onToggleObscure;
   final TextInputType? keyboard;
+  final bool enabled;
   const _Field({
     required this.controller,
     required this.hint,
     this.obscure = false,
     this.onToggleObscure,
     this.keyboard,
+    this.enabled = true,
   });
 
   @override
@@ -371,6 +385,7 @@ class _Field extends StatelessWidget {
               controller: controller,
               obscureText: obscure,
               keyboardType: keyboard,
+              enabled: enabled,
               autocorrect: false,
               enableSuggestions: false,
               style: TextStyle(color: context.inkText, fontSize: 15),

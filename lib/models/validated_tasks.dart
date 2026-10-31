@@ -1,3 +1,6 @@
+/// Deterministic local task bank: the offline fallback behind every
+/// AI-built task. Same paradigms the live model fills
+/// (see `docs/RESEARCH.md` §12); validated by construction.
 library;
 
 import 'dart:math';
@@ -915,7 +918,7 @@ MetaTask _dayReplay(
   );
 }
 
-extension on List<String> {
+extension ValidatedTaskShuffling on List<String> {
   void swapFirstTwo() {
     if (length >= 2) {
       final t = this[0];

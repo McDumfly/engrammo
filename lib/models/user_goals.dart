@@ -297,8 +297,10 @@ class UserGoal {
       forgotNote: (json['forgotNote'] as String?) ?? '',
       createdAt: created,
       updatedAt: updated,
-      analysis: rawAnalysis is Map<String, dynamic>
-          ? GoalAnalysis.fromJson(rawAnalysis)
+      analysis: rawAnalysis is Map
+          ? GoalAnalysis.fromJson(
+              rawAnalysis.map((k, v) => MapEntry(k.toString(), v)),
+            )
           : null,
       practiceCount: (json['practiceCount'] as num?)?.toInt() ?? 0,
       lastPracticedAt: practiced,
@@ -657,7 +659,9 @@ GoalAnalysis? parseGoalAnalysisContent(String content) {
 Map<String, dynamic>? _decodeJson(String text) {
   try {
     final data = jsonDecode(text);
-    if (data is Map<String, dynamic>) return data;
+    if (data is Map) {
+      return data.map((k, v) => MapEntry(k.toString(), v));
+    }
     return null;
   } catch (_) {
     return null;

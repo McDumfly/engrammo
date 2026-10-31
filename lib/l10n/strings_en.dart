@@ -41,7 +41,8 @@ const Map<String, String> enStrings = {
       'This sign-in method is not enabled in the Firebase console.',
   'auth_error_code': 'Sign-in error ({code}).',
   'auth_unexpected': 'Unexpected error: {detail}',
-  'auth_google_unavailable': 'Google sign-in is not available on this platform.',
+  'auth_google_unavailable':
+      'Google sign-in is not available on this platform.',
   'auth_no_google_token': 'No Google token received.',
   'auth_sign_in_first': 'Please sign in first.',
   'onboarding_skip': 'Skip',
@@ -50,50 +51,37 @@ const Map<String, String> enStrings = {
   'onboarding_find_my_type': 'FIND MY MEMORY TYPE',
   'onboarding_opening': 'OPENING…',
   'onboarding_welcome_title': 'Memory techniques are trainable.',
-  'onboarding_welcome_body':
-      'Memory athletes are not born with special brains — scans look ordinary. They train 2,500-year-old strategies for months. You are about to start learning the same strategies.',
-  'onboarding_honest_note':
-      'One honest note: photographic memory is a myth — it has never been demonstrated in a lab. What you get instead is practical: trained strategies that work on the material you practice. They do not raise IQ, grades, or job performance by themselves, and this app is not medical advice.',
+  'onboarding_welcome_body': 'Memory athletes are not born with special brains — scans look ordinary. They train 2,500-year-old strategies for months. You are about to start learning the same strategies.',
+  'onboarding_honest_note': 'One honest note: photographic memory is a myth — it has never been demonstrated in a lab. What you get instead is practical: trained strategies that work on the material you practice. They do not raise IQ, grades, or job performance by themselves, and this app is not medical advice.',
   'onboarding_honesty_link': 'What this app can — and cannot — do →',
   'honesty_title': 'What this app can — and cannot — do',
   'honesty_got_it': 'GOT IT',
   'onboarding_palace_title': 'Memory Palace',
-  'onboarding_palace_body':
-      'Pick a route you know — your home. Put one vivid image at each stop, then walk the route to recall. This is the method memory competitors train with; lab studies show weeks of practice reshape how the brain encodes.',
+  'onboarding_palace_body': 'Pick a route you know — your home. Put one vivid image at each stop, then walk the route to recall. This is the method memory competitors train with; lab studies show weeks of practice reshape how the brain encodes.',
   'onboarding_chunking_title': 'Chunking',
-  'onboarding_chunking_body':
-      'Your mind holds ~4 chunks, but a chunk can be huge. Turn 491625 into two images instead of six digits and it fits.',
+  'onboarding_chunking_body': 'Your mind holds ~4 chunks, but a chunk can be huge. Turn 491625 into two images instead of six digits and it fits.',
   'onboarding_vivid_title': 'Vivid Images',
-  'onboarding_vivid_body':
-      'Concrete pictures are often remembered better than plain words. Make every item big, bright, moving — and let items interact with each other.',
+  'onboarding_vivid_body': 'Concrete pictures are often remembered better than plain words. Make every item big, bright, moving — and let items interact with each other.',
   'onboarding_keyword_title': 'Keyword Hook',
-  'onboarding_keyword_body':
-      'Foreign word? Find a native word that sounds like it, picture the two interacting. In one lab study this averaged 72% recall against 46% without it.',
+  'onboarding_keyword_body': 'Foreign word? Find a native word that sounds like it, picture the two interacting. In one lab study this averaged 72% recall against 46% without it.',
   'onboarding_spaced_title': 'Spaced Retrieval',
-  'onboarding_spaced_body':
-      'Test yourself, spaced out, instead of re-reading. Reviews rate it among the highest-utility study strategies.',
+  'onboarding_spaced_body': 'Test yourself, spaced out, instead of re-reading. Reviews rate it among the highest-utility study strategies.',
   'onboarding_goals_title': 'Your Goals, Your Material',
-  'onboarding_goals_body':
-      'The built-in examples are only examples. In My goals you can add anything YOU want to remember, and the AI maps it onto a proven strategy with a review plan — then teaches you and builds personal tasks from your exact words.',
+  'onboarding_goals_body': 'The built-in examples are only examples. In My goals you can add anything YOU want to remember, and the AI maps it onto a proven strategy with a review plan — then teaches you and builds personal tasks from your exact words.',
   'onboarding_goals_source': 'Same strategies, your own material',
   'onboarding_station_title': 'How a Station Works',
-  'onboarding_station_body':
-      'Every station starts with a short coach card: what to do, how to do it, and why it works. Then you play 3 to 5 quick drills in a row — never just one. Sometimes the question arrives 1 or 2 drills later, so you must hold earlier items in mind. That delay is the workout.',
+  'onboarding_station_body': 'Every station starts with a short coach card: what to do, how to do it, and why it works. Then you play 3 to 5 quick drills in a row — never just one. Sometimes the question arrives 1 or 2 drills later, so you must hold earlier items in mind. That delay is the workout.',
   'onboarding_station_source': 'Your coach card always cites its study',
   'onboarding_stars_title': 'Stars, Streaks and Engrams',
-  'onboarding_stars_body':
-      'Finishing a station always earns 1 to 3 stars: all correct is 3 when you are fast, 2 when slow or mostly correct, 1 for finishing. Stars unlock the next stations. Training daily builds your streak, and you earn engrams — the single currency — which can repair a broken streak.',
+  'onboarding_stars_body': 'Finishing a station always earns 1 to 3 stars: all correct is 3 when you are fast, 2 when slow or mostly correct, 1 for finishing. Stars unlock the next stations. Training daily builds your streak, and you earn engrams — the single currency — which can repair a broken streak.',
   'onboarding_stars_source': 'Finish every station, keep the streak alive',
   'onboarding_help_title': 'Stuck? Ask for Help',
-  'onboarding_help_body':
-      'Every screen has a ? button. Tap it to chat with the AI coach: pick a ready-made question or type your own. It explains the technique, gives examples, and answers in your language. No connection? You still get built-in answers — the help never goes empty.',
+  'onboarding_help_body': 'Every screen has a ? button. Tap it to chat with the AI coach: pick a ready-made question or type your own. It explains the technique, gives examples, and answers in your language. No connection? You still get built-in answers — the help never goes empty.',
   'onboarding_help_source': 'Look for the ? on every screen',
   'onboarding_cta_title': 'First, find your type.',
-  'onboarding_cta_body':
-      'A 13-task screener — 2 quick probes for each of your 6 memory types, plus a medium spatial. About 3 minutes. A starting placement, not a diagnosis or IQ test. Then your path emphasizes your strongest type, with every technique staying open.',
+  'onboarding_cta_body': 'A 13-task screener — 2 quick probes for each of your 6 memory types, plus a medium spatial. About 3 minutes. A starting placement, not a diagnosis or IQ test. Then your path emphasizes your strongest type, with every technique staying open.',
   'profile_setup_title': 'Set up your profile',
-  'profile_setup_subtitle':
-      'Pick your name and a unique username. You can change them later in Settings.',
+  'profile_setup_subtitle': 'Pick your name and a unique username. You can change them later in Settings.',
   'profile_name_label': 'Your name',
   'profile_name_hint': 'Jane Appleseed',
   'profile_username_label': 'Username',
@@ -103,6 +91,7 @@ const Map<String, String> enStrings = {
   'profile_sign_in_again': 'Please sign in again.',
   'profile_username_taken': 'That username is taken — try another.',
   'profile_no_connection': 'No connection — try again.',
+  'profile_cloud_error': 'The cloud rejected this — try again later.',
   'profile_pick_username': 'Pick a username.',
   'profile_username_too_short': 'Username needs at least {n} characters.',
   'profile_username_too_long': 'Username can be at most {n} characters.',
@@ -113,55 +102,42 @@ const Map<String, String> enStrings = {
   'profile_add_name': 'Add your name.',
   'profile_name_too_long': 'Name can be at most {n} characters.',
   'gate_connect_title': 'Connect to the internet',
-  'gate_connect_body':
-      'Engrammo needs an internet connection to reach your account and the Meta AI models. Check your connection, then try again.',
+  'gate_connect_body': 'Engrammo needs an internet connection to reach your account and the Meta AI models. Check your connection, then try again.',
   'gate_retry': 'Try again',
   'gate_offline_duel': 'Play offline bot duel',
   'gate_offline_title': 'Offline practice',
   'gate_offline_subtitle': 'Bot duel, no internet needed',
-  'gate_offline_body':
-      'No internet, but training never stops: your device builds all 3 duel tasks, and results save locally and count toward the league.',
+  'gate_offline_body': 'No internet, but training never stops: your device builds all 3 duel tasks, and results save locally and count toward the league.',
   'gate_offline_score': 'Your score: {rating} · {matches} saved matches',
   'gate_offline_loading': 'Loading arena…',
   'gate_start_bot_duel': 'START BOT DUEL',
   'policy_research_dose':
       'about 20 hours over 6 weeks on a single technique (Dresler et al. 2017)',
-  'policy_foundation_dose':
-      'One full pass of a track is about {hours} hours of guided practice — the foundation. The lab protocol that moved performance used {dose}, so plan on repeats plus your own material over many months.',
-  'policy_honest_promise':
-      'Practice improves the trained strategies on trained and closely similar material. Nothing here raises IQ, grades, or job performance by itself.',
-  'policy_assessment_disclaimer':
-      'This 13-task check plus interview is a low-stakes screener for practice emphasis — not a medical or psychological test, not an IQ test, and not a diagnosis. Scores carry measurement error, and every technique stays open whatever the result.',
-  'policy_result_disclaimer':
-      'A starting placement, not a diagnosis. Small score gaps are noise — retake with a fresh parallel form after a few weeks of practice to see what holds.',
+  'policy_foundation_dose': 'One full pass of a track is about {hours} hours of guided practice — the foundation. The lab protocol that moved performance used {dose}, so plan on repeats plus your own material over many months.',
+  'policy_honest_promise': 'Practice improves the trained strategies on trained and closely similar material. Nothing here raises IQ, grades, or job performance by itself.',
+  'policy_assessment_disclaimer': 'This 13-task check plus interview is a low-stakes screener for practice emphasis — not a medical or psychological test, not an IQ test, and not a diagnosis. Scores carry measurement error, and every technique stays open whatever the result.',
+  'policy_result_disclaimer': 'A starting placement, not a diagnosis. Small score gaps are noise — retake with a fresh parallel form after a few weeks of practice to see what holds.',
   'policy_level_footnote':
       'Practice metric from app scores — not a clinical measure of memory.',
-  'policy_level_explainer':
-      'Each of the 6 memory types scores 0–100 from the assessment probes (easy up to 40 + hard up to 60; spatial uses 3 probes worth 20 + 30 + 50). Memory level is the 6-score average mapped to 1–11: level = average ÷ 10 + 1, so 0–9 is level 1 and 100 is level 11. Battle Zone shows the same mapping per type. Winning duels and finishing lessons grow those scores, so practice raises the level.',
+  'policy_level_explainer': 'Each of the 6 memory types scores 0–100 from the assessment probes (easy up to 40 + hard up to 60; spatial uses 3 probes worth 20 + 30 + 50). Memory level is the 6-score average mapped to 1–11: level = average ÷ 10 + 1, so 0–9 is level 1 and 100 is level 11. Battle Zone shows the same mapping per type. Winning duels and finishing lessons grow those scores, so practice raises the level.',
   'policy_consent_title': 'Allow cloud AI analysis',
-  'policy_consent_body':
-      'Off by default. When on, your interview answers and scores are sent to the Meta Model API on the Contributor tier (Muse Spark), where sent content may be used for training. When off, everything is evaluated on-device and nothing leaves the phone.',
+  'policy_consent_body': 'Off by default. When on, your interview answers and scores are sent to the Meta Model API on the Contributor tier (Muse Spark), where sent content may be used for training. When off, everything is evaluated on-device and nothing leaves the phone.',
   'policy_honesty_1_title': 'What you actually learn',
-  'policy_honesty_1_body':
-      'Practiced encoding strategies: the memory palace, chunking, vivid images, keyword hooks, and spaced retrieval. Each works on the material you train it on — lists, numbers, names, words you practiced — and on closely similar material.',
+  'policy_honesty_1_body': 'Practiced encoding strategies: the memory palace, chunking, vivid images, keyword hooks, and spaced retrieval. Each works on the material you train it on — lists, numbers, names, words you practiced — and on closely similar material.',
   'policy_honesty_2_title': 'What practice improves',
-  'policy_honesty_2_body':
-      'Your skill with those strategies on trained material, durable with spaced review. Studies of loci training show weeks of practice reorganize how the brain encodes, with gains kept for months when review continues (Dresler et al. 2017). Your results depend on continued practice; a single pass is the foundation, not the finish.',
+  'policy_honesty_2_body': 'Your skill with those strategies on trained material, durable with spaced review. Studies of loci training show weeks of practice reorganize how the brain encodes, with gains kept for months when review continues (Dresler et al. 2017). Your results depend on continued practice; a single pass is the foundation, not the finish.',
   'policy_honesty_3_title': 'What we do NOT promise',
-  'policy_honesty_3_body':
-      'No higher IQ, no better grades or job performance, no protection against cognitive decline or dementia, and no photographic memory — that last one has never been demonstrated in a lab. Generic brain-game drills reliably improve only the drilled task itself (Simons et al. 2016; Owen et al. 2010), which is why this app teaches strategies instead of reflexes.',
+  'policy_honesty_3_body': 'No higher IQ, no better grades or job performance, no protection against cognitive decline or dementia, and no photographic memory — that last one has never been demonstrated in a lab. Generic brain-game drills reliably improve only the drilled task itself (Simons et al. 2016; Owen et al. 2010), which is why this app teaches strategies instead of reflexes.',
   'policy_honesty_4_title': 'What mastery honestly takes',
-  'policy_honesty_4_body':
-      'One full pass of a track is a few hours of guided practice. The lab protocol that moved performance used about 20 hours over 6 weeks on ONE technique. Durable skill needs spaced review over many months, practice with your own material (your palace, your names, your study texts), and retests on fresh items — not one more lap of the same screens.',
+  'policy_honesty_4_body': 'One full pass of a track is a few hours of guided practice. The lab protocol that moved performance used about 20 hours over 6 weeks on ONE technique. Durable skill needs spaced review over many months, practice with your own material (your palace, your names, your study texts), and retests on fresh items — not one more lap of the same screens.',
   'policy_honesty_5_title': 'Not medical advice',
-  'policy_honesty_5_body':
-      'Engrammo is an educational practice app, not a medical device. It does not diagnose, treat, or prevent any condition. If you are worried about your memory, talk to a clinician.',
-  'policy_lab_finding':
-      'In {study} ({finding}, lab conditions) — individual results vary with practice.',
+  'policy_honesty_5_body': 'Engrammo is an educational practice app, not a medical device. It does not diagnose, treat, or prevent any condition. If you are worried about your memory, talk to a clinician.',
+  'policy_lab_finding': 'In {study} ({finding}, lab conditions) — individual results vary with practice.',
   'stats_track': 'Learning track',
   'stats_goals': 'My goals',
   'stats_goals_count': 'My goals, {n} goals',
   'stats_streak': 'Streak, {n} days',
+  'stats_engrams': 'Engrams, {n}',
   'streak_title': 'Streak restore',
   'streak_day_streak': 'DAY STREAK',
   'streak_missed_one': '1 missed day',
@@ -175,8 +151,7 @@ const Map<String, String> enStrings = {
   'streak_confirm_title': 'Restore streak?',
   'streak_confirm_body': 'for {cost} engrams. Your streak will be {days} days.',
   'streak_restore': 'Restore',
-  'metalog_empty':
-      'No Meta call has run yet. In offline mode the local generators provide the content.',
+  'metalog_empty': 'No Meta call has run yet. In offline mode the local generators provide the content.',
   'metalog_ok': 'ok',
   'metalog_error': 'error',
   'metalog_fallback': 'fallback',
@@ -271,8 +246,7 @@ const Map<String, String> enStrings = {
   'help_title': 'Ask the AI coach',
   'help_subtitle': 'Pick a question or write your own',
   'help_clear': 'Clear conversation',
-  'help_empty':
-      'Stuck on this screen? Ask anything — the coach explains the technique in your language.',
+  'help_empty': 'Stuck on this screen? Ask anything — the coach explains the technique in your language.',
   'help_thinking': 'Coach is thinking…',
   'help_hint': 'Write your question…',
   'help_send': 'SEND',
@@ -300,8 +274,7 @@ const Map<String, String> enStrings = {
   'settings_send_verification': 'SEND VERIFICATION',
   'settings_verification_sent': 'Verification sent to {email}',
   'settings_change_password': 'Change password',
-  'settings_change_password_body':
-      'New password takes effect immediately. You may need to sign in again first.',
+  'settings_change_password_body': 'New password takes effect immediately. You may need to sign in again first.',
   'settings_new_password': 'New password',
   'settings_save_password': 'SAVE PASSWORD',
   'settings_password_updated': 'Password updated ✓',
@@ -339,19 +312,16 @@ const Map<String, String> enStrings = {
   'settings_api_key': 'Model API key',
   'settings_save_key': 'SAVE KEY',
   'settings_delete_key': 'DELETE KEY',
-  'settings_recent_calls':
-      'Recent Meta calls (Spark • Muse Image • SAM 3.1):',
+  'settings_recent_calls': 'Recent Meta calls (Spark • Muse Image • SAM 3.1):',
   'settings_danger': 'Danger zone',
   'settings_danger_sub': 'Irreversible actions',
   'settings_delete_account': 'Delete account',
-  'settings_delete_account_body':
-      'Removes your profile, progress and engrams. This also deletes your cloud save.',
+  'settings_delete_account_body': 'Removes your profile, progress and engrams. This also deletes your cloud save.',
   'settings_delete_account_btn': 'DELETE ACCOUNT',
   'settings_title': 'Settings',
   'settings_subtitle': 'Profile, account and app',
   'settings_google_title': 'Signed in with Google',
-  'settings_google_body':
-      'Email and password are managed by Google, so they cannot be changed here.',
+  'settings_google_body': 'Email and password are managed by Google, so they cannot be changed here.',
   'assess_offline': 'Stay offline',
   'assess_allow': 'Allow',
   'assess_leave': 'Leave assessment?',
@@ -366,8 +336,7 @@ const Map<String, String> enStrings = {
   'assess_example': 'For example: I see it like a photo…',
   'assess_back': 'BACK',
   'assess_analyze': 'ANALYZE ME',
-  'iv_q1_prompt':
-      'Close your eyes and picture the face of a close friend. How clear is the image?',
+  'iv_q1_prompt': 'Close your eyes and picture the face of a close friend. How clear is the image?',
   'iv_q1_hint': 'Vividness of visual imagery (VVIQ-style)',
   'iv_q1_construct': 'Visual imagery vividness',
   'iv_q1_source': 'Adapted from VVIQ (Marks 1973)',
@@ -375,17 +344,16 @@ const Map<String, String> enStrings = {
   'iv_q1_opt1': 'Clear, but some parts are fuzzy',
   'iv_q1_opt2': 'Vague blur, more a feeling than a picture',
   'iv_q1_opt3': 'No picture at all — I just know facts about them',
-  'iv_q2_prompt':
-      'Walk through your childhood home in your head, room by room. Can you do it and notice small details along the way?',
+  'iv_q2_prompt': 'Walk through your childhood home in your head, room by room. Can you do it and notice small details along the way?',
   'iv_q2_hint': 'Spatial scene construction, no technique named yet',
   'iv_q2_construct': 'Spatial scene construction',
-  'iv_q2_source': 'Hassabis & Maguire 2007; OSIQ-spatial (Blajenkova et al. 2006)',
+  'iv_q2_source':
+      'Hassabis & Maguire 2007; OSIQ-spatial (Blajenkova et al. 2006)',
   'iv_q2_opt0': 'Easily — I stroll through and see everything',
   'iv_q2_opt1': 'Mostly, but I lose track in some rooms',
   'iv_q2_opt2': 'I remember facts about it, not a walkable space',
   'iv_q2_opt3': 'I get lost — spaces never stuck with me',
-  'iv_q3_prompt':
-      'Someone tells you a new phone number once. What do you do to hold onto it?',
+  'iv_q3_prompt': 'Someone tells you a new phone number once. What do you do to hold onto it?',
   'iv_q3_hint': 'Phonological loop vs visual vs chunking strategy',
   'iv_q3_construct': 'Rehearsal strategy (phonological loop)',
   'iv_q3_source': 'Baddeley & Hitch 1974; strategy probe',
@@ -411,8 +379,7 @@ const Map<String, String> enStrings = {
   'iv_q5_opt1': 'Saying it many times until it sounds right',
   'iv_q5_opt2': 'Connecting it to words I already know',
   'iv_q5_opt3': 'Placing it somewhere — a room, a route, a scene',
-  'iv_q6_prompt':
-      'You visit a new neighborhood once. How do you find your way back the second time?',
+  'iv_q6_prompt': 'You visit a new neighborhood once. How do you find your way back the second time?',
   'iv_q6_hint': 'Sense of direction (SBSOD-style)',
   'iv_q6_construct': 'Sense of direction',
   'iv_q6_source': 'Adapted from SBSOD (Hegarty et al. 2002)',
@@ -420,8 +387,7 @@ const Map<String, String> enStrings = {
   'iv_q6_opt1': 'I remember striking sights along the way',
   'iv_q6_opt2': 'I replay the turns as instructions: left, right, straight',
   'iv_q6_opt3': 'I remember who I was with and what we talked about',
-  'iv_q7_prompt':
-      'You must remember to call a friend tomorrow at noon. How do you make sure it happens?',
+  'iv_q7_prompt': 'You must remember to call a friend tomorrow at noon. How do you make sure it happens?',
   'iv_q7_hint': 'Prospective memory strategy: event cue vs monitoring',
   'iv_q7_construct': 'Prospective memory (remembering to remember)',
   'iv_q7_source': 'Einstein & McDaniel 1990',
@@ -429,8 +395,7 @@ const Map<String, String> enStrings = {
   'iv_q7_opt1': 'Keep checking the time until noon comes',
   'iv_q7_opt2': 'Picture myself making the call, vividly',
   'iv_q7_opt3': 'Repeat "call at noon" until it sticks',
-  'iv_q8_prompt':
-      'At a gathering you meet six new people. Later, which comes back easiest?',
+  'iv_q8_prompt': 'At a gathering you meet six new people. Later, which comes back easiest?',
   'iv_q8_hint': 'Face-name associative memory vs context vs conversation',
   'iv_q8_construct': 'Face-name associative memory',
   'iv_q8_source': 'Morris et al. face-name mnemonic; McWeeny et al. 1987',
@@ -447,20 +412,14 @@ const Map<String, String> enStrings = {
   'verdict_default': 'AI verdict from your test scores and interview answers.',
   'verdict_blank':
       'Nothing measurable yet — finish the assessment to get a verdict.',
-  'verdict_local_one':
-      'Local analysis of your 1 interview answer combined with test scores points to {kind} memory.',
-  'verdict_local_many':
-      'Local analysis of your {n} interview answers combined with test scores points to {kind} memory.',
+  'verdict_local_one': 'Local analysis of your 1 interview answer combined with test scores points to {kind} memory.',
+  'verdict_local_many': 'Local analysis of your {n} interview answers combined with test scores points to {kind} memory.',
   'study_default':
       'AI study choice from your test scores and interview answers.',
-  'study_no_signal':
-      'No clear test signal, so your interview answers decide — start with {kind} memory.',
-  'study_blank':
-      'No clear signal yet — start with the first track (sensory memory) and retake after a few weeks of practice.',
-  'study_strongest':
-      'Start with {kind} memory, your strongest — early wins build the habit. Weakest now: {weak} memory — train it second.',
-  'study_balanced':
-      'Balanced profile ({names}) — start with {kind} memory, then rotate to the others.',
+  'study_no_signal': 'No clear test signal, so your interview answers decide — start with {kind} memory.',
+  'study_blank': 'No clear signal yet — start with the first track (sensory memory) and retake after a few weeks of practice.',
+  'study_strongest': 'Start with {kind} memory, your strongest — early wins build the habit. Weakest now: {weak} memory — train it second.',
+  'study_balanced': 'Balanced profile ({names}) — start with {kind} memory, then rotate to the others.',
   'tier_rookie': 'Rookie',
   'tier_contender': 'Contender',
   'tier_sharp': 'Sharp',
@@ -495,10 +454,8 @@ const Map<String, String> enStrings = {
   'bstat_community': 'Community',
   'bstat_compare': 'How you compare with others',
   'bstat_soon': 'SOON',
-  'bstat_play_first':
-      'Play a few rounds first — community averages arrive with the cloud update.',
-  'bstat_cloud':
-      'Community averages arrive with the cloud update — until then your {n} tries stay on this device.',
+  'bstat_play_first': 'Play a few rounds first — community averages arrive with the cloud update.',
+  'bstat_cloud': 'Community averages arrive with the cloud update — until then your {n} tries stay on this device.',
   'bstat_play': 'PLAY',
   'bstat_best_value': '{n} {label}',
   'bstat_best': 'BEST',
@@ -538,14 +495,12 @@ const Map<String, String> enStrings = {
   'assess_dom_none': 'No assessment yet.',
   'assess_dom_blank': 'Nothing measurable — no winner crowned.',
   'assess_dom_clear': 'Clear winner on test scores.',
-  'assess_dom_hard':
-      'Tie on scores — decided by hard-item performance, which discriminates better than easy items.',
+  'assess_dom_hard': 'Tie on scores — decided by hard-item performance, which discriminates better than easy items.',
   'assess_dom_fast':
       'Tie on scores — decided by faster recall, the more fluent memory trace.',
   'assess_dom_interview':
       'Tie on test performance — decided by your interview answers.',
-  'assess_dom_balanced':
-      'Balanced profile — {n} types tied at the top, so no single winner is claimed.',
+  'assess_dom_balanced': 'Balanced profile — {n} types tied at the top, so no single winner is claimed.',
   'mkind_0_sub': 'Audio flash and attention focus',
   'mkind_1_sub': 'Chunking forge',
   'mkind_2_sub': 'Palace builder',
@@ -599,11 +554,9 @@ const Map<String, String> enStrings = {
   'mprof_before': 'Before we start',
   'mprof_intro_help': 'Memory assessment intro',
   'mprof_nocheat': 'One rule: no cheating.',
-  'mprof_nocheat_body':
-      'No writing things down, no asking for help, no second looks. Cheating only hurts you: it hides your real dominant memory type, and then your whole training path adapts to a lie. Answer from memory alone — wrong answers are useful data too.',
+  'mprof_nocheat_body': 'No writing things down, no asking for help, no second looks. Cheating only hurts you: it hides your real dominant memory type, and then your whole training path adapts to a lie. Answer from memory alone — wrong answers are useful data too.',
   'mprof_next': 'What happens next',
-  'mprof_next_body':
-      '• 13 quick probes — 2 per type, plus a medium spatial\n• Some ask you to TYPE the answer from memory — no hints\n• An 8-question interview about HOW you remember\n• An AI names your dominant type and recommends where to start learning\n• Retakes rotate through 4 parallel forms, so memorized answers do not inflate your score',
+  'mprof_next_body': '• 13 quick probes — 2 per type, plus a medium spatial\n• Some ask you to TYPE the answer from memory — no hints\n• An 8-question interview about HOW you remember\n• An AI names your dominant type and recommends where to start learning\n• Retakes rotate through 4 parallel forms, so memorized answers do not inflate your score',
   'mprof_start': 'START — I PLAY FAIR',
   'mprof_leave_body': 'Your answers so far will be lost.',
   'mprof_title': 'Memory assessment {n}/{total}',
@@ -635,11 +588,9 @@ const Map<String, String> enStrings = {
   'mprof_calibrating': 'Calibrating on this device: first run recorded.',
   'mprof_calibrated_one': 'Calibrated on this device: 1 run.',
   'mprof_calibrated_many': 'Calibrated on this device: {n} runs.',
-  'mprof_avg':
-      'Your average {mine}% · this-device average {app}% (same test).',
+  'mprof_avg': 'Your average {mine}% · this-device average {app}% (same test).',
   'mprof_rel_ok': 'Screener consistency: r={r} (respectable, N={n}).',
-  'mprof_rel_low':
-      'Screener consistency: r={r} (below .70 — treat small gaps as noise, N={n}).',
+  'mprof_rel_low': 'Screener consistency: r={r} (below .70 — treat small gaps as noise, N={n}).',
   'mprof_quality': 'Measurement quality',
   'kreeds_copied': 'Username @{handle} copied to clipboard',
   'kreeds_new_learner': 'New learner',
@@ -650,7 +601,8 @@ const Map<String, String> enStrings = {
   'kreeds_add_friends': 'ADD FRIENDS',
   'kreeds_share': 'Share profile',
   'kreeds_save': 'Save your progress',
-  'kreeds_save_body': 'Sign in to sync scores, streak and avatar to any device.',
+  'kreeds_save_body':
+      'Sign in to sync scores, streak and avatar to any device.',
   'kreeds_discover': 'Discover your memory type',
   'kreeds_discover_sub': '12 quick tasks • about 3 min',
   'kreeds_strongest': 'STRONGEST TYPE',
@@ -713,121 +665,97 @@ const Map<String, String> enStrings = {
   'paradigm_day': 'Day replay',
   'task_iconic_prompt': 'Memorize these digits — one quick look!',
   'task_iconic_q': 'What was the {ord} digit?',
-  'task_iconic_expl':
-      'Take one visual snapshot, then probe it — the brief visual trace is the iconic store. (Sperling 1960)',
-  'task_peterson_prompt': 'Hold {tri} — count back by 3 for {n} s, then recall!',
+  'task_iconic_expl': 'Take one visual snapshot, then probe it — the brief visual trace is the iconic store. (Sperling 1960)',
+  'task_peterson_prompt':
+      'Hold {tri} — count back by 3 for {n} s, then recall!',
   'task_peterson_q': 'What was the trigram after the countdown?',
-  'task_peterson_expl':
-      'Interference wipes unrehearsed traces within seconds — the distractor is the point, not a trick. (Peterson & Peterson 1959)',
+  'task_peterson_expl': 'Interference wipes unrehearsed traces within seconds — the distractor is the point, not a trick. (Peterson & Peterson 1959)',
   'task_backward_prompt': 'Hold these digits, then reverse them!',
   'task_backward_q': 'What is the full order REVERSED?',
-  'task_backward_expl':
-      'Hold the whole set first, then work backwards one item at a time. Backward span taxes the central executive. (Baddeley & Hitch 1974)',
+  'task_backward_expl': 'Hold the whole set first, then work backwards one item at a time. Backward span taxes the central executive. (Baddeley & Hitch 1974)',
   'task_chunk_prompt': 'Memorize this number!',
   'task_chunk_q': 'Which number did you see?',
-  'task_chunk_expl':
-      'Chunk it in threes and turn each chunk into one image — {n} digits are just a few chunks. (Miller 1956; Ericsson et al. 1980)',
+  'task_chunk_expl': 'Chunk it in threes and turn each chunk into one image — {n} digits are just a few chunks. (Miller 1956; Ericsson et al. 1980)',
   'task_pattern_prompt': 'Memorize the lit cells!',
   'task_pattern_q': 'Which cells were lit?',
-  'task_pattern_expl':
-      'See the lit cells as ONE shape, not separate dots — visual working memory holds about 4 objects. (Luck & Vogel 1997)',
+  'task_pattern_expl': 'See the lit cells as ONE shape, not separate dots — visual working memory holds about 4 objects. (Luck & Vogel 1997)',
   'task_story_prompt': 'Read carefully, just once!',
-  'task_story_expl':
-      'Replay the scene as a short movie while you read — elaborated stories stick. (Craik & Tulving 1975)',
+  'task_story_expl': 'Replay the scene as a short movie while you read — elaborated stories stick. (Craik & Tulving 1975)',
   'task_cat_prompt': 'Think about the meaning!',
   'task_cat_q': 'Which one is this?',
-  'task_cat_expl':
-      'Name what makes the prototype a member — meaning webs beat rote lists. (Rosch 1975)',
+  'task_cat_expl': 'Name what makes the prototype a member — meaning webs beat rote lists. (Rosch 1975)',
   'task_paired_prompt': 'Learn this pair: {cue} goes with {target}!',
   'task_paired_q': 'What went with "{cue}"?',
-  'task_paired_expl':
-      'Link cue and target in ONE bizarre interacting image, then test yourself — retrieval beats re-study. (Karpicke & Roediger 2008)',
+  'task_paired_expl': 'Link cue and target in ONE bizarre interacting image, then test yourself — retrieval beats re-study. (Karpicke & Roediger 2008)',
   'task_face_prompt': 'Link this face to its name!',
   'task_face_q': 'Which name goes with "{feature}"?',
-  'task_face_expl':
-      'Feature first, image second, interaction third — stick the hook onto the feature. (Morris et al. face-name mnemonic)',
+  'task_face_expl': 'Feature first, image second, interaction third — stick the hook onto the feature. (Morris et al. face-name mnemonic)',
   'task_keyword_prompt': 'Learn this word: {foreign}!',
   'task_keyword_q': 'What does "{foreign}" mean?',
-  'task_keyword_expl':
-      'Picture the keyword meeting the meaning in one scene, then test both directions. (Atkinson & Raugh 1975)',
+  'task_keyword_expl': 'Picture the keyword meeting the meaning in one scene, then test both directions. (Atkinson & Raugh 1975)',
   'task_prosp_prompt': 'Make this plan: WHEN… THEN…!',
   'task_prosp_item': 'WHEN {when} → THEN {then}',
   'task_prosp_q': 'WHEN {when} — THEN what?',
-  'task_prosp_expl':
-      'Say the plan once as one sentence and picture the cue moment — if-then plans fire on their own. (Gollwitzer 1999)',
+  'task_prosp_expl': 'Say the plan once as one sentence and picture the cue moment — if-then plans fire on their own. (Gollwitzer 1999)',
   'task_poem_prompt': 'Learn these two lines!',
   'task_poem_q': '“{line}” — what comes next?',
-  'task_poem_expl':
-      'Learn verses two lines at a time and recall line 2 before re-reading — retrieval between chunks is the method. (Rubin 1995)',
+  'task_poem_expl': 'Learn verses two lines at a time and recall line 2 before re-reading — retrieval between chunks is the method. (Rubin 1995)',
   'task_day_prompt': 'Replay this mini-day in order!',
   'task_day_q': 'After “{event}” — what came next?',
-  'task_day_expl':
-      'Replay the day forward, event by event, before sleep — expecting the replay is part of the effect. (Wilhelm et al. 2011)',
+  'task_day_expl': 'Replay the day forward, event by event, before sleep — expecting the replay is part of the effect. (Wilhelm et al. 2011)',
   'task_palace_prompt': 'Walk your {route} palace — one image per station!',
   'task_palace_q': 'What did you place at the {station}?',
-  'task_palace_expl':
-      'Loci: one bizarre, moving image per station, always in walking order. Champions memorize with this exact method — 6 weeks of training rewires beginner brains toward the athlete pattern. (Maguire et al. 2003; Dresler et al. 2017)',
+  'task_palace_expl': 'Loci: one bizarre, moving image per station, always in walking order. Champions memorize with this exact method — 6 weeks of training rewires beginner brains toward the athlete pattern. (Maguire et al. 2003; Dresler et al. 2017)',
   'task_picture_prompt': 'Study this {scene} — name every detail!',
   'task_picture_q': 'Which of these was in the {scene}?',
-  'task_picture_expl':
-      'Pictures get two memory codes (visual + verbal) instead of one, and distinctive details pop out of memory. Name what you see instantly — words anchor pictures. (Shepard 1967; Standing 1973; Von Restorff 1933)',
+  'task_picture_expl': 'Pictures get two memory codes (visual + verbal) instead of one, and distinctive details pop out of memory. Name what you see instantly — words anchor pictures. (Shepard 1967; Standing 1973; Von Restorff 1933)',
   'transfer_exam-facts_label': 'Exam material',
   'transfer_exam-facts_situation':
       'Facts, definitions, and dates you must reproduce at school.',
-  'transfer_exam-facts_strategy':
-      'Retrieval practice plus spaced review: test yourself, get feedback, repeat days later — never just re-read.',
+  'transfer_exam-facts_strategy': 'Retrieval practice plus spaced review: test yourself, get feedback, repeat days later — never just re-read.',
   'transfer_names_label': 'Names',
   'transfer_names_situation':
       'A surname you heard once and need at the next meeting.',
-  'transfer_names_strategy':
-      'Attention gate first (really hear it), then a picture hook for the name, repeated back at once.',
+  'transfer_names_strategy': 'Attention gate first (really hear it), then a picture hook for the name, repeated back at once.',
   'transfer_faces_label': 'Faces',
   'transfer_faces_situation': 'Linking a face you saw to the name it carries.',
-  'transfer_faces_strategy':
-      'Three steps, always in order: one standout feature, one image for the name, one interacting scene.',
+  'transfer_faces_strategy': 'Three steps, always in order: one standout feature, one image for the name, one interacting scene.',
   'transfer_numbers-codes_label': 'Numbers and codes',
   'transfer_numbers-codes_situation':
       'PINs, door codes, and short numbers worth keeping in mind.',
-  'transfer_numbers-codes_strategy':
-      'Chunk into groups of 3 and turn each chunk into one image; hold about 4 chunks, never 12 loose digits.',
+  'transfer_numbers-codes_strategy': 'Chunk into groups of 3 and turn each chunk into one image; hold about 4 chunks, never 12 loose digits.',
   'transfer_years-dates_label': 'Years and history dates',
-  'transfer_years-dates_situation': 'Years like 1848 or 1956 attached to events.',
-  'transfer_years-dates_strategy':
-      'One image per year, stuck onto the event cue — then recall the year from the cue, not from the page.',
+  'transfer_years-dates_situation':
+      'Years like 1848 or 1956 attached to events.',
+  'transfer_years-dates_strategy': 'One image per year, stuck onto the event cue — then recall the year from the cue, not from the page.',
   'transfer_birthdays_label': 'Birthdays',
   'transfer_birthdays_situation':
       'Birth dates of family and friends, recalled from the name.',
-  'transfer_birthdays_strategy':
-      'Day plus month as ONE image, attached to the face cue; evening recall for a week fixes it.',
+  'transfer_birthdays_strategy': 'Day plus month as ONE image, attached to the face cue; evening recall for a week fixes it.',
   'transfer_deadlines_label': 'Deadlines',
   'transfer_deadlines_situation':
       'Things you must do at a future moment — bills, homework.',
-  'transfer_deadlines_strategy':
-      'One if-then plan per deadline: WHEN the cue moment comes, THEN the first step. Picture the cue moment once.',
+  'transfer_deadlines_strategy': 'One if-then plan per deadline: WHEN the cue moment comes, THEN the first step. Picture the cue moment once.',
   'transfer_todos-errands_label': 'Todos and errands',
   'transfer_todos-errands_situation':
       'Short lists: shopping, chores, calls to make today.',
-  'transfer_todos-errands_strategy':
-      'Chain the items into one silly story in order, or walk them through a tiny palace — then recall forward.',
+  'transfer_todos-errands_strategy': 'Chain the items into one silly story in order, or walk them through a tiny palace — then recall forward.',
   'transfer_poems-verses_label': 'Poems to learn',
-  'transfer_poems-verses_situation': 'Verses you must recite at school or for joy.',
-  'transfer_poems-verses_strategy':
-      'Two lines at a time: read, cover, recall line 2 from line 1 — retrieval between chunks, spaced over days.',
+  'transfer_poems-verses_situation':
+      'Verses you must recite at school or for joy.',
+  'transfer_poems-verses_strategy': 'Two lines at a time: read, cover, recall line 2 from line 1 — retrieval between chunks, spaced over days.',
   'transfer_phone-numbers_label': 'Phone numbers',
   'transfer_phone-numbers_situation':
       'Numbers you actually dial, without opening contacts.',
-  'transfer_phone-numbers_strategy':
-      'Split into groups of 3, image each group, link the images into one scene per number — morning recall for a week.',
+  'transfer_phone-numbers_strategy': 'Split into groups of 3, image each group, link the images into one scene per number — morning recall for a week.',
   'transfer_foreign-words_label': 'Foreign words',
   'transfer_foreign-words_situation':
       'Vocabulary you need for school, travel, or work.',
-  'transfer_foreign-words_strategy':
-      'Keyword method: a sound-alike hook plus one interacting image per word, tested both directions with feedback.',
+  'transfer_foreign-words_strategy': 'Keyword method: a sound-alike hook plus one interacting image per word, tested both directions with feedback.',
   'transfer_whole-day_label': 'Your whole day',
   'transfer_whole-day_situation':
       'Everything that happened today, start to finish, in order.',
-  'transfer_whole-day_strategy':
-      'Each evening, replay the day scene by scene in order, pausing on faces, numbers, and exact words — then sleep on it.',
+  'transfer_whole-day_strategy': 'Each evening, replay the day scene by scene in order, pausing on faces, numbers, and exact words — then sleep on it.',
   'goal_plan_phone-numbers_0': 'Split the number into groups of 3.',
   'goal_plan_phone-numbers_1': 'Turn each group into one vivid image.',
   'goal_plan_phone-numbers_2':
@@ -867,19 +795,19 @@ const Map<String, String> enStrings = {
   'goal_plan_exam-facts_0': 'Close the book and recall each fact from its cue.',
   'goal_plan_exam-facts_1': 'Check, fix the misses, recall them again.',
   'goal_plan_exam-facts_2': 'Repeat days later — testing beats re-reading.',
-  'goal_plan_whole-day_0': 'Each evening, replay the day forward, scene by scene.',
+  'goal_plan_whole-day_0':
+      'Each evening, replay the day forward, scene by scene.',
   'goal_plan_whole-day_1': 'Pause on faces, numbers, and exact words.',
-  'goal_plan_whole-day_2': 'Write the three hardest recalls down, then sleep on it.',
-  'goal_default_strategy':
-      'Close the source and pull the answer out from memory, then check it and repeat days later — testing beats re-reading.',
+  'goal_plan_whole-day_2':
+      'Write the three hardest recalls down, then sleep on it.',
+  'goal_default_strategy': 'Close the source and pull the answer out from memory, then check it and repeat days later — testing beats re-reading.',
   'goal_default_plan_0': 'Split the material into small chunks.',
   'goal_default_plan_1': 'Recall each chunk from memory, then check.',
   'goal_default_plan_2': 'Repeat the misses tonight and again days later.',
   'teacher_how': 'How to remember your {label}: {strategy}.',
   'teacher_material':
       ' Your material: "{material}" — run the steps on that first.',
-  'teacher_win':
-      'One win today beats ten rereads: recall it once now, then again tonight.',
+  'teacher_win': 'One win today beats ten rereads: recall it once now, then again tonight.',
   'teacher_personal': 'personal goal',
   'teacher_material_fallback': 'material',
   'dtask_my_task': 'My memory task',
@@ -893,9 +821,9 @@ const Map<String, String> enStrings = {
   'dtask_type_digits': 'Type the digits only',
   'dtask_lockin': 'Lock it in tonight:',
   'dtask_mytask': 'My {label} task',
-  'dtask_instructions':
-      'Built from your own material{extra}. Answer every block, then compare with your source.',
-  'dtask_instructions_empty': ' (nothing given yet — type it into the field inside)',
+  'dtask_instructions': 'Built from your own material{extra}. Answer every block, then compare with your source.',
+  'dtask_instructions_empty':
+      ' (nothing given yet — type it into the field inside)',
   'dtask_lock_plan_0': 'Say the if-then plan once, aloud',
   'dtask_lock_plan_1': 'Picture the cue moment for 5 seconds',
   'dtask_lock_plan_2': 'Replay it once before sleep',
@@ -911,56 +839,31 @@ const Map<String, String> enStrings = {
   'dtask_lock_default_0': 'Recall it once more from memory',
   'dtask_lock_default_1': 'Check against your source',
   'dtask_lock_default_2': 'Replay it tonight before sleep',
-  'coach_greeting':
-      'Hey! I\'m your memory coach. Ask me about a station, stars, streaks or engrams — or tap one of the suggestions above.',
-  'coach_thanks':
-      'You\'re welcome! Keep training a little every day — consistency builds the strongest memory.',
-  'coach_unlock':
-      'Finish stations to earn 1-3 stars — stars unlock the next stations on the path. Stuck on a station? Replay its drills: finishing always counts, even with mistakes.',
-  'coach_key':
-      'Add your key once in Settings → Meta AI: paste the MODEL_API_KEY and tap Save Key. It stays on this device, and plain launches keep working.',
-  'coach_theme':
-      'You can switch dark mode in Settings → Preferences. It applies instantly and stays saved on this device.',
-  'coach_signout':
-      'To sign out, open Settings → Account → Sign out. Your progress saved on this device stays put.',
-  'coach_streak':
-      'Your streak grows when you train every day. Missed a day? You can repair the break with engrams — open the streak card to see the cost.',
-  'coach_engram':
-      'Engrams are the single currency: you earn them by training, and you can spend them to repair a broken streak.',
-  'coach_stars':
-      'Finishing a station always earns 1-3 stars: all correct and fast is 3, slower or mostly correct is 2, finishing is 1. Stars unlock the next stations, and finishing grows that type\'s score, raising memory level.',
-  'coach_palace':
-      'Pick a route you know, like your home. Put one big, vivid, moving image at each stop, then walk the route in order to recall. Start with 3-4 stops.',
-  'coach_chunk':
-      'Split long strings into groups of 3 and turn each group into one vivid image. Your memory holds about 4 chunks — make each chunk count.',
-  'coach_delay':
-      'Sometimes the question arrives 1-2 drills after its stimulus. That delay is the workout: repeat the item quietly to yourself while the next drills play.',
-  'coach_assess':
-      'The assessment is a starting placement, not a diagnosis: 13 quick probes (2 per memory type, 3 for spatial), plus a short interview. Your path then emphasizes your strongest type, with every technique staying open.',
-  'coach_battle':
-      'In the Arena you duel others in short memory rounds. Win rounds to raise your rating — and duel wins grow that type\'s score, raising memory level.',
-  'coach_benchmark':
-      'Practice games are free training: no stars, no locks, just reps. Use them to warm up before a station or to drill a weak spot.',
-  'coach_league':
-      'The League ranks your training activity against others. Train regularly and finish stations to climb — consistency beats cramming.',
-  'coach_technique':
-      'The core trick is the same everywhere: turn what you must remember into one big, vivid, moving image and link it to something you already know. Start small — 3 items — then add more as it gets easy.',
-  'coach_example':
-      'Example: to remember milk, keys and a book, picture a giant milk carton blocking your front door, your keys ringing loudly on the sofa, and a book flapping like a bird on the table. Walk the route again to recall.',
-  'coach_goals':
-      'Your goals are anything YOU want to remember: type a title, add the exact material, and the AI maps it onto a proven strategy with a review plan. Then it teaches you, builds personal tasks from your material, and explains what slipped away.',
-  'coach_doit_path':
-      'Pick a station on the path and play its 3-5 short drills from memory. Finishing earns 1-3 stars, and stars unlock the next stations.',
-  'coach_doit_assess':
-      'The assessment is a starting placement, not a diagnosis: 13 quick probes (2 per memory type, 3 for spatial), plus a short interview. Your path then emphasizes your strongest type.',
-  'coach_doit_default':
-      'Read the coach card first, then play the drills: memorize each stimulus and answer from memory. Finishing always earns stars, even with mistakes — errors plus feedback still teach.',
-  'coach_topic_path':
-      'This is your training path: finish stations to earn 1-3 stars, stars unlock the next stations, and daily training builds your streak. Tell me which station you are on and I will guide you.',
-  'coach_topic_goals':
-      'Here you keep what YOU want to remember. Open a goal to get taught, to practice your own material, or to ask why something slipped away — the AI builds every step around your words.',
-  'coach_fallback':
-      'Tell me what is unclear — the technique, the task, or what to tap next — and I will walk you through it step by step.',
+  'coach_greeting': 'Hey! I\'m your memory coach. Ask me about a station, stars, streaks or engrams — or tap one of the suggestions above.',
+  'coach_thanks': 'You\'re welcome! Keep training a little every day — consistency builds the strongest memory.',
+  'coach_unlock': 'Finish stations to earn 1-3 stars — stars unlock the next stations on the path. Stuck on a station? Replay its drills: finishing always counts, even with mistakes.',
+  'coach_key': 'Add your key once in Settings → Meta AI: paste the MODEL_API_KEY and tap Save Key. It stays on this device, and plain launches keep working.',
+  'coach_theme': 'You can switch dark mode in Settings → Preferences. It applies instantly and stays saved on this device.',
+  'coach_signout': 'To sign out, open Settings → Account → Sign out. Signing out clears this device, but your synced progress is restored when you sign back in.',
+  'coach_streak': 'Your streak grows when you train every day. Missed a day? You can repair the break with engrams — open the streak card to see the cost.',
+  'coach_engram': 'Engrams are the single currency: you earn them by training, and you can spend them to repair a broken streak.',
+  'coach_stars': 'Finishing a station always earns 1-3 stars: all correct and fast is 3, slower or mostly correct is 2, finishing is 1. Stars unlock the next stations, and finishing grows that type\'s score, raising memory level.',
+  'coach_palace': 'Pick a route you know, like your home. Put one big, vivid, moving image at each stop, then walk the route in order to recall. Start with 3-4 stops.',
+  'coach_chunk': 'Split long strings into groups of 3 and turn each group into one vivid image. Your memory holds about 4 chunks — make each chunk count.',
+  'coach_delay': 'Sometimes the question arrives 1-2 drills after its stimulus. That delay is the workout: repeat the item quietly to yourself while the next drills play.',
+  'coach_assess': 'The assessment is a starting placement, not a diagnosis: 13 quick probes (2 per memory type, 3 for spatial), plus a short interview. Your path then emphasizes your strongest type, with every technique staying open.',
+  'coach_battle': 'In the Arena you duel others in short memory rounds. Win rounds to raise your rating — and duel wins grow that type\'s score, raising memory level.',
+  'coach_benchmark': 'Practice games are free training: no stars, no locks, just reps. Use them to warm up before a station or to drill a weak spot.',
+  'coach_league': 'The League ranks your training activity against others. Train regularly and finish stations to climb — consistency beats cramming.',
+  'coach_technique': 'The core trick is the same everywhere: turn what you must remember into one big, vivid, moving image and link it to something you already know. Start small — 3 items — then add more as it gets easy.',
+  'coach_example': 'Example: to remember milk, keys and a book, picture a giant milk carton blocking your front door, your keys ringing loudly on the sofa, and a book flapping like a bird on the table. Walk the route again to recall.',
+  'coach_goals': 'Your goals are anything YOU want to remember: type a title, add the exact material, and the AI maps it onto a proven strategy with a review plan. Then it teaches you, builds personal tasks from your material, and explains what slipped away.',
+  'coach_doit_path': 'Pick a station on the path and play its 3-5 short drills from memory. Finishing earns 1-3 stars, and stars unlock the next stations.',
+  'coach_doit_assess': 'The assessment is a starting placement, not a diagnosis: 13 quick probes (2 per memory type, 3 for spatial), plus a short interview. Your path then emphasizes your strongest type.',
+  'coach_doit_default': 'Read the coach card first, then play the drills: memorize each stimulus and answer from memory. Finishing always earns stars, even with mistakes — errors plus feedback still teach.',
+  'coach_topic_path': 'This is your training path: finish stations to earn 1-3 stars, stars unlock the next stations, and daily training builds your streak. Tell me which station you are on and I will guide you.',
+  'coach_topic_goals': 'Here you keep what YOU want to remember. Open a goal to get taught, to practice your own material, or to ask why something slipped away — the AI builds every step around your words.',
+  'coach_fallback': 'Tell me what is unclear — the technique, the task, or what to tap next — and I will walk you through it step by step.',
   'mar_tier_durable': 'Durable',
   'mar_tier_deep': 'Deep',
   'mar_tier_solid': 'Solid',
@@ -971,21 +874,16 @@ const Map<String, String> enStrings = {
   'mar_in_days': 'Review in {n} days',
   'mar_wait_tomorrow': 'tomorrow',
   'mar_wait_days': 'in {n} days',
-  'mar_locked':
-      'Practice round {depth} of {total} unlocks {wait} — spaced gaps protect the memory. Try another lesson or track.',
+  'mar_locked': 'Practice round {depth} of {total} unlocks {wait} — spaced gaps protect the memory. Try another lesson or track.',
   'mar_due_open': 'Due for review — the next round is open.',
   'mar_next_tomorrow': 'Next review tomorrow — spaced gaps protect the memory.',
   'mar_next_days': 'Next review in {n} days — spaced gaps protect the memory.',
-  'mar_dose_past':
-      '{shown} of {stretch}+ hours practiced on this path — past the extended program line. Keep it with spaced review.',
-  'mar_dose_lab':
-      '{shown} of {lab} hours practiced on this path — lab-dose line reached. The extended program runs to {stretch} hours.',
-  'mar_dose_progress':
-      '{shown} of {lab} hours practiced on this path — the lab protocol behind this dose used {lab} hours over 6 weeks (Dresler et al. 2017).',
+  'mar_dose_past': '{shown} of {stretch}+ hours practiced on this path — past the extended program line. Keep it with spaced review.',
+  'mar_dose_lab': '{shown} of {lab} hours practiced on this path — lab-dose line reached. The extended program runs to {stretch} hours.',
+  'mar_dose_progress': '{shown} of {lab} hours practiced on this path — the lab protocol behind this dose used {lab} hours over 6 weeks (Dresler et al. 2017).',
   'mar_depth_first': 'First pass — learn the move',
   'mar_depth_round': 'Practice round {d} of {total} — harder set, fresh items',
-  'mar_program_line':
-      'Full program: about {sessions} short sessions (~{hours} hours of guided practice) across many months of spaced review, plus your own material. Practice rounds unlock when due — the lab protocol behind this dose used about 20 hours over 6 weeks on one technique (Dresler et al. 2017).',
+  'mar_program_line': 'Full program: about {sessions} short sessions (~{hours} hours of guided practice) across many months of spaced review, plus your own material. Practice rounds unlock when due — the lab protocol behind this dose used about 20 hours over 6 weeks on one technique (Dresler et al. 2017).',
   'bench_hub_title': 'Test yourself',
   'bench_hub_sub': 'Pick a challenge and beat your best!',
   'bench_hub_tip': 'Tip: every game earns XP. Replay to beat your record!',
@@ -1009,8 +907,7 @@ const Map<String, String> enStrings = {
   'bench_game_spatial_best': 'stations',
   'bench_level_n': 'Level {n}',
   'bench_seq_done_title': 'Nice streak!',
-  'bench_seq_done_detail':
-      'You reached level {n}. One more run and you will climb even higher — +XP every round!',
+  'bench_seq_done_detail': 'You reached level {n}. One more run and you will climb even higher — +XP every round!',
   'bench_retry_xp': 'RETRY (DOUBLE XP FEELING)',
   'bench_seq_watch': 'Watch the sequence… ({n} steps)',
   'bench_seq_turn': 'Your turn! Repeat the sequence.',
@@ -1053,8 +950,7 @@ const Map<String, String> enStrings = {
   'bench_spatial_done_title': '{n} stations!',
   'bench_spatial_done_detail':
       'Walk your palace in order — one bizarre, moving image per station!',
-  'bench_spatial_memorize':
-      'Memorize the route! Each station holds one word.',
+  'bench_spatial_memorize': 'Memorize the route! Each station holds one word.',
   'bench_spatial_palace': 'Palace: {route} — {n} stations',
   'bench_spatial_gotit': 'GOT IT, ASK ME',
   'bench_spatial_q': 'What did you place at the {station}?',
@@ -1070,18 +966,16 @@ const Map<String, String> enStrings = {
       '"{title}" and its material will be removed from this device.',
   'myg_keep': 'Keep',
   'myg_delete': 'Delete',
+  'myg_gone': 'That goal is gone.',
   'myg_title': 'My goals',
-  'myg_intro_empty':
-      'Anything you want to remember belongs here — the AI turns each wish into a strategy, a plan, and personal tasks.',
+  'myg_intro_empty': 'Anything you want to remember belongs here — the AI turns each wish into a strategy, a plan, and personal tasks.',
   'myg_intro_one': '1 goal — open one to learn it with the AI.',
   'myg_intro_many': '{n} goals — open one to learn it with the AI.',
   'myg_new_goal_btn': 'NEW GOAL',
   'myg_examples': 'Examples to steal',
-  'myg_examples_body':
-      '• Colleagues’ names before Monday\n• The new door code 4917\n• Ten English words for the test\n• Mum’s birthday, March 14\n• The first verse of the poem',
+  'myg_examples_body': '• Colleagues’ names before Monday\n• The new door code 4917\n• Ten English words for the test\n• Mum’s birthday, March 14\n• The first verse of the poem',
   'myg_new_title': 'New goal',
-  'myg_new_blurb':
-      'Type anything you want to remember — one wish per goal, in your own words.',
+  'myg_new_blurb': 'Type anything you want to remember — one wish per goal, in your own words.',
   'myg_label_title': 'What do you want to remember?',
   'myg_hint_title': 'Colleagues’ names, the door code, ten words…',
   'myg_label_details': 'Why / when do you need it? (optional)',
@@ -1097,8 +991,7 @@ const Map<String, String> enStrings = {
   'myg_plan_title': 'YOUR PLAN',
   'myg_plan_blurb': 'Work the steps in order — small wins, spaced out.',
   'myg_material_title': 'YOUR MATERIAL',
-  'myg_material_blurb':
-      'The exact words, numbers, or lines — the AI builds every task from this, word for word.',
+  'myg_material_blurb': 'The exact words, numbers, or lines — the AI builds every task from this, word for word.',
   'myg_saving': 'Saving…',
   'myg_save_material': 'Save material',
   'myg_teach_title': 'TEACH ME',
@@ -1107,20 +1000,17 @@ const Map<String, String> enStrings = {
   'myg_teach_btn': 'Teach me',
   'myg_teach_busy': 'The AI is preparing your lesson…',
   'myg_diag_title': 'WHY DID I FORGET?',
-  'myg_diag_blurb':
-      'Tell the AI what slipped away — it names the likely cause and one concrete fix.',
+  'myg_diag_blurb': 'Tell the AI what slipped away — it names the likely cause and one concrete fix.',
   'myg_diag_label': 'What could you NOT remember?',
   'myg_diag_hint': 'The second name, the last digits…',
   'myg_diag_btn': 'Why did I forget?',
   'myg_diag_busy': 'The AI is reading your miss…',
   'myg_build_title': 'MY PERSONAL TASK',
-  'myg_build_blurb':
-      'The AI assembles a small task from buttons, fields, and lists — built around your material.',
+  'myg_build_blurb': 'The AI assembles a small task from buttons, fields, and lists — built around your material.',
   'myg_build_btn': 'Build my task',
   'myg_build_busy': 'The AI is building your task…',
   'myg_drill_title': 'QUICK DRILL',
-  'myg_drill_blurb':
-      'One validated drill from your goal’s own procedure — fresh AI stimulus every round.',
+  'myg_drill_blurb': 'One validated drill from your goal’s own procedure — fresh AI stimulus every round.',
   'myg_drill_btn': 'Start quick drill',
   'myg_drill_busy': 'The AI is picking your stimulus…',
   'myg_drill_round': '{name} · round {n}',
@@ -1154,7 +1044,8 @@ const Map<String, String> enStrings = {
   'fnd_ex_0_think1': 'I say it straight back: "Nice to meet you, Anna."',
   'fnd_ex_0_think2':
       'I ask: "Anna with one N or two?" — a free second exposure.',
-  'fnd_ex_0_payoff': 'One minute later I still know her name — intake fixed it.',
+  'fnd_ex_0_payoff':
+      'One minute later I still know her name — intake fixed it.',
   'fnd_ex_1_situation': 'A door code: 491625. Six loose digits, no meaning.',
   'fnd_ex_1_think0': 'I split it in two: 491 — 625.',
   'fnd_ex_1_think1': '491 becomes a football score, 625 a plane seat.',
@@ -1189,25 +1080,22 @@ const Map<String, String> enStrings = {
   'lp_exit_body': 'Your progress in this session will be lost.',
   'lp_exit_stay': 'Keep playing',
   'lp_exit_leave': 'Leave',
-  'lp_session_foundation':
-      'Gentle start: {n} easy drills — memorize each one, then answer right away.',
+  'lp_session_foundation': 'Gentle start: {n} easy drills — memorize each one, then answer right away.',
   'lp_session_plain': 'Session: {n} drills in a row — memorize, then answer.',
-  'lp_session_lag_one':
-      'Session: {n} drills, questions come 1 step later — hold each item in mind!',
-  'lp_session_lag_many':
-      'Session: {n} drills, questions come {lag} steps later — hold each item in mind!',
+  'lp_session_lag_one': 'Session: {n} drills, questions come 1 step later — hold each item in mind!',
+  'lp_session_lag_many': 'Session: {n} drills, questions come {lag} steps later — hold each item in mind!',
   'lp_how_title': 'HOW THIS STATION WORKS',
-  'lp_how_body':
-      '1. Read the technique below.\n2. Play {n} short drills in a row — memorize each one, then answer.\n3. Finishing always earns 1–3 stars and unlocks the next station.\nStuck anywhere? Tap the ? button to ask the AI coach.',
+  'lp_how_body': '1. Read the technique below.\n2. Play {n} short drills in a row — memorize each one, then answer.\n3. Finishing always earns 1–3 stars and unlocks the next station.\nStuck anywhere? Tap the ? button to ask the AI coach.',
   'lp_why_title': 'WHY IT WORKS',
+  'lp_technique_title': 'THE TECHNIQUE',
+  'lp_details_title': 'Details',
+  'lp_about_title': 'ABOUT THIS TECHNIQUE',
   'lp_start': 'START DRILL',
   'lp_watchme': 'WATCH ME FIRST',
   'lp_lag_title': 'NEW RULE: DELAYED QUESTIONS',
-  'lp_lag_body':
-      'From here, a question may arrive one drill AFTER its own drill. Every drill carries a number tag (drill 1 of {n}, drill 2 of {n}…), and every question names its drill — follow the numbers and you always know which one is asked.',
+  'lp_lag_body': 'From here, a question may arrive one drill AFTER its own drill. Every drill carries a number tag (drill 1 of {n}, drill 2 of {n}…), and every question names its drill — follow the numbers and you always know which one is asked.',
   'lp_transfer_title': 'YOU WILL USE THIS FOR',
-  'lp_transfer_note':
-      'Same strategy in the app and in real life — that shared procedure is what carries over.',
+  'lp_transfer_note': 'Same strategy in the app and in real life — that shared procedure is what carries over.',
   'lp_loading': 'Preparing tasks…',
   'lp_loading_n': 'Preparing tasks… {done}/{total}',
   'lp_upgrade': 'AI image + stations (SAM) loading… {done}/{total}',
@@ -1216,10 +1104,8 @@ const Map<String, String> enStrings = {
   'lp_remember_lag':
       'Remember this as drill {i} of {n} — its question may come later!',
   'lp_disappears': 'The prompt disappears — answer from memory!',
-  'lp_cue_loci':
-      'One station, one bizarre moving image — always in walking order. (Maguire et al. 2003)',
-  'lp_cue_picture':
-      'Name every detail instantly — words anchor pictures. (Shepard 1967; Standing 1973)',
+  'lp_cue_loci': 'One station, one bizarre moving image — always in walking order. (Maguire et al. 2003)',
+  'lp_cue_picture': 'Name every detail instantly — words anchor pictures. (Shepard 1967; Standing 1973)',
   'lp_question_count': 'Question {q}/{n} — drill {d}/{n}',
   'lp_retell': 'Retell the story in your own words.',
   'lp_locked_in': 'Locked in — on to the next one!',
@@ -1231,8 +1117,7 @@ const Map<String, String> enStrings = {
   'lp_locked_done': 'Locked in. Retrieval is the workout.',
   'lp_continue': 'CONTINUE',
   'lp_yours_title': 'MAKE IT YOURS',
-  'lp_yours_blurb':
-      'Drills train the strategy — your own material is where it pays off. Tell the AI what you want to remember.',
+  'lp_yours_blurb': 'Drills train the strategy — your own material is where it pays off. Tell the AI what you want to remember.',
   'lp_my_goal': 'My: {title}',
   'lp_new_goal': 'New personal goal…',
   'lp_manage_goals': 'Manage my goals…',
@@ -1272,17 +1157,13 @@ const Map<String, String> enStrings = {
   'btz_how': 'How it works',
   'btz_how_sub': 'Three steps, measured every round',
   'btz_step1_title': 'Matched opponents',
-  'btz_step1_body':
-      'Matchmaking looks within ±{w} points. In squads, the two players\' average counts.',
+  'btz_step1_body': 'Matchmaking looks within ±{w} points. In squads, the two players\' average counts.',
   'btz_step2_title': 'Memorize, then recall',
-  'btz_step2_body':
-      'Each round hides the stimulus before the question: type digits, tap cells, name details. Same tasks, same clock, real recall.',
+  'btz_step2_body': 'Each round hides the stimulus before the question: type digits, tap cells, name details. Same tasks, same clock, real recall.',
   'btz_step3_title': 'Winner takes points',
-  'btz_step3_body':
-      'Win and your score goes up, lose and it goes down — never below 0. Draws split the difference.',
+  'btz_step3_body': 'Win and your score goes up, lose and it goes down — never below 0. Draws split the difference.',
   'btz_fair_title': 'Protected against farming',
-  'btz_fair_body':
-      'Score only moves in duels. The practice ground gives XP, not score — grinding easy tasks won\'t move you up here.',
+  'btz_fair_body': 'Score only moves in duels. The practice ground gives XP, not score — grinding easy tasks won\'t move you up here.',
   'btz_presence_friends': '{f} friends · {p} sparring partners',
   'btz_presence': '{p} sparring partners',
   'btz_score': 'BATTLE SCORE',
@@ -1300,17 +1181,19 @@ const Map<String, String> enStrings = {
   'btz_matched_within': 'Matched within ±{w} pts',
   'btz_match_duel_body':
       'Three quick tasks, one clock, a live rival. Winner takes points.',
-  'btz_match_squad_body': 'You plus an ally bot vs two bots. Team total decides.',
+  'btz_match_squad_body':
+      'You plus an ally bot vs two bots. Team total decides.',
   'btz_range': 'Match range: {lo}–{hi} pts',
   'btz_find': 'FIND MATCH',
   'btz_practice': 'PRACTICE RUN',
+  'btz_no_opponent': 'No opponent right now — try again.',
+  'btz_offline_wait': '{name} is offline — invite stays pending.',
   'btz_friends_title': 'Battle with friends',
   'btz_friends_sub': 'Search a friend and challenge them to a 1v1',
   'btz_search_hint': 'Search by friend name…',
   'btz_no_friend': 'No friend named "{q}".',
   'btz_loading': 'Arena still loading…',
-  'btz_no_friends':
-      'No friends yet — add players from the Friends tab, then invite them to a 1v1 here.',
+  'btz_no_friends': 'No friends yet — add players from the Friends tab, then invite them to a 1v1 here.',
   'btz_find_friends': 'FIND FRIENDS',
   'btz_matches': 'Matches',
   'btz_winrate': 'Win rate',
@@ -1458,11 +1341,9 @@ const Map<String, String> enStrings = {
   'blg_bonus': '+{n} bonus XP',
   'blg_tourn_sub': 'No promotion here — you play for the title',
   'blg_top8': 'TOP 8',
-  'blg_tourn_body':
-      'At the end of the week the top 8 decide the champion in a knockout bracket. Quarterfinal, semifinal, final.',
+  'blg_tourn_body': 'At the end of the week the top 8 decide the champion in a knockout bracket. Quarterfinal, semifinal, final.',
   'blg_reward': 'Winner\'s reward',
-  'blg_reward_body':
-      'The champion earns a "2026 tournament winner" badge on their profile. Further wins don\'t add a new badge — the multiplier grows instead: "2x 2026 tournament winner".',
+  'blg_reward_body': 'The champion earns a "2026 tournament winner" badge on their profile. Further wins don\'t add a new badge — the multiplier grows instead: "2x 2026 tournament winner".',
   'blg_no_field': 'No tournament field yet — play league games to qualify.',
   'blg_qf': 'Quarterfinal',
   'blg_sf': 'Semifinal',
@@ -1504,8 +1385,7 @@ const Map<String, String> enStrings = {
   'lpt_chapter_of': 'Chapter {i} of {n}',
   'lpt_unlock_hint': 'Finish the chapter above to unlock',
   'lpt_foundation_done': 'Foundation complete',
-  'lpt_foundation_body':
-      'You finished the {track} foundation — every strategy practiced once. Keep it with review + your own material.',
+  'lpt_foundation_body': 'You finished the {track} foundation — every strategy practiced once. Keep it with review + your own material.',
   'lpt_foundation_keep': 'Finish this track to keep flowing',
   'lpt_foundation_pill_done': 'Foundation done — keep reviewing',
   'lpt_foundation_pill_next': 'Chapter {i} of {n} up next',
@@ -1524,9 +1404,9 @@ const Map<String, String> enStrings = {
   'lpt_retake_sub': '12 quick probes • fresh parallel form',
   'lpt_honesty': 'What practice can — and cannot — do →',
   'lpt_foundation_review': 'Every path ends in a foundation review.',
+  'lpt_repeat_suggested': 'Repeat suggested',
   'mission_sensory-names-3_title': 'Three live introductions',
-  'mission_sensory-names-3_briefing':
-      'Use the attention gate on three real introductions this week: full focus, no inner rehearsal, name repeated back at once.',
+  'mission_sensory-names-3_briefing': 'Use the attention gate on three real introductions this week: full focus, no inner rehearsal, name repeated back at once.',
   'mission_sensory-names-3_step0':
       'Stop rehearsing your own reply the moment they speak.',
   'mission_sensory-names-3_step1':
@@ -1536,8 +1416,7 @@ const Map<String, String> enStrings = {
   'mission_sensory-names-3_selfcheck':
       'Next morning, write down all three names from memory and check.',
   'mission_sensory-noisy-cafe_title': 'Noisy-room recall',
-  'mission_sensory-noisy-cafe_briefing':
-      'Ask a friend to read 5 words aloud in a noisy place, then recall them in order. Same filter skill as the noisy-field drills.',
+  'mission_sensory-noisy-cafe_briefing': 'Ask a friend to read 5 words aloud in a noisy place, then recall them in order. Same filter skill as the noisy-field drills.',
   'mission_sensory-noisy-cafe_step0':
       'Lock onto the reader voice and let the rest blur.',
   'mission_sensory-noisy-cafe_step1':
@@ -1547,8 +1426,7 @@ const Map<String, String> enStrings = {
   'mission_sensory-noisy-cafe_selfcheck':
       'Repeat with 5 fresh words in a quiet room and compare.',
   'mission_sensory-errands-echo_title': 'Errands by ear',
-  'mission_sensory-errands-echo_briefing':
-      'Have someone read your next errand list once, say it back aloud, then run the errands with no written list.',
+  'mission_sensory-errands-echo_briefing': 'Have someone read your next errand list once, say it back aloud, then run the errands with no written list.',
   'mission_sensory-errands-echo_step0':
       'Say the errands aloud once, grouped in rhythm.',
   'mission_sensory-errands-echo_step1':
@@ -1558,8 +1436,7 @@ const Map<String, String> enStrings = {
   'mission_sensory-errands-echo_selfcheck':
       'Count how many errands came back right; note which faded.',
   'mission_sensory-evening-replay_title': 'Evening sound replay',
-  'mission_sensory-evening-replay_briefing':
-      'Each evening for 3 days, replay the names and numbers you heard that day before sleep, then sleep on it.',
+  'mission_sensory-evening-replay_briefing': 'Each evening for 3 days, replay the names and numbers you heard that day before sleep, then sleep on it.',
   'mission_sensory-evening-replay_step0':
       'Sit quiet and replay the day sounds in order.',
   'mission_sensory-evening-replay_step1':
@@ -1569,8 +1446,7 @@ const Map<String, String> enStrings = {
   'mission_sensory-evening-replay_selfcheck':
       'On day 4, recall day 1 sounds again and check the notes.',
   'mission_working-phones-2_title': 'Two real phone numbers',
-  'mission_working-phones-2_briefing':
-      'Learn two phone numbers you actually dial by chunking them into images — no contacts lookup for a week.',
+  'mission_working-phones-2_briefing': 'Learn two phone numbers you actually dial by chunking them into images — no contacts lookup for a week.',
   'mission_working-phones-2_step0':
       'Split each number into groups of 3 and image each group.',
   'mission_working-phones-2_step1':
@@ -1580,8 +1456,7 @@ const Map<String, String> enStrings = {
   'mission_working-phones-2_selfcheck':
       'Dial both from memory on day 7; note errors by chunk.',
   'mission_working-shopping-8_title': 'Shopping without paper',
-  'mission_working-shopping-8_briefing':
-      'Encode your next 8-item shopping list as chunks with images, then shop with the list sealed in your pocket.',
+  'mission_working-shopping-8_briefing': 'Encode your next 8-item shopping list as chunks with images, then shop with the list sealed in your pocket.',
   'mission_working-shopping-8_step0':
       'Group items in threes; image each group as one scene.',
   'mission_working-shopping-8_step1':
@@ -1591,8 +1466,7 @@ const Map<String, String> enStrings = {
   'mission_working-shopping-8_selfcheck':
       'Compare recalled items with the paper list; fix misses.',
   'mission_working-dates-5_title': 'Five dates that matter',
-  'mission_working-dates-5_briefing':
-      'Fix five birthdays or anniversaries with chunked images so you can say each date when you see the person name.',
+  'mission_working-dates-5_briefing': 'Fix five birthdays or anniversaries with chunked images so you can say each date when you see the person name.',
   'mission_working-dates-5_step0':
       'Turn each date into one image (day + month together).',
   'mission_working-dates-5_step1': 'Stick the image onto a photo or face cue.',
@@ -1600,9 +1474,9 @@ const Map<String, String> enStrings = {
   'mission_working-dates-5_selfcheck':
       'Ask someone to quiz you on all five in random order.',
   'mission_working-backwards-day_title': 'Backwards errand check',
-  'mission_working-backwards-day_briefing':
-      'After any 4-stop errand run, recite the stops backwards from memory before driving home.',
-  'mission_working-backwards-day_step0': 'Hold all stops in mind before reversing.',
+  'mission_working-backwards-day_briefing': 'After any 4-stop errand run, recite the stops backwards from memory before driving home.',
+  'mission_working-backwards-day_step0':
+      'Hold all stops in mind before reversing.',
   'mission_working-backwards-day_step1':
       'Work backwards one stop at a time, aloud.',
   'mission_working-backwards-day_step2':
@@ -1610,8 +1484,7 @@ const Map<String, String> enStrings = {
   'mission_working-backwards-day_selfcheck':
       'Do it on three separate runs; track clean runs.',
   'mission_spatial-home-10_title': 'Your home route of 10',
-  'mission_spatial-home-10_briefing':
-      'Walk your real home and fix 10 stations in strict order, door to bedroom. This route becomes your default palace.',
+  'mission_spatial-home-10_briefing': 'Walk your real home and fix 10 stations in strict order, door to bedroom. This route becomes your default palace.',
   'mission_spatial-home-10_step0': 'Write the 10 stations in order on paper.',
   'mission_spatial-home-10_step1':
       'Walk the route twice with no items, naming each station.',
@@ -1620,8 +1493,7 @@ const Map<String, String> enStrings = {
   'mission_spatial-home-10_selfcheck':
       'Tomorrow, walk the route blind and recall all 10 words.',
   'mission_spatial-street-15_title': 'Your street route of 15',
-  'mission_spatial-street-15_briefing':
-      'Fix a 15-station outdoor route you walk often. Distinct spots only — no two benches, no vague corners.',
+  'mission_spatial-street-15_briefing': 'Fix a 15-station outdoor route you walk often. Distinct spots only — no two benches, no vague corners.',
   'mission_spatial-street-15_step0':
       'Walk the street and pick 15 sharp, distinct spots.',
   'mission_spatial-street-15_step1':
@@ -1631,8 +1503,7 @@ const Map<String, String> enStrings = {
   'mission_spatial-street-15_selfcheck':
       'Recall the 15 items forward next morning, then re-walk.',
   'mission_spatial-own-list-20_title': 'Twenty items that are yours',
-  'mission_spatial-own-list-20_briefing':
-      'Put a real 20-item list of yours (study, work, packing) into your two routes and recall it the next day.',
+  'mission_spatial-own-list-20_briefing': 'Put a real 20-item list of yours (study, work, packing) into your two routes and recall it the next day.',
   'mission_spatial-own-list-20_step0':
       'Split the list: 10 on the home route, 10 on the street.',
   'mission_spatial-own-list-20_step1':
@@ -1642,17 +1513,16 @@ const Map<String, String> enStrings = {
   'mission_spatial-own-list-20_selfcheck':
       'Write the 20 from memory; re-walk only the missed ones.',
   'mission_spatial-teach-once_title': 'Teach the walk once',
-  'mission_spatial-teach-once_briefing':
-      'Teach your home route to one person and walk them through 5 items. Teaching forces clean order and sharp stations.',
-  'mission_spatial-teach-once_step0': 'Show your 10 stations in order on paper.',
+  'mission_spatial-teach-once_briefing': 'Teach your home route to one person and walk them through 5 items. Teaching forces clean order and sharp stations.',
+  'mission_spatial-teach-once_step0':
+      'Show your 10 stations in order on paper.',
   'mission_spatial-teach-once_step1': 'Place 5 items together, one scene each.',
   'mission_spatial-teach-once_step2':
       'Let them walk it back while you stay silent.',
   'mission_spatial-teach-once_selfcheck':
       'A day later, recall those same 5 items yourself.',
   'mission_visual-grocery-images_title': 'Image your abstract tasks',
-  'mission_visual-grocery-images_briefing':
-      'Turn 6 abstract work items (calls, forms, deadlines) into big, moving pictures and recall them at noon.',
+  'mission_visual-grocery-images_briefing': 'Turn 6 abstract work items (calls, forms, deadlines) into big, moving pictures and recall them at noon.',
   'mission_visual-grocery-images_step0':
       'Give each abstract item one concrete picture.',
   'mission_visual-grocery-images_step1':
@@ -1662,8 +1532,7 @@ const Map<String, String> enStrings = {
   'mission_visual-grocery-images_selfcheck':
       'At noon, list all 6 from the pictures; check your list.',
   'mission_visual-photo-next-day_title': 'Photo details next day',
-  'mission_visual-photo-next-day_briefing':
-      'Study one busy photo for a minute, then recall 6 details the next day without looking again.',
+  'mission_visual-photo-next-day_briefing': 'Study one busy photo for a minute, then recall 6 details the next day without looking again.',
   'mission_visual-photo-next-day_step0':
       'Name 6 details aloud while looking once.',
   'mission_visual-photo-next-day_step1': 'Exaggerate one feature per detail.',
@@ -1672,9 +1541,9 @@ const Map<String, String> enStrings = {
   'mission_visual-photo-next-day_selfcheck':
       'Score details right out of 6; repeat with a fresh photo.',
   'mission_visual-meeting-5_title': 'Five meeting points pictured',
-  'mission_visual-meeting-5_briefing':
-      'During your next meeting, image each of 5 key points as it is said and replay the strip right after.',
-  'mission_visual-meeting-5_step0': 'Picture each point the moment you hear it.',
+  'mission_visual-meeting-5_briefing': 'During your next meeting, image each of 5 key points as it is said and replay the strip right after.',
+  'mission_visual-meeting-5_step0':
+      'Picture each point the moment you hear it.',
   'mission_visual-meeting-5_step1':
       'Link pictures 1→2→3→4→5 with small actions.',
   'mission_visual-meeting-5_step2':
@@ -1682,8 +1551,7 @@ const Map<String, String> enStrings = {
   'mission_visual-meeting-5_selfcheck':
       'Next morning, replay the strip and check the minutes.',
   'mission_visual-study-pages_title': 'Study pages as scenes',
-  'mission_visual-study-pages_briefing':
-      'Turn one study page into 4 linked scenes and recall the page structure the next day from the scenes.',
+  'mission_visual-study-pages_briefing': 'Turn one study page into 4 linked scenes and recall the page structure the next day from the scenes.',
   'mission_visual-study-pages_step0':
       'One scene per paragraph; keep the page order.',
   'mission_visual-study-pages_step1': 'Interact the scenes with each other.',
@@ -1692,8 +1560,7 @@ const Map<String, String> enStrings = {
   'mission_visual-study-pages_selfcheck':
       'Explain the page aloud from memory; check gaps.',
   'mission_episodic-7-day-journal_title': 'Seven evenings of replay',
-  'mission_episodic-7-day-journal_briefing':
-      'Replay each day backwards for 7 evenings and log the three hardest recalls. Expecting the replay is part of the effect.',
+  'mission_episodic-7-day-journal_briefing': 'Replay each day backwards for 7 evenings and log the three hardest recalls. Expecting the replay is part of the effect.',
   'mission_episodic-7-day-journal_step0':
       'Each evening, replay the day scene by scene, backwards.',
   'mission_episodic-7-day-journal_step1':
@@ -1703,8 +1570,7 @@ const Map<String, String> enStrings = {
   'mission_episodic-7-day-journal_selfcheck':
       'On day 8, recall day 1 from the log cues only.',
   'mission_episodic-story-study_title': 'Study list as one story',
-  'mission_episodic-story-study_briefing':
-      'Chain 10 study terms into one silly adventure and retell it start to finish the next day.',
+  'mission_episodic-story-study_briefing': 'Chain 10 study terms into one silly adventure and retell it start to finish the next day.',
   'mission_episodic-story-study_step0':
       'Link term 1→2 with an action, then 2→3, one chain.',
   'mission_episodic-story-study_step1':
@@ -1714,8 +1580,7 @@ const Map<String, String> enStrings = {
   'mission_episodic-story-study_selfcheck':
       'List the 10 terms from the story; note broken links.',
   'mission_episodic-walkback-week_title': 'Walk back the week',
-  'mission_episodic-walkback-week_briefing':
-      'On Sunday, walk one palace from Monday items plus replay the week day by day, then sleep and re-recall Monday.',
+  'mission_episodic-walkback-week_briefing': 'On Sunday, walk one palace from Monday items plus replay the week day by day, then sleep and re-recall Monday.',
   'mission_episodic-walkback-week_step0':
       'Walk the Monday palace once before bed.',
   'mission_episodic-walkback-week_step1':
@@ -1725,8 +1590,7 @@ const Map<String, String> enStrings = {
   'mission_episodic-walkback-week_selfcheck':
       'Count Monday items held overnight vs. re-walked ones.',
   'mission_episodic-retell-once_title': 'Retell one story aloud',
-  'mission_episodic-retell-once_briefing':
-      'Read one short article once, then retell it aloud to someone the same evening from memory only.',
+  'mission_episodic-retell-once_briefing': 'Read one short article once, then retell it aloud to someone the same evening from memory only.',
   'mission_episodic-retell-once_step0':
       'Read once like a short movie, no re-reading.',
   'mission_episodic-retell-once_step1':
@@ -1735,8 +1599,7 @@ const Map<String, String> enStrings = {
   'mission_episodic-retell-once_selfcheck':
       'Retell again next day; compare skipped parts.',
   'mission_semantic-live-names-5_title': 'Five names at one event',
-  'mission_semantic-live-names-5_briefing':
-      'At your next gathering, encode 5 real names with the 3-step method and greet two of them by name later.',
+  'mission_semantic-live-names-5_briefing': 'At your next gathering, encode 5 real names with the 3-step method and greet two of them by name later.',
   'mission_semantic-live-names-5_step0':
       'Spot one standout feature per face first.',
   'mission_semantic-live-names-5_step1':
@@ -1746,8 +1609,7 @@ const Map<String, String> enStrings = {
   'mission_semantic-live-names-5_selfcheck':
       'Next day, list all 5 names from the features.',
   'mission_semantic-foreign-20_title': 'Twenty words in two weeks',
-  'mission_semantic-foreign-20_briefing':
-      'Learn 20 real foreign words you need with keyword images, 2 a day, testing both directions with feedback.',
+  'mission_semantic-foreign-20_briefing': 'Learn 20 real foreign words you need with keyword images, 2 a day, testing both directions with feedback.',
   'mission_semantic-foreign-20_step0':
       'Two new words a day, each with a keyword scene.',
   'mission_semantic-foreign-20_step1':
@@ -1757,17 +1619,16 @@ const Map<String, String> enStrings = {
   'mission_semantic-foreign-20_selfcheck':
       'On day 14, test all 20 shuffled; log held ones.',
   'mission_semantic-talk-5_title': 'Five-point talk, no notes',
-  'mission_semantic-talk-5_briefing':
-      'Give a real 5-point update or toast from a loci skeleton, with no notes in hand.',
+  'mission_semantic-talk-5_briefing': 'Give a real 5-point update or toast from a loci skeleton, with no notes in hand.',
   'mission_semantic-talk-5_step0': 'Place 5 points on 5 stations in order.',
-  'mission_semantic-talk-5_step1': 'Walk the skeleton twice the evening before.',
+  'mission_semantic-talk-5_step1':
+      'Walk the skeleton twice the evening before.',
   'mission_semantic-talk-5_step2':
       'Deliver from the walk; note where you paused.',
   'mission_semantic-talk-5_selfcheck':
       'Ask one listener to repeat your 5 points back.',
   'mission_semantic-facts-own-15_title': 'Fifteen facts of yours',
-  'mission_semantic-facts-own-15_briefing':
-      'File 15 facts from your own study or work into one palace room set and recall any fact by its station.',
+  'mission_semantic-facts-own-15_briefing': 'File 15 facts from your own study or work into one palace room set and recall any fact by its station.',
   'mission_semantic-facts-own-15_step0':
       'Ask why for each fact and link it to two known things.',
   'mission_semantic-facts-own-15_step1':
@@ -1782,57 +1643,42 @@ const Map<String, String> enStrings = {
   'ai_teacher_default_label': 'material',
   'ai_teacher_material':
       ' Your material: "{material}" — run the steps on that first.',
-  'ai_teacher_how':
-      'How to remember your {label}: {strategy}.{material} One win today beats ten rereads: recall it once now, then again tonight.',
+  'ai_teacher_how': 'How to remember your {label}: {strategy}.{material} One win today beats ten rereads: recall it once now, then again tonight.',
   'ai_diagnose_what': 'that',
-  'ai_diagnose_custom':
-      'Forgetting {what} usually means the first encoding was too shallow: no strong cue was linked to it. Fix with your own strategy — {strategy} — then test yourself again tonight and days later.',
-  'ai_diagnose_names':
-      'Forgetting {what} usually means it was never encoded: attention was split at the hello. Fix: next time stop your inner rehearsal, repeat the name back at once, and stick one picture hook onto one facial feature.',
-  'ai_diagnose_numbers':
-      'Forgetting {what} usually means too many loose items with no chunks. Fix: split into groups of 3, turn each group into one image, and recall the images — morning and night for a week.',
-  'ai_diagnose_deadlines':
-      'Forgetting {what} usually means no cue was linked to the action. Fix: make one if-then plan — WHEN the cue moment comes, THEN the first step — and picture the cue moment once.',
-  'ai_diagnose_poems':
-      'Forgetting {what} usually means re-reading without retrieval. Fix: cover the lines, recall line 2 from line 1, and space the chunks over days instead of cramming.',
-  'ai_diagnose_wholeday':
-      'Forgetting {what} usually means no evening replay: the day was never consolidated. Fix: tonight replay the day forward, scene by scene, pausing on faces, numbers, and exact words.',
-  'ai_diagnose_default':
-      'Forgetting {what} usually means study without retrieval. Fix: close the source, pull the answer out from memory, check it, and repeat days later — testing beats re-reading.',
+  'ai_diagnose_custom': 'Forgetting {what} usually means the first encoding was too shallow: no strong cue was linked to it. Fix with your own strategy — {strategy} — then test yourself again tonight and days later.',
+  'ai_diagnose_names': 'Forgetting {what} usually means it was never encoded: attention was split at the hello. Fix: next time stop your inner rehearsal, repeat the name back at once, and stick one picture hook onto one facial feature.',
+  'ai_diagnose_numbers': 'Forgetting {what} usually means too many loose items with no chunks. Fix: split into groups of 3, turn each group into one image, and recall the images — morning and night for a week.',
+  'ai_diagnose_deadlines': 'Forgetting {what} usually means no cue was linked to the action. Fix: make one if-then plan — WHEN the cue moment comes, THEN the first step — and picture the cue moment once.',
+  'ai_diagnose_poems': 'Forgetting {what} usually means re-reading without retrieval. Fix: cover the lines, recall line 2 from line 1, and space the chunks over days instead of cramming.',
+  'ai_diagnose_wholeday': 'Forgetting {what} usually means no evening replay: the day was never consolidated. Fix: tonight replay the day forward, scene by scene, pausing on faces, numbers, and exact words.',
+  'ai_diagnose_default': 'Forgetting {what} usually means study without retrieval. Fix: close the source, pull the answer out from memory, check it, and repeat days later — testing beats re-reading.',
   'ai_note_no_key': 'no AI key — add it in Settings → Meta AI, {tail}',
   'ai_note_consent_off':
       'cloud AI consent is off (Settings → Allow cloud AI analysis), {tail}',
   'ai_recap_title': 'AI session recap',
-  'ai_recap_good':
-      '{correct} of {total} right on {track} — strong run. Next: raise the difficulty one step and recall once more tonight.',
-  'ai_recap_mid':
-      '{correct} of {total} on {track}. Solid middle: replay the missed ones now, then recall them again tomorrow.',
-  'ai_recap_low':
-      '{correct} of {total} on {track} — the start counts too. Next: one easier round, slow, then recall the same items tonight.',
+  'ai_recap_good': '{correct} of {total} right on {track} — strong run. Next: raise the difficulty one step and recall once more tonight.',
+  'ai_recap_mid': '{correct} of {total} on {track}. Solid middle: replay the missed ones now, then recall them again tomorrow.',
+  'ai_recap_low': '{correct} of {total} on {track} — the start counts too. Next: one easier round, slow, then recall the same items tonight.',
   'ai_tip_title': 'AI practice tip',
-  'ai_tip_sequence':
-      'At level {n}: hum the taps as a rhythm — rhythm chunks the sequence so it sticks longer.',
-  'ai_tip_number':
-      'At {n} digits: split the number into pairs and turn each pair into one picture.',
-  'ai_tip_verbal':
-      'At {n} points: link each new word to one picture in the room around you.',
-  'ai_tip_visual':
-      'At level {n}: name the lit cells as one shape (an L, a corner) instead of single dots.',
-  'ai_tip_order':
-      'At {n} cells: trace the 1-2-3 path in the air once before you start tapping.',
-  'ai_tip_spatial':
-      'At {n} stations: walk your palace in the same order every time — order is half the memory.',
-  'ai_tip_default':
-      'At level {n}: slow down on the next round — one careful recall beats three rushed ones.',
+  'ai_tip_sequence': 'At level {n}: hum the taps as a rhythm — rhythm chunks the sequence so it sticks longer.',
+  'ai_tip_number': 'At {n} digits: split the number into pairs and turn each pair into one picture.',
+  'ai_tip_verbal': 'At {n} points: link each new word to one picture in the room around you.',
+  'ai_tip_visual': 'At level {n}: name the lit cells as one shape (an L, a corner) instead of single dots.',
+  'ai_tip_order': 'At {n} cells: trace the 1-2-3 path in the air once before you start tapping.',
+  'ai_tip_spatial': 'At {n} stations: walk your palace in the same order every time — order is half the memory.',
+  'ai_tip_default': 'At level {n}: slow down on the next round — one careful recall beats three rushed ones.',
   'ai_picture_loading': 'Painting your unique picture…',
   'ai_picture_sam': 'SAM spotted {n} details',
+  'ai_picture_offline': 'No AI picture this time (offline or AI switched off) — walk the stations from the list.',
+  'sam_overlay_title': 'SAM walk · {n} stations on the picture',
+  'ai_palace_on': 'AI pictures + SAM are ON: every round of this lesson gets its own painted palace and segmented walk.',
+  'ai_palace_off': 'AI pictures are OFF: switch on cloud AI and add your key in Settings to paint every round.',
   'lp_missed_title': 'Why did these slip?',
   'lp_missed_button': 'Ask AI about my misses',
   'lp_missed_hint': 'No misses this time — clean run.',
   'duel_ai_title': 'AI duel recap',
   'duel_hype_title': 'AI hype',
-  'duel_hype_default':
-      '{foe} is waiting in the {kind} arena — lock in, recall once, strike fast.',
+  'duel_hype_default': '{foe} is waiting in the {kind} arena — lock in, recall once, strike fast.',
   'duel_round_title': 'AI round note',
   'duel_round_good':
       'Locked in — carry that same first-letter cue into the next round.',
@@ -1840,8 +1686,55 @@ const Map<String, String> enStrings = {
       'Slipped — next round, picture the answer once before you lock it.',
   'duel_sam_title': 'AI spotted in the picture',
   'duel_scout_title': 'AI scout report',
-  'duel_scout_first':
-      'First {kind} duel — memorize slowly, answer fast, and trust your first recall.',
-  'duel_scout_default':
-      '{w} wins in {m} duels. For {kind}: picture each answer once before you lock it.',
+  'duel_scout_first': 'First {kind} duel — memorize slowly, answer fast, and trust your first recall.',
+  'duel_scout_default': '{w} wins in {m} duels. For {kind}: picture each answer once before you lock it.',
+  'bench_ai_models': 'Meta AI in this game: {models}',
+  'bench_ai_models_local': 'Local round — {models} join when online',
+  'bench_ai_live': 'AI LIVE',
+  'bench_ai_local': 'LOCAL MODE',
+  'bench_transfer_title': 'Take this skill outside the game',
+  'bench_transfer_sequence_tech': 'Chunk the flashes into groups of 2–3 with one rhythm and whisper the path as you watch. Procedure: sequential reproduction (Corsi 1972; Kessels et al. 2000).',
+  'bench_transfer_sequence_life': 'Same procedure as keeping multi-step instructions in order: turns on a route, steps of a recipe, moves of a dance.',
+  'bench_transfer_sequence_mission': 'Today: learn one real 5-step sequence by grouping it into 2 chunks, then recall it again tonight.',
+  'bench_transfer_number_tech': 'Chunk the digits into 3s and give each chunk a quick image or meaning. Procedure: chunk span (Miller 1956; Cowan 2001; Ericsson, Chase & Faloon 1980).',
+  'bench_transfer_number_life':
+      'Phone numbers, door codes and PINs all yield to the same chunking.',
+  'bench_transfer_number_mission':
+      'Today: chunk one real number you need into 3s and recall it tonight.',
+  'bench_transfer_verbal_tech': 'Hook each new word to a vivid interactive image the instant you see it. Procedure: old/new recognition (Shepard 1967; Standing 1973).',
+  'bench_transfer_verbal_life': 'Names at events, new vocabulary, items on a list: image-hooks hold them all.',
+  'bench_transfer_verbal_mission': 'Today: give 3 real words or names you meet an interactive image, then test yourself tonight.',
+  'bench_transfer_visual_tech': 'See the lit cells as ONE shape or object, not separate squares. Procedure: pattern span (Luck & Vogel 1997; Cowan 2001).',
+  'bench_transfer_visual_life': 'Reading a face, a shelf or a dashboard at a glance uses the same visual grouping.',
+  'bench_transfer_visual_mission': 'Today: glance once at a real shelf, look away, and name 4 things as one grouped picture.',
+  'bench_transfer_order_tech': 'Walk the numbers as a path and retell it as a tiny story before you tap. Procedure: ordered spatial recall (Corsi 1972; Craik & Tulving 1975).',
+  'bench_transfer_order_life': 'Errands in order, steps of a task, points of a talk: ordered paths keep them straight.',
+  'bench_transfer_order_mission': 'Today: lay 4 real errands on an imagined path through your flat and walk it twice.',
+  'bench_transfer_spatial_tech': 'Place one bizarre interactive image on each station and walk the route in order. Procedure: method of loci (Maguire et al. 2003; Dresler et al. 2017).',
+  'bench_transfer_spatial_life': 'Shopping lists, speeches, study points: palaces carry ordered material of any kind.',
+  'bench_transfer_spatial_mission': 'Today: place 5 real items on your own flat walk and recall them tonight.',
+  'bench_spatial_camera': 'USE MY ROOM (CAMERA + SAM)',
+  'bench_spatial_cam_busy': 'Reading your room with SAM…',
+  'bench_spatial_cam_empty':
+      'SAM found no clear details — step closer and retry.',
+  'bench_spatial_cam_fail': 'Camera is unavailable — the palace route stays.',
+  'bench_spatial_cam_off':
+      'AI pictures are off — switch on cloud AI in Settings to read your room.',
+  'ai_verdict_title': 'AI verdict',
+  'ai_verdict_good': '{score} on {game} — a new best. Lock in this form: same order, same pace, one more run.',
+  'ai_verdict_mid': '{score} on {game} (best {best}). Close: replay the missed ones slowly, then recall them again tonight.',
+  'ai_verdict_low': '{score} on {game} (best {best}) — the start counts too. Next: one slower round, then recall the same items tonight.',
+  'bench_ask_ai': 'ASK THE AI COACH',
+  'bench_voice_answer': 'ANSWER BY VOICE',
+  'bench_voice_listening': 'Listening… say SEEN or NEW',
+  'bench_voice_working': 'Transcribing…',
+  'bench_voice_heard': 'Heard: "{text}"',
+  'bench_voice_unclear': 'Did not catch that — tap instead.',
+  'bench_voice_nomic': 'Microphone unavailable — tap instead.',
+  'bench_voice_nocloud': 'Voice needs an API key + cloud consent — tap instead.',
+  'bench_wonder_title': 'Wonder route preview',
+  'wonder_fallback_view': 'Look toward the {station}',
+  'ai_glimmer_good': '{score} — new best. Locked in.',
+  'ai_glimmer_mid': '{score} — one careful replay from your best.',
+  'ai_glimmer_low': '{score} — slow start, fast finish next time.',
 };

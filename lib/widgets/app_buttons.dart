@@ -55,7 +55,9 @@ class EngramButton extends StatelessWidget {
   }
 
   Color _label(BuildContext context) {
-    if (_disabled) return Colors.white;
+    // Letiltva világos módban sötét felirat kell: a fehér a halvány
+    // szürke háttéren olvashatatlan lenne.
+    if (_disabled) return context.isDark ? Colors.white : context.mutedText;
     return variant == EngramButtonVariant.secondary
         ? context.inkText
         : Colors.white;
@@ -79,8 +81,9 @@ class EngramButton extends StatelessWidget {
               }
             : null,
         child: Container(
-          height: minTap,
+          constraints: BoxConstraints(minHeight: minTap),
           width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           decoration: BoxDecoration(
             color: top,
             borderRadius: BorderRadius.circular(999),
@@ -100,6 +103,7 @@ class EngramButton extends StatelessWidget {
                 )
               : Row(
                   mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (leading != null) ...[
                       leading!,
@@ -122,8 +126,10 @@ class EngramButton extends StatelessWidget {
                             fontWeight: FontWeight.w900,
                             fontSize: 17,
                             letterSpacing: 0.5,
+                            height: 1.25,
                           ),
-                          maxLines: 1,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -136,6 +142,12 @@ class EngramButton extends StatelessWidget {
   }
 }
 
+/// Nyomásra lesüllyedő, felengedésre visszaugró 3D-s gomb.
+///
+/// Korlátolt magasságú szülőben (pl. fix `SizedBox`) kitölti a helyet,
+/// korlátlanban (pl. `Column`/`ListView` gyereke) a `top` tartalmából
+/// méretezi magát. Ilyenkor a `top` legyen önálló magasságú
+/// (ne `Expanded`), ahogy minden tartalomméretes gomb.
 class EngramPress3D extends StatefulWidget {
   final VoidCallback onTap;
   final Widget top;
@@ -144,6 +156,10 @@ class EngramPress3D extends StatefulWidget {
   final BorderRadius borderRadius;
   final bool haptic;
   final String? semanticLabel;
+  final BoxBorder? shadowBorder;
+  final Duration pressDuration;
+  final Duration releaseDuration;
+  final Duration minDuration;
 
   const EngramPress3D({
     super.key,
@@ -154,6 +170,10 @@ class EngramPress3D extends StatefulWidget {
     this.borderRadius = const BorderRadius.all(Radius.circular(18)),
     this.haptic = true,
     this.semanticLabel,
+    this.shadowBorder,
+    this.pressDuration = const Duration(milliseconds: 90),
+    this.releaseDuration = const Duration(milliseconds: 90),
+    this.minDuration = const Duration(milliseconds: 30),
   });
 
   @override
@@ -162,19 +182,63 @@ class EngramPress3D extends StatefulWidget {
 
 class _EngramPress3DState extends State<EngramPress3D> {
   bool _pressed = false;
+  late Duration _duration;
+  DateTime? _downTime;
+  DateTime? _upTime;
+
+  @override
+  void initState() {
+    super.initState();
+    _duration = widget.pressDuration;
+  }
+
+  Duration _scaled(Duration base, int elapsedMs) {
+    if (elapsedMs >= base.inMilliseconds) return base;
+    if (elapsedMs <= 0) return widget.minDuration;
+    final scaled =
+        (base.inMicroseconds * elapsedMs / base.inMilliseconds).round();
+    final clamped = scaled.clamp(
+      widget.minDuration.inMicroseconds,
+      base.inMicroseconds,
+    );
+    return Duration(microseconds: clamped);
+  }
 
   void _down(TapDownDetails _) {
+    final now = DateTime.now();
+    final lastUp = _upTime;
+    var dur = widget.pressDuration;
+    if (lastUp != null) {
+      dur = _scaled(
+        widget.pressDuration,
+        now.difference(lastUp).inMilliseconds,
+      );
+    }
+    _downTime = now;
+    _duration = dur;
     if (!_pressed) setState(() => _pressed = true);
     if (widget.haptic) AppFeedback.light();
   }
 
-  void _up(TapUpDetails _) {
+  void _release() {
+    final now = DateTime.now();
+    final down = _downTime;
+    var dur = widget.releaseDuration;
+    if (down != null) {
+      dur = _scaled(
+        widget.releaseDuration,
+        now.difference(down).inMilliseconds,
+      );
+    }
+    _upTime = now;
+    _downTime = null;
+    _duration = dur;
     if (_pressed) setState(() => _pressed = false);
   }
 
-  void _cancel() {
-    if (_pressed) setState(() => _pressed = false);
-  }
+  void _up(TapUpDetails _) => _release();
+
+  void _cancel() => _release();
 
   @override
   Widget build(BuildContext context) {
@@ -186,9 +250,9 @@ class _EngramPress3DState extends State<EngramPress3D> {
         onTapUp: _up,
         onTapCancel: _cancel,
         onTap: widget.onTap,
-        child: Stack(
-          children: [
-            Positioned(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final shadow = Positioned(
               top: widget.depth,
               left: 0,
               right: 0,
@@ -197,19 +261,43 @@ class _EngramPress3DState extends State<EngramPress3D> {
                 decoration: BoxDecoration(
                   color: widget.shadowColor,
                   borderRadius: widget.borderRadius,
+                  border: widget.shadowBorder,
                 ),
               ),
-            ),
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 90),
-              curve: Curves.easeOut,
-              top: _pressed ? widget.depth : 0,
-              left: 0,
-              right: 0,
-              bottom: _pressed ? 0 : widget.depth,
-              child: widget.top,
-            ),
-          ],
+            );
+            if (constraints.maxHeight.isFinite) {
+              return Stack(
+                children: [
+                  shadow,
+                  AnimatedPositioned(
+                    duration: _duration,
+                    curve: Curves.easeOut,
+                    top: _pressed ? widget.depth : 0,
+                    left: 0,
+                    right: 0,
+                    bottom: _pressed ? 0 : widget.depth,
+                    child: widget.top,
+                  ),
+                ],
+              );
+            }
+            return Container(
+              decoration: BoxDecoration(
+                color: widget.shadowColor,
+                borderRadius: widget.borderRadius,
+                border: widget.shadowBorder,
+              ),
+              child: AnimatedPadding(
+                duration: _duration,
+                curve: Curves.easeOut,
+                padding: EdgeInsets.only(
+                  top: _pressed ? widget.depth : 0,
+                  bottom: _pressed ? 0 : widget.depth,
+                ),
+                child: widget.top,
+              ),
+            );
+          },
         ),
       ),
     );
@@ -220,7 +308,6 @@ class EngramMiniButton extends StatelessWidget {
   final String label;
   final VoidCallback? onTap;
   final Color? background;
-  final Color? shadowColor;
 
   final bool haptic;
 
@@ -231,7 +318,6 @@ class EngramMiniButton extends StatelessWidget {
     required this.label,
     required this.onTap,
     this.background,
-    this.shadowColor,
     this.haptic = true,
     this.semanticsLabel,
   });
@@ -369,7 +455,6 @@ class EngramIconButton extends StatelessWidget {
   final double size;
   final Color? background;
   final Color? foreground;
-  final Color? shadowColor;
   final bool isLoading;
 
   final bool haptic;
@@ -383,7 +468,6 @@ class EngramIconButton extends StatelessWidget {
     this.size = 60,
     this.background,
     this.foreground,
-    this.shadowColor,
     this.isLoading = false,
     this.haptic = true,
     this.semanticLabel,
@@ -401,7 +485,7 @@ class EngramIconButton extends StatelessWidget {
     final glyphColor =
         foreground ??
         (disabled
-            ? Colors.white
+            ? (context.isDark ? Colors.white : context.mutedText)
             : filled
             ? Colors.white
             : context.inkText);

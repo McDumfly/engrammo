@@ -35,7 +35,7 @@ dependencies:
 
   # No cupertino_icons / sensors_plus: nothing references them in the code
   # (icons come from the HugeIcons set, no sensor needed).
-  hugeicons: ^1.2.0
+  hugeicons: ^4.4.0
   shared_preferences: ^2.5.3
   flutter_svg: ^2.3.0
   dicebear_core: ^10.6.0
@@ -45,12 +45,21 @@ dependencies:
   cloud_firestore: ^7.1.0
   google_sign_in: ^7.2.0
   http: ^1.2.0
+  # Spatial practice "camera palace": the player photographs their own
+  # room and SAM 3.1 turns the spotted details into palace stations.
+  image_picker: ^1.1.0
+  # Verbal practice voice answers: the player says SEEN / NEW, the audio
+  # is transcribed by Meta Voice Transcribe and mapped onto a guess.
+  record: ^6.0.0
+  path_provider: ^2.1.0
   # The saved Meta key lives in encrypted storage (iOS Keychain /
   # Android Keystore), not as plain SharedPreferences text.
   flutter_secure_storage: ^11.2.0
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  integration_test:
     sdk: flutter
 
   # The "flutter_lints" package below contains a set of recommended lints to

@@ -11,10 +11,50 @@ import '../models/validated_tasks.dart' show specForId;
 import '../services/app_feedback.dart';
 import '../services/memory_store.dart';
 import '../services/meta_ai_service.dart';
+import '../theme/app_colors.dart' show blue, coral, error, teal;
 import '../theme/app_theme.dart';
 import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
 import '../widgets/dynamic_task_view.dart';
+
+/// Közös törlés-megerősítő a cél-listához és a cél-részletezőhöz.
+Future<bool?> confirmGoalDelete(BuildContext context, String title) {
+  return showDialog<bool>(
+    context: context,
+    builder: (dlgCtx) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(
+        tr('myg_delete_title'),
+        style: TextStyle(
+          color: context.inkText,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      content: Text(
+        tr('myg_delete_body', {'title': title}),
+        style: TextStyle(color: context.mutedText),
+      ),
+      actions: [
+        EngramMiniButton(
+          label: tr('myg_keep'),
+          background: context.mutedText,
+          onTap: () {
+            AppFeedback.light();
+            Navigator.of(dlgCtx).pop(false);
+          },
+        ),
+        EngramMiniButton(
+          label: tr('myg_delete'),
+          background: error,
+          onTap: () {
+            AppFeedback.light();
+            Navigator.of(dlgCtx).pop(true);
+          },
+        ),
+      ],
+    ),
+  );
+}
 
 String goalReviewHint(UserGoal goal) {
   if (goal.practiceCount <= 0) {
@@ -85,39 +125,7 @@ class _MyGoalsPageState extends State<MyGoalsPage> {
   }
 
   Future<void> _deleteGoal(UserGoal goal) async {
-    final yes = await showDialog<bool>(
-      context: context,
-      builder: (dlgCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          tr('myg_delete_title'),
-          style: TextStyle(
-            color: context.inkText,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        content: Text(
-          tr('myg_delete_body', {'title': goal.title}),
-          style: TextStyle(color: context.mutedText),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              AppFeedback.light();
-              Navigator.of(dlgCtx).pop(false);
-            },
-            child: Text(tr('myg_keep')),
-          ),
-          FilledButton(
-            onPressed: () {
-              AppFeedback.light();
-              Navigator.of(dlgCtx).pop(true);
-            },
-            child: Text(tr('myg_delete')),
-          ),
-        ],
-      ),
-    );
+    final yes = await confirmGoalDelete(context, goal.title);
     if (yes == true) {
       await MemoryStore.deleteUserGoal(goal.id);
       if (mounted) _load();
@@ -200,7 +208,7 @@ class _MyGoalsPageState extends State<MyGoalsPage> {
             children: [
               const HugeIcon(
                 icon: HugeIcons.strokeRoundedTarget01,
-                color: Color(0xFF45A3FF),
+                color: blue,
                 size: 22,
                 strokeWidth: 2.2,
               ),
@@ -263,7 +271,7 @@ class _MyGoalsPageState extends State<MyGoalsPage> {
                     padding: EdgeInsets.all(4),
                     child: HugeIcon(
                       icon: HugeIcons.strokeRoundedDelete02,
-                      color: Color(0xFFFF6B6B),
+                      color: coral,
                       size: 20,
                       strokeWidth: 2.0,
                     ),
@@ -288,7 +296,7 @@ class _MyGoalsPageState extends State<MyGoalsPage> {
               children: [
                 const HugeIcon(
                   icon: HugeIcons.strokeRoundedClock01,
-                  color: Color(0xFF45A3FF),
+                  color: blue,
                   size: 16,
                   strokeWidth: 2.2,
                 ),
@@ -330,7 +338,7 @@ class _MyGoalsPageState extends State<MyGoalsPage> {
       child: Text(
         label,
         style: const TextStyle(
-          color: Color(0xFF45A3FF),
+          color: blue,
           fontWeight: FontWeight.w700,
           fontSize: 12,
         ),
@@ -569,7 +577,7 @@ class _GoalAnalysisCard extends StatelessWidget {
             children: [
               const HugeIcon(
                 icon: HugeIcons.strokeRoundedAiChat02,
-                color: Color(0xFF45A3FF),
+                color: blue,
                 size: 20,
                 strokeWidth: 2.2,
               ),
@@ -671,6 +679,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
   int _drillRound = 0;
 
   final Set<int> _planDone = {};
+  bool _materialDirty = false;
 
   @override
   void initState() {
@@ -687,19 +696,32 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
   }
 
   void _onMaterialChanged() {
-    if (mounted) setState(() {});
+    // Csak a piszkos-állapot váltásakor építünk újra, nem minden
+    // billentyűleütésre (a mentés gomb engedélyezése a tét).
+    final dirty =
+        _materialCtrl.text.trim() != (_goal?.material.trim() ?? '');
+    if (dirty != _materialDirty && mounted) {
+      setState(() => _materialDirty = dirty);
+    }
   }
 
   Future<void> _load() async {
     final goal = await MemoryStore.loadUserGoal(widget.goalId);
+    final planDone = await MemoryStore.loadGoalPlanDone(widget.goalId);
     if (!mounted) return;
     if (goal == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(tr('myg_gone'))));
       Navigator.of(context).pop();
       return;
     }
     setState(() {
       _goal = goal;
       _loading = false;
+      _planDone
+        ..clear()
+        ..addAll(planDone);
       if (_materialCtrl.text.isEmpty) _materialCtrl.text = goal.material;
       if (_forgotCtrl.text.isEmpty) _forgotCtrl.text = goal.forgotNote;
     });
@@ -760,6 +782,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
       analysis: answer.analysis,
     );
     await MemoryStore.updateUserGoal(next);
+    await MemoryStore.saveGoalPlanDone(widget.goalId, const {});
     if (!mounted) return;
     setState(() {
       _goal = next;
@@ -907,39 +930,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
   Future<void> _delete() async {
     final goal = _goal;
     if (goal == null) return;
-    final yes = await showDialog<bool>(
-      context: context,
-      builder: (dlgCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          tr('myg_delete_title'),
-          style: TextStyle(
-            color: context.inkText,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        content: Text(
-          tr('myg_delete_body', {'title': goal.title}),
-          style: TextStyle(color: context.mutedText),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              AppFeedback.light();
-              Navigator.of(dlgCtx).pop(false);
-            },
-            child: Text(tr('myg_keep')),
-          ),
-          FilledButton(
-            onPressed: () {
-              AppFeedback.light();
-              Navigator.of(dlgCtx).pop(true);
-            },
-            child: Text(tr('myg_delete')),
-          ),
-        ],
-      ),
-    );
+    final yes = await confirmGoalDelete(context, goal.title);
     if (yes == true) {
       await MemoryStore.deleteUserGoal(goal.id);
       if (mounted) Navigator.of(context).pop();
@@ -1059,7 +1050,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
             children: [
               const HugeIcon(
                 icon: HugeIcons.strokeRoundedClock01,
-                color: Color(0xFF45A3FF),
+                color: blue,
                 size: 16,
                 strokeWidth: 2.2,
               ),
@@ -1081,7 +1072,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
                   children: [
                     const HugeIcon(
                       icon: HugeIcons.strokeRoundedRefresh,
-                      color: Color(0xFF45A3FF),
+                      color: blue,
                       size: 16,
                       strokeWidth: 2.2,
                     ),
@@ -1090,7 +1081,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
                       tr('myg_reanalyze'),
                       style: TextStyle(
                         color: _busy == null
-                            ? const Color(0xFF45A3FF)
+                            ? blue
                             : context.mutedText,
                         fontWeight: FontWeight.w700,
                         fontSize: 12,
@@ -1155,7 +1146,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
             children: [
               HugeIcon(
                 icon: icon,
-                color: const Color(0xFF45A3FF),
+                color: blue,
                 size: 20,
                 strokeWidth: 2.2,
               ),
@@ -1225,6 +1216,9 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
                 setState(() {
                   if (!_planDone.add(i)) _planDone.remove(i);
                 });
+                unawaited(
+                  MemoryStore.saveGoalPlanDone(widget.goalId, _planDone),
+                );
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -1233,12 +1227,12 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
                 ),
                 decoration: BoxDecoration(
                   color: _planDone.contains(i)
-                      ? const Color(0xFF14B8A6).withValues(alpha: 0.12)
+                      ? teal.withValues(alpha: 0.12)
                       : context.washBg,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: _planDone.contains(i)
-                        ? const Color(0xFF14B8A6)
+                        ? teal
                         : context.faintBorder,
                   ),
                 ),
@@ -1249,7 +1243,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
                           ? HugeIcons.strokeRoundedCheckmarkCircle02
                           : HugeIcons.strokeRoundedCircle,
                       color: _planDone.contains(i)
-                          ? const Color(0xFF14B8A6)
+                          ? teal
                           : context.mutedText,
                       size: 20,
                       strokeWidth: 2.2,
@@ -1275,7 +1269,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
   }
 
   Widget _materialCard(UserGoal goal) {
-    final dirty = _materialCtrl.text.trim() != goal.material.trim();
+    final dirty = _materialDirty;
     return _sectionCard(
       keyName: 'goal-material',
       icon: HugeIcons.strokeRoundedNote01,
@@ -1531,9 +1525,9 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
                 ),
                 decoration: BoxDecoration(
                   color: _drillPicked != null && i == drill.correct
-                      ? const Color(0xFF14B8A6).withValues(alpha: 0.14)
+                      ? teal.withValues(alpha: 0.14)
                       : _drillPicked != null && i == _drillPicked
-                      ? const Color(0xFFFF6B6B).withValues(alpha: 0.12)
+                      ? coral.withValues(alpha: 0.12)
                       : context.washBg,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: context.faintBorder),

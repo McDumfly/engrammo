@@ -88,7 +88,8 @@ class BattleRewardState {
     return BattleRewardState(
       grants: [
         for (final e in (json['grants'] as List? ?? const []))
-          if (e is Map<String, dynamic>) RewardGrant.fromJson(e),
+          if (e is Map)
+            RewardGrant.fromJson(e.map((k, v) => MapEntry(k.toString(), v))),
       ],
     );
   }

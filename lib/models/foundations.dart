@@ -13,6 +13,15 @@ bool wantsLagIntroduction(int chapter, int section, int lag) {
   return chapterDepth(chapter) == 0 && section == 1;
 }
 
+/// True only for the very first station of each memory track:
+/// first chapter of the track, first section, first lesson.
+/// That station keeps the full reading intro; later stations
+/// show only the essence with details behind an expander.
+bool isTrackIntroLesson(int chapter, int section, int lesson) {
+  if (chapter < 0 || section < 0 || lesson < 0) return false;
+  return chapterDepth(chapter) == 0 && section == 0 && lesson == 0;
+}
+
 class WorkedExample {
   final String situation;
 
