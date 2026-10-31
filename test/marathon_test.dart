@@ -311,6 +311,28 @@ void main() {
       );
     });
 
+    test('gyenge menet (1 csillag) után azonnal lehet ismételni', () {
+      final now = DateTime(2026, 10, 28);
+      expect(
+        practiceRoundLocked(
+          lastDone: now,
+          depth: 1,
+          stars: 1,
+          now: now,
+        ),
+        isFalse,
+      );
+      expect(
+        practiceRoundLocked(
+          lastDone: now,
+          depth: 1,
+          stars: 2,
+          now: now,
+        ),
+        isTrue,
+      );
+    });
+
     test('a státuszcímke esedékest, holnapot és napszámot ír', () {
       final now = DateTime(2026, 10, 28);
       expect(

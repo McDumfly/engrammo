@@ -85,4 +85,270 @@ void main() {
       expect((await MemoryStore.loadMetaCache())['k1'], 'v1');
     });
   });
+
+  group('word batches for the verbal game', () {
+    test('request body pins the count and the avoid list', () {
+      final body = MetaAIService.wordBatchRequestBody(
+        count: 12,
+        avoid: const ['apple', 'bridge'],
+        locale: 'en',
+      );
+      expect(body['model'], MetaAIService.taskModel);
+      final system = (body['messages'] as List).first as Map;
+      expect(system['content'], contains('exactly 12'));
+      expect(system['content'], contains('apple, bridge'));
+    });
+
+    test('parses object, bare array and fenced batches', () {
+      expect(
+        MetaAIService.parseWordBatch('{"words": ["apple", "bridge"]}'),
+        ['apple', 'bridge'],
+      );
+      expect(MetaAIService.parseWordBatch('["lamp"]'), ['lamp']);
+      expect(
+        MetaAIService.parseWordBatch('```json\n{"words": ["owl"]}\n```'),
+        ['owl'],
+      );
+    });
+
+    test('parse drops multi-word, short and duplicated entries', () {
+      expect(
+        MetaAIService.parseWordBatch(
+          '{"words": ["a", "two words", "Apple", "apple", "ok-word"]}',
+        ),
+        ['Apple', 'ok-word'],
+      );
+      expect(MetaAIService.parseWordBatch('not json'), isEmpty);
+      expect(MetaAIService.parseWordBatch('{"words": []}'), isEmpty);
+    });
+
+    test('offline batch returns unseen local nouns', () async {
+      final answer = await MetaAIService.fetchWordBatch(
+        count: 5,
+        avoid: const ['apple'],
+        locale: 'en',
+      );
+      expect(answer.fallback, isTrue);
+      expect(answer.words.length, 5);
+      expect(answer.words, isNot(contains('apple')));
+      expect(answer.words.toSet().length, 5);
+    });
+
+    test('seed folds digits deterministically', () {
+      expect(
+        BenchmarkMeta.seedFromDigits(const [1, 2, 3]),
+        BenchmarkMeta.seedFromDigits(const [1, 2, 3]),
+      );
+      expect(
+        BenchmarkMeta.seedFromDigits(const [1, 2, 3]),
+        isNot(BenchmarkMeta.seedFromDigits(const [3, 2, 1])),
+      );
+    });
+  });
+
+  group('end-of-run verdict', () {
+    test('local verdict tiers follow score vs best', () {
+      expect(
+        MetaAIService.localGameRecap(
+          gameId: 'verbal',
+          score: 12,
+          best: 12,
+          locale: 'en',
+        ),
+        contains('new best'),
+      );
+      expect(
+        MetaAIService.localGameRecap(
+          gameId: 'verbal',
+          score: 8,
+          best: 12,
+          locale: 'en',
+        ),
+        contains('best 12'),
+      );
+      expect(
+        MetaAIService.localGameRecap(
+          gameId: 'verbal',
+          score: 0,
+          best: 12,
+          locale: 'en',
+        ),
+        startsWith('0 on verbal'),
+      );
+    });
+
+    test('offline verdict never throws and stays non-empty', () async {
+      final answer = await MetaAIService.gameRecap(
+        gameId: 'spatial',
+        score: 4,
+        best: 6,
+        locale: 'en',
+      );
+      expect(answer.fallback, isTrue);
+      expect(answer.text, isNotEmpty);
+    });
+
+    test('request body names the game and the score', () {
+      final body = MetaAIService.gameRecapRequestBody(
+        gameId: 'order',
+        score: 5,
+        best: 7,
+      );
+      expect(body['model'], MetaAIService.taskModel);
+      final user = (body['messages'] as List).last as Map;
+      expect(user['content'], contains('"order"'));
+      expect(user['content'], contains('5 (best 7)'));
+    });
+  });
+
+  group('wonder route preview', () {
+    test('request body pins the route and the station count', () {
+      final body = MetaAIService.wonderPreviewRequestBody(
+        route: 'home',
+        stations: const ['door', 'hall', 'kitchen'],
+        locale: 'en',
+      );
+      expect(body['model'], MetaAIService.wonderModel);
+      final system = (body['messages'] as List).first as Map;
+      expect(system['content'], contains('"home"'));
+      expect(system['content'], contains('exactly 3'));
+      expect(system['content'], contains('door, hall, kitchen'));
+    });
+
+    test('parses object, bare array and fenced previews', () {
+      expect(
+        MetaAIService.parseWonderPreview('{"viewpoints": ["a", "b"]}'),
+        ['a', 'b'],
+      );
+      expect(MetaAIService.parseWonderPreview('["a"]'), ['a']);
+      expect(
+        MetaAIService.parseWonderPreview('```json\n{"viewpoints": ["a"]}\n```'),
+        ['a'],
+      );
+      expect(MetaAIService.parseWonderPreview('not json'), isEmpty);
+      expect(
+        MetaAIService.parseWonderPreview('{"viewpoints": ["", "  "]}'),
+        isEmpty,
+      );
+    });
+
+    test('offline preview covers every station locally', () async {
+      final answer = await MetaAIService.wonderRoutePreview(
+        route: 'home',
+        stations: const ['door', 'hall'],
+        locale: 'en',
+      );
+      expect(answer.fallback, isTrue);
+      expect(answer.viewpoints.length, 2);
+      expect(answer.viewpoints[0], contains('door'));
+      expect(answer.viewpoints[1], contains('hall'));
+    });
+  });
+
+  group('voice transcription', () {
+    test('audio refs are data urls only', () {
+      expect(MetaAIService.isAudioRef('data:audio/aac;base64,AAA'), isTrue);
+      expect(MetaAIService.isAudioRef('palace:home'), isFalse);
+      expect(MetaAIService.isAudioRef(''), isFalse);
+    });
+
+    test('request body pins model, audio and language', () {
+      final body = MetaAIService.transcribeRequestBody(
+        audioDataUrl: 'data:audio/aac;base64,AAA',
+        locale: 'hu',
+      );
+      expect(body['model'], MetaAIService.voiceModel);
+      expect(body['audio'], 'data:audio/aac;base64,AAA');
+      expect(body['language'], 'hu');
+    });
+
+    test('parse trims the transcript text', () {
+      expect(MetaAIService.parseTranscript({'text': '  seen '}), 'seen');
+      expect(MetaAIService.parseTranscript({}), isEmpty);
+    });
+
+    test('offline transcription is empty and never invents speech', () async {
+      final answer = await MetaAIService.transcribe(
+        audioDataUrl: 'data:audio/aac;base64,AAA',
+        locale: 'en',
+      );
+      expect(answer.fallback, isTrue);
+      expect(answer.text, isEmpty);
+      final noAudio = await MetaAIService.transcribe(
+        audioDataUrl: '',
+        locale: 'en',
+      );
+      expect(noAudio.fallback, isTrue);
+      expect(noAudio.text, isEmpty);
+    });
+  });
+
+  group('glimmer instant take', () {
+    test('request body pins the glimmer model and one line', () {
+      final body = MetaAIService.glimmerTakeRequestBody(
+        gameId: 'verbal',
+        score: 9,
+        best: 12,
+      );
+      expect(body['model'], MetaAIService.glimmerModel);
+      expect(
+        body['max_completion_tokens'],
+        MetaAIService.glimmerMaxCompletionTokens,
+      );
+      final system = (body['messages'] as List).first as Map;
+      expect(system['content'], contains('15 words'));
+    });
+
+    test('local take tiers follow score vs best', () {
+      expect(
+        MetaAIService.localGlimmerTake(score: 12, best: 12, locale: 'en'),
+        contains('12 — new best'),
+      );
+      expect(
+        MetaAIService.localGlimmerTake(score: 8, best: 12, locale: 'en'),
+        contains('8 — one careful replay'),
+      );
+      expect(
+        MetaAIService.localGlimmerTake(score: 0, best: 12, locale: 'en'),
+        contains('0 — slow start'),
+      );
+    });
+
+    test('offline take never throws and stays non-empty', () async {
+      final answer = await MetaAIService.glimmerTake(
+        gameId: 'order',
+        score: 3,
+        best: 5,
+        locale: 'en',
+      );
+      expect(answer.fallback, isTrue);
+      expect(answer.text, isNotEmpty);
+    });
+  });
+
+  group('spark open tips', () {
+    test('request body uses the open model for the same tip', () {
+      final body = MetaAIService.openTipRequestBody(
+        gameId: 'spatial',
+        level: 4,
+      );
+      expect(body['model'], MetaAIService.sparkOpenModel);
+      final user = (body['messages'] as List).last as Map;
+      expect(user['content'], contains('"spatial"'));
+      expect(user['content'], contains('level 4'));
+    });
+
+    test('offline open tip matches the built-in tip', () async {
+      final answer = await MetaAIService.openPracticeTip(
+        gameId: 'verbal',
+        level: 7,
+        locale: 'en',
+      );
+      expect(answer.fallback, isTrue);
+      expect(
+        answer.text,
+        MetaAIService.localPracticeTip('verbal', 7, 'en'),
+      );
+    });
+  });
 }

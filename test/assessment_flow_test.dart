@@ -42,8 +42,16 @@ void main() {
     }
   }
 
-  Future<void> settleAdvance(WidgetTester tester, int ms) async {
-    await tester.pump(Duration(milliseconds: ms));
+  Future<void> tapContinue(WidgetTester tester) async {
+    await tester.pumpAndSettle();
+    final cont = find.byKey(const ValueKey('assessment-continue'));
+    expect(cont, findsOneWidget);
+    // No auto-advance: without tapping, the step must not move on its own.
+    await tester.pump(const Duration(seconds: 3));
+    expect(cont, findsOneWidget);
+    await tester.ensureVisible(cont);
+    await tester.pumpAndSettle();
+    await tester.tap(cont);
     await tester.pumpAndSettle();
   }
 
@@ -54,7 +62,7 @@ void main() {
     await tester.pump();
     await scrollSeek(tester, find.byKey(const ValueKey('recall-check')));
     await tester.tap(find.byKey(const ValueKey('recall-check')));
-    await settleAdvance(tester, 1600);
+    await tapContinue(tester);
   }
 
   Future<void> answerCorsi(WidgetTester tester) async {
@@ -64,14 +72,14 @@ void main() {
     await tester.pump();
     await scrollSeek(tester, find.byKey(const ValueKey('corsi-done')));
     await tester.tap(find.byKey(const ValueKey('corsi-done')));
-    await settleAdvance(tester, 1600);
+    await tapContinue(tester);
   }
 
   Future<void> answerChoice(WidgetTester tester, String option) async {
     await revealIfNeeded(tester);
     await scrollSeek(tester, find.text(option).first);
     await tester.tap(find.text(option).first);
-    await settleAdvance(tester, 800);
+    await tapContinue(tester);
   }
 
   testWidgets('13 probes: blind direction, cued sensory, 3-level spatial', (
@@ -118,7 +126,7 @@ void main() {
     );
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('recall-check')));
-    await settleAdvance(tester, 1600);
+    await tapContinue(tester);
 
     expect(
       find.text('Five digits — the direction comes next, hold them all!'),
@@ -141,7 +149,7 @@ void main() {
     );
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('recall-check')));
-    await settleAdvance(tester, 1600);
+    await tapContinue(tester);
 
     expect(
       find.text('Watch the tiles light up — 3 in order!'),

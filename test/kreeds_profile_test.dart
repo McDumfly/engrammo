@@ -19,6 +19,13 @@ void main() {
       expect(compactNumber(8450), '8.4K');
       expect(compactNumber(1000), '1.0K');
     });
+
+    test('milliosan M-et ir, kerekitett tulcsordulas nelkul', () {
+      expect(compactNumber(2500000), '2.5M');
+      expect(compactNumber(1000000), '1.0M');
+      expect(compactNumber(999950), '1.0M');
+      expect(compactNumber(9999), '10.0K');
+    });
   });
 
   testWidgets('gyors kartyak: friss fiok nullarol indul', (tester) async {

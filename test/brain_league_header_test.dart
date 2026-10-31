@@ -21,7 +21,10 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    // pumpAndSettle sosem érne véget: a torna-sejt csillogó
+    // animációja szándékosan végtelen (..repeat()), ezért fix pump.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
     final appBar = tester.widget<AppBar>(find.byType(AppBar).first);
     final bottomHeight =

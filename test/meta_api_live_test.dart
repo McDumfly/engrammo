@@ -293,5 +293,19 @@ void main() {
       expect(called, isFalse);
       expect(seg.fallback, isTrue);
     });
+
+    test('szerverhiba nem dob, hanem üres tartalék (kamera-üres ág)', () async {
+      final client = MockClient((_) async {
+        return http.Response('baj van', 500);
+      });
+      final seg = await MetaAIService.segment(
+        const MetaSegmentRequest(imageRef: 'https://img/szerverhiba.png'),
+        client: client,
+        apiKeyOverride: 'teszt-kulcs',
+      );
+      expect(seg.fallback, isTrue);
+      expect(seg.labels, isEmpty);
+      expect(seg.masks, isEmpty);
+    });
   });
 }

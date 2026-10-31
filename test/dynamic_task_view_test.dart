@@ -197,5 +197,112 @@ void main() {
       expect(got!.keyed, 3);
       expect(got!.correct, 3);
     });
+
+    testWidgets('feladatcsere ugyanazzal a kulccsal nullázza az állapotot', (
+      tester,
+    ) async {
+      DynamicTaskResult? got;
+      Widget frame(DynamicTask task) => MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: DynamicTaskView(
+              key: const ValueKey('goal-dynamic-task'),
+              task: task,
+              onDone: (r) => got = r,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpWidget(frame(_task()));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('dynamic-gotit-b0')));
+      await tester.pumpAndSettle();
+      expect(find.text('My test task · 1/5 done'), findsOneWidget);
+
+      final next = DynamicTask(
+        id: 'w2',
+        title: 'Second task',
+        instructions: 'Again.',
+        targetId: 'todos-errands',
+        blocks: const [
+          DynamicBlock(type: 'info', id: 'c0', label: 'New info.'),
+        ],
+        createdAt: DateTime(2026, 1, 2),
+      );
+      await tester.pumpWidget(frame(next));
+      await tester.pumpAndSettle();
+      expect(find.text('Second task · 0/1 done'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('dynamic-gotit-c0')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('dynamic-finish')));
+      await tester.pumpAndSettle();
+      expect(got, isNotNull);
+      expect(got!.complete, isTrue);
+    });
+
+    testWidgets('érvénytelen válaszkulcsú felelet nem pontozódik', (
+      tester,
+    ) async {
+      DynamicTaskResult? got;
+      final task = DynamicTask(
+        id: 'w3',
+        title: 'Broken key task',
+        instructions: 'Pick one.',
+        targetId: 'todos-errands',
+        blocks: const [
+          DynamicBlock(
+            type: 'choice',
+            id: 'd0',
+            label: 'Pick:',
+            options: ['a', 'b'],
+            answer: 'valami-nem-szám',
+          ),
+        ],
+        createdAt: DateTime(2026, 1, 3),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: DynamicTaskView(task: task, onDone: (r) => got = r),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('dynamic-option-d0-1')));
+      await tester.pumpAndSettle();
+      expect(find.text('Broken key task · 1/1 done'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('dynamic-finish')));
+      await tester.pumpAndSettle();
+      expect(got, isNotNull);
+      expect(got!.keyed, 0);
+      expect(got!.correct, 0);
+    });
+
+    testWidgets('üres checklista nem akasztja meg a befejezést', (
+      tester,
+    ) async {
+      final task = DynamicTask(
+        id: 'w4',
+        title: 'Empty list task',
+        instructions: 'Nothing to tick.',
+        targetId: 'todos-errands',
+        blocks: const [
+          DynamicBlock(type: 'checklist', id: 'e0', label: 'Nothing:'),
+        ],
+        createdAt: DateTime(2026, 1, 4),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(child: DynamicTaskView(task: task)),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Empty list task · 1/1 done'), findsOneWidget);
+      expect(find.byKey(const ValueKey('dynamic-finish')), findsOneWidget);
+    });
   });
 }

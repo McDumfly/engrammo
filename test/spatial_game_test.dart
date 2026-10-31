@@ -1,10 +1,28 @@
 import 'dart:math';
 
 import 'package:engrammo/screens/benchmark.dart';
+import 'package:engrammo/services/meta_ai_service.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    BenchmarkStore.resetForTest();
+    MetaAIService.secureStoreForTest = {};
+    MetaAIService.consentForTest = null;
+  });
+
+  tearDown(() {
+    BenchmarkStore.resetForTest();
+    MetaAIService.secureStoreForTest = null;
+    MetaAIService.consentForTest = null;
+  });
+
   group('SpatialGamePage helpers', () {
     test('pickStations returns the requested distinct stations', () {
       final stations = SpatialGamePage.pickStations(4, routeIndex: 0);
@@ -33,6 +51,13 @@ void main() {
       expect(options, contains('apple'));
       expect(options.toSet().length, 4);
       expect(options, isNot(contains('hammer')));
+    });
+
+    test('localWonderPreview captions every station in order', () {
+      final views = SpatialGamePage.localWonderPreview(['door', 'hall']);
+      expect(views.length, 2);
+      expect(views[0], contains('door'));
+      expect(views[1], contains('hall'));
     });
   });
 
@@ -88,6 +113,8 @@ void main() {
       final pairs = readPairs(tester);
       expect(pairs.length, 3);
 
+      await tester.ensureVisible(find.text('GOT IT, ASK ME'));
+      await tester.pump();
       await tester.tap(find.text('GOT IT, ASK ME'));
       await tester.pump();
 
@@ -109,6 +136,8 @@ void main() {
       await tester.pump();
       final pairs = readPairs(tester);
 
+      await tester.ensureVisible(find.text('GOT IT, ASK ME'));
+      await tester.pump();
       await tester.tap(find.text('GOT IT, ASK ME'));
       await tester.pump();
 
@@ -127,6 +156,125 @@ void main() {
       await tester.pump();
       expect(find.text('3 stations'), findsOneWidget);
       expect(readPairs(tester).length, 3);
+    });
+
+    testWidgets('memorize phase offers the camera palace', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(const MaterialApp(home: SpatialGamePage()));
+      await tester.pump();
+      expect(find.text('USE MY ROOM (CAMERA + SAM)'), findsOneWidget);
+    });
+
+    testWidgets('memorize phase shows the wonder preview', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(const MaterialApp(home: SpatialGamePage()));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.text('Wonder route preview'), findsOneWidget);
+      // Offline the local captions still cover every station.
+      expect(find.textContaining('Look toward the'), findsNWidgets(3));
+    });
+
+    testWidgets('camera failure degrades to one inline line', (
+      WidgetTester tester,
+    ) async {
+      const channel = MethodChannel('plugins.flutter.io/image_picker');
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        channel,
+        (call) async => throw PlatformException(code: 'camera_unavailable'),
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          channel,
+          null,
+        ),
+      );
+      // The camera room needs cloud AI (key + consent); with both set, a
+      // throwing picker lands on the 'unavailable' line.
+      await MetaAIService.setStoredApiKey('test-key');
+      MetaAIService.consentForTest = true;
+      await tester.pumpWidget(const MaterialApp(home: SpatialGamePage()));
+      await tester.pump();
+      await tester.ensureVisible(
+        find.text('USE MY ROOM (CAMERA + SAM)'),
+      );
+      await tester.pump();
+      await tester.tap(find.text('USE MY ROOM (CAMERA + SAM)'));
+      await tester.pump();
+      // The camera error travels over async platform channels and the
+      // inline line lands below the scrolled button: wait for it and
+      // search the whole tree.
+      final camErr = find.textContaining(
+        'Camera is unavailable',
+        skipOffstage: false,
+      );
+      for (var i = 0; i < 30; i++) {
+        if (camErr.evaluate().isNotEmpty) break;
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(camErr, findsOneWidget);
+      // The palace route is untouched: the pairs are still there.
+      expect(readPairs(tester).length, 3);
+    });
+
+    testWidgets('cancelled camera stays silent on the palace route', (
+      WidgetTester tester,
+    ) async {
+      const channel = MethodChannel('plugins.flutter.io/image_picker');
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        channel,
+        (call) async => null,
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          channel,
+          null,
+        ),
+      );
+      await tester.pumpWidget(const MaterialApp(home: SpatialGamePage()));
+      await tester.pump();
+      await tester.ensureVisible(
+        find.text('USE MY ROOM (CAMERA + SAM)'),
+      );
+      await tester.pump();
+      await tester.tap(find.text('USE MY ROOM (CAMERA + SAM)'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.textContaining('Camera is unavailable'), findsNothing);
+      expect(find.text('USE MY ROOM (CAMERA + SAM)'), findsOneWidget);
+      expect(readPairs(tester).length, 3);
+    });
+
+    testWidgets('game over shows the AI verdict with a question button', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(const MaterialApp(home: SpatialGamePage()));
+      await tester.pump();
+      final pairs = readPairs(tester);
+      await tester.ensureVisible(find.text('GOT IT, ASK ME'));
+      await tester.pump();
+      await tester.tap(find.text('GOT IT, ASK ME'));
+      await tester.pump();
+      final target = readTarget(tester);
+      final correct = pairs[target]!;
+      final wrong = readOptions(tester).firstWhere((o) => o != correct);
+      await tester.tap(find.text(wrong));
+      await tester.pump();
+      // The verdict arrives over async model calls (or their local
+      // fallback chain) and sits below the fold of the result list:
+      // wait for it and search the whole tree, like a scrolling user.
+      final verdict = find.text('AI verdict', skipOffstage: false);
+      for (var i = 0; i < 30; i++) {
+        if (verdict.evaluate().isNotEmpty) break;
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(verdict, findsOneWidget);
+      expect(
+        find.text('ASK THE AI COACH', skipOffstage: false),
+        findsOneWidget,
+      );
     });
   });
 }

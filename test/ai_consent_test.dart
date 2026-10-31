@@ -96,6 +96,15 @@ void main() {
       expect(answer.fallback, isFalse);
       expect(answer.text, contains('Elo valasz'));
     });
+
+    test('cloudReady csak kulccsal ÉS consenttel igaz', () async {
+      expect(await MetaAIService.cloudReady(), isFalse);
+      await MetaAIService.setStoredApiKey('kézi-kulcs');
+      MetaAIService.consentForTest = false;
+      expect(await MetaAIService.cloudReady(), isFalse);
+      MetaAIService.consentForTest = true;
+      expect(await MetaAIService.cloudReady(), isTrue);
+    });
   });
 
   group('recall keyboard hardening', () {

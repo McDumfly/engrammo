@@ -1,3 +1,5 @@
+import 'package:engrammo/l10n/strings_en.dart';
+import 'package:engrammo/l10n/strings_hu.dart';
 import 'package:engrammo/models/claims_policy.dart';
 import 'package:engrammo/models/curriculum.dart';
 import 'package:engrammo/models/foundations.dart';
@@ -54,8 +56,7 @@ void main() {
   }
 
   group('claims policy', () {
-    test(
-        'no banned efficacy phrase in tracks, chapters, coach cards, '
+    test('no banned efficacy phrase in tracks, chapters, coach cards, '
         'missions, targets, worked examples, banks', () {
       final surfaces = allClaimSurfaces();
       expect(surfaces, isNotEmpty);
@@ -111,6 +112,51 @@ void main() {
       expect(foundationDoseText, contains('foundation'));
       expect(foundationDoseText, contains('20 hours'));
       expect(foundationDoseText, contains('own material'));
+    });
+
+    test('practice transfer cards carry no banned efficacy phrase', () {
+      const games = [
+        'sequence',
+        'number',
+        'verbal',
+        'visual',
+        'order',
+        'spatial',
+      ];
+      const kinds = ['tech', 'life', 'mission'];
+      final surfaces = <String>[];
+      for (final game in games) {
+        for (final kind in kinds) {
+          final key = 'bench_transfer_${game}_$kind';
+          final en = enStrings[key] ?? '';
+          final hu = huStrings[key] ?? '';
+          expect(en, isNotEmpty, reason: 'missing EN $key');
+          expect(hu, isNotEmpty, reason: 'missing HU $key');
+          surfaces.add(en);
+          surfaces.add(hu);
+          // Every card's technique line names its source procedure.
+          if (kind == 'tech') {
+            expect(
+              en,
+              matches(
+                RegExp(
+                  'Corsi|Miller|Shepard|Standing|Luck|Cowan|Craik|Maguire|Dresler',
+                ),
+              ),
+              reason: key,
+            );
+          }
+        }
+      }
+      final failures = <String>[];
+      for (final token in bannedClaimTokens) {
+        for (final surface in surfaces) {
+          if (surface.toLowerCase().contains(token)) {
+            failures.add('token "$token" in: "$surface"');
+          }
+        }
+      }
+      expect(failures, isEmpty, reason: failures.take(10).join('\n'));
     });
   });
 }
