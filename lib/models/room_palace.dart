@@ -1,0 +1,202 @@
+import 'fsrs_card.dart';
+
+/// One memory palace built on the learner's own room photo.
+/// Device-only: never synced (the photo is private), see MemoryStore.
+class RoomPalace {
+  final String id; // 'room:<millisecondsSinceEpoch>'
+  final DateTime createdAt;
+  final String imageRef; // square JPEG data URL (512x512)
+  final List<String> stations; // object names, walk order
+  final List<List<double>>
+  boxes; // normalized [x0,y0,x1,y1] per station, may be empty
+  final List<String> masks; // raw SAM mask tokens per station, may be empty
+  final List<String>
+  items; // what the learner memorizes, items[i] sits at stations[i]
+  final List<String> links; // vivid image sentence per item
+  final bool live; // true = stations came from Muse Spark + SAM
+  final FsrsCard card;
+
+  const RoomPalace({
+    required this.id,
+    required this.createdAt,
+    required this.imageRef,
+    this.stations = const [],
+    this.boxes = const [],
+    this.masks = const [],
+    this.items = const [],
+    this.links = const [],
+    this.live = false,
+    required this.card,
+  });
+
+  RoomPalace copyWith({
+    String? id,
+    DateTime? createdAt,
+    String? imageRef,
+    List<String>? stations,
+    List<List<double>>? boxes,
+    List<String>? masks,
+    List<String>? items,
+    List<String>? links,
+    bool? live,
+    FsrsCard? card,
+  }) {
+    return RoomPalace(
+      id: id ?? this.id,
+      createdAt: createdAt ?? this.createdAt,
+      imageRef: imageRef ?? this.imageRef,
+      stations: stations ?? this.stations,
+      boxes: boxes ?? this.boxes,
+      masks: masks ?? this.masks,
+      items: items ?? this.items,
+      links: links ?? this.links,
+      live: live ?? this.live,
+      card: card ?? this.card,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'createdAt': createdAt.toIso8601String(),
+    'imageRef': imageRef,
+    'stations': stations,
+    'boxes': boxes,
+    'masks': masks,
+    'items': items,
+    'links': links,
+    'live': live,
+    'card': card.toJson(),
+  };
+
+  /// Never throws: missing lists become empty, a bad date becomes epoch,
+  /// and a missing card becomes a fresh due card.
+  factory RoomPalace.fromJson(Map<String, dynamic> json) {
+    List<String> stringsOf(Object? raw) {
+      if (raw is! List) return const [];
+      final out = <String>[];
+      for (final e in raw) {
+        try {
+          out.add(e.toString());
+        } catch (_) {
+          // Skip entries that cannot stringify.
+        }
+      }
+      return out;
+    }
+
+    List<List<double>> boxesOf(Object? raw) {
+      if (raw is! List) return const [];
+      final out = <List<double>>[];
+      for (final e in raw) {
+        if (e is! List) continue;
+        try {
+          out.add([for (final n in e) (n as num).toDouble()]);
+        } catch (_) {
+          // Skip malformed boxes.
+        }
+      }
+      return out;
+    }
+
+    final id = (json['id'] as String?) ?? '';
+    final createdAt =
+        DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+        DateTime.fromMillisecondsSinceEpoch(0);
+    final cardRaw = json['card'];
+    final card = cardRaw is Map<String, dynamic>
+        ? (() {
+            try {
+              return FsrsCard.fromJson(cardRaw);
+            } catch (_) {
+              return FsrsCard(
+                cardId: id,
+                taskId: 'room_palace',
+                due: DateTime.now(),
+              );
+            }
+          })()
+        : FsrsCard(cardId: id, taskId: 'room_palace', due: DateTime.now());
+    return RoomPalace(
+      id: id,
+      createdAt: createdAt,
+      imageRef: (json['imageRef'] as String?) ?? '',
+      stations: stringsOf(json['stations']),
+      boxes: boxesOf(json['boxes']),
+      masks: stringsOf(json['masks']),
+      items: stringsOf(json['items']),
+      links: stringsOf(json['links']),
+      live: (json['live'] as bool?) ?? false,
+      card: card,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RoomPalace &&
+          id == other.id &&
+          createdAt == other.createdAt &&
+          imageRef == other.imageRef &&
+          _strListEq(stations, other.stations) &&
+          _boxesEq(boxes, other.boxes) &&
+          _strListEq(masks, other.masks) &&
+          _strListEq(items, other.items) &&
+          _strListEq(links, other.links) &&
+          live == other.live &&
+          card == other.card;
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    createdAt,
+    imageRef,
+    Object.hashAll(stations),
+    Object.hashAll([for (final b in boxes) Object.hashAll(b)]),
+    Object.hashAll(masks),
+    Object.hashAll(items),
+    Object.hashAll(links),
+    live,
+    card,
+  );
+}
+
+bool _strListEq(List<String> a, List<String> b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
+
+bool _boxesEq(List<List<double>> a, List<List<double>> b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (!_numListEq(a[i], b[i])) return false;
+  }
+  return true;
+}
+
+bool _numListEq(List<double> a, List<double> b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if ((a[i] - b[i]).abs() > 1e-9) return false;
+  }
+  return true;
+}
+
+/// FSRS grade from a recall run: 4 easy (all), 3 good (>=80%),
+/// 2 hard (>=50%), 1 again (<50%). "Show me" counts as a miss.
+int roomGrade(int correct, int total) {
+  if (total <= 0) return 1;
+  if (correct >= total) return 4;
+  final ratio = correct / total;
+  if (ratio >= 0.8) return 3;
+  if (ratio >= 0.5) return 2;
+  return 1;
+}
+
+/// Display name: the first two stations, e.g. "desk · lamp".
+String roomPalaceName(RoomPalace p) {
+  if (p.stations.isEmpty) return p.id;
+  return p.stations.take(2).join(' · ');
+}

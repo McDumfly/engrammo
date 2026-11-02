@@ -11,6 +11,7 @@ import '../models/friend_social.dart';
 import '../models/league_season.dart';
 import '../models/marathon.dart' show maxStoredReps;
 import '../models/norms.dart' show LocalNorm, maxStoredRuns;
+import '../models/room_palace.dart';
 import '../models/user_goals.dart';
 import '../utils/streak_restore.dart';
 import '../utils/streak_utils.dart';
@@ -69,9 +70,7 @@ class BenchmarkState {
       rawAttempts.forEach((k, v) {
         final key = k.toString();
         if (key.isEmpty || v is! List) return;
-        final list = [
-          for (final e in v) (e as num?)?.toInt() ?? 0,
-        ];
+        final list = [for (final e in v) (e as num?)?.toInt() ?? 0];
         attempts[key] = list.length > MemoryStore.benchmarkAttemptsCap
             ? list.sublist(list.length - MemoryStore.benchmarkAttemptsCap)
             : list;
@@ -118,8 +117,8 @@ class MemoryStore {
   static int? _battleXpMemory;
 
   /// Last profile seen in this session, or null when unknown.
-  static ({String displayName, String username, String email})? get lastProfile =>
-      _profileMemory;
+  static ({String displayName, String username, String email})?
+  get lastProfile => _profileMemory;
 
   /// Last scores seen in this session, or null when unknown.
   /// Returns a copy; callers may mutate the result freely.
@@ -161,6 +160,7 @@ class MemoryStore {
     _battleRatingMemory = null;
     _battleXpMemory = null;
   }
+
   static const _profileNameKey = 'profile_display_name_v1';
   static const _profileUsernameKey = 'profile_username_v1';
   static const _profileEmailKey = 'profile_email_v1';
@@ -316,8 +316,7 @@ class MemoryStore {
       ]);
       _dominantKindMemory = kind;
       _announceScores();
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   static Future<bool> loadOnboardingDone() async {
@@ -333,8 +332,7 @@ class MemoryStore {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_onboardingDoneKey, true);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   static Future<int?> loadBattleKind() async {
@@ -581,9 +579,7 @@ class MemoryStore {
     _notifyChanged();
   }
 
-  static Future<void> saveLeagueSeasonWithoutNotify(
-    LeagueSeason season,
-  ) async {
+  static Future<void> saveLeagueSeasonWithoutNotify(LeagueSeason season) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_leagueSeasonKey, jsonEncode(season.toJson()));
@@ -731,8 +727,7 @@ class MemoryStore {
         for (final e in opts.entries) '${e.key}=${e.value}',
       ]);
       _avatarOptsMemory = Map<String, String>.of(opts);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   static Future<({String displayName, String username, String email})>
@@ -779,8 +774,7 @@ class MemoryStore {
         username: username,
         email: email,
       );
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   static Future<bool> isProfileSetupDone(String uid) async {
@@ -803,8 +797,7 @@ class MemoryStore {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_profileSetupDoneKey, uid);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   static String lessonKey(int chapter, int section, int lesson) =>
@@ -841,8 +834,7 @@ class MemoryStore {
       await prefs.setStringList(_chapterProgressKey, [
         for (final e in progress.entries) '${e.key}=${e.value.clamp(0, 3)}',
       ]);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   static Future<void> saveLessonStars({
@@ -886,8 +878,10 @@ class MemoryStore {
       for (final e in raw) {
         final i = e.indexOf('=');
         if (i <= 0) continue;
-        map[e.substring(0, i)] =
-            (int.tryParse(e.substring(i + 1)) ?? 0).clamp(0, maxStoredReps);
+        map[e.substring(0, i)] = (int.tryParse(e.substring(i + 1)) ?? 0).clamp(
+          0,
+          maxStoredReps,
+        );
       }
       return map;
     } catch (_) {
@@ -900,17 +894,14 @@ class MemoryStore {
     _notifyChanged();
   }
 
-  static Future<void> saveLessonRepsWithoutNotify(
-    Map<String, int> reps,
-  ) async {
+  static Future<void> saveLessonRepsWithoutNotify(Map<String, int> reps) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList(_lessonRepsKey, [
         for (final e in reps.entries)
           '${e.key}=${e.value.clamp(0, maxStoredReps)}',
       ]);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   static Future<Map<String, int>> loadTrackMinutes() async {
@@ -922,8 +913,10 @@ class MemoryStore {
       for (final e in raw) {
         final i = e.indexOf('=');
         if (i <= 0) continue;
-        map[e.substring(0, i)] = (int.tryParse(e.substring(i + 1)) ?? 0)
-            .clamp(0, 1 << 30);
+        map[e.substring(0, i)] = (int.tryParse(e.substring(i + 1)) ?? 0).clamp(
+          0,
+          1 << 30,
+        );
       }
       return map;
     } catch (_) {
@@ -945,8 +938,7 @@ class MemoryStore {
         for (final e in minutes.entries)
           '${e.key}=${e.value.clamp(0, 1 << 30)}',
       ]);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   static Future<Map<String, DateTime>> loadLessonDoneDates() async {
@@ -980,8 +972,7 @@ class MemoryStore {
       await prefs.setStringList(_lessonDoneKey, [
         for (final e in dates.entries) '${e.key}=${e.value.toIso8601String()}',
       ]);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   static Future<void> recordLessonSession({
@@ -1017,8 +1008,10 @@ class MemoryStore {
     await saveLessonRepsWithoutNotify(reps);
     final doses = await loadTrackMinutes();
     final slot = track.clamp(0, 5).toString();
-    doses[slot] = ((doses[slot] ?? 0) + minutes.clamp(1, 240))
-        .clamp(0, 1 << 30);
+    doses[slot] = ((doses[slot] ?? 0) + minutes.clamp(1, 240)).clamp(
+      0,
+      1 << 30,
+    );
     await saveTrackMinutesWithoutNotify(doses);
     final dates = await loadLessonDoneDates();
     dates[key] = now ?? DateTime.now();
@@ -1036,7 +1029,10 @@ class MemoryStore {
     }
   }
 
-  static Future<void> saveMissionDone(String missionId, {bool done = true}) async {
+  static Future<void> saveMissionDone(
+    String missionId, {
+    bool done = true,
+  }) async {
     await saveMissionDoneWithoutNotify(missionId, done: done);
     _notifyChanged();
   }
@@ -1055,16 +1051,14 @@ class MemoryStore {
         current.remove(missionId);
       }
       await prefs.setStringList(_missionsDoneKey, current.toList()..sort());
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   static Future<void> saveDoneMissionsWithoutNotify(Set<String> done) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList(_missionsDoneKey, done.toList()..sort());
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   /// Kincsesláda-jutalom: szándékosan kevéske, láda egyszer nyitható.
@@ -1087,16 +1081,14 @@ class MemoryStore {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList(_chestsKey, done.toList()..sort());
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   /// Kinyitja a ládát: elsőre [chestEngramReward] engramot ad, utána 0-t.
   static Future<int> claimChest(String chestId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final claimed =
-          prefs.getStringList(_chestsKey)?.toSet() ?? <String>{};
+      final claimed = prefs.getStringList(_chestsKey)?.toSet() ?? <String>{};
       if (claimed.contains(chestId)) return 0;
       claimed.add(chestId);
       await prefs.setStringList(_chestsKey, claimed.toList()..sort());
@@ -1162,8 +1154,7 @@ class MemoryStore {
       ];
       if (text.trim().isNotEmpty) rest.add('$targetId=${text.trim()}');
       await prefs.setStringList(_ownMaterialKey, rest);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   static Future<void> saveAllOwnMaterialsWithoutNotify(
@@ -1176,8 +1167,7 @@ class MemoryStore {
           if (e.key.isNotEmpty && e.value.trim().isNotEmpty)
             '${e.key}=${e.value.trim()}',
       ]);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   static const int userGoalsCap = 50;
@@ -1198,8 +1188,7 @@ class MemoryStore {
               goals.add(goal);
             }
           }
-        } catch (_) {
-        }
+        } catch (_) {}
       }
       goals.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       return goals;
@@ -1224,8 +1213,7 @@ class MemoryStore {
       await prefs.setStringList(_userGoalsKey, [
         for (final g in capped) jsonEncode(g.toJson()),
       ]);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   static Future<List<UserGoal>> addUserGoal(UserGoal goal) async {
@@ -1271,9 +1259,8 @@ class MemoryStore {
         if (e.substring(0, i) != goalId) continue;
         final rest = e.substring(i + 1);
         if (rest.isEmpty) return {};
-        return {
-          for (final c in rest.split(',')) int.tryParse(c) ?? -1,
-        }..remove(-1);
+        return {for (final c in rest.split(',')) int.tryParse(c) ?? -1}
+          ..remove(-1);
       }
       return {};
     } catch (_) {
@@ -1363,7 +1350,9 @@ class MemoryStore {
     _notifyChanged();
   }
 
-  static Future<void> saveBattleInvitesWithoutNotify(Set<String> invited) async {
+  static Future<void> saveBattleInvitesWithoutNotify(
+    Set<String> invited,
+  ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList(
@@ -1410,6 +1399,7 @@ class MemoryStore {
         _userGoalsKey,
         _goalPlanDoneKey,
         _fsrsCardsKey,
+        _roomPalacesKey,
         _metaCacheKey,
         _benchmarkKey,
         _battleInvitesKey,
@@ -1432,8 +1422,7 @@ class MemoryStore {
           await prefs.remove(key);
         }
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   static Future<void> saveStreakStateDirect({
@@ -1454,8 +1443,7 @@ class MemoryStore {
         bestStreak: bestStreak ?? current.bestStreak,
         engrams: engrams ?? current.engrams,
       );
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   static Future<Map<String, String>> loadAvatarOpts(
@@ -1685,8 +1673,7 @@ class MemoryStore {
       await prefs.setStringList(_fsrsCardsKey, [
         for (final e in capped) '${e.key}=${e.value}',
       ]);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   static Future<Map<String, String>> loadFsrsCards() async {
@@ -1706,6 +1693,60 @@ class MemoryStore {
     }
   }
 
+  static const _roomPalacesKey = 'room_palaces_v1';
+  static const roomPalaceCap = 6;
+
+  /// Newest first. Device-only on purpose: room photos never go to the
+  /// cloud, so this does NOT call _notifyChanged (no CloudSync push).
+  static Future<List<RoomPalace>> loadRoomPalaces() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getStringList(_roomPalacesKey);
+      if (raw == null || raw.isEmpty) return [];
+      final out = <RoomPalace>[];
+      for (final e in raw) {
+        try {
+          final parsed = jsonDecode(e);
+          if (parsed is Map<String, dynamic>) {
+            out.add(RoomPalace.fromJson(parsed));
+          }
+        } catch (_) {
+          // Skip corrupt entries.
+        }
+      }
+      return out;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  /// Keeps the newest [roomPalaceCap].
+  static Future<void> saveRoomPalaces(List<RoomPalace> list) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final capped = list.length > roomPalaceCap
+          ? list.sublist(0, roomPalaceCap)
+          : list;
+      await prefs.setStringList(_roomPalacesKey, [
+        for (final p in capped) jsonEncode(p.toJson()),
+      ]);
+    } catch (_) {}
+  }
+
+  /// Replace by id or insert first.
+  static Future<void> upsertRoomPalace(RoomPalace p) async {
+    final list = await loadRoomPalaces();
+    list.removeWhere((e) => e.id == p.id);
+    list.insert(0, p);
+    await saveRoomPalaces(list);
+  }
+
+  static Future<void> deleteRoomPalace(String id) async {
+    final list = await loadRoomPalaces();
+    list.removeWhere((e) => e.id == id);
+    await saveRoomPalaces(list);
+  }
+
   static Future<void> saveMetaCache(Map<String, String> entries) async {
     await saveMetaCacheWithoutNotify(entries);
     _notifyChanged();
@@ -1723,8 +1764,7 @@ class MemoryStore {
       await prefs.setStringList(_metaCacheKey, [
         for (final e in capped) '${e.key}=${e.value}',
       ]);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   static Future<Map<String, String>> loadMetaCache() async {
@@ -1751,8 +1791,10 @@ class MemoryStore {
     try {
       final prefs = await SharedPreferences.getInstance();
       final rows = prefs.getStringList(_assessmentRunsDataKey) ?? [];
-      rows.add([for (final p in itemProps) p.clamp(0.0, 1.0).toStringAsFixed(3)]
-          .join(','));
+      rows.add(
+        [for (final p in itemProps) p.clamp(0.0, 1.0).toStringAsFixed(3)]
+            .join(','),
+      );
       while (rows.length > maxStoredRuns) {
         rows.removeAt(0);
       }
@@ -1765,8 +1807,7 @@ class MemoryStore {
         for (final e in norms.entries)
           '${e.key}=${e.value.n},${e.value.mean},${e.value.m2}',
       ]);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   static Future<Map<int, LocalNorm>> loadLocalNorms() async {
@@ -1800,9 +1841,7 @@ class MemoryStore {
       if (raw == null || raw.isEmpty) return [];
       final runs = <List<double>>[];
       for (final row in raw) {
-        final props = [
-          for (final c in row.split(',')) double.tryParse(c) ?? 0,
-        ];
+        final props = [for (final c in row.split(',')) double.tryParse(c) ?? 0];
         if (props.length == assessmentProbeCount) runs.add(props);
       }
       return runs;

@@ -69,6 +69,12 @@ class CoachAnswer {
   const CoachAnswer({required this.text, this.fallback = true});
 }
 
+class RoomLinksAnswer {
+  final List<String> links;
+  final bool fallback;
+  const RoomLinksAnswer({required this.links, this.fallback = true});
+}
+
 class GoalAnalysisAnswer {
   final GoalAnalysis analysis;
   final bool fallback;
@@ -2290,13 +2296,16 @@ class MetaAIService {
     required int count,
     String locale = 'en',
     String? imageRefOverride,
+    String? sceneOverride,
     http.Client? client,
     String? apiKeyOverride,
     String? baseUrlOverride,
     void Function(double progress, String stage)? onProgress,
   }) async {
     final n = count.clamp(2, 8);
-    final scene = sceneForSeed(seed, locale);
+    final scene = (sceneOverride != null && sceneOverride.trim().isNotEmpty)
+        ? sceneOverride.trim()
+        : sceneForSeed(seed, locale);
     void report(double p, String stage) =>
         onProgress?.call(p.clamp(0.0, 1.0), stage);
     List<String> localObjects() {
@@ -4509,6 +4518,191 @@ class MetaAIService {
       if (owned) c.close();
     }
   }
+
+  static String _roomLinksSystem(String locale) {
+    final lang = locale == 'hu' ? 'Hungarian' : 'English';
+    return 'You are a memory-palace coach. The learner photographed their '
+        'own room. For each pair, write ONE vivid, concrete image (max 22 '
+        'words) in which the ITEM physically interacts with the real '
+        'STATION object: action, sound, exaggeration, touch, color. '
+        'Interacting images beat static or merely bizarre ones. No '
+        'violence, no gore, no sexual content, no health or medical '
+        'claims, no brand names. Write in $lang. Reply ONLY with JSON: '
+        '{"links": ["...", "..."]} — exactly one string per pair, same '
+        'order.';
+  }
+
+  @visibleForTesting
+  static Map<String, dynamic> roomLinksRequestBody({
+    required List<String> stations,
+    required List<String> items,
+    String locale = 'en',
+  }) {
+    return {
+      'model': taskModel,
+      // 'low', not 'minimal': one call per palace, and vivid, well-bound
+      // images are the whole point of this step.
+      'reasoning_effort': 'low',
+      'max_completion_tokens': 2000,
+      'response_format': {'type': 'json_object'},
+      'messages': [
+        {'role': 'system', 'content': _roomLinksSystem(locale)},
+        {
+          'role': 'user',
+          'content': jsonEncode({
+            'pairs': [
+              for (var i = 0; i < items.length; i++)
+                {'station': stations[i], 'item': items[i]},
+            ],
+          }),
+        },
+      ],
+    };
+  }
+
+  /// Parses room-palace links. Returns null on ANY violation (bad JSON,
+  /// wrong count, empty or overlong entries, banned claims): the caller
+  /// falls back to the local template.
+  @visibleForTesting
+  static List<String>? parseRoomLinks(String content, int n) {
+    try {
+      var text = content.trim();
+      if (text.startsWith('```')) {
+        final start = text.indexOf('{');
+        final end = text.lastIndexOf('}');
+        if (start < 0 || end <= start) return null;
+        text = text.substring(start, end + 1);
+      }
+      final data = jsonDecode(text);
+      if (data is! Map<String, dynamic>) return null;
+      final raw = data['links'];
+      if (raw is! List || raw.length != n) return null;
+      final out = <String>[];
+      for (final e in raw) {
+        if (e is! String) return null;
+        final s = e.trim();
+        if (s.isEmpty || s.length > 200) return null;
+        if (bannedTokenIn(s) != null) return null;
+        out.add(s);
+      }
+      return out;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static String _roomLinkFallback(String station, String item, String locale) =>
+      trFor(locale, 'room_link_fallback', {'item': item, 'station': station});
+
+  /// One vivid station-item image per pair for a room palace. Never
+  /// throws: offline it returns one local template sentence per item.
+  /// Requires `stations.length >= items.length`.
+  static Future<RoomLinksAnswer> roomPalaceLinks({
+    required List<String> stations,
+    required List<String> items,
+    String locale = 'en',
+    http.Client? client,
+    String? apiKeyOverride,
+    String? baseUrlOverride,
+  }) async {
+    final padded = stations.length >= items.length
+        ? stations.take(items.length).toList()
+        : [...stations, ...List.filled(items.length - stations.length, '')];
+    Future<RoomLinksAnswer> local({
+      required bool success,
+      String note = '',
+    }) async {
+      final answer = RoomLinksAnswer(
+        links: [
+          for (var i = 0; i < items.length; i++)
+            _roomLinkFallback(padded[i], items[i], locale),
+        ],
+      );
+      await _log(
+        MetaCallEntry(
+          model: taskModel,
+          kind: 'room:links',
+          at: DateTime.now(),
+          success: success,
+          fallback: true,
+          note: note,
+        ),
+      );
+      return answer;
+    }
+
+    final key = await _liveKey(apiKeyOverride);
+    final base = resolveBaseUrl(baseUrlOverride);
+    if (key.isEmpty) {
+      final note = await _gatedOfflineNote(
+        apiKeyOverride,
+        'local fallback',
+        locale,
+      );
+      return local(success: true, note: note);
+    }
+    final c = client ?? http.Client();
+    final owned = client == null;
+    try {
+      final res = await _postChat(
+        c,
+        base: base,
+        key: key,
+        body: roomLinksRequestBody(
+          stations: padded,
+          items: items,
+          locale: locale,
+        ),
+        timeoutSec: httpTimeoutSec,
+      );
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        final data = jsonDecode(res.body);
+        if (data is Map<String, dynamic>) {
+          final links = parseRoomLinks(_choicesText(data), items.length);
+          if (links != null) {
+            await _log(
+              MetaCallEntry(
+                model: taskModel,
+                kind: 'room:links',
+                at: DateTime.now(),
+                success: true,
+                fallback: false,
+              ),
+            );
+            return RoomLinksAnswer(links: links, fallback: false);
+          }
+          throw StateError(_emptyChatNote(res, data));
+        }
+      }
+      throw StateError('HTTP ${res.statusCode}: ${_snip(res.body)}');
+    } catch (e) {
+      debugPrint('MetaAIService.roomPalaceLinks fallback: $e');
+      final answer = RoomLinksAnswer(
+        links: [
+          for (var i = 0; i < items.length; i++)
+            _roomLinkFallback(padded[i], items[i], locale),
+        ],
+      );
+      await _log(
+        MetaCallEntry(
+          model: taskModel,
+          kind: 'room:links',
+          at: DateTime.now(),
+          success: false,
+          fallback: true,
+          note: e.toString(),
+        ),
+      );
+      return answer;
+    } finally {
+      if (owned) c.close();
+    }
+  }
+
+  static String roomDreamPrompt(String station, String item, String link) =>
+      'Photorealistic close-up of a $station in a cozy home room. $link '
+      'Vivid colors, dramatic soft lighting, playful and surreal but clear, '
+      'one focal scene, no text, no letters, no logos.';
 
   /// The prompt a self-hosted Glimmer would get. Kept (and tested) as
   /// the documented prompt shape — [glimmerTake] never sends it, because

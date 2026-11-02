@@ -49,6 +49,8 @@ dependencies:
   # The saved Meta key lives in encrypted storage (iOS Keychain /
   # Android Keystore), not as plain SharedPreferences text.
   flutter_secure_storage: ^11.2.0
+  image_picker: ^1.2.4
+  image: ^4.12.0
 
 dev_dependencies:
   flutter_test:

@@ -40,7 +40,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Spatial practice can photograph your own room so SAM can turn the spotted details into memory-palace stations.</string>
+	<string>Take a photo of your room to turn it into your memory palace. The photo stays on this device.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Choose a photo of your room to turn it into your memory palace. The photo stays on this device.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

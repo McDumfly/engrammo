@@ -30,6 +30,7 @@ import '../services/app_feedback.dart';
 import '../services/memory_store.dart';
 import '../services/meta_ai_service.dart';
 import 'benchmark_stats.dart' show BenchmarkDetailPage;
+import 'room_palace_page.dart' show RoomPalacePage;
 import '../theme/app_colors.dart' show blue, blueDark, teal, orange, coral, sky;
 
 final _rnd = Random();
@@ -679,6 +680,13 @@ class BenchmarkHubPage extends StatefulWidget {
 }
 
 class _BenchmarkHubPageState extends State<BenchmarkHubPage> {
+  Future<void> _openRoomPalace() async {
+    AppFeedback.light();
+    await Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const RoomPalacePage()));
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
@@ -718,6 +726,8 @@ class _BenchmarkHubPageState extends State<BenchmarkHubPage> {
               style: TextStyle(color: context.mutedText, fontSize: 14),
             ),
             const SizedBox(height: 16),
+            _RoomPalaceHeroCard(onTap: _openRoomPalace),
+            const SizedBox(height: 12),
             if (!BenchmarkStore.loaded)
               const Center(
                 child: Padding(
@@ -760,6 +770,82 @@ class _BenchmarkHubPageState extends State<BenchmarkHubPage> {
               tr('bench_hub_tip'),
               textAlign: TextAlign.center,
               style: TextStyle(color: context.mutedText, fontSize: 13),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RoomPalaceHeroCard extends StatelessWidget {
+  final Future<void> Function() onTap;
+  const _RoomPalaceHeroCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      key: const ValueKey('room-palace-hero'),
+      onTap: () => onTap(),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: coral.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: coral.withValues(alpha: 0.45), width: 2),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: coral.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              alignment: Alignment.center,
+              child: HugeIcon(
+                icon: HugeIcons.strokeRoundedCamera01,
+                color: coral,
+                size: 32,
+                strokeWidth: 2.0,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tr('room_title'),
+                    style: TextStyle(
+                      color: context.inkText,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 19,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    tr('room_sub'),
+                    style: TextStyle(color: context.mutedText, fontSize: 14),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'SAM 3.1 · Muse Spark · Muse Image',
+                    style: TextStyle(
+                      color: coral,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            HugeIcon(
+              icon: HugeIcons.strokeRoundedArrowRight01,
+              color: context.mutedText,
+              size: 22,
+              strokeWidth: 2.2,
             ),
           ],
         ),
@@ -1548,11 +1634,7 @@ class _NumberGamePageState extends State<NumberGamePage> {
               ),
             ),
             const SizedBox(height: 12),
-            _bigButton(
-              context,
-              label: tr('bench_num_gotit'),
-              onTap: _ask,
-            ),
+            _bigButton(context, label: tr('bench_num_gotit'), onTap: _ask),
           ] else ...[
             Text(
               tr('bench_num_q'),
@@ -2537,10 +2619,7 @@ class _VisualGamePageState extends State<VisualGamePage> {
                     const SizedBox(height: 4),
                     Text(
                       tr('bench_time_memorized', {'n': _memorizeSecs ?? 0}),
-                      style: TextStyle(
-                        color: context.mutedText,
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(color: context.mutedText, fontSize: 13),
                     ),
                     const SizedBox(height: 12),
                     for (final o in ai.options)
@@ -2625,10 +2704,7 @@ class _VisualGamePageState extends State<VisualGamePage> {
                     Text(
                       tr('bench_time_memorized', {'n': _memorizeSecs ?? 0}),
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: context.mutedText,
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(color: context.mutedText, fontSize: 13),
                     ),
                     const SizedBox(height: 8),
                   ],
@@ -2862,9 +2938,7 @@ class SpatialGamePage extends StatefulWidget {
   /// into their own stations, so the app never has to guess anyone's
   /// home layout.
   static List<String> defaultStations([String locale = 'en']) =>
-      List<String>.of(
-        palaceRoutesFor(locale).values.first.take(maxStations),
-      );
+      List<String>.of(palaceRoutesFor(locale).values.first.take(maxStations));
 
   /// Cleans the player-typed stations into exactly [maxStations] stops:
   /// trims, fills blanks from the sample route at the same slot, and
@@ -2992,9 +3066,11 @@ class _SpatialGamePageState extends State<SpatialGamePage> {
           _palace = saved;
           _stations = List<String>.of(stations);
           _palaceCtrl.text = saved;
-          for (var i = 0;
-              i < _stationCtrls.length && i < stations.length;
-              i++) {
+          for (
+            var i = 0;
+            i < _stationCtrls.length && i < stations.length;
+            i++
+          ) {
             _stationCtrls[i].text = stations[i];
           }
         }
@@ -3005,10 +3081,9 @@ class _SpatialGamePageState extends State<SpatialGamePage> {
   Future<void> _start() async {
     final name = _palaceCtrl.text.trim();
     if (name.isEmpty) return;
-    final stations = SpatialGamePage.sanitizeStations(
-      [for (final c in _stationCtrls) c.text],
-      AppLocalizations.localeCode,
-    );
+    final stations = SpatialGamePage.sanitizeStations([
+      for (final c in _stationCtrls) c.text,
+    ], AppLocalizations.localeCode);
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(SpatialGamePage.palacePrefsKey, name);
@@ -3677,7 +3752,7 @@ class SamMaskGameBodyState extends State<SamMaskGameBody> {
     final round = _round;
     if (round == null) return const SizedBox.shrink();
     final aligned = round.boxes.length == round.objects.length;
-    return _MaskedPicture(
+    return MaskedPicture(
       imageUrl: round.imageUrl,
       scene: round.scene,
       objects: round.objects,
@@ -3738,12 +3813,15 @@ class SamMaskGameBodyState extends State<SamMaskGameBody> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        stepBtn('−', _count > 2
-            ? () {
-                _count--;
-                unawaited(_load());
-              }
-            : null),
+        stepBtn(
+          '−',
+          _count > 2
+              ? () {
+                  _count--;
+                  unawaited(_load());
+                }
+              : null,
+        ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Text(
@@ -3755,12 +3833,15 @@ class SamMaskGameBodyState extends State<SamMaskGameBody> {
             ),
           ),
         ),
-        stepBtn('+', _count < 8
-            ? () {
-                _count++;
-                unawaited(_load());
-              }
-            : null),
+        stepBtn(
+          '+',
+          _count < 8
+              ? () {
+                  _count++;
+                  unawaited(_load());
+                }
+              : null,
+        ),
       ],
     );
   }
@@ -4264,7 +4345,7 @@ class _DecodedShape {
 /// cover; without geometry the picture is covered by an even grid of
 /// tiles. Revealed objects lose their cover and gain a label chip.
 /// Before masking, [showWalk] draws the numbered study walk instead.
-class _MaskedPicture extends StatefulWidget {
+class MaskedPicture extends StatefulWidget {
   final String imageUrl;
   final String scene;
   final List<String> objects;
@@ -4276,7 +4357,8 @@ class _MaskedPicture extends StatefulWidget {
   final int version;
   final bool showWalk;
   final VoidCallback? onImageError;
-  const _MaskedPicture({
+  const MaskedPicture({
+    super.key,
     required this.imageUrl,
     required this.scene,
     required this.objects,
@@ -4291,10 +4373,10 @@ class _MaskedPicture extends StatefulWidget {
   });
 
   @override
-  State<_MaskedPicture> createState() => _MaskedPictureState();
+  State<MaskedPicture> createState() => _MaskedPictureState();
 }
 
-class _MaskedPictureState extends State<_MaskedPicture> {
+class _MaskedPictureState extends State<MaskedPicture> {
   /// Decoded shapes by mask token (null = undecodable, box cover).
   /// Mask tokens are unique per round; the cap bounds long sessions.
   final _shapes = <String, _DecodedShape?>{};

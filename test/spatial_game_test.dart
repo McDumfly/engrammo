@@ -42,11 +42,10 @@ void main() {
     });
 
     test('makeOptions holds the answer plus 3 fresh lures', () {
-      final options = SpatialGamePage.makeOptions(
+      final options = SpatialGamePage.makeOptions('apple', [
         'apple',
-        ['apple', 'hammer'],
-        Random(7),
-      );
+        'hammer',
+      ], Random(7));
       expect(options.length, 4);
       expect(options, contains('apple'));
       expect(options.toSet().length, 4);
@@ -159,8 +158,7 @@ void main() {
     ) async {
       final field = find.byWidgetPredicate(
         (w) =>
-            w is TextField &&
-            w.decoration?.hintText == 'Station ${index + 1}',
+            w is TextField && w.decoration?.hintText == 'Station ${index + 1}',
       );
       expect(field, findsOneWidget);
       await tester.enterText(field, value);
@@ -171,6 +169,9 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(const MaterialApp(home: BenchmarkHubPage()));
+      await tester.pump();
+      // The Room Palace hero sits above the game cards: scroll to the card.
+      await tester.scrollUntilVisible(find.text('Spatial memory'), 500);
       await tester.pump();
       expect(find.text('Spatial memory'), findsOneWidget);
       expect(find.text('Walk the palace route!'), findsOneWidget);
@@ -350,8 +351,7 @@ void main() {
       // Offline fallback shows the words to memorize as chips.
       final words = <String>[];
       for (final t in tester.widgetList<Text>(find.byType(Text))) {
-        if (t.style?.fontSize == 14 &&
-            t.style?.fontWeight == FontWeight.w600) {
+        if (t.style?.fontSize == 14 && t.style?.fontWeight == FontWeight.w600) {
           words.add(t.data ?? '');
         }
       }
@@ -414,9 +414,7 @@ void main() {
       // (RIGHT OVERFLOWED BY 89 PIXELS) — az egyetlen
       // "Palota módosítása" link tördelés nélkül elfér.
       AppLocalizations.useCode(AppLocalizations.hungarianCode);
-      addTearDown(
-        () => AppLocalizations.useCode(AppLocalizations.englishCode),
-      );
+      addTearDown(() => AppLocalizations.useCode(AppLocalizations.englishCode));
       tester.view.physicalSize = const Size(360, 740);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);

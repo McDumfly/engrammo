@@ -85,6 +85,23 @@ void main() {
         c.close();
         expect(answer.fallback, isFalse);
       }, timeout: const Timeout(Duration(minutes: 2)));
+
+      test('Room palace links are live', () async {
+        final c = http.Client();
+        final answer = await MetaAIService.roomPalaceLinks(
+          stations: const ['desk', 'lamp'],
+          items: const ['apple', 'hammer'],
+          client: c,
+          apiKeyOverride: _key,
+        );
+        c.close();
+        expect(
+          answer.fallback,
+          isFalse,
+          reason: MetaAIService.lastCalls.first.note,
+        );
+        expect(answer.links.length, 2);
+      }, timeout: const Timeout(Duration(minutes: 2)));
     },
   );
 }
