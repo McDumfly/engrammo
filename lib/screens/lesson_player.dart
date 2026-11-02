@@ -38,8 +38,31 @@ import '../widgets/dynamic_task_view.dart';
 import '../widgets/recall_inputs.dart';
 import '../widgets/sam_overlay.dart';
 
-String lessonKindFor(int chapter, int lesson) {
+String lessonKindFor(int chapter, int lesson, {int? section}) {
   const base = ['sensory', 'sequence', 'spatial', 'visual', 'verbal', 'verbal'];
+  // Detail Studio's Pattern vault (ch 18, section 1) drills the visual
+  // pattern-span paradigm (Luck & Vogel 1997; Cowan 2001) instead of the
+  // generic visual kind, so every registered paradigm is reachable in
+  // lessons — not only in duels. Section-agnostic calls keep the old
+  // mapping for backwards compatibility.
+  if (chapter == 18 && section == 1) return 'pattern';
+  // Foundations drill the procedure their coach card teaches, so the
+  // largest lab-proven wins land in week 1 instead of fieldwork:
+  // chunk-span for Digit chunks (Miller 1956; Ericsson, Chase & Faloon
+  // 1980), day-replay/story for the Journal (Gais, Lucas & Born 2006),
+  // face-name/keyword for Baker breaker + Keyword chain (Morris et al.,
+  // d ≈ 2.4; Atkinson & Raugh 1975). Section-agnostic calls keep the
+  // old mapping (same rule as ch 18 above); both lesson paths (AI and
+  // local) pass the section, so real lessons get the taught procedure.
+  if (chapter == 1 && section == 0) return 'number';
+  if (chapter == 4 && section != null) {
+    const journal = ['replay', 'episodic', 'replay'];
+    return journal[section.clamp(0, 2)];
+  }
+  if (chapter == 5 && section != null) {
+    const names = ['face', 'foreign', 'semantic'];
+    return names[section.clamp(0, 2)];
+  }
   if (chapter == 6) {
     const mixed = ['number', 'verbal', 'sequence', 'spatial'];
     return mixed[lesson % mixed.length];
@@ -137,16 +160,20 @@ bool lessonRoundKindWantsImage(String kind) =>
 /// How many image rounds of ONE lesson run get an AI painting plus SAM
 /// segmentation. Semantics: per lesson run (each `_startDrill` resets it),
 /// counted only over rounds whose kind wants an image.
-/// Palace Builder (chapter 2) is the imagery chapter: every round is
-/// painted, so the walk order always comes from SAM labels on a real
-/// picture. Other chapters keep the cheaper budget of 2.
+/// The models have unlimited credit: every chapter paints every round, so
+/// the walk order always comes from SAM labels on a real picture.
 int chapterImageBudget(int chapter, int rounds) {
-  if (chapter == 2) return rounds.clamp(0, 1 << 30);
-  return 2;
+  return rounds.clamp(0, 1 << 30);
 }
 
-String lessonRoundKindFor(int chapter, int lesson, int round, int rounds) {
-  final base = lessonKindFor(chapter, lesson);
+String lessonRoundKindFor(
+  int chapter,
+  int lesson,
+  int round,
+  int rounds, {
+  int? section,
+}) {
+  final base = lessonKindFor(chapter, lesson, section: section);
   if (rounds < 3 || chapter < 0) return base;
   if (chapter == 6) {
     const mixed = ['number', 'verbal', 'sequence', 'spatial'];
@@ -196,7 +223,26 @@ bool lessonRecallMode({
   required int difficulty,
   required String paradigm,
 }) {
-  return chapter >= 6 && difficulty >= 3 && recallCapableParadigm(paradigm);
+  if (!recallCapableParadigm(paradigm)) return false;
+  if (chapter >= 6 && difficulty >= 3) return true;
+  // Early single-word recall: producing one concrete word (a surname, a
+  // meaning, a paired noun) runs the lab procedure in its natural
+  // response format — Morris et al. face-name mnemonic (42%→79%,
+  // d ≈ 2.4), Atkinson & Raugh (1975) keyword (72% vs 46%), Karpicke &
+  // Roediger (2008) retrieval practice — and recall formats beat
+  // recognition (Rowland 2014, g=0.50; Adesope et al. 2017, g=0.51).
+  // Foundations sit at difficulty 1, so gating on >= 2 keeps the first
+  // two lessons recognition-only scaffolding (~85% rule, Wilson et al.
+  // 2019) and switches to production from lesson 3. Multi-item
+  // paradigms (spans, stories, grids, walks) stay scaffolded until the
+  // finals, as before.
+  if (difficulty >= 2 &&
+      (paradigm == 'face-name' ||
+          paradigm == 'keyword-pair' ||
+          paradigm == 'paired-associate')) {
+    return true;
+  }
+  return false;
 }
 
 String lessonRecallHint(String paradigm) {
@@ -295,7 +341,7 @@ List<MetaTask> loadLocalLessonTasks({
     for (var r = 0; r < rounds; r++)
       localValidatedTask(
         MetaTaskRequest(
-          kind: lessonRoundKindFor(chapter, lesson, r, rounds),
+          kind: lessonRoundKindFor(chapter, lesson, r, rounds, section: section),
           difficulty:
               (lessonRoundDifficultyFor(chapter, section, lesson, r, rounds) +
                       boost)
@@ -788,6 +834,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       widget.lessonIndex,
       round,
       _rounds,
+      section: widget.sectionIndex,
     );
     final difficulty =
         (lessonRoundDifficultyFor(
@@ -908,6 +955,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
         widget.lessonIndex,
         r,
         rounds,
+        section: widget.sectionIndex,
       );
       final withImage = lessonRoundKindWantsImage(kind) && imageLeft > 0;
       if (withImage) imageLeft--;
@@ -1818,6 +1866,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
     widget.lessonIndex,
     taskIndex,
     _tasks.length,
+    section: widget.sectionIndex,
   );
 
   Widget _workedExampleCard() {

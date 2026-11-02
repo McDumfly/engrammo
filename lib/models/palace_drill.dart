@@ -316,6 +316,122 @@ const pictureScenesHu = <String, List<String>>{
 
 int drillItemCount(int difficulty) => 3 + difficulty.clamp(1, 5);
 
+/// Case/accent-insensitive recall matching: `Kék Bögre` equals
+/// `kek bogre`. Used by the SAM mask game, where the player types what
+/// the black masks hide.
+String normalizeRecallAnswer(String s) {
+  const accents = {
+    'á': 'a', 'à': 'a', 'â': 'a', 'ä': 'a', 'ã': 'a', 'å': 'a',
+    'é': 'e', 'è': 'e', 'ê': 'e', 'ë': 'e',
+    'í': 'i', 'ì': 'i', 'î': 'i', 'ï': 'i',
+    'ó': 'o', 'ò': 'o', 'ô': 'o', 'ö': 'o', 'ő': 'o', 'õ': 'o', 'ø': 'o',
+    'ú': 'u', 'ù': 'u', 'û': 'u', 'ü': 'u', 'ű': 'u',
+    'ý': 'y', 'ÿ': 'y',
+    'ç': 'c', 'č': 'c', 'ć': 'c',
+    'ñ': 'n', 'ň': 'n',
+    'š': 's', 'ş': 's', 'ß': 'ss',
+    'ž': 'z', 'ź': 'z', 'ż': 'z',
+    'đ': 'd', 'ď': 'd',
+    'ğ': 'g', 'ł': 'l', 'ř': 'r', 'ţ': 't', 'þ': 'th',
+  };
+  final lower = s.toLowerCase().trim().replaceAll(RegExp(r'\s+'), ' ');
+  return String.fromCharCodes([
+    for (final c in lower.runes) ...(accents[String.fromCharCode(c)] ?? String.fromCharCode(c)).runes,
+  ]);
+}
+
+/// Returns the index of the first unrevealed candidate matching [input],
+/// or -1 when the guess names nothing new.
+int matchRecallAnswer(
+  String input,
+  List<String> candidates,
+  Set<int> revealed,
+) {
+  final guess = normalizeRecallAnswer(input);
+  if (guess.isEmpty) return -1;
+  for (var i = 0; i < candidates.length; i++) {
+    if (revealed.contains(i)) continue;
+    if (normalizeRecallAnswer(candidates[i]) == guess) return i;
+  }
+  return -1;
+}
+
+/// Everyday things people actually memorize: the palace game deals one
+/// of these lists per round instead of prescribing station→word pairs.
+class MemorableList {
+  final String title;
+  final List<String> items;
+  const MemorableList({required this.title, required this.items});
+}
+
+const _memorablePoolsHu = <String, List<String>>{
+  'Bevásárlólista': [
+    'tej', 'kenyér', 'tojás', 'vaj', 'alma', 'sajt', 'paradicsom',
+    'liszt', 'cukor', 'kávé', 'tea', 'méz', 'rizs', 'tészta', 'banán',
+    'narancs', 'burgonya', 'hagyma', 'paprika', 'tejföl',
+  ],
+  'Teendők mára': [
+    'csekkbefizetés', 'gyógyszertár', 'kulcsmásolás', 'virágöntözés',
+    'postacsomag', 'fogorvos időpont', 'könyvtári könyv', 'autómosás',
+    'számlaellenőrzés', 'ajándékcsomagolás', 'ablaktisztítás',
+    'cipőjavítás',
+  ],
+  'Útravaló lista': [
+    'útlevél', 'jegy', 'töltő', 'esernyő', 'napszemüveg', 'kabát',
+    'gyógyszer', 'könyv', 'kulacs', 'térkép', 'papírzsebkendő',
+    'szendvics',
+  ],
+  'Tanulnivaló szavak': [
+    'alma', 'kalapács', 'gyertya', 'híd', 'kert', 'lámpa', 'óceán',
+    'kulcs', 'tigris', 'hegedű', 'vár', 'rakéta', 'tükör',
+    'iránytű', 'sárkány', 'zongora', 'horgony', 'léggömb',
+  ],
+};
+
+const _memorablePoolsEn = <String, List<String>>{
+  'Shopping list': [
+    'milk', 'bread', 'eggs', 'butter', 'apple', 'cheese', 'tomato',
+    'flour', 'sugar', 'coffee', 'tea', 'honey', 'rice', 'pasta',
+    'banana', 'orange', 'potato', 'onion', 'pepper', 'yogurt',
+  ],
+  "Today's errands": [
+    'pay the bill', 'pharmacy', 'copy a key', 'water the plants',
+    'parcel pickup', 'dentist appointment', 'library book', 'car wash',
+    'check the invoice', 'wrap the gift', 'clean the windows',
+    'shoe repair',
+  ],
+  'Packing list': [
+    'passport', 'ticket', 'charger', 'umbrella', 'sunglasses',
+    'jacket', 'medicine', 'book', 'water bottle', 'map', 'tissues',
+    'sandwich',
+  ],
+  'Study words': [
+    'apple', 'hammer', 'candle', 'bridge', 'garden', 'lamp',
+    'ocean', 'key', 'tiger', 'violin', 'castle', 'rocket',
+    'mirror', 'compass', 'dragon', 'piano', 'anchor', 'balloon',
+  ],
+};
+
+/// Deals a titled everyday list: one pool per round, [count] distinct
+/// items, topped up from the concrete nouns when a pool runs short.
+MemorableList memorableListFor(String seed, int count, [String locale = 'en']) {
+  final pools = isHuLocale(locale) ? _memorablePoolsHu : _memorablePoolsEn;
+  final titles = pools.keys.toList();
+  final title = titles[_seedHash('list:$seed') % titles.length];
+  final pool = List<String>.of(pools[title]!)
+    ..shuffle(Random(_seedHash('items:$seed')));
+  final items = pool.take(count.clamp(2, 10)).toList();
+  if (items.length < count.clamp(2, 10)) {
+    final extra = List<String>.of(allConcreteNounsFor(locale))
+      ..shuffle(Random(_seedHash('extra:$seed')));
+    for (final w in extra) {
+      if (items.length >= count.clamp(2, 10)) break;
+      if (!items.contains(w)) items.add(w);
+    }
+  }
+  return MemorableList(title: title, items: items);
+}
+
 List<String> get allConcreteNouns => allConcreteNounsFor('en');
 
 List<String> allConcreteNounsFor([String locale = 'en']) => [

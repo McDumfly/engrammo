@@ -295,6 +295,8 @@ class _LearningPathPageState extends State<LearningPathPage> {
   Map<String, int> _reps = const {};
   Map<String, int> _trackMinutes = const {};
   Map<String, DateTime> _doneDates = const {};
+  Set<String> _claimedChests = const {};
+  bool _claimingChest = false;
   bool _showBackToNow = false;
   final ScrollController _scroll = ScrollController();
   final GlobalKey _nowKey = GlobalKey();
@@ -337,6 +339,12 @@ class _LearningPathPageState extends State<LearningPathPage> {
     } catch (_) {
       streakState = null;
     }
+    Set<String> chests = const {};
+    try {
+      chests = await MemoryStore.loadClaimedChests();
+    } catch (_) {
+      chests = const {};
+    }
     if (!mounted) return;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -347,6 +355,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
       _trackMinutes = trackMinutes;
       _doneDates = doneDates;
       _goalsCount = goalsCount;
+      _claimedChests = chests;
       if (s != null) {
         _streakHistory = s.history;
         _streak = StreakRestore.displayStreak(
@@ -560,12 +569,14 @@ class _LearningPathPageState extends State<LearningPathPage> {
           // teszünk másodikat.
           if (_tab != 1 && _tab != 3)
             Positioned(
+              key: const ValueKey('ai-help-fab'),
               left: 16,
               bottom: 110,
               child: AiHelpButton(topic: _helpTopic),
             ),
           if (_tab == 0 && _showBackToNow)
             Positioned(
+              key: const ValueKey('back-to-now-fab'),
               right: 16,
               bottom: 110,
               child: FloatingActionButton.small(
@@ -583,7 +594,10 @@ class _LearningPathPageState extends State<LearningPathPage> {
                 ),
               ),
             ),
+          // Kulcs kell: a feltételes testvérek miatt e nélkül a navbar
+          // állapota tabváltáskor újraépülne, és ugrana a csúszó háttér.
           Positioned(
+            key: const ValueKey('synapse-navbar'),
             left: 0,
             right: 0,
             bottom: 0,
@@ -751,7 +765,10 @@ class _LearningPathPageState extends State<LearningPathPage> {
       if (s == 0 && !secLocked) {
         body.add(_riverLink(prev, 0, locked: false));
         body.add(
-          _bonusStop(track: trackPositionOfChapter(chapterIdx).track),
+          _bonusStop(
+            chapterIdx: chapterIdx,
+            track: trackPositionOfChapter(chapterIdx).track,
+          ),
         );
         body.add(const SizedBox(height: 4));
       } else if (secLocked) {
@@ -1352,57 +1369,121 @@ class _LearningPathPageState extends State<LearningPathPage> {
     }
   }
 
-  Widget _bonusStop({required int track}) {
+  Future<void> _claimChest(String chestId) async {
+    if (_claimedChests.contains(chestId) || _claimingChest) return;
+    setState(() => _claimingChest = true);
+    AppFeedback.light();
+    try {
+      final reward = await MemoryStore.claimChest(chestId);
+      if (!mounted) return;
+      if (reward > 0) {
+        setState(() {
+          _claimedChests = {..._claimedChests, chestId};
+          _engrams += reward;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(tr('lpt_chest_claimed', {'n': reward}))),
+        );
+      } else {
+        setState(() => _claimedChests = {..._claimedChests, chestId});
+      }
+    } finally {
+      if (mounted) setState(() => _claimingChest = false);
+    }
+  }
+
+  Widget _bonusStop({required int chapterIdx, required int track}) {
+    final chestId = MemoryStore.chestIdForChapter(chapterIdx);
+    final claimed = _claimedChests.contains(chestId);
+    final iconColor = claimed ? context.mutedText : blue;
     return Center(
-      child: GestureDetector(
-        onTap: () {
-          AppFeedback.light();
-          showMissionsSheet(context, track);
-        },
-        child: Container(
-          width: 210,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: context.cardBg,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: context.washBorder,
-              width: 2,
-              strokeAlign: BorderSide.strokeAlignInside,
-            ),
-          ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            HugeIcon(
-              icon: HugeIcons.strokeRoundedGift,
-              color: blue,
-              size: 24,
-              strokeWidth: 2.0,
-            ),
-            SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          GestureDetector(
+            key: ValueKey('chest-$chapterIdx'),
+            onTap: claimed ? null : () => _claimChest(chestId),
+            child: Container(
+              width: 210,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: context.cardBg,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: context.washBorder,
+                  width: 2,
+                  strokeAlign: BorderSide.strokeAlignInside,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    tr('lpt_bonus'),
-                    style: TextStyle(
-                      color: context.inkText,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                  HugeIcon(
+                    icon: claimed
+                        ? HugeIcons.strokeRoundedCheckmarkCircle02
+                        : HugeIcons.strokeRoundedGift,
+                    color: iconColor,
+                    size: 24,
+                    strokeWidth: 2.0,
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          tr('lpt_bonus'),
+                          style: TextStyle(
+                            color: context.inkText,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          claimed
+                              ? tr('lpt_chest_opened')
+                              : "${tr('lpt_bonus_sub')} • ${tr('lpt_chest_tap')}",
+                          style: TextStyle(
+                            color: context.mutedText,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          GestureDetector(
+            key: ValueKey('missions-link-$chapterIdx'),
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              AppFeedback.light();
+              showMissionsSheet(context, track);
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  HugeIcon(
+                    icon: HugeIcons.strokeRoundedFlag01,
+                    color: context.mutedText,
+                    size: 14,
+                    strokeWidth: 2.0,
+                  ),
+                  const SizedBox(width: 6),
                   Text(
-                    tr('lpt_bonus_sub'),
+                    tr('lpt_missions_tip'),
                     style: TextStyle(color: context.mutedText, fontSize: 12),
                   ),
                 ],
               ),
             ),
-          ],
           ),
-        ),
+        ],
       ),
     );
   }

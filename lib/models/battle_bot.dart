@@ -50,6 +50,12 @@ class BotTierSpec {
 
 /// Canonical tier table. Bands overlap slightly so matchmaking across a
 /// boundary still feels fair.
+///
+/// Honesty note: every number below (rating bands, accuracy ranges,
+/// latency means, weekly-XP means, streak medians) is a hand-tuned
+/// simulation parameter so bots feel like fair human opponents — not
+/// measured human data and not a lab-derived model. Bot results feed
+/// only the private simulated league board, never a clinical metric.
 const botTierSpecs = <BotTier, BotTierSpec>{
   BotTier.rookie: BotTierSpec(
     tier: BotTier.rookie,

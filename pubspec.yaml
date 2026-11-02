@@ -45,12 +45,6 @@ dependencies:
   cloud_firestore: ^7.1.0
   google_sign_in: ^7.2.0
   http: ^1.2.0
-  # Spatial practice "camera palace": the player photographs their own
-  # room and SAM 3.1 turns the spotted details into palace stations.
-  image_picker: ^1.1.0
-  # Verbal practice voice answers: the player says SEEN / NEW, the audio
-  # is transcribed by Meta Voice Transcribe and mapped onto a guess.
-  record: ^6.0.0
   path_provider: ^2.1.0
   # The saved Meta key lives in encrypted storage (iOS Keychain /
   # Android Keystore), not as plain SharedPreferences text.
@@ -76,21 +70,23 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
 
-  # Az appban kizárólag HugeIcons van: a Material Icons betűtípus
-  # nincs becsomagolva (`Icons` / `Icon` használata tilos).
-  uses-material-design: false
+  # Az app ikonjai a HugeIcons-készletből jönnek (az appkódban
+  # `Icons` / `Icon` használata tilos), de a Material-ikonbetűtípus
+  # be van csomagolva: több Material-widget (SegmentedButton-pipa,
+  # legördülő nyíl, jelölőnégyzet-pipa) belső ikont rajzol, ami
+  # nélküle értelmetlen karakterként jelent meg.
+  uses-material-design: true
 
-  # NINCS `assets:` kulcs a `.env`-hez — szándékosan: a kulcs
-  # soha nem kerülhet a becsomagolt appba (a becsomagolt kulcs
-  # bárki által kiolvasható a buildelt appból). Helyette:
-  # - fejlesztéskor: `sh tool/run.sh` (a helyi, gitignore-olt
-  #   `.env` tartalmát `--dart-define` kulcsként adja át, a fájlt
-  #   NEM csomagolja be), vagy kézzel
-  #   `flutter run --dart-define=MODEL_API_KEY=...`;
-  # - éles / első indítás: Beállítások → Meta AI kulcsmező
-  #   (titkosított tárolóba mentődik a készüléken).
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  # A gyökér-`.env` assetként becsomagolódik, hogy a sima
+  # `flutter run` is kulccsal induljon, begépelés nélkül. A `.env`
+  # továbbra is gitignore-olt (soha nem kerül gitre); a klónozók a
+  # `.env.example` alapján hozzák létre (üresen is kell a fájl a
+  # buildhez). Release-be tilos kulcs: a `tool/build_release.sh`
+  # üres `.env`-vel buildel. A becsomagolt kulcs kiolvasható a
+  # buildelt appból, ezért a demó után vond vissza a Meta
+  # dashboardon, és adj ki új kulcsot.
+  assets:
+    - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

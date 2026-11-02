@@ -1,28 +1,31 @@
 import '../theme/app_theme.dart';
 
 import 'dart:async';
-import 'dart:convert';
 import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:record/record.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../widgets/ai_help_button.dart';
+import '../widgets/ai_image.dart';
 import '../widgets/app_buttons.dart';
 import '../l10n/app_localizations.dart';
-import '../models/meta_segment.dart';
 import '../models/meta_task.dart';
+import '../models/sam_mask.dart'
+    show
+        SamMaskRun,
+        decodeSamMaskToken,
+        parseSamMaskToken,
+        samMaskCentroid,
+        samMaskRuns;
 import '../models/palace_drill.dart'
     show
         allConcreteNounsFor,
         localPalaceTask,
         localPictureTask,
-        palaceRoutesFor,
-        stationsFromLabels;
+        matchRecallAnswer,
+        palaceRoutesFor;
 import '../services/app_feedback.dart';
 import '../services/memory_store.dart';
 import '../services/meta_ai_service.dart';
@@ -274,10 +277,12 @@ class BenchmarkMeta {
     }
   }
 
-  /// Spatial practice round: Muse Spark fills the loci stimulus, Muse
-  /// Image paints the palace, SAM turns it into ordered stations.
-  /// Offline this is just the local palace task (no image). Mirrors the
-  /// lesson path (Spark then enrich).
+  /// Spatial practice round: Muse Spark fills the station-word stimulus
+  /// when live, otherwise the local palace task. Deliberately NO image
+  /// enrichment on the practice path: the player rehearses in their OWN
+  /// palace (typed on the setup screen), so a generic AI palace painting
+  /// would only confuse and slow the round — ordered stations plus words
+  /// are the whole loci probe.
   static Future<MetaTask> spatialRound({
     required String seed,
     required int stations,
@@ -322,15 +327,7 @@ class BenchmarkMeta {
         count: stations,
       );
     }
-    try {
-      return await MetaAIService.enrichSpatialTask(
-        base,
-        difficulty: difficulty,
-        seed: seed,
-      );
-    } catch (_) {
-      return base;
-    }
+    return base;
   }
 }
 
@@ -414,15 +411,18 @@ class _AiTipState extends State<_AiTip> {
 /// an honest live/local badge: [live] is true only when the CURRENT
 /// round's stimulus actually came from a live model (the game pages feed
 /// it from each deal's fallback flag). Local rounds say so instead of
-/// borrowing the models' names.
+/// borrowing the models' names. While the round is still loading
+/// ([loading]), the strip says connecting instead of claiming local —
+/// the outcome is not decided yet.
 class _AiModelsStrip extends StatelessWidget {
   final String models;
   final bool live;
-  const _AiModelsStrip(this.models, {this.live = false});
+  final bool loading;
+  const _AiModelsStrip(this.models, {this.live = false, this.loading = false});
 
   @override
   Widget build(BuildContext context) {
-    final dot = live ? teal : context.mutedText;
+    final dot = loading ? blue : (live ? teal : context.mutedText);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
@@ -436,7 +436,9 @@ class _AiModelsStrip extends StatelessWidget {
           const SizedBox(width: 6),
           Expanded(
             child: Text(
-              live
+              loading
+                  ? tr('bench_ai_models_connecting', {'models': models})
+                  : live
                   ? tr('bench_ai_models', {'models': models})
                   : tr('bench_ai_models_local', {'models': models}),
               style: TextStyle(color: context.mutedText, fontSize: 12),
@@ -460,7 +462,11 @@ class _AiModelsStrip extends StatelessWidget {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  live ? tr('bench_ai_live') : tr('bench_ai_local'),
+                  loading
+                      ? tr('bench_ai_connecting')
+                      : live
+                      ? tr('bench_ai_live')
+                      : tr('bench_ai_local'),
                   style: TextStyle(
                     color: dot,
                     fontWeight: FontWeight.w900,
@@ -646,7 +652,10 @@ final _games = <_GameDef>[
     id: 'visual',
     icon: HugeIcons.strokeRoundedEye,
     tint: blueDark,
-    build: () => const VisualGamePage(),
+    // The hub opens the SAM picture-masking game first (the demo path);
+    // the pattern grid stays one toggle tap away, and a saved mode
+    // choice always wins over this entry default.
+    build: () => const VisualGamePage(initialMode: 'mask'),
   ),
   _GameDef(
     id: 'order',
@@ -841,6 +850,55 @@ class _BenchmarkCard extends StatelessWidget {
   }
 }
 
+/// Formats a practice duration as m:ss (0:07, 2:31).
+String _formatElapsed(Duration d) {
+  final total = d.inSeconds.clamp(0, 5999);
+  return '${total ~/ 60}:${(total % 60).toString().padLeft(2, '0')}';
+}
+
+/// Ticking practice clock. The memorize phases never auto-hide anymore —
+/// the player sets the pace with the got-it button, and this chip makes
+/// the measured time visible instead of a hidden countdown.
+class _LiveTimerChip extends StatefulWidget {
+  final DateTime since;
+  const _LiveTimerChip({required this.since});
+
+  @override
+  State<_LiveTimerChip> createState() => _LiveTimerChipState();
+}
+
+class _LiveTimerChipState extends State<_LiveTimerChip> {
+  Timer? _tick;
+
+  @override
+  void initState() {
+    super.initState();
+    _tick = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      tr('bench_time_live', {
+        't': _formatElapsed(DateTime.now().difference(widget.since)),
+      }),
+      style: TextStyle(
+        color: context.mutedText,
+        fontWeight: FontWeight.bold,
+        fontSize: 14,
+      ),
+    );
+  }
+}
+
 Widget _gameScaffold({
   required BuildContext context,
   required String title,
@@ -848,6 +906,8 @@ Widget _gameScaffold({
   required Widget body,
   String aiModels = '',
   bool aiLive = false,
+  bool aiLoading = false,
+  DateTime? timerSince,
 }) {
   final scheme = Theme.of(context).colorScheme;
   return Scaffold(
@@ -866,6 +926,11 @@ Widget _gameScaffold({
         ),
       ),
       actions: [
+        if (timerSince != null)
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: Center(child: _LiveTimerChip(since: timerSince)),
+          ),
         Padding(
           padding: const EdgeInsets.only(right: 8),
           child: Center(
@@ -891,7 +956,11 @@ Widget _gameScaffold({
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: _AiModelsStrip(aiModels, live: aiLive),
+                child: _AiModelsStrip(
+                  aiModels,
+                  live: aiLive,
+                  loading: aiLoading,
+                ),
               ),
               Expanded(child: body),
             ],
@@ -1020,12 +1089,39 @@ Widget _bigButton(
   );
 }
 
+/// Fix magasságú instrukciósáv a rácsos játékok fölött: a fázisváltáskor
+/// cserélődő szöveg (rövid „jegyezd meg" → hosszú „koppints vissza")
+/// nem tolhatja lejjebb a rácsot és az ELLENŐRZÉS gombot.
+class _FixedInstruction extends StatelessWidget {
+  final String text;
+  const _FixedInstruction(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 46),
+      child: Text(
+        text,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface,
+          fontWeight: FontWeight.bold,
+          fontSize: 16,
+          height: 1.35,
+        ),
+      ),
+    );
+  }
+}
+
 Widget _resultBox(
   BuildContext context, {
   required String title,
   required String detail,
   required VoidCallback onRetry,
   required String retryLabel,
+  String? footer,
 }) {
   return Column(
     children: [
@@ -1060,6 +1156,18 @@ Widget _resultBox(
               textAlign: TextAlign.center,
               style: TextStyle(color: context.mutedText, fontSize: 14),
             ),
+            if (footer != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                footer,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: context.mutedText,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -1091,6 +1199,8 @@ class _SequenceGamePageState extends State<SequenceGamePage> {
   int? _aiNext;
   bool _aiNextLive = false;
   bool _roundLive = false;
+  DateTime _startedAt = DateTime.now();
+  DateTime? _endedAt;
 
   @override
   void initState() {
@@ -1156,7 +1266,10 @@ class _SequenceGamePageState extends State<SequenceGamePage> {
     } else {
       final score = _seq.length - 1;
       BenchmarkStore.submit('sequence', score, higherIsBetter: true, xpGain: 5);
-      setState(() => _over = true);
+      setState(() {
+        _over = true;
+        _endedAt = DateTime.now();
+      });
     }
   }
 
@@ -1168,6 +1281,7 @@ class _SequenceGamePageState extends State<SequenceGamePage> {
       counter: tr('bench_level_n', {'n': _level}),
       aiModels: 'Muse Spark',
       aiLive: _roundLive,
+      timerSince: _startedAt,
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
@@ -1178,23 +1292,25 @@ class _SequenceGamePageState extends State<SequenceGamePage> {
               detail: tr('bench_seq_done_detail', {'n': _seq.length - 1}),
               onRetry: () => setState(() {
                 _seq.clear();
+                _startedAt = DateTime.now();
+                _endedAt = null;
                 _nextRound();
               }),
               retryLabel: tr('bench_retry_xp'),
+              footer: tr('bench_time_total', {
+                't': _formatElapsed(
+                  (_endedAt ?? DateTime.now()).difference(_startedAt),
+                ),
+              }),
             ),
             _TransferCard('sequence'),
             _AiTip(gameId: 'sequence', level: _seq.length - 1),
             _AiVerdict(gameId: 'sequence', score: _seq.length - 1),
           ] else ...[
-            Text(
+            _FixedInstruction(
               _busy
                   ? tr('bench_seq_watch', {'n': _level})
                   : tr('bench_seq_turn'),
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
             ),
             const SizedBox(height: 12),
             GridView.builder(
@@ -1273,7 +1389,10 @@ class _NumberGamePageState extends State<NumberGamePage> {
   String? _aiNext;
   bool _aiNextLive = false;
   bool _roundLive = false;
-  int _dealId = 0;
+  DateTime _startedAt = DateTime.now();
+  DateTime? _endedAt;
+  DateTime? _shownAt;
+  int? _memorizeSecs;
 
   static String _make(int digits) {
     final sb = StringBuffer();
@@ -1310,13 +1429,22 @@ class _NumberGamePageState extends State<NumberGamePage> {
     }
     _options = set.toList()..shuffle();
     _show = true;
-    final deal = ++_dealId;
-    Future.delayed(const Duration(milliseconds: 2500), () {
-      if (mounted && _show && !_over && deal == _dealId) {
-        setState(() => _show = false);
-      }
-    });
+    _shownAt = DateTime.now();
+    _memorizeSecs = null;
     unawaited(_prefetchNext());
+  }
+
+  /// The memorize screen only ever hides through this button: no timer
+  /// steals the number. The self-paced memorize time is the measured
+  /// challenge instead.
+  void _ask() {
+    final shown = _shownAt;
+    setState(() {
+      _memorizeSecs = shown == null
+          ? 0
+          : DateTime.now().difference(shown).inSeconds.clamp(0, 5999);
+      _show = false;
+    });
   }
 
   Future<void> _prefetchNext() async {
@@ -1349,7 +1477,10 @@ class _NumberGamePageState extends State<NumberGamePage> {
         higherIsBetter: true,
         xpGain: 5,
       );
-      setState(() => _over = true);
+      setState(() {
+        _over = true;
+        _endedAt = DateTime.now();
+      });
     }
   }
 
@@ -1361,6 +1492,7 @@ class _NumberGamePageState extends State<NumberGamePage> {
       counter: tr('bench_digits_n', {'n': _digits}),
       aiModels: 'Muse Spark',
       aiLive: _roundLive,
+      timerSince: _startedAt,
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
@@ -1372,9 +1504,16 @@ class _NumberGamePageState extends State<NumberGamePage> {
               onRetry: () => setState(() {
                 _digits = 3;
                 _over = false;
+                _startedAt = DateTime.now();
+                _endedAt = null;
                 _deal();
               }),
               retryLabel: tr('bench_restart'),
+              footer: tr('bench_time_total', {
+                't': _formatElapsed(
+                  (_endedAt ?? DateTime.now()).difference(_startedAt),
+                ),
+              }),
             ),
             _TransferCard('number'),
             _AiTip(gameId: 'number', level: _digits - 1),
@@ -1412,7 +1551,7 @@ class _NumberGamePageState extends State<NumberGamePage> {
             _bigButton(
               context,
               label: tr('bench_num_gotit'),
-              onTap: () => setState(() => _show = false),
+              onTap: _ask,
             ),
           ] else ...[
             Text(
@@ -1422,6 +1561,11 @@ class _NumberGamePageState extends State<NumberGamePage> {
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
               ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              tr('bench_time_memorized', {'n': _memorizeSecs ?? 0}),
+              style: TextStyle(color: context.mutedText, fontSize: 13),
             ),
             const SizedBox(height: 12),
             for (final o in _options)
@@ -1626,65 +1770,6 @@ class VerbalGamePage extends StatefulWidget {
     return null;
   }
 
-  /// Maps a Voice Transcribe transcript onto a guess: true for SEEN,
-  /// false for NEW, null when the transcript is empty, ambiguous or
-  /// says neither. Whole-word matching only, so "known" never counts
-  /// as "no"; explicit negated phrases ("not seen", "nem láttam")
-  /// always count as NEW.
-  static bool? voiceGuessFromTranscript(
-    String transcript, [
-    String locale = 'en',
-  ]) {
-    final lower = transcript.toLowerCase();
-    const negated = {
-      'not seen',
-      'never seen',
-      'have not seen',
-      "haven't seen",
-      'did not see',
-      "didn't see",
-      'nem láttam',
-      'nem lattam',
-      'sosem láttam',
-      'sosem lattam',
-    };
-    for (final phrase in negated) {
-      if (lower.contains(phrase)) return false;
-    }
-    final tokens = lower
-        .split(RegExp('[^a-záéíóöőúüű]+'))
-        .where((t) => t.isNotEmpty)
-        .toSet();
-    if (tokens.isEmpty) return null;
-    const seen = {
-      'seen',
-      'yes',
-      'saw',
-      'remember',
-      'known',
-      'láttam',
-      'lattam',
-      'igen',
-      'ismerem',
-      'tudom',
-    };
-    const fresh = {
-      'new',
-      'no',
-      'not',
-      'never',
-      'új',
-      'uj',
-      'nem',
-      'soha',
-      'nemlattam',
-    };
-    final saysSeen = tokens.intersection(seen).isNotEmpty;
-    final saysNew = tokens.intersection(fresh).isNotEmpty;
-    if (saysSeen == saysNew) return null;
-    return saysSeen;
-  }
-
   @override
   State<VerbalGamePage> createState() => _VerbalGamePageState();
 }
@@ -1701,11 +1786,8 @@ class _VerbalGamePageState extends State<VerbalGamePage> {
   int _score = 0;
   int _lives = 3;
   bool _over = false;
-  final _recorder = AudioRecorder();
-  bool _voiceBusy = false;
-  bool _recording = false;
-  String _voiceNote = '';
-  Timer? _voiceTimer;
+  DateTime _startedAt = DateTime.now();
+  DateTime? _endedAt;
 
   @override
   void initState() {
@@ -1713,13 +1795,6 @@ class _VerbalGamePageState extends State<VerbalGamePage> {
     _pool = VerbalGamePage.wordPool(AppLocalizations.localeCode);
     _fresh = List.of(_pool)..shuffle();
     _next();
-  }
-
-  @override
-  void dispose() {
-    _voiceTimer?.cancel();
-    _recorder.dispose();
-    super.dispose();
   }
 
   void _next() {
@@ -1779,126 +1854,6 @@ class _VerbalGamePageState extends State<VerbalGamePage> {
     }
   }
 
-  /// Voice answer: records a short clip, has Voice Transcribe turn it
-  /// into text, and maps the transcript onto a SEEN/NEW guess. Tapping
-  /// again finishes early; otherwise the clip auto-stops after 6
-  /// seconds. Never throws and never pops anything up — every failure
-  /// stays as one inline line and the tap buttons keep working.
-  Future<void> _voiceAnswer() async {
-    if (_over) return;
-    if (_recording) {
-      await _finishVoice();
-      return;
-    }
-    if (_voiceBusy) return;
-    // Átírás csak felhővel megy: kulcs/hozzájárulás nélkül nem indítunk
-    // rögzítést, mert az eredmény úgyis csak „nem értettem" lenne.
-    if (!await MetaAIService.cloudReady()) {
-      if (!mounted) return;
-      setState(() => _voiceNote = tr('bench_voice_nocloud'));
-      return;
-    }
-    setState(() {
-      _voiceBusy = true;
-      _recording = true;
-      _voiceNote = '';
-    });
-    try {
-      if (!await _recorder.hasPermission()) {
-        if (!mounted) return;
-        setState(() {
-          _voiceBusy = false;
-          _recording = false;
-          _voiceNote = tr('bench_voice_nomic');
-        });
-        return;
-      }
-      var dir = '';
-      try {
-        dir = (await getTemporaryDirectory()).path;
-      } catch (_) {}
-      final path = dir.isEmpty
-          ? 'engrammo_voice.m4a'
-          : '$dir/engrammo_voice.m4a';
-      await _recorder.start(
-        const RecordConfig(
-          encoder: AudioEncoder.aacLc,
-          bitRate: 64000,
-          sampleRate: 16000,
-          numChannels: 1,
-        ),
-        path: path,
-      );
-      if (!mounted) return;
-      setState(() {});
-      _voiceTimer?.cancel();
-      _voiceTimer = Timer(const Duration(seconds: 6), () {
-        if (mounted) _finishVoice();
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _voiceBusy = false;
-        _recording = false;
-        _voiceNote = tr('bench_voice_nomic');
-      });
-    }
-  }
-
-  Future<void> _finishVoice() async {
-    if (!_recording) return;
-    _voiceTimer?.cancel();
-    _recording = false;
-    if (!mounted) {
-      _voiceBusy = false;
-      return;
-    }
-    setState(() => _voiceNote = tr('bench_voice_working'));
-    try {
-      final path = await _recorder.stop();
-      if (path == null || path.isEmpty) throw StateError('no audio');
-      final bytes = await XFile(path).readAsBytes();
-      // A felvétel fix nevű ideiglenes fájlba megy, így minden új rögzítés
-      // felülírja az előzőt: legfeljebb egy 6 mp-es klip marad a temp
-      // mappában (törlésre nincs keresztplatformos API a record+XFile
-      // rétegben, ezért a forgatás a védelem a felhalmozódás ellen).
-      if (bytes.isEmpty || bytes.length > 1500000) {
-        throw StateError('bad audio');
-      }
-      final answer = await MetaAIService.transcribe(
-        audioDataUrl: 'data:audio/aac;base64,${base64Encode(bytes)}',
-        locale: AppLocalizations.localeCode,
-      );
-      if (!mounted) return;
-      setState(() => _voiceBusy = false);
-      if (_over) return;
-      final heard = answer.text.trim();
-      final guess = VerbalGamePage.voiceGuessFromTranscript(
-        heard,
-        AppLocalizations.localeCode,
-      );
-      if (guess == null) {
-        setState(() {
-          _voiceNote = heard.isEmpty
-              ? tr('bench_voice_unclear')
-              : '${tr('bench_voice_heard', {'text': heard})}\n'
-                    '${tr('bench_voice_unclear')}';
-        });
-        return;
-      }
-      setState(() {
-        _voiceNote = tr('bench_voice_heard', {'text': heard});
-      });
-      _guess(guess);
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _voiceBusy = false;
-        _voiceNote = tr('bench_voice_nomic');
-      });
-    }
-  }
-
   void _guess(bool saysSeen) {
     if (_over) return;
     final actuallySeen = _seen.contains(_word);
@@ -1917,7 +1872,10 @@ class _VerbalGamePageState extends State<VerbalGamePage> {
           higherIsBetter: true,
           xpGain: 5,
         );
-        setState(() => _over = true);
+        setState(() {
+          _over = true;
+          _endedAt = DateTime.now();
+        });
       } else {
         _seen.add(_word);
         _next();
@@ -1932,8 +1890,9 @@ class _VerbalGamePageState extends State<VerbalGamePage> {
       context: context,
       title: tr('bench_game_verbal_title'),
       counter: tr('bench_verbal_counter', {'score': _score, 'lives': _lives}),
-      aiModels: 'Muse Spark • Voice Transcribe',
+      aiModels: 'Muse Spark',
       aiLive: _wordLive,
+      timerSince: _startedAt,
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
@@ -1955,9 +1914,16 @@ class _VerbalGamePageState extends State<VerbalGamePage> {
                 _score = 0;
                 _lives = 3;
                 _over = false;
+                _startedAt = DateTime.now();
+                _endedAt = null;
                 _next();
               }),
               retryLabel: tr('bench_verbal_retry'),
+              footer: tr('bench_time_total', {
+                't': _formatElapsed(
+                  (_endedAt ?? DateTime.now()).difference(_startedAt),
+                ),
+              }),
             ),
             _TransferCard('verbal'),
             _AiTip(gameId: 'verbal', level: _score),
@@ -2028,62 +1994,6 @@ class _VerbalGamePageState extends State<VerbalGamePage> {
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-            GestureDetector(
-              onTap: _voiceAnswer,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: teal, width: 2),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (_voiceBusy)
-                      SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: teal,
-                        ),
-                      )
-                    else
-                      const HugeIcon(
-                        icon: HugeIcons.strokeRoundedMic01,
-                        color: teal,
-                        size: 22,
-                        strokeWidth: 2.0,
-                      ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        _recording
-                            ? tr('bench_voice_listening')
-                            : tr('bench_voice_answer'),
-                        style: const TextStyle(
-                          color: teal,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            if (_voiceNote.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Text(
-                _voiceNote,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: context.mutedText, fontSize: 12),
-              ),
-            ],
             const SizedBox(height: 8),
             Text(
               tr('bench_verbal_hint'),
@@ -2159,7 +2069,14 @@ class _HeartFillPainter extends CustomPainter {
 }
 
 class VisualGamePage extends StatefulWidget {
-  const VisualGamePage({super.key});
+  /// Which procedure shows first when no saved mode exists: 'pattern'
+  /// (grid) or 'mask' (SAM picture masking). A persisted choice always
+  /// wins; this only picks the entry for fresh installs.
+  final String initialMode;
+
+  const VisualGamePage({super.key, this.initialMode = 'pattern'});
+
+  static const String modePrefsKey = 'visual_mode_v1';
 
   static Set<int> makePattern(int size, int count) {
     final s = size.clamp(2, 25);
@@ -2186,6 +2103,21 @@ class _VisualGamePageState extends State<VisualGamePage> {
   bool _aiLoading = false;
   int _aiDealId = 0;
   bool _roundLive = false;
+  DateTime _startedAt = DateTime.now();
+  DateTime? _endedAt;
+  DateTime? _shownAt;
+  int? _memorizeSecs;
+  // Two visual procedures share this page: the pattern grid (pattern-span)
+  // and SAM picture masking (picture recall with occlusion). Both are
+  // visual memory, both score 'visual'.
+  late String _mode;
+  // Whether the pattern grid was ever dealt: mask-first entries skip the
+  // (possibly live) pattern deal until the player picks the grid, so the
+  // SAM demo path pays no background pattern cost.
+  bool _patternDealt = false;
+  // null = a maszkos kör még töltődik (ilyenkor a jelvény
+  // kapcsolódást mutat, nem helyi módot).
+  bool? _maskLive;
 
   int get _size => _level >= 4 ? 16 : 9;
   int get _cols => _level >= 4 ? 4 : 3;
@@ -2193,7 +2125,111 @@ class _VisualGamePageState extends State<VisualGamePage> {
   @override
   void initState() {
     super.initState();
-    _deal();
+    _mode = widget.initialMode == 'mask' ? 'mask' : 'pattern';
+    if (_mode == 'pattern') {
+      _patternDealt = true;
+      _dealFirst();
+    }
+    unawaited(_restoreMode());
+  }
+
+  Future<void> _restoreMode() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final mode =
+          prefs.getString(VisualGamePage.modePrefsKey) ?? widget.initialMode;
+      if (!mounted) return;
+      final restored = mode == 'mask' ? 'mask' : 'pattern';
+      final needDeal = restored == 'pattern' && !_patternDealt;
+      setState(() => _mode = restored);
+      if (needDeal) {
+        _patternDealt = true;
+        _dealFirst();
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _persistMode() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(VisualGamePage.modePrefsKey, _mode);
+    } catch (_) {}
+  }
+
+  void _switchMode(String mode) {
+    if (_mode == mode) return;
+    setState(() {
+      _mode = mode;
+      _maskLive = null;
+    });
+    if (mode == 'pattern' && !_patternDealt) {
+      _patternDealt = true;
+      _dealFirst();
+    }
+    unawaited(_persistMode());
+  }
+
+  Widget _modeToggle(BuildContext context) {
+    Widget chip(String mode, String label) {
+      final selected = _mode == mode;
+      return GestureDetector(
+        onTap: () => _switchMode(mode),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? blue : Colors.transparent,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: selected ? blue : context.hairline,
+              width: 2,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? Colors.white : context.mutedText,
+              fontWeight: FontWeight.w800,
+              fontSize: 12,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          chip('pattern', tr('bench_visual_mode_pattern')),
+          chip('mask', tr('bench_visual_mode_mask')),
+        ],
+      ),
+    );
+  }
+
+  /// First deal tries the live model for the CURRENT level, so level 1
+  /// shows AI ÉLŐ when a key + cloud consent are on. Later grid deals
+  /// stay instant: they consume the prefetched [_aiPattern] for speed.
+  Future<void> _dealFirst() async {
+    if (_level % 3 == 0) {
+      _deal();
+      return;
+    }
+    setState(() => _aiLoading = true);
+    final size = _size;
+    final count = (_level + 2).clamp(3, size - 1);
+    try {
+      final res = await BenchmarkMeta.visualPattern(size, count);
+      if (!mounted || _over) return;
+      if (res.cells.length == count) {
+        _aiPattern = (cells: res.cells, size: size, live: res.live);
+      }
+    } catch (_) {}
+    if (!mounted || _over) return;
+    _dealGrid();
   }
 
   void _deal() {
@@ -2222,18 +2258,22 @@ class _VisualGamePageState extends State<VisualGamePage> {
     _aiLoading = false;
     _picked = {};
     _show = true;
-    final deal = ++_aiDealId;
-    Future.delayed(const Duration(milliseconds: 2200), () {
-      if (mounted &&
-          _show &&
-          !_over &&
-          deal == _aiDealId &&
-          _aiRound == null) {
-        setState(() => _show = false);
-      }
-    });
+    _shownAt = DateTime.now();
+    _memorizeSecs = null;
     setState(() {});
     unawaited(_prefetchPattern());
+  }
+
+  /// The grid and the picture only ever hide through the got-it button.
+  /// No timer flips the phase; the self-paced memorize time is measured.
+  void _ask() {
+    final shown = _shownAt;
+    setState(() {
+      _memorizeSecs = shown == null
+          ? 0
+          : DateTime.now().difference(shown).inSeconds.clamp(0, 5999);
+      _show = false;
+    });
   }
 
   Future<void> _dealAiRound() async {
@@ -2268,15 +2308,12 @@ class _VisualGamePageState extends State<VisualGamePage> {
       _aiRound = task;
       _aiLoading = false;
       _show = true;
+      _shownAt = DateTime.now();
+      _memorizeSecs = null;
       // A picture round is live when any model contributed: Spark filled
       // the scene (!fallback) or Image painted it (only live calls yield
       // a URL — offline rounds never carry one).
       _roundLive = !task.fallback || task.imageUrl.isNotEmpty;
-    });
-    Future.delayed(const Duration(milliseconds: 3500), () {
-      if (mounted && _show && !_over && id == _aiDealId && _aiRound != null) {
-        setState(() => _show = false);
-      }
     });
   }
 
@@ -2313,7 +2350,10 @@ class _VisualGamePageState extends State<VisualGamePage> {
         higherIsBetter: true,
         xpGain: 5,
       );
-      setState(() => _over = true);
+      setState(() {
+        _over = true;
+        _endedAt = DateTime.now();
+      });
     }
   }
 
@@ -2341,234 +2381,268 @@ class _VisualGamePageState extends State<VisualGamePage> {
         higherIsBetter: true,
         xpGain: 5,
       );
-      setState(() => _over = true);
+      setState(() {
+        _over = true;
+        _endedAt = DateTime.now();
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final ai = _aiRound;
+    final mask = _mode == 'mask';
     return _gameScaffold(
       context: context,
       title: tr('bench_game_visual_title'),
-      counter: tr('bench_level_n', {'n': _level}),
-      aiModels: 'Muse Spark • Muse Image • SAM 3.1',
-      aiLive: _roundLive,
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-        children: [
-          if (_over) ...[
-            _resultBox(
-              context,
-              title: tr('bench_visual_done_title', {'n': _level - 1}),
-              detail: tr('bench_visual_done_detail'),
-              onRetry: () => setState(() {
-                _level = 1;
-                _over = false;
-                _aiRound = null;
-                _aiLoading = false;
-                _aiDealId++;
-                _deal();
-              }),
-              retryLabel: tr('bench_restart'),
-            ),
-            _TransferCard('visual'),
-            _AiTip(gameId: 'visual', level: _level - 1),
-            _AiVerdict(gameId: 'visual', score: _level - 1),
-          ] else if (_aiLoading) ...[
-            const SizedBox(height: 40),
-            const Center(child: CircularProgressIndicator()),
-            const SizedBox(height: 12),
-            Text(
-              tr('ai_picture_loading'),
-              textAlign: TextAlign.center,
-              style: TextStyle(color: context.mutedText, fontSize: 14),
-            ),
-          ] else if (ai != null) ...[
-            if (_show) ...[
-              Text(
-                ai.prompt,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(height: 12),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.network(
-                  ai.imageUrl,
-                  height: 200,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  cacheWidth: 800,
-                  loadingBuilder: (context, child, progress) {
-                    if (progress == null) return child;
-                    return const SizedBox(
-                      height: 200,
-                      child: Center(
-                        child: SizedBox(
-                          width: 28,
-                          height: 28,
-                          child: CircularProgressIndicator(strokeWidth: 3),
-                        ),
+      counter: mask ? '' : tr('bench_level_n', {'n': _level}),
+      timerSince: _startedAt,
+      aiModels: mask
+          ? 'Muse Image • SAM 3.1 • Muse Spark'
+          : 'Muse Spark • Muse Image • SAM 3.1',
+      aiLive: mask ? (_maskLive ?? false) : _roundLive,
+      aiLoading: mask && _maskLive == null,
+      body: mask
+          ? SamMaskGameBody(
+              toggle: _modeToggle(context),
+              onLive: (live) => setState(() => _maskLive = live),
+            )
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              children: [
+                _modeToggle(context),
+                if (_over) ...[
+                  _resultBox(
+                    context,
+                    title: tr('bench_visual_done_title', {'n': _level - 1}),
+                    detail: tr('bench_visual_done_detail'),
+                    onRetry: () => setState(() {
+                      _level = 1;
+                      _over = false;
+                      _aiRound = null;
+                      _aiLoading = false;
+                      _aiDealId++;
+                      _startedAt = DateTime.now();
+                      _endedAt = null;
+                      _deal();
+                    }),
+                    retryLabel: tr('bench_restart'),
+                    footer: tr('bench_time_total', {
+                      't': _formatElapsed(
+                        (_endedAt ?? DateTime.now()).difference(_startedAt),
                       ),
-                    );
-                  },
-                  errorBuilder: (context, error, stack) =>
-                      const SizedBox.shrink(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                alignment: WrapAlignment.center,
-                children: [
-                  for (final item in ai.items)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: context.washBg,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: context.washBorder),
-                      ),
-                      child: Text(
-                        item,
-                        style: TextStyle(
-                          color: context.inkText,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
+                    }),
+                  ),
+                  _TransferCard('visual'),
+                  _AiTip(gameId: 'visual', level: _level - 1),
+                  _AiVerdict(gameId: 'visual', score: _level - 1),
+                ] else if (_aiLoading) ...[
+                  const SizedBox(height: 40),
+                  const Center(child: CircularProgressIndicator()),
+                  const SizedBox(height: 12),
+                  Text(
+                    _level % 3 == 0
+                        ? tr('ai_picture_loading')
+                        : tr('common_loading'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: context.mutedText, fontSize: 14),
+                  ),
+                ] else if (ai != null) ...[
+                  if (_show) ...[
+                    Text(
+                      ai.prompt,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: AiImage(
+                        imageRef: ai.imageUrl,
+                        height: 200,
+                        width: double.infinity,
+                        cacheWidth: 800,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        for (final item in ai.items)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: context.washBg,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: context.washBorder),
+                            ),
+                            child: Text(
+                              item,
+                              style: TextStyle(
+                                color: context.inkText,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    if (ai.stations.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        tr('ai_picture_sam', {'n': ai.stations.length}),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: context.mutedText,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                    if (ai.explanation.trim().isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        '${ai.explanation.trim()}\n${ai.paradigm} (${ai.source})',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: context.mutedText,
+                          fontSize: 12,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    _bigButton(
+                      context,
+                      label: tr('bench_spatial_gotit'),
+                      color: coral,
+                      onTap: _ask,
+                    ),
+                  ] else ...[
+                    Text(
+                      ai.question,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      tr('bench_time_memorized', {'n': _memorizeSecs ?? 0}),
+                      style: TextStyle(
+                        color: context.mutedText,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    for (final o in ai.options)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: GestureDetector(
+                          onTap: () => _checkAi(o),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: context.cardBg,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: context.hairline,
+                                width: 2,
+                              ),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              o,
+                              style: TextStyle(
+                                color: context.inkText,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ] else ...[
+                  _FixedInstruction(
+                    _show
+                        ? tr('bench_visual_memorize')
+                        : tr('bench_visual_tap'),
+                  ),
+                  const SizedBox(height: 12),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: _cols,
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10,
+                    ),
+                    itemCount: _size,
+                    itemBuilder: (_, i) {
+                      final on = _show
+                          ? _pattern.contains(i)
+                          : _picked.contains(i);
+                      return GestureDetector(
+                        onTap: _show
+                            ? null
+                            : () {
+                                setState(() {
+                                  if (_picked.contains(i)) {
+                                    _picked.remove(i);
+                                  } else {
+                                    _picked.add(i);
+                                  }
+                                });
+                              },
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          decoration: BoxDecoration(
+                            color: on ? blue : context.cardBg,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: on ? blue : context.hairline,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  if (!_show) ...[
+                    Text(
+                      tr('bench_time_memorized', {'n': _memorizeSecs ?? 0}),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: context.mutedText,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  _bigButton(
+                    context,
+                    label: _show
+                        ? tr('bench_spatial_gotit')
+                        : tr('bench_check'),
+                    color: _show ? coral : blue,
+                    onTap: _show ? _ask : _check,
+                  ),
                 ],
-              ),
-              if (ai.stations.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  tr('ai_picture_sam', {'n': ai.stations.length}),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: context.mutedText, fontSize: 12),
-                ),
               ],
-              if (ai.explanation.trim().isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  '${ai.explanation.trim()}\n${ai.paradigm} (${ai.source})',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: context.mutedText,
-                    fontSize: 12,
-                    height: 1.5,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 12),
-              _bigButton(
-                context,
-                label: tr('bench_spatial_gotit'),
-                color: coral,
-                onTap: () => setState(() => _show = false),
-              ),
-            ] else ...[
-              Text(
-                ai.question,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
-              const SizedBox(height: 12),
-              for (final o in ai.options)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: GestureDetector(
-                    onTap: () => _checkAi(o),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        color: context.cardBg,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: context.hairline, width: 2),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        o,
-                        style: TextStyle(
-                          color: context.inkText,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ] else ...[
-            Text(
-              _show ? tr('bench_visual_memorize') : tr('bench_visual_tap'),
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
             ),
-            const SizedBox(height: 12),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: _cols,
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-              ),
-              itemCount: _size,
-              itemBuilder: (_, i) {
-                final on = _show ? _pattern.contains(i) : _picked.contains(i);
-                return GestureDetector(
-                  onTap: _show
-                      ? null
-                      : () {
-                          setState(() {
-                            if (_picked.contains(i)) {
-                              _picked.remove(i);
-                            } else {
-                              _picked.add(i);
-                            }
-                          });
-                        },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    decoration: BoxDecoration(
-                      color: on ? blue : context.cardBg,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: on ? blue : context.hairline,
-                        width: 2,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-            _bigButton(
-              context,
-              label: _show ? tr('bench_watch') : tr('bench_check'),
-              onTap: _show ? null : _check,
-            ),
-          ],
-        ],
-      ),
     );
   }
 }
@@ -2589,6 +2663,8 @@ class _NumberOrderGamePageState extends State<NumberOrderGamePage> {
   int? _aiSeed;
   bool _aiSeedLive = false;
   bool _roundLive = false;
+  DateTime _startedAt = DateTime.now();
+  DateTime? _endedAt;
 
   @override
   void initState() {
@@ -2652,7 +2728,10 @@ class _NumberOrderGamePageState extends State<NumberOrderGamePage> {
         higherIsBetter: true,
         xpGain: 5,
       );
-      setState(() => _over = true);
+      setState(() {
+        _over = true;
+        _endedAt = DateTime.now();
+      });
     }
   }
 
@@ -2664,6 +2743,7 @@ class _NumberOrderGamePageState extends State<NumberOrderGamePage> {
       counter: tr('bench_order_counter', {'n': _count, 'next': _next}),
       aiModels: 'Muse Spark',
       aiLive: _roundLive,
+      timerSince: _startedAt,
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
         children: [
@@ -2674,9 +2754,16 @@ class _NumberOrderGamePageState extends State<NumberOrderGamePage> {
               detail: _count >= 7 ? tr('bench_order_hi') : tr('bench_order_lo'),
               onRetry: () => setState(() {
                 _count = 3;
+                _startedAt = DateTime.now();
+                _endedAt = null;
                 _deal();
               }),
               retryLabel: tr('bench_order_retry'),
+              footer: tr('bench_time_total', {
+                't': _formatElapsed(
+                  (_endedAt ?? DateTime.now()).difference(_startedAt),
+                ),
+              }),
             ),
             _TransferCard('order'),
             _AiTip(gameId: 'order', level: _count - 1),
@@ -2765,6 +2852,43 @@ class SpatialGamePage extends StatefulWidget {
   static const int minStations = 3;
   static const int maxStations = 10;
 
+  /// SharedPreferences key for the player's own palace name.
+  static const String palacePrefsKey = 'spatial_palace_name_v1';
+
+  /// SharedPreferences key for the player's own ordered stations.
+  static const String stationsPrefsKey = 'spatial_stations_v1';
+
+  /// Sample route prefilling the setup editor: the player edits these
+  /// into their own stations, so the app never has to guess anyone's
+  /// home layout.
+  static List<String> defaultStations([String locale = 'en']) =>
+      List<String>.of(
+        palaceRoutesFor(locale).values.first.take(maxStations),
+      );
+
+  /// Cleans the player-typed stations into exactly [maxStations] stops:
+  /// trims, fills blanks from the sample route at the same slot, and
+  /// de-duplicates so every station name stays addressable.
+  static List<String> sanitizeStations(
+    List<String> raw, [
+    String locale = 'en',
+  ]) {
+    final sample = defaultStations(locale);
+    final out = <String>[];
+    for (var i = 0; i < maxStations; i++) {
+      var name = i < raw.length ? raw[i].trim() : '';
+      if (name.isEmpty) name = sample[i % sample.length];
+      var unique = name;
+      var n = 2;
+      while (out.contains(unique)) {
+        unique = '$name $n';
+        n++;
+      }
+      out.add(unique);
+    }
+    return out;
+  }
+
   static List<String> routeNames([String locale = 'en']) =>
       palaceRoutesFor(locale).keys.toList();
 
@@ -2822,548 +2946,1601 @@ class SpatialGamePage extends StatefulWidget {
 }
 
 class _SpatialGamePageState extends State<SpatialGamePage> {
-  int _stations = SpatialGamePage.minStations;
-  late String _route;
-  late List<String> _stationList;
-  late List<String> _words;
-  late int _target;
-  late List<String> _options;
-  bool _show = true;
-  bool _over = false;
-  int _dealId = 0;
-  Timer? _hideTimer;
-  String _palaceImage = '';
-  String? _palaceLine;
-  Uint8List? _camBytes;
-  bool _camBusy = false;
-  String _camError = '';
-  List<String> _wonder = [];
-  bool _wonderLoading = false;
-  int _wonderToken = 0;
-  bool _wonderLive = false;
-  bool _taskLive = false;
+  String? _palace;
+  List<String>? _stations;
+  // null = a sétakör még töltődik (ilyenkor a jelvény
+  // kapcsolódást mutat, nem helyi módot).
+  bool? _walkLive;
+  int _level = SpatialGamePage.minStations;
+  final _palaceCtrl = TextEditingController();
+  final List<TextEditingController> _stationCtrls = [];
 
   @override
   void initState() {
     super.initState();
-    _deal();
+    for (final s in SpatialGamePage.defaultStations(
+      AppLocalizations.localeCode,
+    )) {
+      _stationCtrls.add(TextEditingController(text: s));
+    }
+    unawaited(_restore());
   }
 
   @override
   void dispose() {
-    _hideTimer?.cancel();
+    _palaceCtrl.dispose();
+    for (final c in _stationCtrls) {
+      c.dispose();
+    }
     super.dispose();
   }
 
-  void _deal() {
-    final id = ++_dealId;
-    _hideTimer?.cancel();
-    final locale = AppLocalizations.localeCode;
-    final routeIdx = _rnd.nextInt(palaceRoutesFor(locale).length);
-    _route = SpatialGamePage.routeNames(locale)[routeIdx];
-    _stationList = SpatialGamePage.pickStations(
-      _stations,
-      routeIndex: routeIdx,
-      locale: locale,
-    );
-    _words = SpatialGamePage.pickWords(_stations, null, locale);
-    _target = _rnd.nextInt(_stationList.length);
-    _options = SpatialGamePage.makeOptions(
-      _words[_target],
-      _words,
-      null,
-      locale,
-    );
-    _show = true;
-    _palaceImage = '';
-    _palaceLine = null;
-    _camBytes = null;
-    _camBusy = false;
-    _camError = '';
-    _wonder = [];
-    _wonderLoading = false;
-    _wonderLive = false;
-    _taskLive = false;
-    _armHideTimer(id);
-    unawaited(_upgradeSpatial(id, _stations, locale));
-    unawaited(_refreshWonder());
-  }
-
-  /// (Re)loads the Wonder route preview for the current stations. Stale
-  /// responses are dropped, so palace upgrades and camera rooms always
-  /// win over older previews.
-  Future<void> _refreshWonder() async {
-    final token = ++_wonderToken;
-    final stations = List.of(_stationList);
-    final route = _route;
-    setState(() => _wonderLoading = true);
-    final res = await BenchmarkMeta.wonderPreview(
-      route: route,
-      stations: stations,
-      locale: AppLocalizations.localeCode,
-    );
-    if (!mounted || token != _wonderToken) return;
-    setState(() {
-      _wonder = res.views.isEmpty
-          ? SpatialGamePage.localWonderPreview(
-              stations,
-              AppLocalizations.localeCode,
-            )
-          : res.views;
-      _wonderLoading = false;
-      _wonderLive = res.live && res.views.isNotEmpty;
-    });
-  }
-
-  void _armHideTimer(int id) {
-    _hideTimer?.cancel();
-    final ms = 2500 + _stations * 900;
-    _hideTimer = Timer(Duration(milliseconds: ms), () {
-      if (mounted && _show && !_over && id == _dealId) {
-        setState(() => _show = false);
-      }
-    });
-  }
-
-  Future<void> _upgradeSpatial(int id, int stations, String locale) async {
-    MetaTask task;
+  Future<void> _restore() async {
     try {
-      task = await BenchmarkMeta.spatialRound(
-        seed:
-            'bench:spatial:$stations:${DateTime.now().millisecondsSinceEpoch}',
-        stations: stations,
-        locale: locale,
-      );
-    } catch (_) {
-      return;
-    }
-    if (!mounted || id != _dealId || _over) return;
-    // The illustration upgrades the round even when the word deal does
-    // not match: a live palace picture is still a live contribution.
-    if (task.imageUrl.isNotEmpty) {
+      final prefs = await SharedPreferences.getInstance();
+      final saved =
+          prefs.getString(SpatialGamePage.palacePrefsKey)?.trim() ?? '';
+      final stations =
+          prefs.getStringList(SpatialGamePage.stationsPrefsKey) ??
+          const <String>[];
+      if (!mounted) return;
       setState(() {
-        _palaceImage = task.imageUrl;
-        _palaceLine = task.prompt;
-        _taskLive = true;
+        // A saved palace without its own stations (old installs) goes
+        // through setup once, so the walk never runs on guessed stops.
+        if (saved.isNotEmpty &&
+            stations.length >= SpatialGamePage.minStations) {
+          _palace = saved;
+          _stations = List<String>.of(stations);
+          _palaceCtrl.text = saved;
+          for (var i = 0;
+              i < _stationCtrls.length && i < stations.length;
+              i++) {
+            _stationCtrls[i].text = stations[i];
+          }
+        }
       });
-    }
-    if (task.fallback && task.imageUrl.isEmpty) return;
-    // Words/options swap only during the memorize phase: a slow network
-    // must never rewrite the question under the player's eyes.
-    if (!_show) return;
-    if (task.items.length != stations || task.stations.length != stations) {
-      return;
-    }
-    final answer = task.correct >= 0 && task.correct < task.options.length
-        ? task.options[task.correct]
-        : '';
-    final target = task.items.indexOf(answer);
-    if (target < 0 || task.options.length != 4) return;
-    setState(() {
-      _stationList = List.of(task.stations);
-      _words = List.of(task.items);
-      _target = target;
-      _options = List.of(task.options);
-      _palaceImage = task.imageUrl;
-      _palaceLine = task.prompt;
-      _taskLive = !task.fallback || task.imageUrl.isNotEmpty;
-    });
-    unawaited(_refreshWonder());
+    } catch (_) {}
   }
 
-  /// Camera palace: photographs the player's own room and lets SAM 3.1
-  /// turn the spotted details into palace stations. The memorize timer
-  /// pauses while the camera is open. Never throws and never pops
-  /// anything up — failures stay as one inline line.
-  Future<void> _useCameraRoom() async {
-    if (_camBusy || _over || !_show) return;
-    final deal = _dealId;
-    _hideTimer?.cancel();
-    setState(() {
-      _camBusy = true;
-      _camError = '';
-    });
+  Future<void> _start() async {
+    final name = _palaceCtrl.text.trim();
+    if (name.isEmpty) return;
+    final stations = SpatialGamePage.sanitizeStations(
+      [for (final c in _stationCtrls) c.text],
+      AppLocalizations.localeCode,
+    );
     try {
-      // Without cloud AI (no key or consent off) SAM never runs: say so
-      // instead of the misleading 'no clear details' line.
-      if (!await MetaAIService.cloudReady()) {
-        if (!mounted || deal != _dealId || _over) return;
-        setState(() {
-          _camBusy = false;
-          _camError = tr('bench_spatial_cam_off');
-        });
-        if (_show) _armHideTimer(deal);
-        return;
-      }
-      final shot = await ImagePicker().pickImage(
-        source: ImageSource.camera,
-        maxWidth: 1024,
-        imageQuality: 70,
-      );
-      if (!mounted || deal != _dealId || _over) return;
-      if (shot == null) {
-        setState(() => _camBusy = false);
-        if (_show) _armHideTimer(deal);
-        return;
-      }
-      final bytes = await shot.readAsBytes();
-      if (!mounted || deal != _dealId || _over) return;
-      setState(() => _camBytes = bytes);
-      final seg = await MetaAIService.segment(
-        MetaSegmentRequest(
-          imageRef: 'data:image/jpeg;base64,${base64Encode(bytes)}',
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(SpatialGamePage.palacePrefsKey, name);
+      await prefs.setStringList(SpatialGamePage.stationsPrefsKey, stations);
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() {
+      _palace = name;
+      _stations = stations;
+    });
+  }
+
+  void _changePalace() {
+    // Back to setup with the current values kept in the fields, so the
+    // player edits their route instead of retyping it.
+    setState(() {
+      _palace = null;
+      _stations = null;
+    });
+  }
+
+  Widget _setupBody(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      children: [
+        Text(
+          tr('bench_spatial_setup_title'),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
         ),
-      );
-      if (!mounted || deal != _dealId || _over || !_show) return;
-      if (seg.labels.isEmpty) {
-        setState(() {
-          _camBusy = false;
-          _camError = tr('bench_spatial_cam_empty');
-        });
-        _armHideTimer(deal);
-        return;
-      }
-      setState(() {
-        _stationList = stationsFromLabels(
-          seg.labels,
-          'cam:${DateTime.now().millisecondsSinceEpoch}',
-          _stations,
-          AppLocalizations.localeCode,
-        );
-        _camBusy = false;
-      });
-      unawaited(_refreshWonder());
-      _armHideTimer(deal);
-    } catch (_) {
-      if (!mounted || deal != _dealId) return;
-      setState(() {
-        _camBusy = false;
-        _camError = tr('bench_spatial_cam_fail');
-      });
-      if (_show && !_over) _armHideTimer(deal);
-    }
-  }
-
-  void _pick(String v) {
-    if (_show || _over) return;
-    if (v == _words[_target]) {
-      BenchmarkStore.submit(
-        'spatial',
-        _stations,
-        higherIsBetter: true,
-        xpGain: 8 + _stations * 3,
-      );
-      setState(() {
-        if (_stations < SpatialGamePage.maxStations) _stations++;
-        _deal();
-      });
-    } else {
-      BenchmarkStore.submit(
-        'spatial',
-        _stations - 1,
-        higherIsBetter: true,
-        xpGain: 5,
-      );
-      setState(() => _over = true);
-    }
-  }
-
-  Widget _wonderBox(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: context.cardBg,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: context.hairline, width: 2),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            tr('bench_wonder_title'),
-            style: TextStyle(
-              color: context.mutedText,
-              fontWeight: FontWeight.w900,
-              fontSize: 11,
-              letterSpacing: 1.2,
+        const SizedBox(height: 8),
+        Text(
+          tr('bench_spatial_setup_body'),
+          style: TextStyle(color: context.mutedText, fontSize: 14, height: 1.5),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _palaceCtrl,
+          textCapitalization: TextCapitalization.sentences,
+          onSubmitted: (_) => _start(),
+          decoration: InputDecoration(
+            hintText: tr('bench_spatial_setup_hint'),
+            filled: true,
+            fillColor: context.cardBg,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: context.hairline, width: 2),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: context.hairline, width: 2),
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 14,
             ),
           ),
-          const SizedBox(height: 6),
-          if (_wonderLoading && _wonder.isEmpty)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: context.mutedText,
-                  ),
+          style: TextStyle(color: context.inkText, fontSize: 16),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          children: [
+            for (final key in const [
+              'bench_spatial_chip_home',
+              'bench_spatial_chip_work',
+              'bench_spatial_chip_school',
+            ])
+              ActionChip(
+                label: Text(tr(key)),
+                onPressed: () => setState(() => _palaceCtrl.text = tr(key)),
+              ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Text(
+          tr('bench_spatial_stations_title'),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurface,
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+          ),
+        ),
+        const SizedBox(height: 8),
+        for (var i = 0; i < _stationCtrls.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: TextField(
+              controller: _stationCtrls[i],
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                hintText: tr('bench_spatial_station_hint', {'n': i + 1}),
+                prefixText: '${i + 1}. ',
+                filled: true,
+                fillColor: context.cardBg,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: context.hairline, width: 2),
                 ),
-              ],
-            )
-          else
-            for (var i = 0; i < _wonder.length; i++)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  '${i + 1}. ${_wonder[i]}',
-                  style: TextStyle(
-                    color: context.inkText,
-                    fontSize: 13,
-                    height: 1.4,
-                  ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: context.hairline, width: 2),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 14,
                 ),
               ),
-        ],
-      ),
+              style: TextStyle(color: context.inkText, fontSize: 16),
+            ),
+          ),
+        const SizedBox(height: 8),
+        _bigButton(
+          context,
+          label: tr('bench_spatial_setup_start'),
+          color: coral,
+          onTap: _start,
+        ),
+      ],
     );
   }
 
-  Widget _cameraBox(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: context.cardBg,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: context.hairline, width: 2),
-      ),
-      child: Column(
-        children: [
-          if (_camBytes != null) ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Image.memory(
-                _camBytes!,
-                height: 120,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stack) =>
-                    const SizedBox.shrink(),
+  Widget _palaceLink(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: GestureDetector(
+          onTap: _changePalace,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text(
+              tr('bench_spatial_change'),
+              style: TextStyle(
+                color: context.mutedText,
+                fontSize: 12,
+                decoration: TextDecoration.underline,
               ),
             ),
-            const SizedBox(height: 8),
-          ],
-          if (_camBusy)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: context.mutedText,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  tr('bench_spatial_cam_busy'),
-                  style: TextStyle(color: context.mutedText, fontSize: 13),
-                ),
-              ],
-            )
-          else
-            GestureDetector(
-              onTap: _useCameraRoom,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: coral, width: 2),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const HugeIcon(
-                      icon: HugeIcons.strokeRoundedCamera01,
-                      color: coral,
-                      size: 22,
-                      strokeWidth: 2.0,
-                    ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        tr('bench_spatial_camera'),
-                        style: const TextStyle(
-                          color: coral,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          if (_camError.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              _camError,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: context.mutedText, fontSize: 12),
-            ),
-          ],
-        ],
+          ),
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final setup = _palace == null || _stations == null;
     return _gameScaffold(
       context: context,
       title: tr('bench_game_spatial_title'),
-      counter: tr('bench_stations_n', {'n': _stations}),
-      aiModels: 'Muse Spark • Muse Image • SAM 3.1 • Wonder • Camera',
-      aiLive: _taskLive || _wonderLive,
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-        children: [
-          if (_over) ...[
-            _resultBox(
-              context,
-              title: tr('bench_spatial_done_title', {'n': _stations - 1}),
-              detail: tr('bench_spatial_done_detail'),
-              onRetry: () => setState(() {
-                _stations = SpatialGamePage.minStations;
+      counter: setup ? '' : tr('bench_stations_n', {'n': _level}),
+      aiModels: setup ? '' : 'Muse Spark',
+      aiLive: !setup && (_walkLive ?? false),
+      aiLoading: !setup && _walkLive == null,
+      body: setup
+          ? _setupBody(context)
+          : _PalaceWalkGame(
+              palace: _palace!,
+              stations: _stations!,
+              topLink: _palaceLink(context),
+              onLevel: (level) => setState(() => _level = level),
+              onLive: (live) => setState(() => _walkLive = live),
+            ),
+    );
+  }
+}
+
+/// The measured spatial game: a true method-of-loci walk. Ordered
+/// stations, one concrete word per station, cued recall ("what did you
+/// place here?") — the loci-drill paradigm (Maguire et al. 2003;
+/// Dresler et al. 2017). Scores 'spatial'.
+class _PalaceWalkGame extends StatefulWidget {
+  final String palace;
+  final List<String> stations;
+  final Widget topLink;
+  final ValueChanged<int> onLevel;
+  final ValueChanged<bool?>? onLive;
+  const _PalaceWalkGame({
+    required this.palace,
+    required this.stations,
+    required this.topLink,
+    required this.onLevel,
+    this.onLive,
+  });
+
+  @override
+  State<_PalaceWalkGame> createState() => _PalaceWalkGameState();
+}
+
+class _PalaceWalkGameState extends State<_PalaceWalkGame> {
+  int _count = SpatialGamePage.minStations;
+  MetaTask? _task;
+  bool _show = true;
+  bool _over = false;
+  bool _loading = true;
+  int _dealId = 0;
+  DateTime _startedAt = DateTime.now();
+  DateTime? _endedAt;
+  DateTime? _shownAt;
+  int? _memorizeSecs;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_deal());
+  }
+
+  Future<void> _deal() async {
+    final id = ++_dealId;
+    if (_task != null) widget.onLive?.call(null);
+    setState(() {
+      _loading = true;
+      _show = true;
+    });
+    final locale = AppLocalizations.localeCode;
+    MetaTask task;
+    try {
+      task = await BenchmarkMeta.spatialRound(
+        seed: 'bench:spatial:$_count:${DateTime.now().millisecondsSinceEpoch}',
+        stations: _count,
+        locale: locale,
+      );
+    } catch (_) {
+      task = localPalaceTask(
+        difficulty: 1,
+        seed: 'bench:spatial:$_count',
+        locale: locale,
+        count: _count,
+      );
+    }
+    // The walk runs on the player's OWN stations: whatever the round
+    // source dealt (AI or the local sample route), the station names and
+    // the question are re-pointed at the saved route, so the app never
+    // pretends to know the player's home layout.
+    final own = widget.stations.take(_count).toList();
+    var target = 0;
+    for (var i = 0; i < task.stations.length; i++) {
+      if (task.question.contains(task.stations[i])) {
+        target = i;
+        break;
+      }
+    }
+    target = target.clamp(0, own.length - 1);
+    task = task.copyWith(
+      stations: own,
+      question: tr('bench_spatial_q', {'station': own[target]}),
+    );
+    if (!mounted || id != _dealId) return;
+    setState(() {
+      _task = task;
+      _loading = false;
+      _show = true;
+      _shownAt = DateTime.now();
+      _memorizeSecs = null;
+    });
+    widget.onLive?.call(!task.fallback);
+  }
+
+  /// The walk only ever hides through the got-it button — the player
+  /// studies their own palace at their own pace, and the memorize time
+  /// is measured instead of forced.
+  void _ask() {
+    final shown = _shownAt;
+    setState(() {
+      _memorizeSecs = shown == null
+          ? 0
+          : DateTime.now().difference(shown).inSeconds.clamp(0, 5999);
+      _show = false;
+    });
+  }
+
+  void _pick(String v) {
+    final task = _task;
+    if (_show || _over || task == null) return;
+    final answer = task.correct >= 0 && task.correct < task.options.length
+        ? task.options[task.correct]
+        : '';
+    if (v == answer) {
+      BenchmarkStore.submit(
+        'spatial',
+        _count,
+        higherIsBetter: true,
+        xpGain: 8 + _count * 3,
+      );
+      if (_count < SpatialGamePage.maxStations) _count++;
+      widget.onLevel(_count);
+      unawaited(_deal());
+    } else {
+      BenchmarkStore.submit(
+        'spatial',
+        _count - 1,
+        higherIsBetter: true,
+        xpGain: 5,
+      );
+      setState(() {
+        _over = true;
+        _endedAt = DateTime.now();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final task = _task;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      children: [
+        widget.topLink,
+        if (_over) ...[
+          _resultBox(
+            context,
+            title: tr('bench_spatial_done_title', {'n': _count - 1}),
+            detail: tr('bench_spatial_done_detail'),
+            onRetry: () {
+              _count = SpatialGamePage.minStations;
+              widget.onLevel(_count);
+              setState(() {
                 _over = false;
-                _deal();
-              }),
-              retryLabel: tr('bench_restart'),
-            ),
-            _TransferCard('spatial'),
-            _AiTip(gameId: 'spatial', level: _stations - 1),
-            _AiVerdict(gameId: 'spatial', score: _stations - 1),
-          ] else if (_show) ...[
-            Text(
-              tr('bench_spatial_memorize'),
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
+                _startedAt = DateTime.now();
+                _endedAt = null;
+              });
+              unawaited(_deal());
+            },
+            retryLabel: tr('bench_restart'),
+            footer: tr('bench_time_total', {
+              't': _formatElapsed(
+                (_endedAt ?? DateTime.now()).difference(_startedAt),
               ),
+            }),
+          ),
+          _TransferCard('spatial'),
+          _AiTip(gameId: 'spatial', level: _count - 1),
+          _AiVerdict(gameId: 'spatial', score: _count - 1),
+        ] else if (_loading || task == null) ...[
+          const SizedBox(height: 40),
+          const Center(child: CircularProgressIndicator()),
+          const SizedBox(height: 12),
+          Text(
+            tr('common_loading'),
+            textAlign: TextAlign.center,
+            style: TextStyle(color: context.mutedText, fontSize: 14),
+          ),
+        ] else if (_show) ...[
+          Text(
+            tr('bench_spatial_palace_line', {'palace': widget.palace}),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
             ),
-            const SizedBox(height: 4),
-            Text(
-              _palaceLine ??
-                  tr('bench_spatial_palace', {
-                    'route': _route,
-                    'n': _stationList.length,
-                  }),
-              style: TextStyle(color: context.mutedText, fontSize: 13),
-            ),
-            if (_palaceImage.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.network(
-                  _palaceImage,
-                  height: 170,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  cacheWidth: 800,
-                  loadingBuilder: (context, child, progress) {
-                    if (progress == null) return child;
-                    return const SizedBox(
-                      height: 170,
-                      child: Center(
-                        child: SizedBox(
-                          width: 28,
-                          height: 28,
-                          child: CircularProgressIndicator(strokeWidth: 3),
-                        ),
-                      ),
-                    );
-                  },
-                  errorBuilder: (context, error, stack) =>
-                      const SizedBox.shrink(),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            tr('bench_spatial_walk_how'),
+            style: TextStyle(color: context.mutedText, fontSize: 13),
+          ),
+          const SizedBox(height: 8),
+          Center(child: _LiveTimerChip(since: _startedAt)),
+          const SizedBox(height: 12),
+          for (var i = 0; i < task.stations.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: context.cardBg,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: context.hairline, width: 2),
+                ),
+                child: Text(
+                  i < task.items.length
+                      ? '${i + 1}. ${task.stations[i]} → ${task.items[i]}'
+                      : '${i + 1}. ${task.stations[i]}',
+                  style: TextStyle(
+                    color: context.inkText,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
                 ),
               ),
-            ],
-            const SizedBox(height: 12),
-            for (var i = 0; i < _stationList.length; i++)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
+            ),
+          if (task.explanation.trim().isNotEmpty) ...[
+            Text(
+              task.explanation.trim(),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: context.mutedText,
+                fontSize: 12,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+          _bigButton(
+            context,
+            label: tr('bench_spatial_gotit'),
+            color: coral,
+            onTap: _ask,
+          ),
+        ] else ...[
+          Text(
+            task.question,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            tr('bench_time_memorized', {'n': _memorizeSecs ?? 0}),
+            style: TextStyle(color: context.mutedText, fontSize: 13),
+          ),
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _LiveTimerChip(since: _startedAt),
+          ),
+          const SizedBox(height: 12),
+          for (final o in task.options)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: GestureDetector(
+                onTap: () => _pick(o),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,
-                    vertical: 12,
+                    vertical: 14,
                   ),
                   decoration: BoxDecoration(
                     color: context.cardBg,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: context.hairline, width: 2),
                   ),
+                  alignment: Alignment.center,
                   child: Text(
-                    '${_stationList[i]} → ${_words[i]}',
+                    o,
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       color: context.inkText,
                       fontWeight: FontWeight.bold,
-                      fontSize: 15,
+                      fontSize: 20,
                     ),
                   ),
                 ),
               ),
-            const SizedBox(height: 4),
-            _wonderBox(context),
-            const SizedBox(height: 8),
-            _cameraBox(context),
-            const SizedBox(height: 8),
-            _bigButton(
-              context,
-              label: tr('bench_spatial_gotit'),
-              color: coral,
-              onTap: () => setState(() => _show = false),
             ),
-          ] else ...[
-            Text(
-              tr('bench_spatial_q', {'station': _stationList[_target]}),
+        ],
+      ],
+    );
+  }
+}
+
+/// Standalone SAM mask game page: SAM 3.1 + Muse Spark read the objects
+/// off a picture together, SAM covers each in its own shape, and the
+/// player names the object under each cover in walk order — every
+/// correct answer reveals its object.
+class SamMaskGamePage extends StatefulWidget {
+  final int count;
+  final String seed;
+  const SamMaskGamePage({super.key, this.count = 3, this.seed = 'mask'});
+
+  @override
+  State<SamMaskGamePage> createState() => _SamMaskGamePageState();
+}
+
+class _SamMaskGamePageState extends State<SamMaskGamePage> {
+  bool? _live;
+
+  @override
+  Widget build(BuildContext context) {
+    return _gameScaffold(
+      context: context,
+      title: tr('bench_game_visual_title'),
+      counter: '',
+      aiModels: 'Muse Image • SAM 3.1 • Muse Spark',
+      aiLive: _live ?? false,
+      aiLoading: _live == null,
+      body: SamMaskGameBody(
+        initialCount: widget.count,
+        seedPrefix: widget.seed,
+        onLive: (live) => setState(() => _live = live),
+      ),
+    );
+  }
+}
+
+/// The mask-game content, shared by the standalone page and the visual
+/// hub. Never errors: offline (or on any AI failure) it plays a local
+/// scene with built-in items and says so on one quiet line.
+class SamMaskGameBody extends StatefulWidget {
+  final int initialCount;
+  final String seedPrefix;
+  final Widget? toggle;
+  // null = új kör töltődik (a jelvény ilyenkor kapcsolódást mutat).
+  final ValueChanged<bool?>? onLive;
+  const SamMaskGameBody({
+    super.key,
+    this.initialCount = 3,
+    this.seedPrefix = 'mask',
+    this.toggle,
+    this.onLive,
+  });
+
+  @override
+  State<SamMaskGameBody> createState() => SamMaskGameBodyState();
+}
+
+class SamMaskGameBodyState extends State<SamMaskGameBody> {
+  late int _count;
+  PictureRecallRound? _round;
+  bool _masked = false;
+  final _revealed = <int>{};
+  final _guessCtrl = TextEditingController();
+  String _feedback = '';
+  bool _feedbackGood = false;
+  bool _loading = true;
+  bool _imageFailed = false;
+  double _progress = 0;
+  String _stage = 'image';
+  int _token = 0;
+  // Bumps on every freshly loaded round so the cover painter repaints
+  // even when the new round has the same object count as the last one.
+  int _coverVersion = 0;
+
+  /// True only when the player actually sees a picture. Without one
+  /// (offline, or a failed download/decode) the round falls back to
+  /// word recall: the words are shown for memorizing, and no black
+  /// tiles ever cover the placeholder.
+  bool get _hasPicture {
+    final round = _round;
+    return round != null && round.imageUrl.isNotEmpty && !_imageFailed;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _count = widget.initialCount.clamp(2, 8);
+    unawaited(_load());
+  }
+
+  @override
+  void dispose() {
+    _guessCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    final token = ++_token;
+    // Újratöltéskor (volt már kör) a szülő jelvénye is kapcsolódásra
+    // vált; az első töltéskor a szülő amúgy is töltést mutat.
+    if (_round != null) widget.onLive?.call(null);
+    setState(() {
+      _loading = true;
+      _masked = false;
+      _revealed.clear();
+      _feedback = '';
+      _imageFailed = false;
+      _progress = 0;
+      _stage = 'image';
+    });
+    final round = await MetaAIService.pictureRecallRound(
+      seed:
+          '${widget.seedPrefix}:$_count:${DateTime.now().millisecondsSinceEpoch}',
+      count: _count,
+      locale: AppLocalizations.localeCode,
+      onProgress: (p, stage) {
+        if (!mounted || token != _token) return;
+        setState(() {
+          _progress = p;
+          _stage = stage;
+        });
+      },
+    );
+    if (!mounted || token != _token) return;
+    setState(() {
+      _round = round;
+      _loading = false;
+      _coverVersion++;
+    });
+    widget.onLive?.call(round.live);
+  }
+
+  /// The cover under question: the first still-hidden object in walk
+  /// order, or -1 before masking / after everything is revealed.
+  int get _cue {
+    final round = _round;
+    if (round == null || !_masked) return -1;
+    for (var i = 0; i < round.objects.length; i++) {
+      if (!_revealed.contains(i)) return i;
+    }
+    return -1;
+  }
+
+  void _reveal(int hit) {
+    final round = _round;
+    if (round == null) return;
+    setState(() {
+      _revealed.add(hit);
+      _feedback = tr('bench_mask_correct', {'word': round.objects[hit]});
+      _feedbackGood = true;
+    });
+    _guessCtrl.clear();
+    if (_revealed.length >= round.objects.length) {
+      // Picture masking is visual memory (picture recall with occlusion),
+      // never spatial: it scores 'visual' alongside the pattern grid.
+      BenchmarkStore.submit(
+        'visual',
+        round.objects.length,
+        higherIsBetter: true,
+        xpGain: 8 + round.objects.length * 3,
+      );
+    }
+  }
+
+  void _guess() {
+    final round = _round;
+    if (round == null || !_masked) return;
+    // Word fallback (no picture): free recall in any order.
+    if (!_hasPicture) {
+      final hit = matchRecallAnswer(_guessCtrl.text, round.objects, _revealed);
+      if (hit < 0) {
+        setState(() {
+          _feedback = tr('bench_mask_wrong_words');
+          _feedbackGood = false;
+        });
+        return;
+      }
+      _reveal(hit);
+      return;
+    }
+    // Picture mode: location-cued recall — each question asks the object
+    // under ONE cover (the loci station cues its item), in walk order.
+    final cue = _cue;
+    if (cue < 0) return;
+    final onlyCue = <int>{
+      for (var i = 0; i < round.objects.length; i++)
+        if (i != cue) i,
+    };
+    final hit = matchRecallAnswer(_guessCtrl.text, round.objects, onlyCue);
+    if (hit == cue) {
+      _reveal(hit);
+      return;
+    }
+    final elsewhere = matchRecallAnswer(
+      _guessCtrl.text,
+      round.objects,
+      _revealed,
+    );
+    setState(() {
+      _feedback = elsewhere >= 0
+          ? tr('bench_mask_wrong_cover', {'n': cue + 1})
+          : tr('bench_mask_wrong');
+      _feedbackGood = false;
+    });
+  }
+
+  Widget _picture({required bool masked}) {
+    final round = _round;
+    if (round == null) return const SizedBox.shrink();
+    final aligned = round.boxes.length == round.objects.length;
+    return _MaskedPicture(
+      imageUrl: round.imageUrl,
+      scene: round.scene,
+      objects: round.objects,
+      boxes: aligned ? round.boxes : const <List<double>>[],
+      masks: round.masks.length == round.objects.length
+          ? round.masks
+          : const <String>[],
+      revealed: _revealed,
+      masked: masked && _hasPicture,
+      cue: _cue,
+      version: _coverVersion,
+      showWalk: !masked && _hasPicture && aligned,
+      onImageError: () {
+        if (!_imageFailed && mounted) {
+          setState(() => _imageFailed = true);
+        }
+      },
+    );
+  }
+
+  /// Object-count stepper (2–8) on the memorize phase: the demo can
+  /// start easy and crank up live. Hidden once masked so the count text
+  /// never collides with the numbered covers.
+  Widget _countStepper() {
+    Widget stepBtn(String label, VoidCallback? onTap) {
+      final enabled = onTap != null;
+      return GestureDetector(
+        onTap: enabled
+            ? () {
+                AppFeedback.light();
+                onTap.call();
+              }
+            : null,
+        child: Container(
+          width: 40,
+          height: 40,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: enabled ? context.cardBg : Colors.transparent,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: enabled ? context.hairline : context.washBorder,
+              width: 2,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: enabled ? context.inkText : context.mutedText,
+              fontWeight: FontWeight.w900,
+              fontSize: 20,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        stepBtn('−', _count > 2
+            ? () {
+                _count--;
+                unawaited(_load());
+              }
+            : null),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Text(
+            tr('bench_mask_count', {'n': _count}),
+            style: TextStyle(
+              color: context.inkText,
+              fontWeight: FontWeight.w900,
+              fontSize: 16,
+            ),
+          ),
+        ),
+        stepBtn('+', _count < 8
+            ? () {
+                _count++;
+                unawaited(_load());
+              }
+            : null),
+      ],
+    );
+  }
+
+  Widget _wordChips(List<String> words) {
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      alignment: WrapAlignment.center,
+      children: [
+        for (final w in words)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: context.washBg,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: context.washBorder),
+            ),
+            child: Text(
+              w,
               style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
+                color: context.inkText,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
               ),
             ),
-            const SizedBox(height: 12),
-            for (final o in _options)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: GestureDetector(
-                  onTap: () {
-                    _pick(o);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 14,
+          ),
+      ],
+    );
+  }
+
+  String _maskStageLabel(String stage) => switch (stage) {
+    'image' => tr('bench_mask_stage_image'),
+    'read' => tr('bench_mask_stage_read'),
+    'sam' => tr('bench_mask_stage_sam'),
+    _ => tr('bench_mask_stage_done'),
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final round = _round;
+    final done =
+        round != null && _revealed.length >= round.objects.length && _masked;
+    // Plain scroll + column (no lazy list): the square picture is
+    // tall, and the memorize button / guess row right below it must
+    // always exist for taps and tests, even below the fold.
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (widget.toggle != null) widget.toggle!,
+          Text(
+            round != null && !_hasPicture
+                ? tr('bench_mask_memorize_words')
+                : tr('bench_mask_memorize'),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            round == null ? '' : tr('bench_mask_scene', {'scene': round.scene}),
+            style: TextStyle(color: context.mutedText, fontSize: 13),
+          ),
+          const SizedBox(height: 12),
+          if (_loading || round == null)
+            SizedBox(
+              height: 220,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 220,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(99),
+                        child: LinearProgressIndicator(
+                          value: _progress <= 0 ? null : _progress,
+                          minHeight: 10,
+                          backgroundColor: context.washBg,
+                          valueColor: AlwaysStoppedAnimation<Color>(teal),
+                        ),
+                      ),
                     ),
-                    decoration: BoxDecoration(
-                      color: context.cardBg,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: context.hairline, width: 2),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      o,
+                    const SizedBox(height: 8),
+                    Text(
+                      '${(_progress * 100).round()}%',
                       style: TextStyle(
                         color: context.inkText,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _maskStageLabel(_stage),
+                      style: TextStyle(color: context.mutedText, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else ...[
+            _picture(masked: _masked),
+            const SizedBox(height: 6),
+            Text(
+              round.live
+                  ? tr('bench_mask_live_note')
+                  : tr('bench_mask_local_note'),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: round.live ? teal : context.mutedText,
+                fontWeight: FontWeight.w700,
+                fontSize: 11,
+                letterSpacing: 0.6,
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (!_masked) ...[
+              if (!_hasPicture) ...[
+                _wordChips(round.objects),
+                const SizedBox(height: 8),
+              ],
+              if (_hasPicture &&
+                  round.boxes.length == round.objects.length) ...[
+                Text(
+                  tr('bench_mask_walk_note'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: teal,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+              _countStepper(),
+              const SizedBox(height: 10),
+              _bigButton(
+                context,
+                label: tr('bench_mask_button'),
+                color: coral,
+                onTap: () => setState(() => _masked = true),
+              ),
+            ] else if (!done) ...[
+              Text(
+                tr('bench_mask_progress', {
+                  'done': _revealed.length,
+                  'total': round.objects.length,
+                }),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: context.inkText,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                ),
+              ),
+              if (!_hasPicture && _revealed.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _wordChips([
+                  for (var i = 0; i < round.objects.length; i++)
+                    if (_revealed.contains(i)) round.objects[i],
+                ]),
+              ],
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _guessCtrl,
+                      autofocus: true,
+                      textInputAction: TextInputAction.done,
+                      textCapitalization: TextCapitalization.sentences,
+                      onSubmitted: (_) => _guess(),
+                      decoration: InputDecoration(
+                        hintText: !_hasPicture
+                            ? tr('bench_mask_guess_hint_words')
+                            : _cue >= 0
+                            ? tr('bench_mask_cue_hint', {'n': _cue + 1})
+                            : tr('bench_mask_guess_hint'),
+                        filled: true,
+                        fillColor: context.cardBg,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(
+                            color: context.hairline,
+                            width: 2,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(
+                            color: context.hairline,
+                            width: 2,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 14,
+                        ),
+                      ),
+                      style: TextStyle(color: context.inkText, fontSize: 16),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: _guess,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 15,
+                      ),
+                      decoration: BoxDecoration(
+                        color: blue,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Text(
+                        tr('bench_mask_guess_button'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (_feedback.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  _feedback,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: _feedbackGood ? teal : coral,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+              // Escape hatch mid-round: a stuck or slow round never blocks
+              // the demo — a fresh picture is one tap away.
+              Center(
+                child: GestureDetector(
+                  onTap: () => unawaited(_load()),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 10,
+                      horizontal: 16,
+                    ),
+                    child: Text(
+                      tr('bench_mask_new_picture'),
+                      style: TextStyle(
+                        color: context.mutedText,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                        decoration: TextDecoration.underline,
                       ),
                     ),
                   ),
                 ),
               ),
+            ] else ...[
+              Text(
+                _hasPicture
+                    ? tr('bench_mask_done')
+                    : tr('bench_mask_done_words'),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: context.inkText,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _TransferCard('visual'),
+              _AiTip(gameId: 'visual', level: round.objects.length),
+              _AiVerdict(gameId: 'visual', score: round.objects.length),
+              const SizedBox(height: 8),
+              _bigButton(
+                context,
+                label: tr('bench_mask_next'),
+                color: coral,
+                onTap: () {
+                  if (_count < 8) _count++;
+                  unawaited(_load());
+                },
+              ),
+            ],
           ],
         ],
       ),
+    );
+  }
+}
+
+/// One SAM cover's display geometry: the bounding [rect] in picture
+/// pixels plus the decoded shape runs inside it (empty when the object
+/// has box geometry only — then a soft rounded cover is drawn instead).
+class _CoverGeom {
+  final Rect rect;
+  final List<SamMaskRun> runs;
+  final int rasterW;
+  final int rasterH;
+  final Offset anchor;
+
+  const _CoverGeom({
+    required this.rect,
+    required this.runs,
+    required this.rasterW,
+    required this.rasterH,
+    required this.anchor,
+  });
+}
+
+/// Paints every hidden cover: shape-faithful SAM silhouettes where a
+/// mask decoded, soft rounded covers where only a box is known. The
+/// cover under question gets a glow ring around its bounding box (the
+/// ring itself leaks no shape).
+class _SamCoverPainter extends CustomPainter {
+  final List<_CoverGeom> covers;
+  final Set<int> revealed;
+  final int cue;
+  // Round identity: without it a fresh round with the same object count
+  // would keep the previous round's covers (same lengths, same cue).
+  final int version;
+
+  const _SamCoverPainter({
+    required this.covers,
+    required this.revealed,
+    required this.cue,
+    this.version = 0,
+  });
+
+  void _paintShape(Canvas canvas, _CoverGeom cover, Paint paint) {
+    final rect = cover.rect;
+    final cellW = rect.width / cover.rasterW;
+    final cellH = rect.height / cover.rasterH;
+    final radius = Radius.circular(min(cellW, cellH) * 0.45);
+    for (final run in cover.runs) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(
+            rect.left + run.start * cellW,
+            rect.top + run.row * cellH,
+            (run.end - run.start + 1) * cellW,
+            cellH,
+          ),
+          radius,
+        ),
+        paint,
+      );
+    }
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (var i = 0; i < covers.length; i++) {
+      if (revealed.contains(i)) continue;
+      final cover = covers[i];
+      final rect = cover.rect;
+      if (rect.width <= 0 || rect.height <= 0) continue;
+      final fill = Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF3A4354), Color(0xFF171C26)],
+        ).createShader(rect);
+      final shade = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.white.withValues(alpha: 0.10),
+            Colors.black.withValues(alpha: 0.22),
+          ],
+        ).createShader(rect);
+      if (cover.runs.isNotEmpty) {
+        _paintShape(canvas, cover, fill);
+        _paintShape(canvas, cover, shade);
+      } else {
+        final blob = RRect.fromRectAndRadius(
+          rect,
+          Radius.circular(
+            (min(rect.width, rect.height) * 0.30).clamp(12.0, 26.0),
+          ),
+        );
+        canvas.drawRRect(blob, fill);
+        canvas.drawRRect(blob, shade);
+      }
+      if (i == cue) {
+        final ring = RRect.fromRectAndRadius(rect, const Radius.circular(14));
+        canvas.drawRRect(
+          ring,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 7
+            ..color = coral.withValues(alpha: 0.35),
+        );
+        canvas.drawRRect(
+          ring,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2.5
+            ..color = coral,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SamCoverPainter old) {
+    return old.version != version ||
+        old.cue != cue ||
+        old.covers.length != covers.length ||
+        old.revealed.length != revealed.length ||
+        !old.revealed.containsAll(revealed);
+  }
+}
+
+/// Numbered cover badge. The cover under question glows; study dots
+/// (before masking) are teal.
+class _CoverBadge extends StatelessWidget {
+  final int number;
+  final bool isCue;
+  final bool isWalk;
+
+  const _CoverBadge({
+    required this.number,
+    this.isCue = false,
+    this.isWalk = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = isCue
+        ? coral
+        : isWalk
+        ? teal
+        : Colors.black.withValues(alpha: 0.88);
+    return Container(
+      width: 26,
+      height: 26,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: bg,
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.9),
+          width: 1.5,
+        ),
+        boxShadow: [
+          if (isCue)
+            BoxShadow(
+              color: coral.withValues(alpha: 0.55),
+              blurRadius: 10,
+              spreadRadius: 1,
+            ),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.35), blurRadius: 4),
+        ],
+      ),
+      child: Text(
+        '$number',
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w900,
+          fontSize: 13,
+        ),
+      ),
+    );
+  }
+}
+
+/// One decoded SAM shape, cached per mask token: the range-coded
+/// raster decode is far too heavy to repeat on every build.
+class _DecodedShape {
+  final List<SamMaskRun> runs;
+  final int rasterW;
+  final int rasterH;
+  final double cx;
+  final double cy;
+
+  const _DecodedShape({
+    required this.runs,
+    required this.rasterW,
+    required this.rasterH,
+    required this.cx,
+    required this.cy,
+  });
+}
+
+/// A picture with SAM's shape-faithful covers on top. Generated art is
+/// square (512x512), so the picture renders square too — then every
+/// normalized SAM box maps 1:1 onto the display and each cover sits
+/// exactly on its object. With a decoded shape mask the cover follows
+/// the object's outline; with box geometry only it is a soft rounded
+/// cover; without geometry the picture is covered by an even grid of
+/// tiles. Revealed objects lose their cover and gain a label chip.
+/// Before masking, [showWalk] draws the numbered study walk instead.
+class _MaskedPicture extends StatefulWidget {
+  final String imageUrl;
+  final String scene;
+  final List<String> objects;
+  final List<List<double>> boxes;
+  final List<String> masks;
+  final Set<int> revealed;
+  final bool masked;
+  final int cue;
+  final int version;
+  final bool showWalk;
+  final VoidCallback? onImageError;
+  const _MaskedPicture({
+    required this.imageUrl,
+    required this.scene,
+    required this.objects,
+    required this.boxes,
+    required this.masks,
+    required this.revealed,
+    required this.masked,
+    this.cue = -1,
+    this.version = 0,
+    this.showWalk = false,
+    this.onImageError,
+  });
+
+  @override
+  State<_MaskedPicture> createState() => _MaskedPictureState();
+}
+
+class _MaskedPictureState extends State<_MaskedPicture> {
+  /// Decoded shapes by mask token (null = undecodable, box cover).
+  /// Mask tokens are unique per round; the cap bounds long sessions.
+  final _shapes = <String, _DecodedShape?>{};
+
+  _DecodedShape? _shapeFor(String token) {
+    if (token.isEmpty) return null;
+    if (_shapes.containsKey(token)) return _shapes[token];
+    _DecodedShape? shape;
+    final spec = parseSamMaskToken(token);
+    final raster = decodeSamMaskToken(token);
+    if (spec != null && raster != null) {
+      final runs = samMaskRuns(raster, spec.width, spec.height);
+      if (runs.isNotEmpty) {
+        final c = samMaskCentroid(raster, spec.width, spec.height);
+        shape = _DecodedShape(
+          runs: runs,
+          rasterW: spec.width,
+          rasterH: spec.height,
+          cx: c.x,
+          cy: c.y,
+        );
+      }
+    }
+    if (_shapes.length > 48) _shapes.clear();
+    _shapes[token] = shape;
+    return shape;
+  }
+
+  Widget _base(BuildContext context, double w, double h) {
+    // AiImage draws embedded data:image payloads too; on any failure it
+    // shows the placeholder and reports, so the parent can drop the
+    // masks instead of covering a picture the player never saw.
+    return AiImage(
+      imageRef: widget.imageUrl,
+      height: h,
+      width: w,
+      cacheWidth: 800,
+      fallback: _placeholder(context),
+      onError: widget.onImageError,
+    );
+  }
+
+  Widget _placeholder(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [sky.withValues(alpha: 0.5), teal.withValues(alpha: 0.35)],
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            HugeIcon(
+              icon: HugeIcons.strokeRoundedImage01,
+              color: Colors.white.withValues(alpha: 0.9),
+              size: 44,
+              strokeWidth: 1.6,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              widget.scene,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Separates stacked badge anchors so every number stays readable.
+  /// Only the badges move — covers stay exactly on their objects.
+  List<Offset> _spreadBadges(List<Offset> anchors, double w, double h) {
+    final out = anchors.toList();
+    for (var pass = 0; pass < 8; pass++) {
+      var moved = false;
+      for (var j = 1; j < out.length; j++) {
+        for (var k = 0; k < j; k++) {
+          final dx = out[j].dx - out[k].dx;
+          final dy = out[j].dy - out[k].dy;
+          final dist = sqrt(dx * dx + dy * dy);
+          const minD = 30.0;
+          if (dist < minD) {
+            final nx = dist < 0.5 ? 1.0 : dx / dist;
+            final ny = dist < 0.5 ? 0.0 : dy / dist;
+            final push = minD - dist;
+            out[j] = Offset(
+              (out[j].dx + nx * push).clamp(14.0, w - 14.0),
+              (out[j].dy + ny * push).clamp(14.0, h - 14.0),
+            );
+            moved = true;
+          }
+        }
+      }
+      if (!moved) break;
+    }
+    return out;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Square for 1:1 SAM mapping, capped so the question row stays
+        // near the picture (and in the lazy list window) on wide screens.
+        final side = min(constraints.maxWidth, 380.0);
+        final w = side;
+        final h = side;
+        return Center(
+          child: SizedBox(
+            width: side,
+            height: side,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Builder(
+                builder: (context) {
+                  final n = widget.objects.length;
+                  final cols = n <= 2 ? n : (n <= 4 ? 2 : 3);
+                  final rows = (n / cols).ceil();
+                  Rect rectFor(int i) {
+                    if (widget.boxes.length == n) {
+                      final b = widget.boxes[i];
+                      return Rect.fromLTWH(
+                        b[0] * w,
+                        b[1] * h,
+                        b[2] * w,
+                        b[3] * h,
+                      );
+                    }
+                    final c = i % cols;
+                    final r = i ~/ cols;
+                    // Small gaps keep neighboring tiles readable.
+                    return Rect.fromLTWH(
+                      c * w / cols + 3,
+                      r * h / rows + 3,
+                      w / cols - 6,
+                      h / rows - 6,
+                    );
+                  }
+
+                  final covers = <_CoverGeom>[];
+                  final anchors = <Offset>[];
+                  for (var i = 0; i < n; i++) {
+                    final rect = rectFor(i);
+                    // Shapes decode once per mask token (cached above);
+                    // rects stay cheap so resize/orientation stays exact.
+                    final shape = i < widget.masks.length
+                        ? _shapeFor(widget.masks[i])
+                        : null;
+                    final runs = shape?.runs ?? const <SamMaskRun>[];
+                    var anchor = rect.center;
+                    if (shape != null) {
+                      anchor = Offset(
+                        rect.left + shape.cx * rect.width,
+                        rect.top + shape.cy * rect.height,
+                      );
+                    }
+                    covers.add(
+                      _CoverGeom(
+                        rect: rect,
+                        runs: runs,
+                        rasterW: shape?.rasterW ?? 0,
+                        rasterH: shape?.rasterH ?? 0,
+                        anchor: anchor,
+                      ),
+                    );
+                    anchors.add(anchor);
+                  }
+                  final badges = _spreadBadges(anchors, w, h);
+
+                  return Stack(
+                    children: [
+                      Positioned.fill(child: _base(context, w, h)),
+                      if (widget.masked)
+                        Positioned.fill(
+                          child: CustomPaint(
+                            painter: _SamCoverPainter(
+                              covers: covers,
+                              revealed: widget.revealed,
+                              cue: widget.cue,
+                              version: widget.version,
+                            ),
+                          ),
+                        ),
+                      if (widget.masked)
+                        for (var i = 0; i < n; i++)
+                          if (!widget.revealed.contains(i))
+                            Positioned(
+                              left: badges[i].dx - 13,
+                              top: badges[i].dy - 13,
+                              child: _CoverBadge(
+                                number: i + 1,
+                                isCue: i == widget.cue,
+                              ),
+                            )
+                          else
+                            Positioned.fromRect(
+                              rect: covers[i].rect,
+                              child: Align(
+                                alignment: Alignment.bottomCenter,
+                                child: Container(
+                                  margin: const EdgeInsets.all(4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.65),
+                                    borderRadius: BorderRadius.circular(99),
+                                  ),
+                                  child: Text(
+                                    widget.objects[i],
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                      if (widget.showWalk)
+                        for (var i = 0; i < n; i++)
+                          Positioned(
+                            left: badges[i].dx - 13,
+                            top: badges[i].dy - 13,
+                            child: _CoverBadge(number: i + 1, isWalk: true),
+                          ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

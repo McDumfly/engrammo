@@ -179,6 +179,7 @@ class MemoryStore {
   static const _friendsGraphKey = 'friends_graph_v1';
   static const _friendsFeedKey = 'friends_feed_v1';
   static const _missionsDoneKey = 'transfer_missions_done_v1';
+  static const _chestsKey = 'treasure_chests_claimed_v1';
   static const _ownMaterialKey = 'own_material_v1';
   static const _userGoalsKey = 'user_goals_v1';
   static const _localNormsKey = 'local_norms_v1';
@@ -1066,6 +1067,54 @@ class MemoryStore {
     }
   }
 
+  /// Kincsesláda-jutalom: szándékosan kevéske, láda egyszer nyitható.
+  static const int chestEngramReward = 5;
+
+  static String chestIdForChapter(int chapterIdx) => 'chapter:$chapterIdx';
+
+  static Future<Set<String>> loadClaimedChests() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getStringList(_chestsKey);
+      if (raw == null || raw.isEmpty) return {};
+      return raw.toSet();
+    } catch (_) {
+      return {};
+    }
+  }
+
+  static Future<void> saveClaimedChestsWithoutNotify(Set<String> done) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_chestsKey, done.toList()..sort());
+    } catch (_) {
+    }
+  }
+
+  /// Kinyitja a ládát: elsőre [chestEngramReward] engramot ad, utána 0-t.
+  static Future<int> claimChest(String chestId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final claimed =
+          prefs.getStringList(_chestsKey)?.toSet() ?? <String>{};
+      if (claimed.contains(chestId)) return 0;
+      claimed.add(chestId);
+      await prefs.setStringList(_chestsKey, claimed.toList()..sort());
+      final current = prefs.getInt(_engramsKey) ?? 0;
+      await prefs.setInt(_engramsKey, current + chestEngramReward);
+      _streakMemory = StreakState(
+        history: List<DateTime>.of(_streakMemory?.history ?? const []),
+        streak: _streakMemory?.streak ?? 0,
+        bestStreak: _streakMemory?.bestStreak ?? 0,
+        engrams: current + chestEngramReward,
+      );
+      _notifyChanged();
+      return chestEngramReward;
+    } catch (_) {
+      return 0;
+    }
+  }
+
   static Future<String> loadOwnMaterial(String targetId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -1356,6 +1405,7 @@ class MemoryStore {
         _lessonDoneKey,
         _assessmentRunsKey,
         _missionsDoneKey,
+        _chestsKey,
         _ownMaterialKey,
         _userGoalsKey,
         _goalPlanDoneKey,

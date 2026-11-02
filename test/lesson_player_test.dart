@@ -19,7 +19,13 @@ Future<MetaTask> _expectedRoundTask(
   final rounds = lessonRoundsFor(chapter, section, lesson);
   return MetaAIService.generateTask(
     MetaTaskRequest(
-      kind: lessonRoundKindFor(chapter, lesson, round, rounds),
+      kind: lessonRoundKindFor(
+        chapter,
+        lesson,
+        round,
+        rounds,
+        section: section,
+      ),
       difficulty: lessonRoundDifficultyFor(
         chapter,
         section,
@@ -128,7 +134,9 @@ void main() {
   });
 
   testWidgets('Palace Step 2 lógó hálózattal is továbblép', (tester) async {
-    SharedPreferences.setMockInitialValues({});
+    SharedPreferences.setMockInitialValues({
+      'settings_ai_cloud_consent_v1': false,
+    });
     EnvLoader.loadFromStringForTest('MODEL_API_KEY=test-key');
     HttpOverrides.global = _HangingHttpOverrides();
     addTearDown(() {

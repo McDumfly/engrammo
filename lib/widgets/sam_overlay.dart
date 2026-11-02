@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import 'ai_image.dart';
 
 /// AI palace picture with the SAM walk overlaid.
 ///
@@ -39,28 +40,17 @@ class SamOverlay extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             child: Stack(
               children: [
-                Image.network(
-                  imageUrl,
+                AiImage(
+                  imageRef: imageUrl,
                   height: height,
                   width: double.infinity,
-                  fit: BoxFit.cover,
-                  loadingBuilder: (context, child, progress) {
-                    if (progress == null) return child;
-                    return SizedBox(
-                      height: height,
-                      child: Center(
-                        child: Text(
-                          tr('ai_picture_loading'),
-                          style: TextStyle(
-                            color: context.mutedText,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                  errorBuilder: (context, error, stackTrace) =>
-                      const SizedBox.shrink(),
+                  loading: Text(
+                    tr('ai_picture_loading'),
+                    style: TextStyle(
+                      color: context.mutedText,
+                      fontSize: 12,
+                    ),
+                  ),
                 ),
                 if (chips.isNotEmpty)
                   Positioned(

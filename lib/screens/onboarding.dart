@@ -35,6 +35,12 @@ class _Primer {
 
 const _primers = [
   _Primer(
+    'onboarding_myth_title',
+    'onboarding_myth_body',
+    HugeIcons.strokeRoundedShield01,
+    source: 'Haber (1979); Parker, Cahill & McGaugh (2006)',
+  ),
+  _Primer(
     'onboarding_palace_title',
     'onboarding_palace_body',
     HugeIcons.strokeRoundedCastle01,

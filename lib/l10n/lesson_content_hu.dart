@@ -49,7 +49,7 @@ const coachContentHu = <String, CoachContent>{
         'A szelektív figyelem edzhető: a gyakorlott szűrés védi a bevésést. '
         'Hogy a zajos szobás gyakorlás mennyit segít a hétköznapokban, '
         'emberenként változik — ígéret egyik irányban sincs.',
-    source: 'Naveh-Benjamin et al. (2005); Robison & Unsworth (2015)',
+    source: 'Cherry (1953); Conway, Cowan & Bunting (2001)',
   ),
   '1-0': CoachContent(
     title: 'Számtömbök',
@@ -188,13 +188,14 @@ const coachContentHu = <String, CoachContent>{
         'képeknek.',
     steps: [
       'Nevezd meg azonnal, amit látsz — a szavak rögzítik a képeket.',
-      'Túlozz el tételenként egy vonást, hogy szétválaszd az ikreket.',
+      'Túlozz el tételenként egy vonást — legyen vicces —, hogy szétválaszd az ikreket.',
       'Rekonstruáld emlékezetből, mielőtt megnéznéd a választ.',
     ],
     why:
-        'A verbális címkék plusz a képek két előhívási utat adnak. Az '
-        'erőfeszítéses rekonstrukció erősíti a nyomot (kívánatos nehézség).',
-    source: 'Paivio & Desrochers (1979); Bjork (1994)',
+        'A verbális címkék plusz a képek két előhívási utat adnak, a vicces '
+        'változatok pedig jobban ragadnak a simáknál. Az erőfeszítéses '
+        'rekonstrukció erősíti a nyomot (kívánatos nehézség).',
+    source: 'Schmidt (1994); Paivio & Desrochers (1979); Bjork (1994)',
   ),
   '4-0': CoachContent(
     title: 'Történetláncok',
@@ -214,20 +215,23 @@ const coachContentHu = <String, CoachContent>{
     source: 'Craik & Tulving (1975); elaborative-encoding literature',
   ),
   '4-1': CoachContent(
-    title: 'Naplófelidézés',
+    title: 'Idő- és helyhorgonyok',
     intro:
-        'A bajnokok minden este átnézik a napjukat. Tíz perc visszajátszás '
-        'lefekvés előtt ingyen adja az éjszakai konszolidáció műszakját.',
+        'Az események akkor ragadnak meg, ha hozzájuk kötöd a hol '
+        'és a mikor kérdését. Horgonyozz minden tételt a helyéhez '
+        'és idősávjához, és a kontextus visszahúzza az emléket.',
     steps: [
-      'Minden este játszd vissza a napodat visszafelé, jelenetről jelenetre.',
-      'Állj meg a részleteknél: arcok, számok, pontos szavak.',
-      'Írd le a három legnehezebb felidézést.',
+      'Kösd minden tételt pontosan ahhoz a helyhez, ahová tartozik.',
+      'Adj hozzá idősávot: reggel, dél, este — sorrendben.',
+      'Felidézéskor először építsd újra a helyet és az időt, aztán a tételt.',
     ],
     why:
-        'Az alvás azt konszolidálja, amit lefekvéshez közel tanultál, és a '
-        'teszt várása kapuzza, hogy az alvás mit tart meg. Ismételj, aztán '
-        'aludj.',
-    source: 'Gais, Lucas & Born (2006); Wilhelm et al. (2011)',
+        'A felidézés jobb, ha a tanulási kontextus újra előáll: a búvárok '
+        'több szót jegyeztek meg víz alatt, ha víz alatt is tanulták őket, '
+        'és egy metaanalízis megerősíti a kontextus előnyét. A hívószavak '
+        'akkor működnek, ha átfednek a bevésési kontextussal.',
+    source:
+        'Godden & Baddeley (1975); Smith & Vela (2001); Tulving & Thomson (1973)',
   ),
   '4-2': CoachContent(
     title: 'Éjszakai konszolidáció',
@@ -337,12 +341,12 @@ const coachContentHu = <String, CoachContent>{
     steps: [
       'Előbb a vonás, aztán a kép, aztán a kölcsönhatás — másodpercek alatt.',
       'Fűzd a szavakat egyetlen futó történetbe, ahogy megjelennek.',
-      'Ismételd bővülő térközökkel: 1 perc, 5 perc, 30 perc.',
+      'Ismételd elosztott térközökkel: 1 perc, 5 perc, 30 perc.',
     ],
     why:
-        'A bővülő előhívási ütemezéseket először neveken és arcokon mutatták '
-        'ki. Az áttekintések az elosztott felidézést a leghasznosabb '
-        'stratégiák közé sorolják.',
+        'Az elosztott előhívási ütemezéseket először neveken és arcokon '
+        'mutatták ki. Az áttekintések az elosztott felidézést a '
+        'leghasznosabb stratégiák közé sorolják.',
     source: 'Landauer & Bjork (1978); Dunlosky et al. (2013)',
   ),
   '7-0': CoachContent(
@@ -440,7 +444,7 @@ const coachContentHu = <String, CoachContent>{
     why:
         'A szelektív auditív figyelem kapuzza, mi vésődik be. Amit sosem '
         'különítettél el, azt később nem tudod felidézni.',
-    source: 'Naveh-Benjamin et al. (2005); Robison & Unsworth (2015)',
+    source: 'Cherry (1953); Conway, Cowan & Bunting (2001)',
   ),
   '9-0': CoachContent(
     title: 'Hangképek',
@@ -518,7 +522,7 @@ const coachContentHu = <String, CoachContent>{
     why:
         'A terhelés alatti edzés átvisz: a zajban épített szűrők a zajos '
         'való életben is kitartanak, nem csak csendben.',
-    source: 'Naveh-Benjamin et al. (2005)',
+    source: 'Cherry (1953); Conway, Cowan & Bunting (2001)',
   ),
   '10-2': CoachContent(
     title: 'Hosszú visszajátszások',
@@ -561,9 +565,11 @@ const coachContentHu = <String, CoachContent>{
       'Botláskor se állj le: csatlakozz vissza, ne indítsd újra.',
     ],
     why:
-        'Az árnyékolás folyamatos bevésésre plusz azonnali produkcióra '
-        'kényszerít — egy igényes hurok, amelyet a tolmácsok naponta edzenek.',
-    source: 'MacLeod et al. (2010); interpreter-training literature',
+        'Az árnyékolás arra kényszeríti a hallgatást, a memóriát és a '
+        'beszédet, hogy egyszerre versengjenek a szűkös kapacitásért — ez '
+        'az a terhelés, amelyet a tolmácstanulók naponta gyakorolnak. A '
+        'hangos visszamondás hozzáadja a produkciós hatást.',
+    source: 'Gile (2009) Effort Models; MacLeod et al. (2010)',
   ),
   '11-2': CoachContent(
     title: 'Aranyfül-ismétlés',
@@ -700,9 +706,10 @@ const coachContentHu = <String, CoachContent>{
       'Ha elejtesz egyet, kezdd újra — lesés nélkül.',
     ],
     why:
-        'A fordított terjedelem jobban jósolja az érvelést, mint az előre: '
-        'a manipulációt méri, azt a készséget, amelyet ez a rész épít.',
-    source: 'Baddeley & Hitch (1974)',
+        'A fordított felidézés arra kényszeríti a központi végrehajtót, hogy '
+        'tartás közben manipulálja a tételeket — tárolás plusz kontroll '
+        'egyetlen gyakorlatban.',
+    source: 'Baddeley (1986); Baddeley & Hitch (1974)',
   ),
   '14-2': CoachContent(
     title: 'Kettős feladatok',
@@ -1171,17 +1178,20 @@ const coachContentHu = <String, CoachContent>{
   '24-2': CoachContent(
     title: 'Heti ismétlés',
     intro:
-        'Bővülő térközök — egy hét, egy hónap, egy évszak — perceknyi heti '
-        'munkával örökké életben tartják az archívumot.',
+        'Elosztott ismétlések — hetente, aztán havonta — perceknyi '
+        'munkával életben tartják az archívumot. A térközt ahhoz '
+        'méretezd, meddig akarod megőrizni az anyagot.',
     steps: [
-      'Ütemezd az ismétléseket bővülő időközökkel.',
+      'Oszd el az ismétléseket; a térközt a megőrzési célhoz méretezd.',
       'Minden ismétléskor tesztelj, ne olvass újra.',
       'Csak azt nyugdíjazd, amit kétszer hibátlanul felidéztél.',
     ],
     why:
-        'A bővülő előhívási ütemezéseket évtizedekkel ezelőtt mutatták ki '
-        'először, és máig a tartósság mércéi.',
-    source: 'Landauer & Bjork (1978); Dunlosky et al. (2013)',
+        'Az elosztott gyakorlás az összehasonlítások döntő többségében veri '
+        'a tömbösítettet, és az ideális térköz a megőrzési céllal nő. '
+        'A bővülő térköz nem jobb az egyenletesnél — maga az '
+        'elosztás a hatás.',
+    source: 'Cepeda et al. (2006, 2008); Latimier, Peyre & Ramus (2021)',
   ),
   '25-0': CoachContent(
     title: 'Hónap-visszajátszás',
@@ -1270,9 +1280,9 @@ const coachContentHu = <String, CoachContent>{
       'Kódold újra a melléket vadabb kölcsönhatásokkal.',
     ],
     why:
-        'A neveken végzett bővülő előhívás a klasszikus térköz-előnyt '
+        'A neveken végzett elosztott előhívás a klasszikus térköz-előnyt '
         'mutatja: rövid ismétlések hónapoknyi megőrzést vesznek.',
-    source: 'Landauer & Bjork (1978); Beaton et al. (1995)',
+    source: 'Cepeda et al. (2006); Dunlosky et al. (2013)',
   ),
   '27-0': CoachContent(
     title: 'Gyökkódok',
@@ -1286,8 +1296,9 @@ const coachContentHu = <String, CoachContent>{
     ],
     why:
         'A morfológiai tudatosság átvisz a család minden új szavára — egy '
-        'kód tucatokat nyit meg.',
-    source: 'Craik & Tulving (1975); vocabulary-acquisition literature',
+        'kód tucatokat nyit meg. A megtanított gyökök a szókincsben '
+        'végig kamatoznak.',
+    source: 'Bowers, Kirby & Deacon (2010); Craik & Tulving (1975)',
   ),
   '27-1': CoachContent(
     title: 'Ötvenszavas sprint',
@@ -1594,9 +1605,11 @@ const coachContentHu = <String, CoachContent>{
       'Játszd vissza a csíkot távozás előtt, újra másnap reggel.',
     ],
     why:
-        'A kapcsolt képek a tételeket és a sorrendet is kihordozzák a '
-        'megbeszélésekről. A jegyzőkönyv a válaszkulcs.',
-    source: 'Von Restorff (1933)',
+        'A narratív kapcsok a tételeket és a sorrendet is hordozzák: a '
+        'laborvizsgálatban a történetek mint közvetítők drámaian '
+        'megemelték a sorozatos felidézést a magoláshoz képest. '
+        'A jegyzőkönyv a válaszkulcs.',
+    source: 'Bower & Clark (1969); Craik & Tulving (1975)',
   ),
   '34-0': CoachContent(
     title: 'Tanulóláncok',

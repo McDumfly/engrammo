@@ -4,6 +4,7 @@ import 'dart:convert';
 
 import '../l10n/app_localizations.dart';
 import 'assessment.dart' show resolveDominant, scoresAreBlank;
+import 'claims_policy.dart' show bannedTokenIn;
 import 'memory_verdict.dart' show verdictKindNames;
 
 class StudyRecommendation {
@@ -50,12 +51,12 @@ StudyRecommendation? parseStudyRecommendationContent(String content) {
     if (data is! Map<String, dynamic>) return null;
     final track = _trackFromDynamic(data['track']);
     if (track == null) return null;
-    return StudyRecommendation(
-      track: track,
-      rationale: (data['rationale'] as String?)?.trim().isEmpty ?? true
-          ? tr('study_default')
-          : (data['rationale'] as String).trim(),
-    );
+    final rationale = (data['rationale'] as String?)?.trim().isEmpty ?? true
+        ? tr('study_default')
+        : (data['rationale'] as String).trim();
+    // Runtime claims guard: blocked rationales fall back to local.
+    if (bannedTokenIn(rationale) != null) return null;
+    return StudyRecommendation(track: track, rationale: rationale);
   } catch (_) {
     return null;
   }

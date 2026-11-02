@@ -60,6 +60,7 @@ void main() {
     });
 
     test('kulccsal, de consent nélkül consent-hiányt naplóz', () async {
+      MetaAIService.consentForTest = false;
       final answer = await MetaAIService.askCoach(
         'szia',
         topic: 'path',
@@ -105,6 +106,9 @@ void main() {
     testWidgets('kulccsal, de consent nélkül ALLOW kapcsolja az élő módot',
         (tester) async {
       MetaAIService.secureStoreForTest = {'meta_api_key_v1': 'k'};
+      SharedPreferences.setMockInitialValues({
+        'settings_ai_cloud_consent_v1': false,
+      });
       await openSheet(tester);
       await sendFirstPrompt(tester);
       expect(find.byKey(const ValueKey('ai-help-allow')), findsOneWidget);
@@ -124,6 +128,7 @@ void main() {
         (tester) async {
       SharedPreferences.setMockInitialValues({
         'memory_scores_v1': ['10', '20', '30'],
+        'settings_ai_cloud_consent_v1': false,
       });
       await tester.pumpWidget(
         const MaterialApp(home: SettingsScreen()),

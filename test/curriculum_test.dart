@@ -232,6 +232,77 @@ void main() {
       expect(lessonRecallHint('story-recall'), isNotEmpty);
     });
 
+    test('foundation sections drill the procedure they teach', () {
+      // Chunking forge: Digit chunks drills chunk-span, the rest keeps
+      // backward-span (card systems have no registry paradigm, the gym
+      // IS backward manipulation).
+      expect(lessonKindFor(1, 0, section: 0), 'number');
+      expect(lessonKindFor(1, 3, section: 0), 'number');
+      expect(lessonKindFor(1, 0, section: 1), 'sequence');
+      expect(lessonKindFor(1, 0, section: 2), 'sequence');
+      // Journal: daily replay + evening walk drill day-replay, anchors
+      // drill story recall.
+      expect(lessonKindFor(4, 0, section: 0), 'replay');
+      expect(lessonKindFor(4, 0, section: 1), 'episodic');
+      expect(lessonKindFor(4, 0, section: 2), 'replay');
+      // Name-face: Baker breaker drills face-name, Keyword chain drills
+      // keyword-pair, Meaning web drills category judgment.
+      expect(lessonKindFor(5, 0, section: 0), 'face');
+      expect(lessonKindFor(5, 0, section: 1), 'foreign');
+      expect(lessonKindFor(5, 0, section: 2), 'semantic');
+      // Section-agnostic calls keep the old mapping.
+      expect(lessonKindFor(1, 0), 'sequence');
+      expect(lessonKindFor(4, 0), 'verbal');
+      expect(lessonKindFor(5, 0), 'verbal');
+      // Real lesson rounds carry the taught kind from round 0.
+      expect(lessonRoundKindFor(5, 2, 0, 4, section: 0), 'face');
+      expect(lessonRoundKindFor(5, 2, 0, 4, section: 1), 'foreign');
+      expect(lessonRoundKindFor(1, 2, 0, 4, section: 0), 'number');
+    });
+
+    test('single-word recall starts early, multi-item stays scaffolded', () {
+      // Foundations (difficulty 1) stay recognition for the scaffold.
+      expect(
+        lessonRecallMode(chapter: 5, difficulty: 1, paradigm: 'face-name'),
+        isFalse,
+      );
+      // From difficulty 2 (lesson 3 of a foundation section) one-word
+      // production switches to typed recall in base chapters too.
+      expect(
+        lessonRecallMode(chapter: 5, difficulty: 2, paradigm: 'face-name'),
+        isTrue,
+      );
+      expect(
+        lessonRecallMode(chapter: 5, difficulty: 2, paradigm: 'keyword-pair'),
+        isTrue,
+      );
+      expect(
+        lessonRecallMode(
+          chapter: 4,
+          difficulty: 2,
+          paradigm: 'paired-associate',
+        ),
+        isTrue,
+      );
+      // Multi-item paradigms stay recognition until the finals.
+      expect(
+        lessonRecallMode(chapter: 5, difficulty: 5, paradigm: 'story-recall'),
+        isFalse,
+      );
+      expect(
+        lessonRecallMode(chapter: 1, difficulty: 5, paradigm: 'chunk-span'),
+        isFalse,
+      );
+      expect(
+        lessonRecallMode(chapter: 4, difficulty: 5, paradigm: 'day-replay'),
+        isFalse,
+      );
+      expect(
+        lessonRecallMode(chapter: 2, difficulty: 5, paradigm: 'loci-drill'),
+        isFalse,
+      );
+    });
+
     test('difficulty rises with depth, finals start at 3', () {
       expect(lessonDifficultyFor(0, 0, 0), 1);
       expect(lessonDifficultyFor(0, 2, 3), 4);

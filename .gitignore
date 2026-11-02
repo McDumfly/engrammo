@@ -57,6 +57,11 @@ macos/Runner/GoogleService-Info.plist
 lib/firebase_options.dart
 firebase.json
 
+# Firestore-szabály és projekt-azonosító: helyi deploy-segédlet,
+# soha nem megy gitre. A fájlok a gépen maradnak.
+firestore.rules
+.firebaserc
+
 # Meta AI kulcs: soha nem megy gitre. A `.env.example` minta (üres kulccsal)
 # szándékosan git alatt van, hogy a klónozók lássák a formátumot.
 .env
@@ -67,7 +72,7 @@ android/key.properties
 android/app/*.jks
 android/app/*.keystore
 
-# Belső feljegyzés: személyes adatot tartalmaz (iskola, lakhely),
+# Belső feljegyzés: személyes adatot tartalmazhat,
 # soha nem megy gitre. A docs/, a FIREBASE_SETUP.md és a tool/ szkriptek
 # szándékosan git alatt vannak (a README hivatkozik rájuk).
 MEMORY.md
@@ -78,3 +83,7 @@ MEMORY.md
 # Ideiglenes screenshot-körút: csak helyi felvételezésre készült,
 # a futtatás után törlendő, soha nem megy gitre.
 integration_test/tour_test.dart
+engrammo-for-claude.zip
+MUSE_PLAN.md
+MUSE_PROMPT.md
+MUSE_SESSION_*.md

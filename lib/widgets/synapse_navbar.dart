@@ -304,7 +304,7 @@ class _SynapseNavBarState extends State<SynapseNavBar>
       top: false,
       child: Container(
         color: Colors.transparent,
-        padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+        padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

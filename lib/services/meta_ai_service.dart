@@ -9,7 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/claims_policy.dart'
-    show levelExplainer, levelFootnote, verdictPromptGuard;
+    show bannedTokenIn, levelExplainer, levelFootnote, verdictPromptGuard;
 import '../models/dynamic_task.dart';
 import '../models/interview.dart' show interviewQuestions;
 import '../models/transfer_targets.dart' show transferTargetById;
@@ -81,24 +81,50 @@ class WordBatchAnswer {
   const WordBatchAnswer({required this.words, this.fallback = true});
 }
 
-class TranscriptAnswer {
-  final String text;
-  final bool fallback;
-  const TranscriptAnswer({required this.text, this.fallback = true});
-}
-
 class WonderPreviewAnswer {
   final List<String> viewpoints;
   final bool fallback;
   const WonderPreviewAnswer({required this.viewpoints, this.fallback = true});
 }
 
+/// One picture-recall round: the painted (or photographed) image plus the
+/// objects SAM 3.1 and Muse Spark jointly read off it. [boxes] holds one
+/// normalized [x, y, w, h] box per object when the segmenter returned
+/// geometry, otherwise the UI covers the picture with grid tiles.
+/// [masks] runs parallel to [boxes]: the raw SAM `<|mask;…|>` token that
+/// cuts the cover into the object's true shape, or '' when the object
+/// has box geometry only (Spark grounding) or none at all (grid tile).
+class PictureRecallRound {
+  final String imageUrl;
+  final String scene;
+  final List<String> objects;
+  final List<List<double>> boxes;
+  final List<String> masks;
+  final bool live;
+  const PictureRecallRound({
+    required this.imageUrl,
+    required this.scene,
+    required this.objects,
+    this.boxes = const [],
+    this.masks = const [],
+    this.live = false,
+  });
+}
+
 class MetaAIService {
   static const String taskModel = 'muse-spark-1.3-contributor';
   static const String imageModel = 'muse-image-1.0';
   static const String segmentModel = 'sam-3.1';
-  static const String wonderModel = 'wonder-1.0';
-  static const String voiceModel = 'voice-transcribe-1.0';
+
+  /// Model IDs are the exact Meta Model API catalog IDs
+  /// (https://dev.meta.ai/docs/models): the `muse-` prefix matters —
+  /// `wonder-1.0` returns HTTP 404 model_not_found.
+  static const String wonderModel = 'muse-wonder-1.0';
+
+  /// Open-weight models with NO Meta Model API endpoint (self-host only,
+  /// docs "Models at a glance": endpoint "None"). They are kept as log
+  /// identities, but [glimmerTake] and [openPracticeTip] never place a
+  /// network call — a live call would always fail with HTTP 404.
   static const String glimmerModel = 'glimmer-1.0';
   static const String sparkOpenModel = 'muse-spark-open-1.0';
 
@@ -178,8 +204,9 @@ class MetaAIService {
 
   /// Session-level image/segment caches: the same palace prompt or image
   /// must not cost a new Muse Image / SAM call every round. Keyed by
-  /// [MetaImageRequest.cacheKey] and by image URL. Only successful,
-  /// non-fallback results are stored; the cap keeps memory bounded.
+  /// [MetaImageRequest.cacheKey] and by SAM concept + image ref. Only
+  /// successful, non-fallback results are stored; the cap keeps memory
+  /// bounded.
   static const int imageCacheCap = 40;
   static final Map<String, MetaImage> _imageCache = {};
   static final Map<String, MetaSegment> _segmentCache = {};
@@ -199,13 +226,17 @@ class MetaAIService {
     _imageCache[req.cacheKey] = img;
   }
 
-  static void _storeSegment(String imageRef, MetaSegment seg) {
+  static String _segmentCacheKey(MetaSegmentRequest req) =>
+      '${req.concept.trim().toLowerCase()}\n${req.imageRef.trim()}';
+
+  static void _storeSegment(MetaSegmentRequest req, MetaSegment seg) {
     if (seg.fallback) return;
+    final key = _segmentCacheKey(req);
     if (_segmentCache.length >= imageCacheCap &&
-        !_segmentCache.containsKey(imageRef)) {
+        !_segmentCache.containsKey(key)) {
       _segmentCache.remove(_segmentCache.keys.first);
     }
-    _segmentCache[imageRef] = seg;
+    _segmentCache[key] = seg;
   }
 
   static String get apiKey {
@@ -323,14 +354,17 @@ class MetaAIService {
   @visibleForTesting
   static bool? consentForTest;
 
+  /// Cloud AI is ON by default: with a key in place the app goes live
+  /// without any Settings step. The player can still switch it off in
+  /// Settings → Meta AI, and that choice is persisted.
   static Future<bool> cloudConsent() async {
     final t = consentForTest;
     if (t != null) return t;
     try {
       final prefs = await SharedPreferences.getInstance();
-      return prefs.getBool(_consentKey) ?? false;
+      return prefs.getBool(_consentKey) ?? true;
     } catch (_) {
-      return false;
+      return true;
     }
   }
 
@@ -410,7 +444,7 @@ class MetaAIService {
     return {
       'model': taskModel,
       'temperature': 0.2,
-      'reasoning_effort': 'low',
+      'reasoning_effort': 'minimal',
       'max_completion_tokens': taskMaxCompletionTokens,
       'response_format': {'type': 'json_object'},
       'messages': [
@@ -477,6 +511,17 @@ class MetaAIService {
         fallback: false,
       );
       if (validateTask(req, candidate).isNotEmpty) return null;
+      // Runtime claims guard: AI-filled stimulus text must carry no
+      // banned efficacy phrase; blocked content falls back to the
+      // deterministic local generator running the same paradigm.
+      for (final field in [
+        candidate.prompt,
+        candidate.question,
+        candidate.explanation,
+        ...candidate.options,
+      ]) {
+        if (bannedTokenIn(field) != null) return null;
+      }
       return candidate;
     } catch (_) {
       return null;
@@ -557,6 +602,78 @@ class MetaAIService {
         '${_snip(res.body)}';
   }
 
+  /// One retry (~1s later) on transient failures (timeout, connection
+  /// abort / DNS lookup, 429/5xx); callers turn the second failure into
+  /// a local fallback. Shared by chat, images and Responses
+  /// calls so a flaky network fails over instead of erroring out.
+  static Future<http.Response> _resilientSend(
+    Future<http.Response> Function() send,
+  ) async {
+    try {
+      final res = await send();
+      if (res.statusCode == 429 || res.statusCode >= 500) {
+        await Future.delayed(const Duration(seconds: 1));
+        try {
+          return await send();
+        } catch (_) {
+          return res;
+        }
+      }
+      return res;
+    } on TimeoutException {
+      await Future.delayed(const Duration(seconds: 1));
+      return send();
+    } on http.ClientException {
+      await Future.delayed(const Duration(seconds: 1));
+      return send();
+    }
+  }
+
+  /// POSTs a JSON body with [_resilientSend] semantics.
+  static Future<http.Response> _postJson(
+    http.Client c, {
+    required String url,
+    required String key,
+    required Map<String, dynamic> body,
+    required int timeoutSec,
+    Map<String, String>? extraHeaders,
+  }) {
+    Future<http.Response> once() => c
+        .post(
+          Uri.parse(url),
+          headers: {..._headers(key), ...?extraHeaders},
+          body: jsonEncode(body),
+        )
+        .timeout(Duration(seconds: timeoutSec));
+    return _resilientSend(once);
+  }
+
+  /// Extracts the assistant text lane from a Responses API payload
+  /// (`POST /responses`): message items → content blocks → `output_text`.
+  /// Also accepts the top-level `output_text` convenience field. Returns
+  /// '' when there is no text (e.g. zero SAM matches) — callers decide
+  /// whether empty is valid (SAM geometry) or an error (VLM JSON).
+  static String _responsesText(Map<String, dynamic> data) {
+    final sb = StringBuffer();
+    final output = data['output'];
+    if (output is List) {
+      for (final item in output) {
+        if (item is! Map<String, dynamic>) continue;
+        final content = item['content'];
+        if (content is! List) continue;
+        for (final block in content) {
+          if (block is! Map<String, dynamic>) continue;
+          final t = block['text'];
+          if (t is String) sb.write(t);
+        }
+      }
+    }
+    if (sb.isNotEmpty) return sb.toString();
+    final outputText = data['output_text'];
+    if (outputText is String) return outputText;
+    return '';
+  }
+
   static Future<http.Response> _postChat(
     http.Client c, {
     required String base,
@@ -571,30 +688,8 @@ class MetaAIService {
           body: jsonEncode(b),
         )
         .timeout(Duration(seconds: timeoutSec));
-    // Átmeneti hibákra (időtúllépés, kapcsolódás, 429/5xx) egyszer, ~1 mp
-    // múlva újrapróbálkozunk; a hívók a második hibát is fallbackre váltják.
-    Future<http.Response> onceResilient(Map<String, dynamic> b) async {
-      try {
-        final res = await once(b);
-        if (res.statusCode == 429 || res.statusCode >= 500) {
-          await Future.delayed(const Duration(seconds: 1));
-          try {
-            return await once(b);
-          } catch (_) {
-            return res;
-          }
-        }
-        return res;
-      } on TimeoutException {
-        await Future.delayed(const Duration(seconds: 1));
-        return once(b);
-      } on http.ClientException {
-        await Future.delayed(const Duration(seconds: 1));
-        return once(b);
-      }
-    }
 
-    final first = await onceResilient(body);
+    final first = await _resilientSend(() => once(body));
     if (first.statusCode < 200 || first.statusCode >= 300) return first;
     Map<String, dynamic>? data;
     try {
@@ -922,7 +1017,7 @@ class MetaAIService {
     return {
       'model': taskModel,
       'temperature': 0.3,
-      'reasoning_effort': 'low',
+      'reasoning_effort': 'minimal',
       'max_completion_tokens': interviewMaxCompletionTokens,
       'response_format': {'type': 'json_object'},
       'messages': [
@@ -1055,7 +1150,7 @@ class MetaAIService {
     return {
       'model': taskModel,
       'temperature': 0.3,
-      'reasoning_effort': 'low',
+      'reasoning_effort': 'minimal',
       'max_completion_tokens': interviewMaxCompletionTokens,
       'response_format': {'type': 'json_object'},
       'messages': [
@@ -1224,13 +1319,13 @@ class MetaAIService {
     final c = client ?? http.Client();
     final owned = client == null;
     try {
-      final res = await c
-          .post(
-            Uri.parse('$base/images/generations'),
-            headers: _headers(key),
-            body: jsonEncode(imageRequestBody(req)),
-          )
-          .timeout(const Duration(seconds: imageTimeoutSec));
+      final res = await _postJson(
+        c,
+        url: '$base/images/generations',
+        key: key,
+        body: imageRequestBody(req),
+        timeoutSec: imageTimeoutSec,
+      );
       if (res.statusCode >= 200 && res.statusCode < 300) {
         final data = jsonDecode(res.body);
         if (data is Map<String, dynamic>) {
@@ -1294,84 +1389,135 @@ class MetaAIService {
 
   @visibleForTesting
   static Map<String, dynamic> segmentRequestBody(MetaSegmentRequest req) {
-    final hints = [
-      for (final p in req.points) 'point [${p.join(', ')}]',
-      for (final b in req.boxes) 'box [${b.join(', ')}]',
-    ].join('; ');
-    final text =
-        'Segment the image "${req.imageRef}" (SAM 3.1). '
-        '${hints.isEmpty ? 'Name the main objects' : 'Candidates: $hints'} '
-        'and return JSON with keys "masks" (list of mask ids) and '
-        '"labels" (list of English labels).';
+    // SAM takes ONE short noun phrase per request ("glasses"); commands,
+    // questions and JSON instructions return zero matches
+    // (https://dev.meta.ai/docs/sam/segmenting). Box/point prompts need
+    // absolute media pixels, which the app never knows (it only holds
+    // normalized fractions), so only the concept path is ever sent.
+    final concept =
+        req.concept.trim().isEmpty ? 'object' : req.concept.trim();
     final ref = req.imageRef.trim();
     if (isImageRef(ref)) {
       return {
         'model': segmentModel,
         'input': [
           {
+            'type': 'message',
             'role': 'user',
             'content': [
-              {'type': 'input_text', 'text': text},
+              {'type': 'input_text', 'text': concept},
               {'type': 'input_image', 'image_url': ref},
             ],
           },
         ],
       };
     }
-    return {'model': segmentModel, 'input': text};
+    return {'model': segmentModel, 'input': concept};
   }
 
+  /// Parses one SAM 3.1 output_text lane (special-token grammar, one line
+  /// per frame — a single image is one `<0f>` line):
+  /// `<0f>id<|box;x1=..;y1=..;x2=..;y2=..;w=..;h=..|>`
+  /// `<|mask;..;data=H,W,enc+payload|>,…`
+  /// Returns normalized [x, y, w, h] boxes (0..1 fractions of the image)
+  /// plus the raw `<|mask;…|>` token per match. Records with malformed
+  /// boxes are skipped; zero well-formed records → empty lists (valid:
+  /// the concept is simply not in the picture).
+  @visibleForTesting
+  static ({List<List<double>> boxes, List<String> masks}) parseSamGeometry(
+    String outputText,
+  ) {
+    final boxes = <List<double>>[];
+    final masks = <String>[];
+    final boxRe = RegExp(r'<\|box;([^|]*)\|>');
+    final maskRe = RegExp(r'<\|mask;([^|]*)\|>');
+    Map<String, String> fields(String inner) {
+      final map = <String, String>{};
+      for (final part in inner.split(';')) {
+        final i = part.indexOf('=');
+        if (i > 0) map[part.substring(0, i)] = part.substring(i + 1);
+      }
+      return map;
+    }
+
+    double? num(Map<String, String> m, String k) {
+      final v = m[k];
+      if (v == null || v.isEmpty) return null;
+      return double.tryParse(v);
+    }
+
+    final boxHits = boxRe.allMatches(outputText).toList();
+    final maskHits = maskRe.allMatches(outputText).toList();
+    // Every record pairs exactly one box with exactly one mask, box
+    // first — pair them in wire order.
+    final n =
+        boxHits.length < maskHits.length ? boxHits.length : maskHits.length;
+    for (var i = 0; i < n; i++) {
+      final f = fields(boxHits[i].group(1) ?? '');
+      final x1 = num(f, 'x1');
+      final y1 = num(f, 'y1');
+      final x2 = num(f, 'x2');
+      final y2 = num(f, 'y2');
+      final w = num(f, 'w');
+      final h = num(f, 'h');
+      if (x1 == null ||
+          y1 == null ||
+          x2 == null ||
+          y2 == null ||
+          w == null ||
+          h == null ||
+          w <= 0 ||
+          h <= 0) {
+        continue;
+      }
+      // x2/y2 are inclusive source pixels; +1 keeps edge-touching
+      // boxes whole.
+      final box = [
+        (x1 / w).clamp(0.0, 1.0),
+        (y1 / h).clamp(0.0, 1.0),
+        ((x2 - x1 + 1) / w).clamp(0.0, 1.0),
+        ((y2 - y1 + 1) / h).clamp(0.0, 1.0),
+      ];
+      if (box[2] <= 0 || box[3] <= 0) continue;
+      boxes.add(box);
+      masks.add(maskHits[i].group(0)!);
+    }
+    return (boxes: boxes, masks: masks);
+  }
+
+  /// Reads a SAM 3.1 Responses payload into geometry. SAM returns
+  /// special-token text (`<0f>…<|box;…|><|mask;…|>`), never JSON labels —
+  /// object names come from Spark label spotting instead, so
+  /// [MetaSegment.labels] stays empty here. Returns null ONLY when the
+  /// payload is not a usable SAM answer at all (failed status, no
+  /// output lane); zero matches is a valid empty segment (the concept
+  /// is absent from the picture, not an error).
   @visibleForTesting
   static MetaSegment? parseSegmentOutput(Map<String, dynamic> data) {
     try {
-      if (data['masks'] is List || data['labels'] is List) {
-        final masks = [
-          for (final e in (data['masks'] as List? ?? const [])) e.toString(),
-        ];
-        final labels = [
-          for (final e in (data['labels'] as List? ?? const [])) e.toString(),
-        ];
-        if (masks.isEmpty && labels.isEmpty) return null;
+      final status = data['status'];
+      if (status is String && (status == 'failed' || status == 'cancelled')) {
+        return null;
+      }
+      final raw = _responsesText(data).trim();
+      if (raw.isEmpty) {
+        // Zero matches completes with an empty lane — valid, not an
+        // error. Without any output field at all (or cut off mid-lane)
+        // the payload is not a usable SAM answer.
+        final hasOutput =
+            data.containsKey('output') || data.containsKey('output_text');
+        if (!hasOutput || status == 'incomplete') return null;
         return MetaSegment(
-          masks: masks,
-          labels: labels,
           model: segmentModel,
           createdAt: DateTime.now(),
-          fallback: false,
+          fallback: true,
         );
       }
-      final texts = StringBuffer();
-      final output = data['output'];
-      if (output is List) {
-        for (final item in output) {
-          if (item is! Map<String, dynamic>) continue;
-          final content = item['content'];
-          if (content is! List) continue;
-          for (final block in content) {
-            if (block is! Map<String, dynamic>) continue;
-            final t = block['text'];
-            if (t is String) texts.write(t);
-          }
-        }
-      }
-      final raw = texts.toString().trim();
-      if (raw.isEmpty) return null;
-      var jsonText = raw;
-      final start = raw.indexOf('{');
-      final end = raw.lastIndexOf('}');
-      if (start >= 0 && end > start) jsonText = raw.substring(start, end + 1);
-      final parsed = jsonDecode(jsonText);
-      if (parsed is! Map<String, dynamic>) return null;
-      final masks = [
-        for (final e in (parsed['masks'] as List? ?? const [])) e.toString(),
-      ];
-      final labels = [
-        for (final e in (parsed['labels'] as List? ?? const [])) e.toString(),
-      ];
-      if (masks.isEmpty && labels.isEmpty) return null;
+      final geo = parseSamGeometry(raw);
+      if (geo.boxes.isEmpty) return null;
       return MetaSegment(
-        masks: masks,
-        labels: labels,
+        masks: geo.masks,
+        boxes: geo.boxes,
         model: segmentModel,
         createdAt: DateTime.now(),
         fallback: false,
@@ -1415,33 +1561,41 @@ class MetaAIService {
       );
       return MetaSegment(createdAt: DateTime.now());
     }
-    final cached = _segmentCache[req.imageRef];
+    final cached = _segmentCache[_segmentCacheKey(req)];
     if (cached != null) return cached;
+    final concept =
+        req.concept.trim().isEmpty ? 'object' : req.concept.trim();
     final c = client ?? http.Client();
     final owned = client == null;
     try {
-      final res = await c
-          .post(
-            Uri.parse('$base/responses'),
-            headers: _headers(key),
-            body: jsonEncode(segmentRequestBody(req)),
-          )
-          .timeout(const Duration(seconds: httpTimeoutSec));
+      final res = await _postJson(
+        c,
+        url: '$base/responses',
+        key: key,
+        body: segmentRequestBody(req),
+        timeoutSec: httpTimeoutSec,
+      );
       if (res.statusCode >= 200 && res.statusCode < 300) {
         final data = jsonDecode(res.body);
         if (data is Map<String, dynamic>) {
           final seg = parseSegmentOutput(data);
           if (seg != null) {
+            // Zero matches is a working answer (concept absent), not an
+            // error — but stations still come from local lists then.
+            final live = !seg.fallback;
             await _log(
               MetaCallEntry(
                 model: segmentModel,
                 kind: 'segment',
                 at: DateTime.now(),
                 success: true,
-                fallback: false,
+                fallback: !live,
+                note: live
+                    ? '${seg.boxes.length} matches for "$concept"'
+                    : 'no matches for "$concept"',
               ),
             );
-            _storeSegment(req.imageRef, seg);
+            if (live) _storeSegment(req, seg);
             return seg;
           }
           throw StateError(
@@ -1463,6 +1617,213 @@ class MetaAIService {
         ),
       );
       return MetaSegment(createdAt: DateTime.now());
+    } finally {
+      if (owned) c.close();
+    }
+  }
+
+  /// Request body for Spark label spotting with perception grounding: the
+  /// model names the prominent objects AND where they are, as one JSON
+  /// array of `{object_name, bbox:[x_min,y_min,x_max,y_max]}` on the
+  /// normalized 0-1000 grid
+  /// (https://dev.meta.ai/docs/image-understanding). SAM 3.1 only
+  /// returns geometry for a concept the caller already names, so unknown
+  /// pictures (camera rooms, fresh illustrations) are read through this
+  /// call first.
+  @visibleForTesting
+  static Map<String, dynamic> spotLabelsRequestBody({
+    required String imageRef,
+    required int count,
+    String locale = 'en',
+    String scene = '',
+  }) {
+    final n = count.clamp(2, 8);
+    final lang = locale == 'hu' ? 'Hungarian' : 'English';
+    final where = scene.trim().isEmpty ? '' : ' The picture shows: $scene.';
+    return {
+      'model': taskModel,
+      // Responses-alak (az alapértelmezett high ~15 mp, kifutna a 12 mp-ből).
+      'reasoning': {'effort': 'minimal'},
+      'input': [
+        {
+          'type': 'message',
+          'role': 'user',
+          'content': [
+            {
+              'type': 'input_text',
+              'text':
+                  'You are an object grounding expert. Name the $n most '
+                  'prominent concrete objects visible in this picture '
+                  '(furniture, landmarks, everyday things — simplest '
+                  'everyday words, each at most 3 words, in $lang).$where '
+                  'For each object answer {"object_name": "<name>", "bbox": '
+                  '[{"x_min": <int>, "y_min": <int>, "x_max": <int>, '
+                  '"y_max": <int>}]} with coordinates on the normalized '
+                  '0-1000 grid ((0,0) top-left). Return a JSON array of $n '
+                  'results only, no explanation. Omit what you cannot find.',
+            },
+            {'type': 'input_image', 'image_url': imageRef.trim()},
+          ],
+        },
+      ],
+    };
+  }
+
+  static List<double>? _groundBox(Object? raw) {
+    final first = raw is List && raw.isNotEmpty ? raw.first : raw;
+    if (first is! Map<String, dynamic>) return null;
+    final x0 = (first['x_min'] as num?)?.toDouble();
+    final y0 = (first['y_min'] as num?)?.toDouble();
+    final x1 = (first['x_max'] as num?)?.toDouble();
+    final y1 = (first['y_max'] as num?)?.toDouble();
+    if (x0 == null || y0 == null || x1 == null || y1 == null) return null;
+    // Edge objects may score slightly outside 0-1000: clamp, never drop.
+    final l = x0.clamp(0.0, 1000.0) / 1000.0;
+    final t = y0.clamp(0.0, 1000.0) / 1000.0;
+    final r = x1.clamp(0.0, 1000.0) / 1000.0;
+    final b = y1.clamp(0.0, 1000.0) / 1000.0;
+    if (r <= l || b <= t) return null;
+    return [l, t, r - l, b - t];
+  }
+
+  /// Parses grounded labels: a JSON array of `{object_name, bbox}` on
+  /// the 0-1000 grid → labels plus normalized [x, y, w, h] boxes (0..1).
+  /// Drops nameless/duplicate entries; boxes are returned only when
+  /// EVERY kept label grounded (mask overlays need 1:1 alignment —
+  /// callers check lengths and fall back to grid tiles otherwise).
+  @visibleForTesting
+  static ({List<String> labels, List<List<double>> boxes}) parseSpotLabels(
+    String content, {
+    int max = 8,
+  }) {
+    List<List<double>> none() => const <List<double>>[];
+    try {
+      var text = content.trim();
+      final start = text.indexOf('[');
+      final end = text.lastIndexOf(']');
+      if (start < 0 || end <= start) {
+        return (labels: const <String>[], boxes: none());
+      }
+      text = text.substring(start, end + 1);
+      final data = jsonDecode(text);
+      if (data is! List) {
+        return (labels: const <String>[], boxes: none());
+      }
+      final labels = <String>[];
+      final boxes = <List<double>>[];
+      var aligned = true;
+      for (final e in data) {
+        if (e is! Map<String, dynamic>) continue;
+        final name = (e['object_name'] as String? ?? '').trim();
+        if (name.isEmpty || labels.contains(name)) continue;
+        if (labels.length >= max.clamp(1, 10)) break;
+        labels.add(name);
+        final box = _groundBox(e['bbox']);
+        // A label without geometry still names a station, but then the
+        // overlay cannot align 1:1 — names stay, boxes go.
+        if (box == null) {
+          aligned = false;
+        } else if (aligned) {
+          boxes.add(box);
+        }
+      }
+      if (!aligned || boxes.length != labels.length) {
+        return (labels: labels, boxes: none());
+      }
+      return (labels: labels, boxes: boxes);
+    } catch (_) {
+      return (labels: const <String>[], boxes: none());
+    }
+  }
+
+  /// Lets Muse Spark (VLM) read [imageRef]: prominent object names plus
+  /// grounding boxes in one Responses call. This is the label source for
+  /// unknown pictures — SAM only segments a concept the caller names, it
+  /// never invents names. Returns labels (and aligned boxes when every
+  /// label grounded); empty labels when offline, imageless or
+  /// unreadable. Never throws.
+  static Future<MetaSegment> spotImageLabels(
+    String imageRef, {
+    required int count,
+    String locale = 'en',
+    String scene = '',
+    http.Client? client,
+    String? apiKeyOverride,
+    String? baseUrlOverride,
+  }) async {
+    final n = count.clamp(2, 8);
+    Future<MetaSegment> local({required bool success, String note = ''}) async {
+      await _log(
+        MetaCallEntry(
+          model: taskModel,
+          kind: 'spot-labels',
+          at: DateTime.now(),
+          success: success,
+          fallback: true,
+          note: note,
+        ),
+      );
+      return MetaSegment(createdAt: DateTime.now());
+    }
+
+    final ref = imageRef.trim();
+    if (!isImageRef(ref)) {
+      return local(success: true, note: 'no real image');
+    }
+    final key = await _liveKey(apiKeyOverride);
+    final base = resolveBaseUrl(baseUrlOverride);
+    if (key.isEmpty) {
+      return local(
+        success: true,
+        note: await _gatedOfflineNote(apiKeyOverride, 'empty labels', locale),
+      );
+    }
+    final c = client ?? http.Client();
+    final owned = client == null;
+    try {
+      final res = await _postJson(
+        c,
+        url: '$base/responses',
+        key: key,
+        body: spotLabelsRequestBody(
+          imageRef: ref,
+          count: n,
+          locale: locale,
+          scene: scene,
+        ),
+        timeoutSec: httpTimeoutSec,
+      );
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        final data = jsonDecode(res.body);
+        if (data is Map<String, dynamic>) {
+          final found = parseSpotLabels(_responsesText(data), max: n);
+          if (found.labels.isNotEmpty) {
+            await _log(
+              MetaCallEntry(
+                model: taskModel,
+                kind: 'spot-labels',
+                at: DateTime.now(),
+                success: true,
+                fallback: false,
+              ),
+            );
+            return MetaSegment(
+              labels: found.labels,
+              boxes: found.boxes,
+              model: taskModel,
+              createdAt: DateTime.now(),
+              fallback: false,
+            );
+          }
+          throw StateError(
+            'HTTP ${res.statusCode} no objects spotted: ${_snip(res.body)}',
+          );
+        }
+      }
+      throw StateError('HTTP ${res.statusCode}: ${_snip(res.body)}');
+    } catch (e) {
+      debugPrint('MetaAIService.spotImageLabels fallback: $e');
+      return local(success: false, note: e.toString());
     } finally {
       if (owned) c.close();
     }
@@ -1499,24 +1860,27 @@ class MetaAIService {
       // SAM only ever sees a real picture: the freshly painted palace, or —
       // when generation failed — the task's existing image. A synthetic
       // 'palace:…' ref would short-circuit to an empty fallback, so skip
-      // the call instead of logging a phantom segmentation.
+      // the call instead of logging a phantom segmentation. Stations stay
+      // local (the picture was painted FROM them); SAM locates the lead
+      // station in the fresh paint and stamps the model when found.
       final ref = img.url.isEmpty ? out.imageUrl : img.url;
-      final seg = isImageRef(ref)
-          ? await segment(
-              MetaSegmentRequest(imageRef: ref),
-              client: client,
-              apiKeyOverride: apiKeyOverride,
-              baseUrlOverride: baseUrlOverride,
-            )
-          : MetaSegment(createdAt: DateTime.now());
-      final merged = seg.labels.isEmpty
-          ? out.stations
-          : stationsFromLabels(seg.labels, seed, count, locale);
+      final lead = out.stations.isNotEmpty
+          ? out.stations.first
+          : out.items.isNotEmpty
+          ? out.items.first
+          : '';
+      MetaSegment seg = MetaSegment(createdAt: DateTime.now());
+      if (isImageRef(ref) && lead.trim().isNotEmpty) {
+        seg = await segment(
+          MetaSegmentRequest(imageRef: ref, concept: lead),
+          client: client,
+          apiKeyOverride: apiKeyOverride,
+          baseUrlOverride: baseUrlOverride,
+        );
+      }
       out = out.copyWith(
-        stations: merged,
         imageUrl: img.url.isEmpty ? out.imageUrl : img.url,
-        samLabels: seg.labels.isEmpty ? out.samLabels : seg.labels,
-        samModel: seg.labels.isEmpty ? out.samModel : seg.model,
+        samModel: seg.boxes.isEmpty ? out.samModel : seg.model,
       );
     } catch (_) {}
     return out;
@@ -1542,78 +1906,553 @@ class MetaAIService {
         apiKeyOverride: apiKeyOverride,
         baseUrlOverride: baseUrlOverride,
       );
-      if (img.url.isEmpty) {
-        // Fresh paint failed: still segment the task's existing picture so
-        // SAM stays the default wherever a real image already exists.
-        if (isImageRef(out.imageUrl)) {
-          final seg = await segment(
-            MetaSegmentRequest(imageRef: out.imageUrl),
-            client: client,
-            apiKeyOverride: apiKeyOverride,
-            baseUrlOverride: baseUrlOverride,
-          );
-          if (seg.labels.isNotEmpty) {
-            out = out.copyWith(
-              stations: seg.labels,
-              samLabels: seg.labels,
-              samModel: seg.model,
-            );
-          }
+      // The picture was painted FROM the items, so stations keep the
+      // known items; SAM locates the lead item in the paint and stamps
+      // the model when found.
+      final lead = out.items.isNotEmpty ? out.items.first : '';
+      Future<void> locate(String ref) async {
+        if (!isImageRef(ref) || lead.trim().isEmpty) return;
+        final seg = await segment(
+          MetaSegmentRequest(imageRef: ref, concept: lead),
+          client: client,
+          apiKeyOverride: apiKeyOverride,
+          baseUrlOverride: baseUrlOverride,
+        );
+        if (seg.boxes.isNotEmpty) {
+          out = out.copyWith(samModel: seg.model);
         }
+      }
+
+      if (img.url.isEmpty) {
+        // Fresh paint failed: still locate on the task's existing picture
+        // so SAM stays the default wherever a real image already exists.
+        await locate(out.imageUrl);
         return out;
       }
       out = out.copyWith(imageUrl: img.url);
-      final seg = await segment(
-        MetaSegmentRequest(imageRef: img.url),
-        client: client,
-        apiKeyOverride: apiKeyOverride,
-        baseUrlOverride: baseUrlOverride,
-      );
-      if (seg.labels.isNotEmpty) {
-        out = out.copyWith(
-          stations: seg.labels,
-          samLabels: seg.labels,
-          samModel: seg.model,
-        );
-      }
+      await locate(img.url);
     } catch (_) {}
     return out;
   }
 
-  /// Generates a Muse Image illustration plus SAM detail labels for every
-  /// [DynamicBlock] that carries an [DynamicBlock.imagePrompt] but no image
-  /// yet. Used by the own-material branch of the Palace Builder lessons so
-  /// the player's own rooms and routes also get real pictures. Blocks
-  /// without a prompt are returned untouched; failures keep the block.
+  /// Request body for the joint picture reading: vision spotting found
+  /// [labels] on the picture, Muse Spark turns them into short recall
+  /// answers in the player's language (deduplicated, at most [count],
+  /// easiest words).
+  @visibleForTesting
+  static Map<String, dynamic> pictureObjectsRequestBody({
+    required List<String> labels,
+    required int count,
+    String locale = 'en',
+    String scene = '',
+  }) {
+    final lang = locale == 'hu' ? 'Hungarian' : 'English';
+    final where = scene.trim().isEmpty ? '' : ' The picture shows: $scene.';
+    return {
+      'model': taskModel,
+      'temperature': 0.2,
+      'reasoning_effort': 'minimal',
+      'max_completion_tokens': 300,
+      'response_format': {'type': 'json_object'},
+      'messages': [
+        {
+          'role': 'system',
+          'content':
+              'You clean up object labels spotted by an image segmenter for '
+              'a memory game. Always return a single valid JSON object, no '
+              'explanation. Key: "objects" (a list of exactly $count short '
+              'recall answers in $lang, deduplicated, simplest everyday '
+              'words, each at most 3 words).$where',
+        },
+        {
+          'role': 'user',
+          'content':
+              'Spotted labels: ${labels.join(', ')}. Answer with the JSON '
+              'object only.',
+        },
+      ],
+    };
+  }
+
+  /// Parses the joint object list. Accepts `{"objects": [...]}` or a bare
+  /// `[...]`, with or without code fences. Drops empty entries.
+  @visibleForTesting
+  static List<String> parsePictureObjects(String content, {int max = 8}) {
+    try {
+      var text = content.trim();
+      if (text.startsWith('```')) {
+        final start = text.indexOf('[');
+        final brace = text.indexOf('{');
+        int from = -1;
+        int to = -1;
+        if (brace >= 0 && (brace < start || start < 0)) {
+          from = brace;
+          to = text.lastIndexOf('}');
+        } else if (start >= 0) {
+          from = start;
+          to = text.lastIndexOf(']');
+        }
+        if (from < 0 || to <= from) return const [];
+        text = text.substring(from, to + 1);
+      }
+      final data = jsonDecode(text);
+      final raw = data is List
+          ? data
+          : data is Map<String, dynamic>
+          ? (data['objects'] as List? ?? const [])
+          : const [];
+      final out = <String>[];
+      for (final e in raw) {
+        final v = e.toString().trim();
+        if (v.isEmpty || out.contains(v)) continue;
+        out.add(v);
+        if (out.length >= max.clamp(1, 10)) break;
+      }
+      return out;
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  /// Lets Muse Spark read [imageRef] twice: vision spotting names the
+  /// prominent objects (plus grounding boxes), then a text cleanup turns
+  /// them into short recall answers. (SAM 3.1 cannot do this step — it
+  /// only segments a concept the caller already names, it never invents
+  /// names.) Returns the spotted labels untouched when the cleanup is
+  /// unreachable, and an empty segment when there is no real image or
+  /// nothing was spotted. Never throws.
+  static Future<MetaSegment> readPictureObjects(
+    String imageRef, {
+    required int count,
+    String locale = 'en',
+    String scene = '',
+    http.Client? client,
+    String? apiKeyOverride,
+    String? baseUrlOverride,
+  }) async {
+    final n = count.clamp(2, 8);
+    MetaSegment seg;
+    try {
+      seg = await spotImageLabels(
+        imageRef,
+        count: n,
+        locale: locale,
+        scene: scene,
+        client: client,
+        apiKeyOverride: apiKeyOverride,
+        baseUrlOverride: baseUrlOverride,
+      );
+    } catch (_) {
+      return MetaSegment(createdAt: DateTime.now());
+    }
+    if (seg.labels.isEmpty) return seg;
+    final key = await _liveKey(apiKeyOverride);
+    if (key.isEmpty) {
+      return seg.copyWith(labels: seg.labels.take(n).toList());
+    }
+    final base = resolveBaseUrl(baseUrlOverride);
+    final c = client ?? http.Client();
+    final owned = client == null;
+    try {
+      final res = await _postChat(
+        c,
+        base: base,
+        key: key,
+        body: pictureObjectsRequestBody(
+          labels: seg.labels,
+          count: n,
+          locale: locale,
+          scene: scene,
+        ),
+        timeoutSec: httpTimeoutSec,
+      );
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        final data = jsonDecode(res.body);
+        if (data is Map<String, dynamic>) {
+          final objects = parsePictureObjects(_choicesText(data), max: n);
+          if (objects.isNotEmpty) {
+            await _log(
+              MetaCallEntry(
+                model: taskModel,
+                kind: 'picture-objects',
+                at: DateTime.now(),
+                success: true,
+                fallback: false,
+              ),
+            );
+            // The cleanup may rename labels (it translates them), so boxes
+            // survive by position when the counts still line up — SAM
+            // refinement re-segments each cleaned object anyway, and these
+            // spotted boxes are only its per-object fallback.
+            final boxes =
+                objects.length == seg.labels.length &&
+                        seg.boxes.length == seg.labels.length
+                    ? seg.boxes
+                    : const <List<double>>[];
+            return seg.copyWith(labels: objects, boxes: boxes);
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('MetaAIService.readPictureObjects fallback: $e');
+    } finally {
+      if (owned) c.close();
+    }
+    return seg.copyWith(labels: seg.labels.take(n).toList());
+  }
+
+  /// Clamps one normalized mask box into the picture, enforcing a
+  /// readable minimum side. Pure; never throws.
+  @visibleForTesting
+  static List<double> cleanMaskBox(List<double> box, {double minSide = 0.12}) {
+    final floor = minSide.clamp(0.0, 1.0);
+    if (box.length < 4) return [0.0, 0.0, floor, floor];
+    var w = box[2].clamp(0.0, 1.0);
+    var h = box[3].clamp(0.0, 1.0);
+    var x = box[0].clamp(0.0, 1.0);
+    var y = box[1].clamp(0.0, 1.0);
+    if (w < floor) {
+      x = (x + w / 2 - floor / 2).clamp(0.0, max(0.0, 1.0 - floor));
+      w = floor;
+    }
+    if (h < floor) {
+      y = (y + h / 2 - floor / 2).clamp(0.0, max(0.0, 1.0 - floor));
+      h = floor;
+    }
+    if (x + w > 1.0) x = max(0.0, 1.0 - w);
+    if (y + h > 1.0) y = max(0.0, 1.0 - h);
+    return [x, y, w, h];
+  }
+
+  /// Separates stacked mask boxes so no two covers sit on each other:
+  /// each box (past the first) is pushed away from the earlier boxes it
+  /// overlaps, shrinking slightly, until its overlap drops under a
+  /// quarter of the smaller box. Disjoint boxes pass through untouched.
+  /// Pure; never throws.
+  @visibleForTesting
+  static List<List<double>> resolveMaskOverlaps(List<List<double>> boxes) {
+    final out = [for (final b in boxes) cleanMaskBox(b)];
+    double smallOverlap(List<double> a, List<double> b) {
+      final ix = min(a[0] + a[2], b[0] + b[2]) - max(a[0], b[0]);
+      final iy = min(a[1] + a[3], b[1] + b[3]) - max(a[1], b[1]);
+      if (ix <= 0 || iy <= 0) return 0.0;
+      final small = min(a[2] * a[3], b[2] * b[3]);
+      if (small <= 0) return 0.0;
+      return (ix * iy) / small;
+    }
+
+    for (var j = 1; j < out.length; j++) {
+      var guard = 0;
+      while (guard++ < 24) {
+        var worst = 0.0;
+        var foe = -1;
+        for (var i = 0; i < j; i++) {
+          final o = smallOverlap(out[i], out[j]);
+          if (o > worst) {
+            worst = o;
+            foe = i;
+          }
+        }
+        if (worst < 0.25 || foe < 0) break;
+        final a = out[foe];
+        final b = out[j];
+        var dx = (b[0] + b[2] / 2) - (a[0] + a[2] / 2);
+        var dy = (b[1] + b[3] / 2) - (a[1] + a[3] / 2);
+        final len = sqrt(dx * dx + dy * dy);
+        if (len < 1e-6) {
+          dx = 1.0;
+          dy = 0.0;
+        } else {
+          dx /= len;
+          dy /= len;
+        }
+        const floor = 0.07;
+        final nw = max(b[2] * 0.96, floor);
+        final nh = max(b[3] * 0.96, floor);
+        final cx = b[0] + b[2] / 2 + dx * 0.06;
+        final cy = b[1] + b[3] / 2 + dy * 0.06;
+        final next = cleanMaskBox(
+          [cx - nw / 2, cy - nh / 2, nw, nh],
+          minSide: floor,
+        );
+        if (next[0] == b[0] &&
+            next[1] == b[1] &&
+            next[2] == b[2] &&
+            next[3] == b[3]) {
+          break;
+        }
+        out[j] = next;
+      }
+    }
+    return out;
+  }
+
+  /// Re-segments every recall [objects] label on [imageRef] with SAM 3.1
+  /// (one concept call each) and returns one precise box plus the raw
+  /// shape mask per object. Concepts SAM cannot find fall back to
+  /// [fallbackBoxes] by position (box only, no mask); objects with
+  /// neither get an even grid cell, so one miss never drops the precise
+  /// geometry of the rest. Boxes are only clamped into the picture —
+  /// never pushed apart: a cover must sit exactly on its object, and
+  /// overlapping covers simply stack (the UI separates their number
+  /// badges instead). Empty when there is no real image or no objects.
+  /// Never throws.
+  static Future<({List<List<double>> boxes, List<String> masks})>
+  refinePictureMasks({
+    required String imageRef,
+    required List<String> objects,
+    List<List<double>> fallbackBoxes = const [],
+    http.Client? client,
+    String? apiKeyOverride,
+    String? baseUrlOverride,
+    void Function(int done, int total)? onItem,
+  }) async {
+    if (objects.isEmpty || !isImageRef(imageRef)) {
+      return (boxes: const <List<double>>[], masks: const <String>[]);
+    }
+    final positional = fallbackBoxes.length == objects.length;
+    final cols = objects.length <= 2
+        ? objects.length
+        : (objects.length <= 4 ? 2 : 3);
+    final rows = (objects.length / cols).ceil();
+    final out = <List<double>>[];
+    final masks = <String>[];
+    for (var i = 0; i < objects.length; i++) {
+      List<double>? best;
+      var mask = '';
+      try {
+        final seg = await segment(
+          MetaSegmentRequest(imageRef: imageRef, concept: objects[i]),
+          client: client,
+          apiKeyOverride: apiKeyOverride,
+          baseUrlOverride: baseUrlOverride,
+        );
+        if (seg.boxes.isNotEmpty) {
+          // Boxes and masks pair in wire order: keep the largest box
+          // together with its own shape token.
+          var at = 0;
+          for (var j = 1; j < seg.boxes.length; j++) {
+            if (seg.boxes[j][2] * seg.boxes[j][3] >
+                seg.boxes[at][2] * seg.boxes[at][3]) {
+              at = j;
+            }
+          }
+          best = seg.boxes[at];
+          if (at < seg.masks.length) mask = seg.masks[at];
+        }
+      } catch (_) {}
+      best ??= positional
+          ? fallbackBoxes[i]
+          : [
+              (i % cols) / cols,
+              (i ~/ cols) / rows,
+              1 / cols,
+              1 / rows,
+            ];
+      out.add(cleanMaskBox(best));
+      masks.add(mask);
+      onItem?.call(i + 1, objects.length);
+    }
+    return (boxes: out, masks: masks);
+  }
+
+  /// Box-only view of [refinePictureMasks] for callers that cannot
+  /// render shape masks. Never throws.
+  static Future<List<List<double>>> refinePictureBoxes({
+    required String imageRef,
+    required List<String> objects,
+    List<List<double>> fallbackBoxes = const [],
+    http.Client? client,
+    String? apiKeyOverride,
+    String? baseUrlOverride,
+    void Function(int done, int total)? onItem,
+  }) async {
+    final refined = await refinePictureMasks(
+      imageRef: imageRef,
+      objects: objects,
+      fallbackBoxes: fallbackBoxes,
+      client: client,
+      apiKeyOverride: apiKeyOverride,
+      baseUrlOverride: baseUrlOverride,
+      onItem: onItem,
+    );
+    return refined.boxes;
+  }
+
+  /// Deals one mask-game round. Live (key + consent): Muse Image
+  /// paints the scene, then Spark vision spotting reads the objects
+  /// off it, and SAM 3.1 re-segments each object for a precise mask —
+  /// one extra call per object, so a live round takes longer. Offline
+  /// (or on any failure): a local scene with its built-in items, so the
+  /// round is always playable and never errors. [onProgress] reports
+  /// 0..1 fractions with a stage ('image', 'read', 'sam', 'done') so the
+  /// UI can show a percent bar. Never throws.
+  static Future<PictureRecallRound> pictureRecallRound({
+    required String seed,
+    required int count,
+    String locale = 'en',
+    String? imageRefOverride,
+    http.Client? client,
+    String? apiKeyOverride,
+    String? baseUrlOverride,
+    void Function(double progress, String stage)? onProgress,
+  }) async {
+    final n = count.clamp(2, 8);
+    final scene = sceneForSeed(seed, locale);
+    void report(double p, String stage) =>
+        onProgress?.call(p.clamp(0.0, 1.0), stage);
+    List<String> localObjects() {
+      final items = List<String>.of(
+        allPictureScenesFor(locale)[scene] ?? const <String>[],
+      );
+      if (items.length >= n) return items.take(n).toList();
+      final extra = List<String>.of(allConcreteNounsFor(locale))
+        ..shuffle(Random(_seedOf('mask:$seed')));
+      for (final w in extra) {
+        if (items.length >= n) break;
+        if (!items.contains(w)) items.add(w);
+      }
+      return items;
+    }
+
+    try {
+      if (!await _liveKey(apiKeyOverride).then((k) => k.isNotEmpty)) {
+        report(1.0, 'done');
+        return PictureRecallRound(
+          imageUrl: '',
+          scene: scene,
+          objects: localObjects(),
+        );
+      }
+      report(0.05, 'image');
+      final override = imageRefOverride?.trim() ?? '';
+      var imageUrl = override;
+      if (imageUrl.isEmpty) {
+        final img = await generateImage(
+          MetaImageRequest(prompt: pictureImagePrompt(scene, locale)),
+          client: client,
+          apiKeyOverride: apiKeyOverride,
+          baseUrlOverride: baseUrlOverride,
+        );
+        imageUrl = img.url;
+      }
+      if (!isImageRef(imageUrl)) {
+        report(1.0, 'done');
+        return PictureRecallRound(
+          imageUrl: '',
+          scene: scene,
+          objects: localObjects(),
+        );
+      }
+      report(0.35, 'read');
+      final seg = await readPictureObjects(
+        imageUrl,
+        count: n,
+        locale: locale,
+        scene: scene,
+        client: client,
+        apiKeyOverride: apiKeyOverride,
+        baseUrlOverride: baseUrlOverride,
+      );
+      if (seg.labels.isEmpty) {
+        // The picture is real but unreadable: keep the picture, quiz the
+        // local scene items so the round still works.
+        report(1.0, 'done');
+        return PictureRecallRound(
+          imageUrl: imageUrl,
+          scene: scene,
+          objects: localObjects(),
+        );
+      }
+      final objects = seg.labels.take(n).toList();
+      report(0.55, 'sam');
+      final refined = await refinePictureMasks(
+        imageRef: imageUrl,
+        objects: objects,
+        fallbackBoxes: seg.boxes.length == seg.labels.length
+            ? seg.boxes.take(n).toList()
+            : const <List<double>>[],
+        client: client,
+        apiKeyOverride: apiKeyOverride,
+        baseUrlOverride: baseUrlOverride,
+        onItem: (done, total) =>
+            report(0.55 + 0.4 * done / total, 'sam'),
+      );
+      report(1.0, 'done');
+      return PictureRecallRound(
+        imageUrl: imageUrl,
+        scene: scene,
+        objects: objects,
+        boxes: refined.boxes,
+        masks: refined.masks,
+        live: true,
+      );
+    } catch (_) {
+      report(1.0, 'done');
+      return PictureRecallRound(
+        imageUrl: '',
+        scene: scene,
+        objects: localObjects(),
+      );
+    }
+  }
+
+  static int _seedOf(String seed) {
+    var h = 0x811c9dc5;
+    for (final c in seed.codeUnits) {
+      h ^= c;
+      h = (h * 0x01000193) & 0xffffffff;
+    }
+    return h;
+  }
+
+  /// Generates a Muse Image illustration plus spotted detail labels for
+  /// every [DynamicBlock] that carries an [DynamicBlock.imagePrompt] but
+  /// no image yet. Used by the own-material branch of the Palace Builder
+  /// lessons so the player's own rooms and routes also get real
+  /// pictures. Blocks without a prompt are returned untouched; failures
+  /// keep the block.
   static Future<DynamicTask> enrichDynamicTask(
     DynamicTask task, {
     http.Client? client,
     String? apiKeyOverride,
     String? baseUrlOverride,
   }) async {
+    Future<List<String>> spot(String imageRef) async {
+      if (!isImageRef(imageRef)) return const [];
+      try {
+        final seg = await spotImageLabels(
+          imageRef,
+          count: 5,
+          client: client,
+          apiKeyOverride: apiKeyOverride,
+          baseUrlOverride: baseUrlOverride,
+        );
+        return seg.labels;
+      } catch (_) {
+        return const [];
+      }
+    }
+
     var changed = false;
     final blocks = <DynamicBlock>[];
     for (final b in task.blocks) {
-      // Blocks that already carry a picture get SAM labels too: SAM runs
-      // wherever a real image exists instead of only on fresh paints.
+      // Blocks that already carry a picture get spotted labels too:
+      // vision runs wherever a real image exists, not only on fresh
+      // paints.
       if (b.imageUrl.isNotEmpty) {
         if (b.samLabels.isNotEmpty || !isImageRef(b.imageUrl)) {
           blocks.add(b);
           continue;
         }
         try {
-          final seg = await segment(
-            MetaSegmentRequest(imageRef: b.imageUrl),
-            client: client,
-            apiKeyOverride: apiKeyOverride,
-            baseUrlOverride: baseUrlOverride,
-          );
-          if (seg.labels.isEmpty) {
+          final labels = await spot(b.imageUrl);
+          if (labels.isEmpty) {
             blocks.add(b);
             continue;
           }
           changed = true;
-          blocks.add(b.copyWith(samLabels: seg.labels));
+          blocks.add(b.copyWith(samLabels: labels));
         } catch (_) {
           blocks.add(b);
         }
@@ -1634,17 +2473,12 @@ class MetaAIService {
           blocks.add(b);
           continue;
         }
-        final seg = await segment(
-          MetaSegmentRequest(imageRef: img.url),
-          client: client,
-          apiKeyOverride: apiKeyOverride,
-          baseUrlOverride: baseUrlOverride,
-        );
+        final labels = await spot(img.url);
         changed = true;
         blocks.add(
           b.copyWith(
             imageUrl: img.url,
-            samLabels: seg.labels.isEmpty ? b.samLabels : seg.labels,
+            samLabels: labels.isEmpty ? b.samLabels : labels,
           ),
         );
       } catch (_) {
@@ -1923,6 +2757,10 @@ class MetaAIService {
         final data = jsonDecode(res.body);
         if (data is Map<String, dynamic>) {
           final text = _choicesText(data).trim();
+          final blocked = bannedTokenIn(text);
+          if (blocked != null) {
+            throw StateError('AI text blocked by claims policy ($blocked)');
+          }
           if (text.isNotEmpty) {
             await _log(
               MetaCallEntry(
@@ -1978,7 +2816,7 @@ class MetaAIService {
     return {
       'model': taskModel,
       'temperature': 0.4,
-      'reasoning_effort': 'low',
+      'reasoning_effort': 'minimal',
       'max_completion_tokens': coachMaxCompletionTokens,
       'messages': [
         {
@@ -2100,6 +2938,10 @@ class MetaAIService {
         final data = jsonDecode(res.body);
         if (data is Map<String, dynamic>) {
           final text = _choicesText(data).trim();
+          final blocked = bannedTokenIn(text);
+          if (blocked != null) {
+            throw StateError('AI text blocked by claims policy ($blocked)');
+          }
           if (text.isNotEmpty) {
             await _log(
               MetaCallEntry(
@@ -2129,7 +2971,7 @@ class MetaAIService {
     return {
       'model': taskModel,
       'temperature': 0.2,
-      'reasoning_effort': 'low',
+      'reasoning_effort': 'minimal',
       'max_completion_tokens': taskMaxCompletionTokens,
       'response_format': {'type': 'json_object'},
       'messages': [
@@ -2179,6 +3021,11 @@ class MetaAIService {
         fallback: false,
       );
       if (validateDynamicTask(req, candidate).isNotEmpty) return null;
+      // Runtime claims guard: blocked AI text falls back to local.
+      if (bannedTokenIn(candidate.title) != null ||
+          bannedTokenIn(candidate.instructions) != null) {
+        return null;
+      }
       return candidate;
     } catch (_) {
       return null;
@@ -2278,7 +3125,7 @@ class MetaAIService {
     return {
       'model': taskModel,
       'temperature': 0.4,
-      'reasoning_effort': 'low',
+      'reasoning_effort': 'minimal',
       'max_completion_tokens': coachMaxCompletionTokens,
       'messages': [
         {
@@ -2401,6 +3248,10 @@ class MetaAIService {
         final data = jsonDecode(res.body);
         if (data is Map<String, dynamic>) {
           final text = _choicesText(data).trim();
+          final blocked = bannedTokenIn(text);
+          if (blocked != null) {
+            throw StateError('AI text blocked by claims policy ($blocked)');
+          }
           if (text.isNotEmpty) {
             await _log(
               MetaCallEntry(
@@ -2435,7 +3286,7 @@ class MetaAIService {
     return {
       'model': taskModel,
       'temperature': 0.2,
-      'reasoning_effort': 'low',
+      'reasoning_effort': 'minimal',
       'max_completion_tokens': interviewMaxCompletionTokens,
       'response_format': {'type': 'json_object'},
       'messages': [
@@ -2661,6 +3512,10 @@ class MetaAIService {
         final data = jsonDecode(res.body);
         if (data is Map<String, dynamic>) {
           final text = _choicesText(data).trim();
+          final blocked = bannedTokenIn(text);
+          if (blocked != null) {
+            throw StateError('AI text blocked by claims policy ($blocked)');
+          }
           if (text.isNotEmpty) {
             await _log(
               MetaCallEntry(
@@ -2782,6 +3637,10 @@ class MetaAIService {
         final data = jsonDecode(res.body);
         if (data is Map<String, dynamic>) {
           final text = _choicesText(data).trim();
+          final blocked = bannedTokenIn(text);
+          if (blocked != null) {
+            throw StateError('AI text blocked by claims policy ($blocked)');
+          }
           if (text.isNotEmpty) {
             await _log(
               MetaCallEntry(
@@ -2900,6 +3759,10 @@ class MetaAIService {
         final data = jsonDecode(res.body);
         if (data is Map<String, dynamic>) {
           final text = _choicesText(data).trim();
+          final blocked = bannedTokenIn(text);
+          if (blocked != null) {
+            throw StateError('AI text blocked by claims policy ($blocked)');
+          }
           if (text.isNotEmpty) {
             await _log(
               MetaCallEntry(
@@ -3014,6 +3877,10 @@ class MetaAIService {
         final data = jsonDecode(res.body);
         if (data is Map<String, dynamic>) {
           final text = _choicesText(data).trim();
+          final blocked = bannedTokenIn(text);
+          if (blocked != null) {
+            throw StateError('AI text blocked by claims policy ($blocked)');
+          }
           if (text.isNotEmpty) {
             await _log(
               MetaCallEntry(
@@ -3146,6 +4013,10 @@ class MetaAIService {
         final data = jsonDecode(res.body);
         if (data is Map<String, dynamic>) {
           final text = _choicesText(data).trim();
+          final blocked = bannedTokenIn(text);
+          if (blocked != null) {
+            throw StateError('AI text blocked by claims policy ($blocked)');
+          }
           if (text.isNotEmpty) {
             await _log(
               MetaCallEntry(
@@ -3443,6 +4314,10 @@ class MetaAIService {
         final data = jsonDecode(res.body);
         if (data is Map<String, dynamic>) {
           final text = _choicesText(data).trim();
+          final blocked = bannedTokenIn(text);
+          if (blocked != null) {
+            throw StateError('AI text blocked by claims policy ($blocked)');
+          }
           if (text.isNotEmpty) {
             await _log(
               MetaCallEntry(
@@ -3528,6 +4403,8 @@ class MetaAIService {
       for (final e in raw) {
         final v = e.toString().trim();
         if (v.isEmpty) continue;
+        // Runtime claims guard: captions are user-visible.
+        if (bannedTokenIn(v) != null) return const [];
         out.add(v);
         if (out.length >= max.clamp(1, 12)) break;
       }
@@ -3627,104 +4504,9 @@ class MetaAIService {
     }
   }
 
-  @visibleForTesting
-  static bool isAudioRef(String ref) => ref.trim().startsWith('data:audio');
-
-  @visibleForTesting
-  static Map<String, dynamic> transcribeRequestBody({
-    required String audioDataUrl,
-    String locale = 'en',
-  }) => {
-    'model': voiceModel,
-    'audio': audioDataUrl,
-    'language': locale == 'hu' ? 'hu' : 'en',
-  };
-
-  @visibleForTesting
-  static String parseTranscript(Map<String, dynamic> data) =>
-      (data['text'] as String? ?? '').trim();
-
-  /// Transcribes a short voice answer with Voice Transcribe. Never throws
-  /// and never invents speech: without audio, key, consent or a usable
-  /// answer it returns empty text with the fallback flag set.
-  static Future<TranscriptAnswer> transcribe({
-    required String audioDataUrl,
-    String locale = 'en',
-    http.Client? client,
-    String? apiKeyOverride,
-    String? baseUrlOverride,
-  }) async {
-    Future<TranscriptAnswer> local({required bool success, String note = ''}) async {
-      await _log(
-        MetaCallEntry(
-          model: voiceModel,
-          kind: 'voice',
-          at: DateTime.now(),
-          success: success,
-          fallback: true,
-          note: note,
-        ),
-      );
-      return const TranscriptAnswer(text: '', fallback: true);
-    }
-
-    if (!isAudioRef(audioDataUrl)) {
-      return local(success: true, note: 'no audio payload');
-    }
-    final key = await _liveKey(apiKeyOverride);
-    final base = resolveBaseUrl(baseUrlOverride);
-    if (key.isEmpty) {
-      return local(
-        success: true,
-        note: await _gatedOfflineNote(
-          apiKeyOverride,
-          'empty transcript',
-          locale,
-        ),
-      );
-    }
-    final c = client ?? http.Client();
-    final owned = client == null;
-    try {
-      final res = await c
-          .post(
-            Uri.parse('$base/audio/transcriptions'),
-            headers: _headers(key),
-            body: jsonEncode(
-              transcribeRequestBody(audioDataUrl: audioDataUrl, locale: locale),
-            ),
-          )
-          .timeout(const Duration(seconds: httpTimeoutSec));
-      if (res.statusCode >= 200 && res.statusCode < 300) {
-        final data = jsonDecode(res.body);
-        if (data is Map<String, dynamic>) {
-          final text = parseTranscript(data);
-          if (text.isNotEmpty) {
-            await _log(
-              MetaCallEntry(
-                model: voiceModel,
-                kind: 'voice',
-                at: DateTime.now(),
-                success: true,
-                fallback: false,
-              ),
-            );
-            return TranscriptAnswer(text: text, fallback: false);
-          }
-          throw StateError(
-            'HTTP ${res.statusCode} empty transcript: ${_snip(res.body)}',
-          );
-        }
-      }
-      throw StateError('HTTP ${res.statusCode}: ${_snip(res.body)}');
-    } catch (e) {
-      debugPrint('MetaAIService.transcribe fallback: $e');
-      return local(success: false, note: e.toString());
-    } finally {
-      if (owned) c.close();
-    }
-  }
-
+  /// The prompt a self-hosted Glimmer would get. Kept (and tested) as
+  /// the documented prompt shape — [glimmerTake] never sends it, because
+  /// Muse Glimmer has no Meta Model API endpoint.
   @visibleForTesting
   static Map<String, dynamic> glimmerTakeRequestBody({
     required String gameId,
@@ -3767,8 +4549,12 @@ class MetaAIService {
     return trFor(locale, key, {'score': score});
   }
 
-  /// Glimmer's instant one-line take on a finished run. Never throws:
-  /// offline it returns the built-in one-liner.
+  /// Glimmer's instant one-line take on a finished run. Always local:
+  /// Muse Glimmer is open-weight with no Meta Model API endpoint
+  /// (self-host only — https://dev.meta.ai/docs/models), so a live call
+  /// would always fail with HTTP 404; the built-in one-liner is the
+  /// honest answer. Never throws, never touches the network (client and
+  /// overrides stay on the signature for caller symmetry only).
   static Future<CoachAnswer> glimmerTake({
     required String gameId,
     required int score,
@@ -3778,75 +4564,26 @@ class MetaAIService {
     String? apiKeyOverride,
     String? baseUrlOverride,
   }) async {
-    Future<CoachAnswer> local({required bool success, String note = ''}) async {
-      final answer = CoachAnswer(
-        text: localGlimmerTake(score: score, best: best, locale: locale),
-        fallback: true,
-      );
-      await _log(
-        MetaCallEntry(
-          model: glimmerModel,
-          kind: 'glimmer:$gameId',
-          at: DateTime.now(),
-          success: success,
-          fallback: true,
-          note: note,
-        ),
-      );
-      return answer;
-    }
-
-    final key = await _liveKey(apiKeyOverride);
-    final base = resolveBaseUrl(baseUrlOverride);
-    if (key.isEmpty) {
-      return local(
+    final answer = CoachAnswer(
+      text: localGlimmerTake(score: score, best: best, locale: locale),
+      fallback: true,
+    );
+    await _log(
+      MetaCallEntry(
+        model: glimmerModel,
+        kind: 'glimmer:$gameId',
+        at: DateTime.now(),
         success: true,
-        note: await _gatedOfflineNote(apiKeyOverride, 'built-in take', locale),
-      );
-    }
-    final c = client ?? http.Client();
-    final owned = client == null;
-    try {
-      final res = await _postChat(
-        c,
-        base: base,
-        key: key,
-        body: glimmerTakeRequestBody(
-          gameId: gameId,
-          score: score,
-          best: best,
-          locale: locale,
-        ),
-        timeoutSec: coachTimeoutSec,
-      );
-      if (res.statusCode >= 200 && res.statusCode < 300) {
-        final data = jsonDecode(res.body);
-        if (data is Map<String, dynamic>) {
-          final text = _choicesText(data).trim();
-          if (text.isNotEmpty) {
-            await _log(
-              MetaCallEntry(
-                model: glimmerModel,
-                kind: 'glimmer:$gameId',
-                at: DateTime.now(),
-                success: true,
-                fallback: false,
-              ),
-            );
-            return CoachAnswer(text: text, fallback: false);
-          }
-          throw StateError(_emptyChatNote(res, data));
-        }
-      }
-      throw StateError('HTTP ${res.statusCode}: ${_snip(res.body)}');
-    } catch (e) {
-      debugPrint('MetaAIService.glimmerTake fallback: $e');
-      return local(success: false, note: e.toString());
-    } finally {
-      if (owned) c.close();
-    }
+        fallback: true,
+        note: 'open-weight self-host, no Meta API endpoint',
+      ),
+    );
+    return answer;
   }
 
+  /// The prompt a provider-hosted Spark Open would get. Kept (and
+  /// tested) as the documented prompt shape — [openPracticeTip] never
+  /// sends it, because Meta's own Model API does not serve Spark Open.
   @visibleForTesting
   static Map<String, dynamic> openTipRequestBody({
     required String gameId,
@@ -3875,8 +4612,12 @@ class MetaAIService {
     };
   }
 
-  /// Practice tips from the open model (Muse Spark Open). Same built-in
-  /// tips offline as the classic tip call; only the live model differs.
+  /// Practice tips in the Spark Open slot. Always local: Meta's own
+  /// Model API does not serve Muse Spark Open (self-host or third-party
+  /// providers only — https://dev.meta.ai/docs/models), so a live call
+  /// would always fail with HTTP 404; the built-in tip is the honest
+  /// answer. Never throws, never touches the network (client and
+  /// overrides stay on the signature for caller symmetry only).
   static Future<CoachAnswer> openPracticeTip({
     required String gameId,
     required int level,
@@ -3885,67 +4626,20 @@ class MetaAIService {
     String? apiKeyOverride,
     String? baseUrlOverride,
   }) async {
-    Future<CoachAnswer> local({required bool success, String note = ''}) async {
-      final answer = CoachAnswer(
-        text: localPracticeTip(gameId, level, locale),
-        fallback: true,
-      );
-      await _log(
-        MetaCallEntry(
-          model: sparkOpenModel,
-          kind: 'opentip:$gameId',
-          at: DateTime.now(),
-          success: success,
-          fallback: true,
-          note: note,
-        ),
-      );
-      return answer;
-    }
-
-    final key = await _liveKey(apiKeyOverride);
-    final base = resolveBaseUrl(baseUrlOverride);
-    if (key.isEmpty) {
-      return local(
+    final answer = CoachAnswer(
+      text: localPracticeTip(gameId, level, locale),
+      fallback: true,
+    );
+    await _log(
+      MetaCallEntry(
+        model: sparkOpenModel,
+        kind: 'opentip:$gameId',
+        at: DateTime.now(),
         success: true,
-        note: await _gatedOfflineNote(apiKeyOverride, 'built-in tip', locale),
-      );
-    }
-    final c = client ?? http.Client();
-    final owned = client == null;
-    try {
-      final res = await _postChat(
-        c,
-        base: base,
-        key: key,
-        body: openTipRequestBody(gameId: gameId, level: level, locale: locale),
-        timeoutSec: coachTimeoutSec,
-      );
-      if (res.statusCode >= 200 && res.statusCode < 300) {
-        final data = jsonDecode(res.body);
-        if (data is Map<String, dynamic>) {
-          final text = _choicesText(data).trim();
-          if (text.isNotEmpty) {
-            await _log(
-              MetaCallEntry(
-                model: sparkOpenModel,
-                kind: 'opentip:$gameId',
-                at: DateTime.now(),
-                success: true,
-                fallback: false,
-              ),
-            );
-            return CoachAnswer(text: text, fallback: false);
-          }
-          throw StateError(_emptyChatNote(res, data));
-        }
-      }
-      throw StateError('HTTP ${res.statusCode}: ${_snip(res.body)}');
-    } catch (e) {
-      debugPrint('MetaAIService.openPracticeTip fallback: $e');
-      return local(success: false, note: e.toString());
-    } finally {
-      if (owned) c.close();
-    }
+        fallback: true,
+        note: 'open-weight self-host, no Meta API endpoint',
+      ),
+    );
+    return answer;
   }
 }

@@ -131,6 +131,16 @@ int sessionsDoneOnTrack({
   return done;
 }
 
+/// Practice-round lock gaps in days. Grounded in the spacing literature:
+/// spaced practice beats massed practice in 259/271 comparisons
+/// (Cepeda et al. 2006), and the optimal gap grows with the retention
+/// goal (~1 day for a week, ~1-3 weeks for months; Cepeda et al. 2008,
+/// N=1,354) — so gaps widen as the horizon stretches toward 9 months.
+/// This is NOT a claim that expanding gaps beat equal gaps: they do not
+/// (Latimier, Peyre & Ramus 2021 meta-analysis, g=0.034). The widening
+/// here follows the retention horizon, and the exact day counts are an
+/// app-level schedule choice, not a lab-tested prescription.
+/// See `docs/RESEARCH.md` §4.
 const reviewGapDays = <int>[1, 2, 4, 7, 11, 15, 20, 26, 33, 41, 50, 60];
 
 int daysUntilReviewDue({

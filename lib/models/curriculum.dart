@@ -63,37 +63,37 @@ class MemoryTrackSpec {
 const memoryTracks = <MemoryTrackSpec>[
   MemoryTrackSpec(
     'Sensory',
-    'From first echo to golden ear',
+    'Catching sounds',
     HugeIcons.strokeRoundedAudioWave01,
     sky,
   ),
   MemoryTrackSpec(
     'Working memory',
-    'From 4 digits to longer numbers',
+    'Holding numbers in mind',
     HugeIcons.strokeRoundedLayers01,
     blue,
   ),
   MemoryTrackSpec(
     'Spatial',
-    'From one room to grand palace',
+    'Places and routes',
     HugeIcons.strokeRoundedCastle01,
     teal,
   ),
   MemoryTrackSpec(
     'Visual',
-    'From first image to gallery final',
+    'Images and faces',
     HugeIcons.strokeRoundedEye,
     orange,
   ),
   MemoryTrackSpec(
     'Episodic',
-    'From today to life archive',
+    'Experiences and stories',
     HugeIcons.strokeRoundedNotebook01,
     coral,
   ),
   MemoryTrackSpec(
     'Semantic',
-    'From 2 names to confident recall',
+    'Names and facts',
     HugeIcons.strokeRoundedBrain01,
     blueDark,
   ),
@@ -2516,7 +2516,7 @@ const chapters = <ChapterSpec>[
       ),
       SectionSpec(
         name: 'Weekly review',
-        technique: 'expanding schedule',
+        technique: 'spaced schedule',
         icon: HugeIcons.strokeRoundedNotebook02,
         locked: true,
         lessons: [

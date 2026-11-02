@@ -931,7 +931,7 @@ const chaptersHu = <ChapterHu>[
       ),
       SectionHu(
         name: 'Heti ismétlés',
-        technique: 'bővülő ütemezés',
+        technique: 'elosztott ütemezés',
         lessons: [
           LessonHu('1. hét ismétlése', 'első térköz'),
           LessonHu('Hónap ismétlése', 'hosszú térköz'),

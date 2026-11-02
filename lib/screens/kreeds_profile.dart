@@ -354,6 +354,9 @@ class _KreedsProfilePageState extends State<KreedsProfilePage> {
               username: username.isEmpty ? tr('kreeds_new_handle') : username,
               streak: streak,
               following: friendCount,
+              // Nincs követő-gráf: a botok sosem követnek vissza, ezért a
+              // követők száma őszintén nulla.
+              followers: 0,
               avatarOpts: avatarOpts,
               onAvatarTap: _openAvatarEditor,
               onShareTap: _share,
@@ -402,6 +405,20 @@ class _KreedsProfilePageState extends State<KreedsProfilePage> {
           const SliverPadding(
             padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
             sliver: SliverToBoxAdapter(child: _MemoryBadges()),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            sliver: SliverToBoxAdapter(
+              child: ListenableBuilder(
+                listenable: authService,
+                builder: (context, _) {
+                  if (!authService.signedIn && !authService.guestMode) {
+                    return const SizedBox.shrink();
+                  }
+                  return _SignOutCard(onTap: () => authService.signOut());
+                },
+              ),
+            ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 120)),
         ],
@@ -485,6 +502,7 @@ class _Hero extends StatelessWidget {
   final String username;
   final int streak;
   final int following;
+  final int followers;
   final Map<String, String> avatarOpts;
   final VoidCallback onAvatarTap;
   final VoidCallback onShareTap;
@@ -495,6 +513,7 @@ class _Hero extends StatelessWidget {
     required this.username,
     required this.streak,
     this.following = 0,
+    this.followers = 0,
     required this.avatarOpts,
     required this.onAvatarTap,
     required this.onShareTap,
@@ -629,7 +648,7 @@ class _Hero extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          _FollowStats(following: following),
+          _FollowStats(following: following, followers: followers),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -646,12 +665,11 @@ class _Hero extends StatelessWidget {
 
 class _FollowStats extends StatelessWidget {
   final int following;
-  const _FollowStats({required this.following});
+  final int followers;
+  const _FollowStats({required this.following, required this.followers});
 
   @override
   Widget build(BuildContext context) {
-    // Nincs követő-gráf (a botok sosem követnek vissza), ezért csak a
-    // követések száma látszik — a fix 0-s csempe töröttnek hatna.
     return Container(
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
@@ -659,33 +677,70 @@ class _FollowStats extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: context.hairline, width: 2),
       ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: context.softBg,
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Column(
-          children: [
-            Text(
-              '$following',
-              style: TextStyle(
-                color: blue,
-                fontWeight: FontWeight.w900,
-                fontSize: 26,
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: context.softBg,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    '$following',
+                    style: TextStyle(
+                      color: blue,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 26,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    tr('kreeds_following'),
+                    style: TextStyle(
+                      color: context.mutedText,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 2),
-            Text(
-              tr('kreeds_following'),
-              style: TextStyle(
-                color: context.mutedText,
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF9B7BFF).withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Column(
+                children: [
+                  Text(
+                    '$followers',
+                    style: TextStyle(
+                      color: const Color(0xFF9B7BFF),
+                      fontWeight: FontWeight.w900,
+                      fontSize: 26,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    tr('kreeds_followers'),
+                    style: TextStyle(
+                      color: context.mutedText,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -715,6 +770,76 @@ class _ShareSquareBtn extends StatelessWidget {
       icon: HugeIcons.strokeRoundedShare01,
       onTap: onTap,
       semanticLabel: tr('kreeds_share'),
+    );
+  }
+}
+
+class _SignOutCard extends StatelessWidget {
+  final VoidCallback onTap;
+  const _SignOutCard({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        AppFeedback.light();
+        onTap();
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: context.cardBg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: context.hairline, width: 2),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: context.softBg,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: context.hairline, width: 2),
+              ),
+              alignment: Alignment.center,
+              child: HugeIcon(
+                icon: HugeIcons.strokeRoundedLogout01,
+                color: context.inkText,
+                size: 20,
+                strokeWidth: 2,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tr('settings_sign_out'),
+                    style: TextStyle(
+                      color: context.inkText,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    tr('settings_sign_out_sub'),
+                    style: TextStyle(
+                      color: context.mutedText,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

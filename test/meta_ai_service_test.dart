@@ -245,44 +245,6 @@ void main() {
     });
   });
 
-  group('voice transcription', () {
-    test('audio refs are data urls only', () {
-      expect(MetaAIService.isAudioRef('data:audio/aac;base64,AAA'), isTrue);
-      expect(MetaAIService.isAudioRef('palace:home'), isFalse);
-      expect(MetaAIService.isAudioRef(''), isFalse);
-    });
-
-    test('request body pins model, audio and language', () {
-      final body = MetaAIService.transcribeRequestBody(
-        audioDataUrl: 'data:audio/aac;base64,AAA',
-        locale: 'hu',
-      );
-      expect(body['model'], MetaAIService.voiceModel);
-      expect(body['audio'], 'data:audio/aac;base64,AAA');
-      expect(body['language'], 'hu');
-    });
-
-    test('parse trims the transcript text', () {
-      expect(MetaAIService.parseTranscript({'text': '  seen '}), 'seen');
-      expect(MetaAIService.parseTranscript({}), isEmpty);
-    });
-
-    test('offline transcription is empty and never invents speech', () async {
-      final answer = await MetaAIService.transcribe(
-        audioDataUrl: 'data:audio/aac;base64,AAA',
-        locale: 'en',
-      );
-      expect(answer.fallback, isTrue);
-      expect(answer.text, isEmpty);
-      final noAudio = await MetaAIService.transcribe(
-        audioDataUrl: '',
-        locale: 'en',
-      );
-      expect(noAudio.fallback, isTrue);
-      expect(noAudio.text, isEmpty);
-    });
-  });
-
   group('glimmer instant take', () {
     test('request body pins the glimmer model and one line', () {
       final body = MetaAIService.glimmerTakeRequestBody(

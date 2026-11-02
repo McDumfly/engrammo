@@ -5,10 +5,6 @@
          room so SAM can turn the spotted details into stations. -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
-    <!-- Verbal practice voice answers: record a short clip for Voice
-         Transcribe to score as SEEN or NEW. -->
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-feature android:name="android.hardware.microphone" android:required="false" />
     <!-- No auto-backup: scores, streak and the Meta API key (secure
          storage) must never leave the device via cloud backup.
          Signed-in users restore from Firestore; guests keep

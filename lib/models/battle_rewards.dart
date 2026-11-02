@@ -98,6 +98,13 @@ class BattleRewardState {
 /// Deterministic reward rules. All functions are pure: same inputs always
 /// grant the same XP, with no clock or storage access except the explicit
 /// [now] parameter.
+///
+/// Design basis: rewards + feedback dominate effective gamification
+/// designs (Vermeir et al. 2020), and minimal points/progress framing
+/// beats none — kept outside timed measurement windows (Lumsden et al.
+/// 2016; see `docs/RESEARCH.md` §5). Honesty note: the exact XP amounts
+/// (streak 25, tier-up 100, weekly 150/100/50, daily x2) are arbitrary
+/// game-design choices tuned for pacing, not lab-derived values.
 class BattleRewards {
   /// Daily first win pays double: the bonus equals the duel's base XP.
   static const int dailyWinMultiplier = 2;

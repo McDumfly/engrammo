@@ -63,7 +63,7 @@ const coachContent = <String, CoachContent>{
         'Selective attention is trainable: practiced filtering protects '
         'encoding. How much noisy-room practice helps daily life varies '
         'person to person — no promise either way.',
-    source: 'Naveh-Benjamin et al. (2005); Robison & Unsworth (2015)',
+    source: 'Cherry (1953); Conway, Cowan & Bunting (2001)',
   ),
   '1-0': CoachContent(
     title: 'Digit Chunks',
@@ -198,14 +198,14 @@ const coachContent = <String, CoachContent>{
         'that even "unpicturable" patterns yield to forced imagery.',
     steps: [
       'Name what you see instantly — words anchor pictures.',
-      'Exaggerate one feature per item to tell twins apart.',
+      'Exaggerate one feature per item — make it funny — to tell twins apart.',
       'Reconstruct from memory before checking the answer.',
     ],
     why:
-        'Verbal labels plus images give you dual retrieval routes. '
-        'Effortful reconstruction strengthens the trace (desirable '
-        'difficulty).',
-    source: 'Paivio & Desrochers (1979); Bjork (1994)',
+        'Verbal labels plus images give you dual retrieval routes, and '
+        'funny versions stick better than plain ones. Effortful '
+        'reconstruction strengthens the trace (desirable difficulty).',
+    source: 'Schmidt (1994); Paivio & Desrochers (1979); Bjork (1994)',
   ),
   '4-0': CoachContent(
     title: 'Story Chains',
@@ -224,19 +224,23 @@ const coachContent = <String, CoachContent>{
     source: 'Craik & Tulving (1975); elaborative-encoding literature',
   ),
   '4-1': CoachContent(
-    title: 'Journal Recall',
+    title: 'Time & Place Anchors',
     intro:
-        'Champions review their day every evening. Ten minutes of replay '
-        'before sleep buys you the night shift of consolidation for free.',
+        'Events stick when they are tied to a where and a when. Anchor '
+        'each item to its place and time slot, and the context pulls '
+        'the memory back for you.',
     steps: [
-      'Each evening, replay your day backwards, scene by scene.',
-      'Pause on details: faces, numbers, exact words.',
-      'Write down the three hardest recalls.',
+      'Attach each item to the exact place it belongs to.',
+      'Add a time slot: morning, noon, evening — in order.',
+      'At recall, rebuild the place and time first, then the item.',
     ],
     why:
-        'Sleep consolidates what you studied close to bedtime, and '
-        'expecting a test gates what sleep keeps. Review, then sleep.',
-    source: 'Gais, Lucas & Born (2006); Wilhelm et al. (2011)',
+        'Recall is better when the learning context is reinstated: '
+        'divers remembered more words underwater when they had learned '
+        'them underwater, and a meta-analysis confirms the context '
+        'advantage. Cues work when they overlap the encoding context.',
+    source:
+        'Godden & Baddeley (1975); Smith & Vela (2001); Tulving & Thomson (1973)',
   ),
   '4-2': CoachContent(
     title: 'Night Consolidation',
@@ -341,10 +345,10 @@ const coachContent = <String, CoachContent>{
     steps: [
       'Feature first, image second, interaction third — in seconds.',
       'Chain words into one running story as they appear.',
-      'Review with expanding gaps: 1 min, 5 min, 30 min.',
+      'Review at spaced gaps: 1 min, 5 min, 30 min.',
     ],
     why:
-        'Expanding retrieval schedules were first shown on names '
+        'Spaced retrieval schedules were first shown on names '
         'and faces. Reviews rate spaced retrieval among the '
         'highest-utility strategies.',
     source: 'Landauer & Bjork (1978); Dunlosky et al. (2013)',
@@ -441,7 +445,7 @@ const coachContent = <String, CoachContent>{
     why:
         'Selective auditory attention gates what gets encoded. What '
         'you never isolated, you cannot later recall.',
-    source: 'Naveh-Benjamin et al. (2005); Robison & Unsworth (2015)',
+    source: 'Cherry (1953); Conway, Cowan & Bunting (2001)',
   ),
   '9-0': CoachContent(
     title: 'Sound Pictures',
@@ -516,7 +520,7 @@ const coachContent = <String, CoachContent>{
     why:
         'Training under load transfers: filters built in noise hold '
         'up in noisy real life, not just in silence.',
-    source: 'Naveh-Benjamin et al. (2005)',
+    source: 'Cherry (1953); Conway, Cowan & Bunting (2001)',
   ),
   '10-2': CoachContent(
     title: 'Long Replays',
@@ -559,9 +563,11 @@ const coachContent = <String, CoachContent>{
       'Keep going when you stumble: rejoin, do not restart.',
     ],
     why:
-        'Shadowing forces continuous encoding plus immediate production, '
-        'a demanding loop that interpreters train daily.',
-    source: 'MacLeod et al. (2010); interpreter-training literature',
+        'Shadowing forces listening, memory and speech to compete for '
+        'limited capacity at once — the effort squeeze interpreter '
+        'trainees practice daily. Speaking each phrase aloud adds the '
+        'production effect.',
+    source: 'Gile (2009) Effort Models; MacLeod et al. (2010)',
   ),
   '11-2': CoachContent(
     title: 'Golden Ear Review',
@@ -696,9 +702,9 @@ const coachContent = <String, CoachContent>{
       'If you drop one, restart — no peeking.',
     ],
     why:
-        'Backward span predicts reasoning better than forward span: it '
-        'measures manipulation, the skill this part builds.',
-    source: 'Baddeley & Hitch (1974)',
+        'Backward recall forces the central executive to manipulate items '
+        'while holding them — storage plus control in one drill.',
+    source: 'Baddeley (1986); Baddeley & Hitch (1974)',
   ),
   '14-2': CoachContent(
     title: 'Dual Tasks',
@@ -1157,17 +1163,20 @@ const coachContent = <String, CoachContent>{
   '24-2': CoachContent(
     title: 'Weekly Review',
     intro:
-        'Expanding gaps — a week, a month, a season — keep the archive '
-        'alive forever with minutes of weekly work.',
+        'Spaced reviews — weekly, then monthly — keep the archive '
+        'alive with minutes of work. Match the gap to how long you '
+        'want to keep the material.',
     steps: [
-      'Schedule reviews at expanding intervals.',
+      'Space reviews out; scale the gap with the retention goal.',
       'Test, do not re-read, at every review.',
       'Retire only material recalled perfectly twice.',
     ],
     why:
-        'Expanding retrieval schedules were first shown decades ago '
-        'and remain the durability standard.',
-    source: 'Landauer & Bjork (1978); Dunlosky et al. (2013)',
+        'Spaced practice beats massed practice in the vast majority of '
+        'comparisons, and the best gap grows with the retention goal. '
+        'Expanding gaps are not better than equal ones — spacing '
+        'itself is the effect.',
+    source: 'Cepeda et al. (2006, 2008); Latimier, Peyre & Ramus (2021)',
   ),
   '25-0': CoachContent(
     title: 'Month Replay',
@@ -1256,9 +1265,9 @@ const coachContent = <String, CoachContent>{
       'Re-encode failures with wilder interactions.',
     ],
     why:
-        'Expanding retrieval on names shows the classic spacing '
+        'Spaced retrieval on names shows the classic spacing '
         'advantage: brief reviews buy months of retention.',
-    source: 'Landauer & Bjork (1978); Beaton et al. (1995)',
+    source: 'Cepeda et al. (2006); Dunlosky et al. (2013)',
   ),
   '27-0': CoachContent(
     title: 'Root Codes',
@@ -1272,8 +1281,9 @@ const coachContent = <String, CoachContent>{
     ],
     why:
         'Morphological awareness transfers to every new word in the '
-        'family — one code unlocks dozens.',
-    source: 'Craik & Tulving (1975); vocabulary-acquisition literature',
+        'family — one code unlocks dozens. Taught roots keep paying '
+        'off across the vocabulary.',
+    source: 'Bowers, Kirby & Deacon (2010); Craik & Tulving (1975)',
   ),
   '27-1': CoachContent(
     title: 'Fifty-Word Sprint',
@@ -1573,9 +1583,10 @@ const coachContent = <String, CoachContent>{
       'Replay the strip before leaving, again next morning.',
     ],
     why:
-        'Linked images carry both items and order out of meetings. The '
-        'minutes are the answer key.',
-    source: 'Von Restorff (1933)',
+        'Narrative links carry both items and order: in the lab study, '
+        'stories as mediators lifted serial recall dramatically over '
+        'rote repetition. The minutes are the answer key.',
+    source: 'Bower & Clark (1969); Craik & Tulving (1975)',
   ),
   '34-0': CoachContent(
     title: 'Study Chains',

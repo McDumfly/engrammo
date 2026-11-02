@@ -33,8 +33,8 @@ void main() {
     await tester.pumpWidget(frame(onDone: () {}));
     await tester.pumpAndSettle();
 
-    // 1 üdvözlő + 9 primer + 1 CTA = 11 lap.
-    for (var i = 0; i < 11; i++) {
+    // 1 üdvözlő + 10 primer + 1 CTA = 12 lap.
+    for (var i = 0; i < 12; i++) {
       await tester.drag(
         find.byType(PageView),
         const Offset(-700, 0),
@@ -46,5 +46,20 @@ void main() {
     await tester.tap(find.text(tr('onboarding_find_my_type')));
     await tester.pumpAndSettle();
     expect(find.byType(MemoryAssessmentIntroPage), findsOneWidget);
+  });
+
+  testWidgets('az első primer mítoszromboló (fotografikus, eidetikus, HSAM)',
+      (tester) async {
+    await tester.pumpWidget(frame(onDone: () {}));
+    await tester.pumpAndSettle();
+
+    await tester.drag(find.byType(PageView), const Offset(-700, 0));
+    await tester.pumpAndSettle();
+
+    expect(find.text(tr('onboarding_myth_title')), findsOneWidget);
+    final body = tr('onboarding_myth_body');
+    expect(body, contains('photographic memory'));
+    expect(body.toLowerCase(), contains('eidetic'));
+    expect(body, contains('HSAM'));
   });
 }

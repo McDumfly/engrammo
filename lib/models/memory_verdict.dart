@@ -3,6 +3,7 @@ library;
 import 'dart:convert';
 
 import '../l10n/app_localizations.dart';
+import 'claims_policy.dart' show bannedTokenIn;
 import 'interview.dart' show interviewQuestions;
 
 class InterviewAnswer {
@@ -69,12 +70,16 @@ MemoryVerdict? parseVerdictContent(String content) {
     final kind = _kindFromDynamic(data['dominant']);
     if (kind == null) return null;
     final conf = (data['confidence'] as num?)?.toDouble() ?? 0.6;
+    final rationale = (data['rationale'] as String?)?.trim().isEmpty ?? true
+        ? tr('verdict_default')
+        : (data['rationale'] as String).trim();
+    // Runtime claims guard: a rationale promising banned outcomes is
+    // rejected, and the caller falls back to the local heuristic.
+    if (bannedTokenIn(rationale) != null) return null;
     return MemoryVerdict(
       kind: kind,
       confidence: conf.clamp(0.0, 1.0),
-      rationale: (data['rationale'] as String?)?.trim().isEmpty ?? true
-          ? tr('verdict_default')
-          : (data['rationale'] as String).trim(),
+      rationale: rationale,
     );
   } catch (_) {
     return null;

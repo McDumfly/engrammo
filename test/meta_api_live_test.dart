@@ -42,7 +42,7 @@ void main() {
     test('kérés törzse chat-completions formátum', () {
       final body = MetaAIService.taskRequestBody(req);
       expect(body['model'], 'muse-spark-1.3-contributor');
-      expect(body['reasoning_effort'], 'low');
+      expect(body['reasoning_effort'], 'minimal');
       expect(body['max_completion_tokens'], 3000);
       expect(body.containsKey('max_tokens'), isFalse);
       final messages = body['messages'] as List;
@@ -201,19 +201,45 @@ void main() {
       ],
     );
 
-    test('kérés törzse responses formátum', () {
-      final body = MetaAIService.segmentRequestBody(req);
-      expect(body['model'], 'sam-3.1');
-      expect((body['input'] as String), contains('palace-1'));
-    });
+    // One <0f> line, two matches — the documented SAM 3.1 wire grammar
+    // (https://dev.meta.ai/docs/sam/reading-segmentation).
+    const samLane =
+        '<0f>0<|box;x1=10;y1=20;x2=110;y2=120;w=500;h=500|>'
+        '<|mask;x=0;y=0;data=10,10,~AAA|>,'
+        '1<|box;x1=200;y1=20;x2=300;y2=120;w=500;h=500|>'
+        '<|mask;x=0;y=0;data=10,10,~BBB|>';
 
-    test('URL-kép bekerül a kérésbe (SAM ténylegesen látja)', () {
+    Map<String, dynamic> samPayload(String lane) => {
+      'id': 'resp_teszt',
+      'status': 'completed',
+      'model': 'sam-3.1',
+      'output': [
+        {
+          'type': 'message',
+          'content': [
+            {'type': 'output_text', 'text': lane},
+          ],
+        },
+      ],
+    };
+
+    test('kérés törzse responses formátum, rövid fogalommal', () {
       final body = MetaAIService.segmentRequestBody(
-        const MetaSegmentRequest(imageRef: 'https://img/palota.png'),
+        const MetaSegmentRequest(
+          imageRef: 'https://img/palota.png',
+          concept: 'oak door',
+        ),
       );
       expect(body['model'], 'sam-3.1');
       final input = body['input'] as List;
-      final content = (input.first as Map)['content'] as List;
+      final item = input.first as Map;
+      expect(item['type'], 'message');
+      final content = item['content'] as List;
+      final text = content
+          .whereType<Map>()
+          .firstWhere((e) => e['type'] == 'input_text')['text'];
+      // Egy rövid főnévi fogalom — nincs JSON-utasítás, nincs kérdés.
+      expect(text, 'oak door');
       expect(
         content.any(
           (e) =>
@@ -225,44 +251,113 @@ void main() {
       );
     });
 
-    test('közvetlen masks/labels törzs is élőként nyílik', () {
-      final seg = MetaAIService.parseSegmentOutput({
-        'masks': ['m1'],
-        'labels': ['kapu'],
-      });
-      expect(seg, isNotNull);
-      expect(seg!.fallback, isFalse);
-      expect(seg.labels, ['kapu']);
+    test('kép nélküli névvel a fogalom megy szövegként', () {
+      final body = MetaAIService.segmentRequestBody(req);
+      expect(body['model'], 'sam-3.1');
+      expect(body['input'], 'object');
     });
 
-    test('válaszblokk JSON kicsomagolás', () {
+    test('geometria-nyelvtan dobozokra és maszkokra nyílik', () {
+      final seg = MetaAIService.parseSegmentOutput(samPayload(samLane));
+      expect(seg, isNotNull);
+      expect(seg!.fallback, isFalse);
+      expect(seg.labels, isEmpty);
+      expect(seg.boxes.length, 2);
+      expect(seg.masks.length, 2);
+      expect(seg.masks[0], contains('<|mask;'));
+      // 500-as képen a [10,20,110,120] inkluzív doboz normalizálva.
+      expect(seg.boxes[0][0], closeTo(0.02, 1e-9));
+      expect(seg.boxes[0][1], closeTo(0.04, 1e-9));
+      expect(seg.boxes[0][2], closeTo(101 / 500, 1e-9));
+      expect(seg.boxes[0][3], closeTo(101 / 500, 1e-9));
+    });
+
+    test('hibás rekord kimarad, a jó megmarad', () {
+      final seg = MetaAIService.parseSegmentOutput(
+        samPayload(
+          '<0f>0<|box;x1=oops|><|mask;x=0;y=0;data=1,1,~X|>,'
+          '1<|box;x1=0;y1=0;x2=99;y2=99;w=500;h=500|>'
+          '<|mask;x=0;y=0;data=1,1,~Y|>',
+        ),
+      );
+      expect(seg, isNotNull);
+      expect(seg!.boxes.length, 1);
+      expect(seg.masks.length, 1);
+    });
+
+    test('nulla találat érvényes üres válasz, nem hiba', () {
       final seg = MetaAIService.parseSegmentOutput({
+        'id': 'resp_teszt',
+        'status': 'completed',
         'output': [
           {
+            'type': 'message',
             'content': [
-              {'text': 'Maszkok: {"masks":["m1"],"labels":["kapu"]} kész.'},
+              {'type': 'output_text', 'text': ''},
             ],
           },
         ],
       });
       expect(seg, isNotNull);
-      expect(seg!.masks, ['m1']);
-      expect(seg.labels, ['kapu']);
-      expect(seg.fallback, isFalse);
+      expect(seg!.fallback, isTrue);
+      expect(seg.boxes, isEmpty);
     });
 
-    test('üres válasz null', () {
-      expect(MetaAIService.parseSegmentOutput({'output': []}), isNull);
+    test('értelmezhetetlen válasz null', () {
+      // Nincs output-sáv: nem SAM-válasz.
+      expect(MetaAIService.parseSegmentOutput({}), isNull);
+      expect(
+        MetaAIService.parseSegmentOutput({
+          'masks': ['m1'],
+          'labels': ['kapu'],
+        }),
+        isNull,
+      );
+      expect(
+        MetaAIService.parseSegmentOutput({
+          'status': 'failed',
+          'output': [],
+        }),
+        isNull,
+      );
+      // Szöveges sáv, de nem geometria-nyelvtan.
+      expect(
+        MetaAIService.parseSegmentOutput(
+          samPayload('{"masks":["m1"],"labels":["kapu"]}'),
+        ),
+        isNull,
+      );
     });
 
     test('mock szerverrel élő szegmentálás', () async {
       final client = MockClient((_) async {
+        return http.Response(jsonEncode(samPayload(samLane)), 200);
+      });
+      final seg = await MetaAIService.segment(
+        const MetaSegmentRequest(
+          imageRef: 'https://img/palota.png',
+          concept: 'door',
+        ),
+        client: client,
+        apiKeyOverride: 'teszt-kulcs',
+      );
+      expect(seg.fallback, isFalse);
+      expect(seg.boxes.length, 2);
+      expect(MetaAIService.lastCalls.first.success, isTrue);
+      expect(MetaAIService.lastCalls.first.fallback, isFalse);
+    });
+
+    test('nulla találat élő válaszként, tartalék tartalommal', () async {
+      final client = MockClient((_) async {
         return http.Response(
           jsonEncode({
+            'id': 'resp_teszt',
+            'status': 'completed',
             'output': [
               {
+                'type': 'message',
                 'content': [
-                  {'text': '{"masks":["m1"],"labels":["kapu"]}'},
+                  {'type': 'output_text', 'text': ''},
                 ],
               },
             ],
@@ -271,12 +366,13 @@ void main() {
         );
       });
       final seg = await MetaAIService.segment(
-        const MetaSegmentRequest(imageRef: 'https://img/palota.png'),
+        const MetaSegmentRequest(imageRef: 'https://img/ures.png'),
         client: client,
         apiKeyOverride: 'teszt-kulcs',
       );
-      expect(seg.fallback, isFalse);
-      expect(seg.masks, ['m1']);
+      expect(seg.fallback, isTrue);
+      expect(seg.boxes, isEmpty);
+      expect(MetaAIService.lastCalls.first.success, isTrue);
     });
 
     test('kép nélküli névvel nem hív hálózatot', () async {
@@ -294,7 +390,7 @@ void main() {
       expect(seg.fallback, isTrue);
     });
 
-    test('szerverhiba nem dob, hanem üres tartalék (kamera-üres ág)', () async {
+    test('szerverhiba nem dob, hanem üres tartalék', () async {
       final client = MockClient((_) async {
         return http.Response('baj van', 500);
       });
@@ -306,6 +402,242 @@ void main() {
       expect(seg.fallback, isTrue);
       expect(seg.labels, isEmpty);
       expect(seg.masks, isEmpty);
+    });
+  });
+
+  group('Spark képolvasás (élő ág mockkal)', () {
+    Map<String, dynamic> spotPayload(String lane) => {
+      'id': 'resp_teszt',
+      'status': 'completed',
+      'output': [
+        {
+          'type': 'message',
+          'content': [
+            {'type': 'output_text', 'text': lane},
+          ],
+        },
+      ],
+    };
+
+    test('kérés törzse responses + kép', () {
+      final body = MetaAIService.spotLabelsRequestBody(
+        imageRef: 'https://img/szoba.png',
+        count: 4,
+      );
+      expect(body['model'], MetaAIService.taskModel);
+      final input = body['input'] as List;
+      final content = ((input.first as Map)['content'] as List);
+      expect(
+        content.any(
+          (e) => e is Map && e['type'] == 'input_image',
+        ),
+        isTrue,
+      );
+      final text = content
+          .whereType<Map>()
+          .firstWhere((e) => e['type'] == 'input_text')['text'] as String;
+      expect(text, contains('0-1000'));
+      expect(text, contains('JSON array'));
+    });
+
+    test('minimális reasoning: különben kifut a 12 mp-es időből', () {
+      final body = MetaAIService.spotLabelsRequestBody(
+        imageRef: 'https://img/szoba.png',
+        count: 4,
+      );
+      final reasoning = body['reasoning'];
+      expect(reasoning, isA<Map>());
+      expect((reasoning as Map)['effort'], 'minimal');
+    });
+
+    test('földelt címkék dobozokkal nyílnak', () {
+      final found = MetaAIService.parseSpotLabels(
+        jsonEncode([
+          {
+            'object_name': 'oak door',
+            'bbox': [
+              {'x_min': 0, 'y_min': 0, 'x_max': 500, 'y_max': 1000},
+            ],
+          },
+          {
+            'object_name': 'brass lamp',
+            'bbox': [
+              {'x_min': 500, 'y_min': 0, 'x_max': 1000, 'y_max': 500},
+            ],
+          },
+        ]),
+      );
+      expect(found.labels, ['oak door', 'brass lamp']);
+      expect(found.boxes.length, 2);
+      expect(found.boxes[0], [0.0, 0.0, 0.5, 1.0]);
+      expect(found.boxes[1], [0.5, 0.0, 0.5, 0.5]);
+    });
+
+    test('hiányzó doboznál nevek maradnak, doboz nincs', () {
+      final found = MetaAIService.parseSpotLabels(
+        jsonEncode([
+          {
+            'object_name': 'oak door',
+            'bbox': [
+              {'x_min': 0, 'y_min': 0, 'x_max': 100, 'y_max': 100},
+            ],
+          },
+          {'object_name': 'ghost'},
+        ]),
+      );
+      expect(found.labels, ['oak door', 'ghost']);
+      expect(found.boxes, isEmpty);
+    });
+
+    test('szélső értékek vágva, hibás sorok dobva', () {
+      final found = MetaAIService.parseSpotLabels(
+        jsonEncode([
+          {
+            'object_name': 'edge',
+            'bbox': [
+              {'x_min': -5, 'y_min': 0, 'x_max': 1001, 'y_max': 100},
+            ],
+          },
+          {'object_name': ''},
+          {'object_name': 'edge'},
+          'not-a-map',
+        ]),
+      );
+      expect(found.labels, ['edge']);
+      expect(found.boxes.length, 1);
+      expect(found.boxes[0][0], 0.0);
+      expect(found.boxes[0][2], 1.0);
+    });
+
+    test('mock szerverrel élő képolvasás', () async {
+      final client = MockClient((_) async {
+        return http.Response(
+          jsonEncode(
+            spotPayload(
+              jsonEncode([
+                {
+                  'object_name': 'oak door',
+                  'bbox': [
+                    {'x_min': 0, 'y_min': 0, 'x_max': 100, 'y_max': 100},
+                  ],
+                },
+              ]),
+            ),
+          ),
+          200,
+        );
+      });
+      final seg = await MetaAIService.spotImageLabels(
+        'https://img/szoba.png',
+        count: 4,
+        client: client,
+        apiKeyOverride: 'teszt-kulcs',
+      );
+      expect(seg.fallback, isFalse);
+      expect(seg.labels, ['oak door']);
+      expect(seg.boxes.length, 1);
+    });
+  });
+
+  group('Kép-takarás kör végponttól végpontig (mockkal)', () {
+    Map<String, dynamic> responsesPayload(String lane) => {
+      'id': 'resp_teszt',
+      'status': 'completed',
+      'output': [
+        {
+          'type': 'message',
+          'content': [
+            {'type': 'output_text', 'text': lane},
+          ],
+        },
+      ],
+    };
+
+    Map<String, dynamic> chatPayload(String content) => {
+      'choices': [
+        {
+          'message': {'content': content},
+        },
+      ],
+    };
+
+    test('képfestés + olvasás sikerrel élő kör születik', () async {
+      final client = MockClient((req) async {
+        final path = req.url.path;
+        if (path.contains('images/generations')) {
+          return http.Response(
+            jsonEncode({
+              'data': [
+                {'url': 'https://img/szoba.png'},
+              ],
+            }),
+            200,
+          );
+        }
+        if (path.endsWith('/responses')) {
+          return http.Response(
+            jsonEncode(
+              responsesPayload(
+                jsonEncode([
+                  {
+                    'object_name': 'oak door',
+                    'bbox': [
+                      {'x_min': 0, 'y_min': 0, 'x_max': 500, 'y_max': 1000},
+                    ],
+                  },
+                  {
+                    'object_name': 'brass lamp',
+                    'bbox': [
+                      {'x_min': 500, 'y_min': 0, 'x_max': 1000, 'y_max': 500},
+                    ],
+                  },
+                ]),
+              ),
+            ),
+            200,
+          );
+        }
+        return http.Response(
+          jsonEncode(chatPayload('{"objects": ["tölgyfa ajtó", "rézlámpa"]}')),
+          200,
+        );
+      });
+      final round = await MetaAIService.pictureRecallRound(
+        seed: 'elo-kor-teszt',
+        count: 2,
+        locale: 'hu',
+        client: client,
+        apiKeyOverride: 'teszt-kulcs',
+      );
+      expect(round.live, isTrue);
+      expect(round.imageUrl, 'https://img/szoba.png');
+      expect(round.objects, ['tölgyfa ajtó', 'rézlámpa']);
+    });
+
+    test('olvashatatlan képpel is van kép, de a kör helyi marad', () async {
+      final client = MockClient((req) async {
+        if (req.url.path.contains('images/generations')) {
+          return http.Response(
+            jsonEncode({
+              'data': [
+                {'url': 'https://img/szoba.png'},
+              ],
+            }),
+            200,
+          );
+        }
+        return http.Response('{}', 200);
+      });
+      final round = await MetaAIService.pictureRecallRound(
+        seed: 'olvashatatlan-teszt',
+        count: 2,
+        locale: 'hu',
+        client: client,
+        apiKeyOverride: 'teszt-kulcs',
+      );
+      expect(round.live, isFalse);
+      expect(round.imageUrl, 'https://img/szoba.png');
+      expect(round.objects.length, 2);
     });
   });
 }

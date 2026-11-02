@@ -1,3 +1,17 @@
+/// FSRS-lite spaced-repetition scheduler ("lite" because the update rules
+/// below are app-tuned heuristics, NOT fitted FSRS weights).
+///
+/// Lineage: the stability/difficulty model comes from FSRS (Ye et al.,
+/// open-spaced-repetition; FSRS-4.5), itself descended from Wozniak's
+/// SM-2 (1987) and the spacing-effect literature (Cepeda et al. 2006,
+/// 2008; Dunlosky et al. 2013 — see `docs/RESEARCH.md` §4). Honesty
+/// note: the exact constants here (recall gains 1.15/1.6/2.2 per
+/// grade, difficulty steps +1.0/+0.3/-0.2/-0.6, lapse reset x0.3,
+/// intervals clamped to 0.2-365 days) were chosen by hand for this
+/// app's drill pacing and were never fitted to user data, so this is
+/// a reasonable scheduler, not a validated memory model.
+library;
+
 import 'dart:math' as math;
 
 class FsrsCard {

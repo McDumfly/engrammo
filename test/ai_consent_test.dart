@@ -41,15 +41,16 @@ void main() {
   );
 
   group('AI cloud consent gate', () {
-    test('default OFF and persisted round-trip', () async {
-      expect(await MetaAIService.cloudConsent(), isFalse);
-      await MetaAIService.setCloudConsent(true);
+    test('default ON and persisted round-trip', () async {
       expect(await MetaAIService.cloudConsent(), isTrue);
       await MetaAIService.setCloudConsent(false);
       expect(await MetaAIService.cloudConsent(), isFalse);
+      await MetaAIService.setCloudConsent(true);
+      expect(await MetaAIService.cloudConsent(), isTrue);
     });
 
     test('no send without consent even with a key', () async {
+      await MetaAIService.setCloudConsent(false);
       var calls = 0;
       final client = MockClient((_) async {
         calls++;
@@ -65,6 +66,7 @@ void main() {
     });
 
     test('interview send blocked without consent', () async {
+      await MetaAIService.setCloudConsent(false);
       var calls = 0;
       final client = MockClient((_) async {
         calls++;
@@ -194,7 +196,9 @@ void main() {
 
   group('interview ask-first', () {
     Future<void> openInterview(WidgetTester tester) async {
-      SharedPreferences.setMockInitialValues({});
+      SharedPreferences.setMockInitialValues({
+        'settings_ai_cloud_consent_v1': false,
+      });
       MetaAIService.secureStoreForTest = {'meta_api_key_v1': 'k'};
       await tester.pumpWidget(
         MaterialApp(
@@ -254,12 +258,12 @@ void main() {
       await tester.pumpAndSettle();
       final switches = find.byType(Switch);
       expect(switches, findsNWidgets(3));
-      expect(tester.widget<Switch>(switches.last).value, isFalse);
+      expect(tester.widget<Switch>(switches.last).value, isTrue);
 
       await tester.tap(switches.last);
       await tester.pumpAndSettle();
-      expect(await MetaAIService.cloudConsent(), isTrue);
-      expect(tester.widget<Switch>(switches.last).value, isTrue);
+      expect(await MetaAIService.cloudConsent(), isFalse);
+      expect(tester.widget<Switch>(switches.last).value, isFalse);
     });
   });
 }

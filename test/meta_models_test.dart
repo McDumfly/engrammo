@@ -72,6 +72,21 @@ void main() {
   });
 
   group('MetaSegment', () {
+    test('request json korbeir, fogalommal', () {
+      const r = MetaSegmentRequest(
+        imageRef: 'https://x/y.png',
+        concept: 'lamp',
+      );
+      final back = MetaSegmentRequest.fromJson(r.toJson());
+      expect(back, r);
+      expect(back.hashCode, r.hashCode);
+      // Régi mentés fogalom nélkül: gyári alap.
+      expect(
+        MetaSegmentRequest.fromJson({'imageRef': 'https://x/y.png'}).concept,
+        'object',
+      );
+    });
+
     test('json korbeir', () {
       final s = MetaSegment(
         masks: const ['m1'],

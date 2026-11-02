@@ -56,29 +56,28 @@ The app places live Meta Model API calls at runtime
 `META_API_BASE_URL`):
 
 - **Muse Spark** (`muse-spark-1.3-contributor`, with
-  `low`/`minimal` effort for fast answers) provides every
+  `minimal` effort for fast answers) provides every
   lesson round's stimulus, every practice game's stimulus,
   the personalized technique explanation, the forgetting
   diagnosis, the task built from your own material, plus
   the post-lesson, post-practice and post-duel recaps
-  and tips,
+  and tips — and reads pictures (vision spotting with
+  grounding boxes) into loci stations and spotted details,
 - **Muse Image** (`muse-image-1.0`) provides the palace
   illustration, the visual scene image, the lesson
   illustrations, and the endless unique picture-recall
   rounds in practice,
-- **SAM 3.1** (`sam-3.1`) segments the generated palace
-  and picture images into loci stations and spotted
-  details — in lessons and in practice alike — and reads
-  the player's own room photo into palace stations,
-- **Voice Transcribe** (`voice-transcribe-1.0`) scores
-  the spoken SEEN/NEW answers in word practice
-  (microphone with explicit consent; the clip is kept
-  in a single rotating temp file),
-- **Wonder** (`wonder-1.0`) previews the spatial route
-  from a second viewpoint,
-- **Glimmer** (`glimmer-1.0`) gives the short post-game
-  verdict, and **Spark Open** (`muse-spark-open-1.0`)
-  the open-weights practice tip.
+- **SAM 3.1** (`sam-3.1`) locates the lead station/object
+  in the generated palace and picture images (one concept
+  per call, geometry only — names come from Spark
+  spotting, per the Media segmentation docs),
+- **Wonder** (`muse-wonder-1.0`) previews the spatial
+  route from a second viewpoint,
+- **Glimmer** and **Spark Open** are open-weight with no
+  Meta Model API endpoint (self-host only), so their
+  slots — the short post-game verdict and the practice
+  tip — are served by built-in templates and honestly
+  logged as local.
 
 With no key or no network the app does not fall over:
 local generators provide the content, and every call
@@ -220,7 +219,7 @@ counts toward the league then too. Code:
   Meta AI service, settings.
 - `lib/theme/`, `lib/widgets/`, `lib/utils/` — theme,
   shared buttons, navigation, streak helpers.
-- `test/` — 94 test files (834 tests): models,
+- `test/` — 98 test files (865 tests): models,
   scheduler, Meta-service fallback, auth, sync,
   streak/engram economy, transfer tasks and missions,
   onboarding and screen flows, UI details
@@ -237,29 +236,30 @@ flutter test
 ```
 
 With a live Meta call: copy `.env.example` to a gitignored
-local `.env` file, put the key in once, from then on this
-is enough:
+local `.env` file, put the key in once — a plain launch
+picks it up automatically (the `.env` ships as a bundled
+asset, and cloud AI is on by default), no key entry needed
+in Settings:
 
 ```bash
-sh tool/run.sh
+flutter run
 ```
 
-This script passes the `.env` content as a `--dart-define` key
-(the file is NOT included in the build — `.env` is never an asset).
-If a gitignored `.env.json` exists
-(`{"MODEL_API_KEY":"..."}`), the script prefers
-`--dart-define-from-file` instead, so the key never shows
-up in the process list. For one occasion it can also go
-by hand:
+`sh tool/run.sh` works too: it passes the same `.env`
+content as a `--dart-define` key. If a gitignored
+`.env.json` exists (`{"MODEL_API_KEY":"..."}`), the script
+prefers `--dart-define-from-file` instead, so the key never
+shows up in the process list. For one occasion it can also
+go by hand:
 
 ```bash
 flutter run --dart-define=MODEL_API_KEY=YourKeyHere
 ```
 
-On first launch the key can also be entered once under
-Settings → Meta AI; it stays in encrypted storage on the
-device (iOS Keychain / Android Keystore) and works with
-a plain launch too.
+A different key can still be entered under Settings → Meta
+AI (override); it stays in encrypted storage on the device
+(iOS Keychain / Android Keystore). Cloud AI can be switched
+off in the same place.
 
 Release build (obfuscated Dart code with the `--obfuscate` flag,
 without a key):
@@ -268,8 +268,9 @@ without a key):
 sh tool/build_release.sh appbundle
 ```
 
-No `--dart-define` key may go into the release: the user
-enters their own key in Settings.
+The release script builds with an empty `.env`, so no key
+is bundled: the user enters their own key in Settings.
+Revoke the demo key on the Meta dashboard afterwards.
 
 An internet connection is required: with no network the app
 shows a "Connect to the internet" message with a retry button

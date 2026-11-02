@@ -73,6 +73,17 @@ void main() {
     }
   });
 
+  test('Hungarian coach sources match the English citations', () {
+    for (var c = 0; c < chapters.length; c++) {
+      for (var s = 0; s < chapters[c].sections.length; s++) {
+        final en = coachFor(c, s, 'en').source;
+        final hu = coachFor(c, s, 'hu').source;
+        expect(en, isNotEmpty, reason: '$c-$s EN source');
+        expect(hu, en, reason: '$c-$s source parity');
+      }
+    }
+  });
+
   test('Hungarian dictionary resolves screen keys', () {
     AppLocalizations.useCode('hu');
     try {

@@ -19,6 +19,7 @@ import '../services/memory_growth.dart';
 import '../services/memory_store.dart';
 import '../services/meta_ai_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/ai_image.dart';
 import '../widgets/app_buttons.dart';
 import '../widgets/recall_inputs.dart' show RecallTextField;
 import '../theme/app_colors.dart'
@@ -1187,27 +1188,11 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
       padding: const EdgeInsets.only(bottom: 12),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: Image.network(
-          imageUrl,
+        child: AiImage(
+          imageRef: imageUrl,
           height: height,
           width: double.infinity,
-          fit: BoxFit.cover,
           cacheWidth: 800,
-          loadingBuilder: (context, child, progress) {
-            if (progress == null) return child;
-            return SizedBox(
-              height: height,
-              child: const Center(
-                child: SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2.5),
-                ),
-              ),
-            );
-          },
-          errorBuilder: (context, error, stackTrace) =>
-              const SizedBox.shrink(),
         ),
       ),
     );

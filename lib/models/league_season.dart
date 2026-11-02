@@ -67,6 +67,14 @@ class LeagueEntry {
 }
 
 /// One weekly league season: 30 bots plus the player.
+///
+/// Design basis: a fixed Monday-to-Sunday season of simulated bot
+/// opponents — deliberately NOT a public leaderboard of real users,
+/// because leaderboards can stress low-rank users (Mekler et al. 2013;
+/// see `docs/RESEARCH.md` §5). Racing deterministic bots keeps the
+/// motivational frame while the comparison stays private. Honesty note:
+/// season length, 30-bot field, and tier bands are arbitrary
+/// game-design choices, not lab-derived values.
 class LeagueSeason {
   static const int botCount = 30;
   static const int promoteCount = 10;
@@ -429,6 +437,9 @@ LeagueSeason addPlayerBattleXp(LeagueSeason season, int xp) {
   final sorted = season.sorted;
   final rank = season.playerRank;
   final playerXp = season.playerEntry?.xp ?? 0;
+  // Champion = the week's XP leader at rollover. The top-8 bracket on the
+  // league screen is a seeded showcase of that same table, not a played
+  // knockout: no bracket matches are simulated.
   final summary = LeagueSummary(
     seasonId: season.seasonId,
     tierIndex: season.tierIndex,

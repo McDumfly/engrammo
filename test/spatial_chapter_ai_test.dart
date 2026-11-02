@@ -92,11 +92,11 @@ void main() {
   });
 
   group('chapterImageBudget', () {
-    test('Palace Builder paints every round, others keep 2', () {
+    test('unlimited credit: every chapter paints every round', () {
       expect(chapterImageBudget(2, 3), 3);
       expect(chapterImageBudget(2, 5), 5);
-      expect(chapterImageBudget(0, 5), 2);
-      expect(chapterImageBudget(6, 4), 2);
+      expect(chapterImageBudget(0, 5), 5);
+      expect(chapterImageBudget(6, 4), 4);
       expect(chapterImageBudget(2, 0), 0);
     });
   });
@@ -159,7 +159,66 @@ void main() {
   });
 
   group('enrichment with a fake Meta backend', () {
+    // SAM answers with the documented special-token grammar, Spark
+    // vision spotting with a grounded label array — routed by model.
     MockClient fakeBackend({required void Function() onImage}) {
+      http.Response samLane() => http.Response(
+        jsonEncode({
+          'id': 'resp_teszt',
+          'status': 'completed',
+          'output': [
+            {
+              'type': 'message',
+              'content': [
+                {
+                  'type': 'output_text',
+                  'text':
+                      '<0f>0<|box;x1=10;y1=10;x2=110;y2=110;w=500;h=500|>'
+                      '<|mask;x=0;y=0;data=10,10,~AAA|>',
+                },
+              ],
+            },
+          ],
+        }),
+        200,
+      );
+      http.Response spotLane() => http.Response(
+        jsonEncode({
+          'id': 'resp_teszt',
+          'status': 'completed',
+          'output': [
+            {
+              'type': 'message',
+              'content': [
+                {
+                  'type': 'output_text',
+                  'text': jsonEncode([
+                    {
+                      'object_name': 'oak door',
+                      'bbox': [
+                        {'x_min': 0, 'y_min': 0, 'x_max': 200, 'y_max': 200},
+                      ],
+                    },
+                    {
+                      'object_name': 'brass lamp',
+                      'bbox': [
+                        {'x_min': 200, 'y_min': 0, 'x_max': 400, 'y_max': 200},
+                      ],
+                    },
+                    {
+                      'object_name': 'red rug',
+                      'bbox': [
+                        {'x_min': 400, 'y_min': 0, 'x_max': 600, 'y_max': 200},
+                      ],
+                    },
+                  ]),
+                },
+              ],
+            },
+          ],
+        }),
+        200,
+      );
       return MockClient((req) async {
         if (req.url.path.endsWith('/images/generations')) {
           onImage();
@@ -173,19 +232,15 @@ void main() {
           );
         }
         if (req.url.path.endsWith('/responses')) {
-          return http.Response(
-            jsonEncode({
-              'masks': ['m1', 'm2', 'm3'],
-              'labels': ['oak door', 'brass lamp', 'red rug'],
-            }),
-            200,
-          );
+          final sent = jsonDecode(req.body) as Map<String, dynamic>;
+          if (sent['model'] == MetaAIService.segmentModel) return samLane();
+          return spotLane();
         }
         return http.Response('nope', 404);
       });
     }
 
-    test('spatial enrich stores image + SAM labels + playable stations',
+    test('spatial enrich stores image + SAM stamp + playable stations',
         () async {
       MetaAIService.consentForTest = true;
       var images = 0;
@@ -198,14 +253,15 @@ void main() {
         apiKeyOverride: 'test-key',
       );
       expect(out.imageUrl, 'https://img.test/palace.png');
-      expect(out.samLabels, ['oak door', 'brass lamp', 'red rug']);
+      // SAM locates geometry (model stamp), stations stay local — SAM
+      // never invents names.
+      expect(out.samLabels, isEmpty);
       expect(out.samModel, 'sam-3.1');
       expect(out.stations.length, out.items.length);
-      expect(out.stations.take(3), out.samLabels);
       expect(images, 1);
     });
 
-    test('visual enrich stores image + SAM labels', () async {
+    test('visual enrich stores image + SAM stamp', () async {
       MetaAIService.consentForTest = true;
       final out = await MetaAIService.enrichVisualTask(
         localPictureTask(difficulty: 2, seed: 's'),
@@ -214,7 +270,7 @@ void main() {
         apiKeyOverride: 'test-key',
       );
       expect(out.imageUrl, isNotEmpty);
-      expect(out.samLabels, isNotEmpty);
+      expect(out.samLabels, isEmpty);
       expect(out.samModel, 'sam-3.1');
     });
 
@@ -284,8 +340,21 @@ void main() {
         if (req.url.path.endsWith('/responses')) {
           return http.Response(
             jsonEncode({
-              'masks': ['m1', 'm2', 'm3'],
-              'labels': ['oak door', 'brass lamp', 'red rug'],
+              'id': 'resp_teszt',
+              'status': 'completed',
+              'output': [
+                {
+                  'type': 'message',
+                  'content': [
+                    {
+                      'type': 'output_text',
+                      'text':
+                          '<0f>0<|box;x1=10;y1=10;x2=110;y2=110;w=500;h=500|>'
+                          '<|mask;x=0;y=0;data=10,10,~AAA|>',
+                    },
+                  ],
+                },
+              ],
             }),
             200,
           );
@@ -303,7 +372,7 @@ void main() {
         apiKeyOverride: 'test-key',
       );
       expect(out.imageUrl, 'https://img.test/regi-palota.png');
-      expect(out.samLabels, ['oak door', 'brass lamp', 'red rug']);
+      expect(out.samLabels, isEmpty);
       expect(out.samModel, 'sam-3.1');
       expect(out.stations.length, out.items.length);
     });
@@ -317,8 +386,21 @@ void main() {
         if (req.url.path.endsWith('/responses')) {
           return http.Response(
             jsonEncode({
-              'masks': ['m1', 'm2', 'm3'],
-              'labels': ['oak door', 'brass lamp', 'red rug'],
+              'id': 'resp_teszt',
+              'status': 'completed',
+              'output': [
+                {
+                  'type': 'message',
+                  'content': [
+                    {
+                      'type': 'output_text',
+                      'text':
+                          '<0f>0<|box;x1=10;y1=10;x2=110;y2=110;w=500;h=500|>'
+                          '<|mask;x=0;y=0;data=10,10,~AAA|>',
+                    },
+                  ],
+                },
+              ],
             }),
             200,
           );
@@ -335,7 +417,7 @@ void main() {
         apiKeyOverride: 'test-key',
       );
       expect(out.imageUrl, 'https://img.test/regi-kep.png');
-      expect(out.samLabels, ['oak door', 'brass lamp', 'red rug']);
+      expect(out.samLabels, isEmpty);
       expect(out.samModel, 'sam-3.1');
     });
 

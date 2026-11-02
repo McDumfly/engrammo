@@ -82,6 +82,15 @@ void main() {
     expect(find.text('New learner'), findsNothing);
   });
 
+  testWidgets('kovetesek es kovetok csempe is latszik', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(const MaterialApp(home: KreedsProfilePage()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Following'), findsOneWidget);
+    expect(find.text('Followers'), findsOneWidget);
+  });
+
   testWidgets(
     'profilba visszalépve az avatar nem tölt újra, a névfrissítés megmarad',
     (tester) async {

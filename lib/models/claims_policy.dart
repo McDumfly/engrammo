@@ -123,3 +123,23 @@ List<HonestySection> get honestySections => <HonestySection>[
 
 String labFinding(String study, String finding) =>
     tr('policy_lab_finding', {'study': study, 'finding': finding});
+
+/// Returns the first banned efficacy token found in [text]
+/// (case-insensitive), or null when the text is clean.
+///
+/// This is the RUNTIME counterpart of the static scanner in
+/// `test/claims_policy_test.dart`: every AI-generated string the user
+/// can see (verdict/study rationales, task explanations, coach/recap/
+/// hype/tip/round/scout notes, goal analyses) passes through it before
+/// acceptance, and blocked text falls back to the deterministic local
+/// copy. See `docs/RESEARCH.md` §9.
+String? bannedTokenIn(String text) {
+  final lower = text.toLowerCase();
+  for (final token in bannedClaimTokens) {
+    if (lower.contains(token)) return token;
+  }
+  return null;
+}
+
+/// True when AI-generated [text] carries no banned efficacy phrase.
+bool aiTextAllowed(String text) => bannedTokenIn(text) == null;

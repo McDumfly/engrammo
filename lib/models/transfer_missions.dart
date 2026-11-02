@@ -72,7 +72,7 @@ const transferMissions = <TransferMission>[
       'Recall in order, then ask to be corrected.',
     ],
     selfCheck: 'Repeat with 5 fresh words in a quiet room and compare.',
-    source: 'Naveh-Benjamin et al. (2005)',
+    source: 'Cherry (1953); Conway, Cowan & Bunting (2001)',
   ),
   TransferMission(
     id: 'sensory-errands-echo',
@@ -267,7 +267,7 @@ const transferMissions = <TransferMission>[
       'Replay the strip once before leaving the room.',
     ],
     selfCheck: 'Next morning, replay the strip and check the minutes.',
-    source: 'Von Restorff (1933)',
+    source: 'Bower & Clark (1969); Craik & Tulving (1975)',
   ),
   TransferMission(
     id: 'visual-study-pages',

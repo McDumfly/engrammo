@@ -181,49 +181,14 @@ void main() {
       );
     });
 
-    testWidgets('voice answer button stays next to the tap buttons', (
+    testWidgets('tap buttons answer without any voice button', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(const MaterialApp(home: VerbalGamePage()));
       await tester.pump();
-      expect(find.text('ANSWER BY VOICE'), findsOneWidget);
       expect(find.text('SEEN'), findsOneWidget);
       expect(find.text('NEW WORD'), findsOneWidget);
-    });
-  });
-
-  group('VerbalGamePage.voiceGuessFromTranscript', () {
-    test('maps english seen and new answers', () {
-      expect(VerbalGamePage.voiceGuessFromTranscript('seen'), isTrue);
-      expect(VerbalGamePage.voiceGuessFromTranscript('Yes, I saw it'), isTrue);
-      expect(VerbalGamePage.voiceGuessFromTranscript('new word'), isFalse);
-      expect(VerbalGamePage.voiceGuessFromTranscript('no, never'), isFalse);
-    });
-
-    test('maps hungarian seen and new answers', () {
-      expect(VerbalGamePage.voiceGuessFromTranscript('láttam', 'hu'), isTrue);
-      expect(VerbalGamePage.voiceGuessFromTranscript('igen', 'hu'), isTrue);
-      expect(VerbalGamePage.voiceGuessFromTranscript('új', 'hu'), isFalse);
-      expect(VerbalGamePage.voiceGuessFromTranscript('nem láttam', 'hu'), isFalse);
-    });
-
-    test('known never counts as no', () {
-      expect(VerbalGamePage.voiceGuessFromTranscript('known'), isTrue);
-    });
-
-    test('negated phrases count as new', () {
-      expect(VerbalGamePage.voiceGuessFromTranscript('not seen'), isFalse);
-      expect(
-        VerbalGamePage.voiceGuessFromTranscript("I haven't seen it"),
-        isFalse,
-      );
-    });
-
-    test('empty, unrelated and ambiguous transcripts stay null', () {
-      expect(VerbalGamePage.voiceGuessFromTranscript(''), isNull);
-      expect(VerbalGamePage.voiceGuessFromTranscript('maybe later'), isNull);
-      expect(VerbalGamePage.voiceGuessFromTranscript('seen no'), isNull);
-      expect(VerbalGamePage.voiceGuessFromTranscript('új láttam', 'hu'), isNull);
+      expect(find.text('ANSWER BY VOICE'), findsNothing);
     });
   });
 }

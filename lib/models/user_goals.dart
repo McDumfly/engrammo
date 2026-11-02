@@ -3,6 +3,7 @@ library;
 import 'dart:convert' show jsonDecode;
 
 import '../l10n/app_localizations.dart';
+import 'claims_policy.dart' show bannedTokenIn;
 import 'transfer_targets.dart'
     show TransferTarget, transferTargetById;
 
@@ -650,6 +651,11 @@ GoalAnalysis? parseGoalAnalysisContent(String content) {
       difficulty: difficulty.clamp(1, 5),
     );
     if (validateGoalAnalysis(candidate).isNotEmpty) return null;
+    // Runtime claims guard: strategy and plan steps are user-visible.
+    if (bannedTokenIn(candidate.strategy) != null) return null;
+    for (final step in candidate.plan) {
+      if (bannedTokenIn(step) != null) return null;
+    }
     return candidate;
   } catch (_) {
     return null;

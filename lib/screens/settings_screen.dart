@@ -53,7 +53,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _hasStoredKey = false;
   bool _hasBundledKey = false;
   bool _apiKeyBusy = false;
-  bool _aiConsent = false;
+  bool _aiConsent = true;
 
   @override
   void initState() {
@@ -694,21 +694,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ],
                           ),
                         ),
-                      if (authService.signedIn || authService.guestMode) ...[
-                        const SizedBox(height: 10),
-                        _Card(
-                          child: _AccountRow(
-                            icon: HugeIcons.strokeRoundedLogout01,
-                            title: tr('settings_sign_out'),
-                            subtitle: tr('settings_sign_out_sub'),
-                            onTap: () async {
-                              await authService.signOut();
-                              if (!context.mounted) return;
-                              Navigator.of(context).pop();
-                            },
-                          ),
-                        ),
-                      ],
+                      ListenableBuilder(
+                        listenable: authService,
+                        builder: (context, _) {
+                          if (!authService.signedIn &&
+                              !authService.guestMode) {
+                            return const SizedBox.shrink();
+                          }
+                          return Column(
+                            children: [
+                              const SizedBox(height: 10),
+                              _Card(
+                                child: _AccountRow(
+                                  icon: HugeIcons.strokeRoundedLogout01,
+                                  title: tr('settings_sign_out'),
+                                  subtitle: tr('settings_sign_out_sub'),
+                                  onTap: () async {
+                                    await authService.signOut();
+                                    if (!context.mounted) return;
+                                    Navigator.of(context).pop();
+                                  },
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
                       const SizedBox(height: 20),
                       _SectionTitle(
                         icon: HugeIcons.strokeRoundedSettings01,

@@ -85,6 +85,7 @@ class CloudSync {
       final feed = await MemoryStore.loadFriendFeed();
       final goals = await MemoryStore.loadUserGoals();
       final missions = await MemoryStore.loadDoneMissions();
+      final chests = await MemoryStore.loadClaimedChests();
       final benchmark = await MemoryStore.loadBenchmark();
       final invites = await MemoryStore.loadBattleInvites();
       final aiConsent = await MetaAIService.cloudConsent();
@@ -128,6 +129,7 @@ class CloudSync {
         'friendFeed': [for (final e in feed) e.toJson()],
         'userGoals': [for (final g in goals) g.toJson()],
         'doneMissions': missions.toList()..sort(),
+        'claimedChests': chests.toList()..sort(),
         // ownMaterial is intentionally NOT synced: the user's private
         // study material stays on the device (see docs/RESEARCH.md §12).
         'benchmark': benchmark.toJson(),
@@ -480,6 +482,16 @@ class CloudSync {
             if (e is String && e.isNotEmpty) e,
         };
         await MemoryStore.saveDoneMissionsWithoutNotify(merged);
+      }
+      final chestsCloud = data['claimedChests'];
+      if (chestsCloud is List && chestsCloud.isNotEmpty) {
+        final local = await MemoryStore.loadClaimedChests();
+        final merged = {
+          ...local,
+          for (final e in chestsCloud)
+            if (e is String && e.isNotEmpty) e,
+        };
+        await MemoryStore.saveClaimedChestsWithoutNotify(merged);
       }
       // ownMaterial is never pulled either: device-local by design
       // (see docs/RESEARCH.md §12).

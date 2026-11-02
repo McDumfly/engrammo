@@ -61,6 +61,23 @@ void main() {
       expect(kinds[3], 'spatial');
     });
 
+    test('pattern vault drills pattern-span in lessons', () {
+      expect(lessonKindFor(18, 0, section: 1), 'pattern');
+      expect(lessonKindFor(18, 2, section: 1), 'pattern');
+      expect(lessonKindFor(18, 0, section: 0), 'visual');
+      expect(lessonKindFor(18, 0, section: 2), 'visual');
+      // Section-agnostic calls keep the legacy mapping.
+      expect(lessonKindFor(18, 0), 'visual');
+      final kinds = [
+        for (var r = 0; r < 4; r++)
+          lessonRoundKindFor(18, 1, r, 4, section: 1),
+      ];
+      expect(kinds[0], 'pattern');
+      expect(kinds[1], 'visual');
+      expect(kinds[2], 'pattern');
+      expect(kinds[3], 'visual');
+    });
+
     test('sensory deep chapter alternates sensory and sequence', () {
       final kinds = [
         for (var r = 0; r < 4; r++) lessonRoundKindFor(8, 0, r, 4),

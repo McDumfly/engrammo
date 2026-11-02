@@ -90,7 +90,7 @@ BattleResponseKind battleResponseKindForParadigm(String paradigm) {
 /// stay clean: extra pixels would only add noise to the trace.
 /// Loci-drill is deliberately NOT here: duels never deal it (their spatial
 /// slot is pattern-span), while the lesson path paints it via
-/// `lessonRoundKindWantsImage` — see `chapterImageBudget` for the quota.
+/// `lessonRoundKindWantsImage` — `chapterImageBudget` paints every round.
 const battleImageryParadigms = <String>{
   'picture-recall',
   'paired-associate',
