@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:engrammo/models/fsrs_card.dart';
 import 'package:engrammo/models/room_palace.dart';
+import 'package:engrammo/screens/benchmark.dart' show MaskedPicture;
 import 'package:engrammo/screens/room_palace_page.dart';
 import 'package:engrammo/services/memory_store.dart';
 import 'package:engrammo/services/meta_ai_service.dart';
@@ -58,4 +59,30 @@ void main() {
 
     expect(find.text('Yes — apple!'), findsOneWidget);
   });
+
+  testWidgets(
+    'MaskedPicture with no objects shows the photo without throwing',
+    (tester) async {
+      final photo = squareJpegDataUrl(
+        Uint8List.fromList(img.encodePng(img.Image(width: 10, height: 10))),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MaskedPicture(
+              imageUrl: photo,
+              scene: '',
+              objects: const [],
+              boxes: const [],
+              masks: const [],
+              revealed: const {},
+              masked: true,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

@@ -1302,6 +1302,7 @@ class MetaAIService {
     http.Client? client,
     String? apiKeyOverride,
     String? baseUrlOverride,
+    int? timeoutSec,
   }) async {
     final key = await _liveKey(apiKeyOverride);
     final base = resolveBaseUrl(baseUrlOverride);
@@ -1332,7 +1333,7 @@ class MetaAIService {
         url: '$base/images/generations',
         key: key,
         body: imageRequestBody(req),
-        timeoutSec: imageTimeoutSec,
+        timeoutSec: timeoutSec ?? imageTimeoutSec,
       );
       if (res.statusCode >= 200 && res.statusCode < 300) {
         final data = jsonDecode(res.body);
@@ -1878,8 +1879,15 @@ class MetaAIService {
           : '';
       MetaSegment seg = MetaSegment(createdAt: DateTime.now());
       if (isImageRef(ref) && lead.trim().isNotEmpty) {
+        final leadEn = (await englishConcepts(
+          [lead],
+          locale: locale,
+          client: client,
+          apiKeyOverride: apiKeyOverride,
+          baseUrlOverride: baseUrlOverride,
+        )).first;
         seg = await segment(
-          MetaSegmentRequest(imageRef: ref, concept: lead),
+          MetaSegmentRequest(imageRef: ref, concept: leadEn),
           client: client,
           apiKeyOverride: apiKeyOverride,
           baseUrlOverride: baseUrlOverride,
@@ -1919,8 +1927,15 @@ class MetaAIService {
       final lead = out.items.isNotEmpty ? out.items.first : '';
       Future<void> locate(String ref) async {
         if (!isImageRef(ref) || lead.trim().isEmpty) return;
+        final leadEn = (await englishConcepts(
+          [lead],
+          locale: AppLocalizations.localeCode,
+          client: client,
+          apiKeyOverride: apiKeyOverride,
+          baseUrlOverride: baseUrlOverride,
+        )).first;
         final seg = await segment(
-          MetaSegmentRequest(imageRef: ref, concept: lead),
+          MetaSegmentRequest(imageRef: ref, concept: leadEn),
           client: client,
           apiKeyOverride: apiKeyOverride,
           baseUrlOverride: baseUrlOverride,
@@ -2196,6 +2211,129 @@ class MetaAIService {
     return out;
   }
 
+  /// SAM 3.1 only matches English noun phrases. Display labels may be in
+  /// the UI language, so every SAM concept goes through this cache first.
+  static final Map<String, String> _englishConcept = {};
+
+  @visibleForTesting
+  static void debugClearConceptCache() => _englishConcept.clear();
+
+  /// Translates [labels] to short English noun phrases (one Spark call,
+  /// cached per label). English UI, or any failure → labels unchanged.
+  static Future<List<String>> englishConcepts(
+    List<String> labels, {
+    String locale = 'en',
+    http.Client? client,
+    String? apiKeyOverride,
+    String? baseUrlOverride,
+  }) async {
+    List<String> mapped() => [
+      for (final l in labels) _englishConcept[l.trim().toLowerCase()] ?? l,
+    ];
+    if (locale == 'en' || labels.isEmpty) return labels;
+    final missing = <String>[];
+    final seen = <String>{};
+    for (final l in labels) {
+      final k = l.trim().toLowerCase();
+      if (k.isEmpty || _englishConcept.containsKey(k) || !seen.add(k)) {
+        continue;
+      }
+      missing.add(l.trim());
+    }
+    if (missing.isEmpty) return mapped();
+    Future<List<String>> fallback(String note, {required bool success}) async {
+      await _log(
+        MetaCallEntry(
+          model: taskModel,
+          kind: 'sam:concepts',
+          at: DateTime.now(),
+          success: success,
+          fallback: true,
+          note: note,
+        ),
+      );
+      return mapped();
+    }
+
+    final key = await _liveKey(apiKeyOverride);
+    final base = resolveBaseUrl(baseUrlOverride);
+    if (key.isEmpty) {
+      return fallback(
+        await _gatedOfflineNote(apiKeyOverride, 'local fallback', locale),
+        success: true,
+      );
+    }
+    final c = client ?? http.Client();
+    final owned = client == null;
+    try {
+      final res = await _postChat(
+        c,
+        base: base,
+        key: key,
+        body: {
+          'model': taskModel,
+          'reasoning_effort': 'minimal',
+          'response_format': {'type': 'json_object'},
+          'max_completion_tokens': 400,
+          'messages': [
+            {
+              'role': 'system',
+              'content':
+                  'Translate each object name to the simplest English noun '
+                  'phrase (1-3 words, lowercase) that an image segmentation '
+                  'model would understand. Reply ONLY with JSON '
+                  '{"concepts": [...]} — same count, same order.',
+            },
+            {
+              'role': 'user',
+              'content': jsonEncode({'labels': missing}),
+            },
+          ],
+        },
+        timeoutSec: httpTimeoutSec,
+      );
+      if (res.statusCode < 200 || res.statusCode >= 300) {
+        throw StateError('HTTP ${res.statusCode}: ${_snip(res.body)}');
+      }
+      final outer = jsonDecode(res.body);
+      if (outer is! Map<String, dynamic>) {
+        throw StateError('HTTP ${res.statusCode}: ${_snip(res.body)}');
+      }
+      final inner = jsonDecode(_choicesText(outer));
+      if (inner is! Map<String, dynamic>) {
+        throw StateError(_emptyChatNote(res, outer));
+      }
+      final raw = inner['concepts'];
+      if (raw is! List || raw.length != missing.length) {
+        throw StateError('concepts count mismatch');
+      }
+      for (final e in raw) {
+        if (e is! String || e.trim().isEmpty) {
+          throw StateError('bad concept entry');
+        }
+      }
+      for (var i = 0; i < missing.length; i++) {
+        _englishConcept[missing[i].trim().toLowerCase()] = (raw[i] as String)
+            .trim();
+      }
+      await _log(
+        MetaCallEntry(
+          model: taskModel,
+          kind: 'sam:concepts',
+          at: DateTime.now(),
+          success: true,
+          fallback: false,
+        ),
+      );
+      return mapped();
+    } catch (e) {
+      debugPrint('MetaAIService.englishConcepts fallback: $e');
+      return fallback(e.toString(), success: false);
+    } finally {
+      if (owned) c.close();
+    }
+  }
+
   /// Re-segments every recall [objects] label on [imageRef] with SAM 3.1
   /// (one concept call each) and returns one precise box plus the raw
   /// shape mask per object. Concepts SAM cannot find fall back to
@@ -2219,6 +2357,14 @@ class MetaAIService {
     if (objects.isEmpty || !isImageRef(imageRef)) {
       return (boxes: const <List<double>>[], masks: const <String>[]);
     }
+    // SAM only matches English concepts; display labels stay untouched.
+    final concepts = await englishConcepts(
+      objects,
+      locale: AppLocalizations.localeCode,
+      client: client,
+      apiKeyOverride: apiKeyOverride,
+      baseUrlOverride: baseUrlOverride,
+    );
     final positional = fallbackBoxes.length == objects.length;
     final cols = objects.length <= 2
         ? objects.length
@@ -2231,7 +2377,7 @@ class MetaAIService {
       var mask = '';
       try {
         final seg = await segment(
-          MetaSegmentRequest(imageRef: imageRef, concept: objects[i]),
+          MetaSegmentRequest(imageRef: imageRef, concept: concepts[i]),
           client: client,
           apiKeyOverride: apiKeyOverride,
           baseUrlOverride: baseUrlOverride,
@@ -4522,10 +4668,14 @@ class MetaAIService {
   static String _roomLinksSystem(String locale) {
     final lang = locale == 'hu' ? 'Hungarian' : 'English';
     return 'You are a memory-palace coach. The learner photographed their '
-        'own room. For each pair, write ONE vivid, concrete image (max 22 '
+        'own room. For each pair, write ONE vivid, concrete image (max 24 '
         'words) in which the ITEM physically interacts with the real '
-        'STATION object: action, sound, exaggeration, touch, color. '
-        'Interacting images beat static or merely bizarre ones. No '
+        'STATION object. Rules: (1) use what the ITEM is or does — its '
+        'meaning or function — so the image also explains it; (2) every '
+        'pair uses a DIFFERENT action — never repeat a verb or pattern '
+        '(no two "falls onto", "crashes into", "jumps out"); (3) involve '
+        'at least two senses (sound, smell, touch, temperature, color); '
+        '(4) exaggerate size, number or motion, and humor is welcome. No '
         'violence, no gore, no sexual content, no health or medical '
         'claims, no brand names. Write in $lang. Reply ONLY with JSON: '
         '{"links": ["...", "..."]} — exactly one string per pair, same '
@@ -4591,8 +4741,15 @@ class MetaAIService {
     }
   }
 
-  static String _roomLinkFallback(String station, String item, String locale) =>
-      trFor(locale, 'room_link_fallback', {'item': item, 'station': station});
+  static String _roomLinkFallback(
+    String station,
+    String item,
+    String locale,
+    int index,
+  ) => trFor(locale, 'room_link_fb_${index % 5}', {
+    'item': item,
+    'station': station,
+  });
 
   /// One vivid station-item image per pair for a room palace. Never
   /// throws: offline it returns one local template sentence per item.
@@ -4615,7 +4772,7 @@ class MetaAIService {
       final answer = RoomLinksAnswer(
         links: [
           for (var i = 0; i < items.length; i++)
-            _roomLinkFallback(padded[i], items[i], locale),
+            _roomLinkFallback(padded[i], items[i], locale, i),
         ],
       );
       await _log(
@@ -4653,7 +4810,7 @@ class MetaAIService {
           items: items,
           locale: locale,
         ),
-        timeoutSec: httpTimeoutSec,
+        timeoutSec: 30,
       );
       if (res.statusCode >= 200 && res.statusCode < 300) {
         final data = jsonDecode(res.body);
@@ -4680,7 +4837,7 @@ class MetaAIService {
       final answer = RoomLinksAnswer(
         links: [
           for (var i = 0; i < items.length; i++)
-            _roomLinkFallback(padded[i], items[i], locale),
+            _roomLinkFallback(padded[i], items[i], locale, i),
         ],
       );
       await _log(
@@ -4703,6 +4860,106 @@ class MetaAIService {
       'Photorealistic close-up of a $station in a cozy home room. $link '
       'Vivid colors, dramatic soft lighting, playful and surreal but clear, '
       'one focal scene, no text, no letters, no logos.';
+
+  /// Muse Spark judges a near-miss the local matcher rejected: a synonym,
+  /// a translation ("nucleus" for "sejtmag") or a fuller phrase counts as
+  /// correct. No key / error → 'wrong' (never blocks the game).
+  static Future<String> judgeRecall({
+    required String expected,
+    required String answer,
+    String locale = 'en',
+    http.Client? client,
+    String? apiKeyOverride,
+    String? baseUrlOverride,
+  }) async {
+    Future<String> local({required bool success, String note = ''}) async {
+      await _log(
+        MetaCallEntry(
+          model: taskModel,
+          kind: 'room:judge',
+          at: DateTime.now(),
+          success: success,
+          fallback: true,
+          note: note,
+        ),
+      );
+      return 'wrong';
+    }
+
+    final key = await _liveKey(apiKeyOverride);
+    final base = resolveBaseUrl(baseUrlOverride);
+    if (key.isEmpty) {
+      return local(
+        success: true,
+        note: await _gatedOfflineNote(apiKeyOverride, 'local grade', locale),
+      );
+    }
+    final c = client ?? http.Client();
+    final owned = client == null;
+    try {
+      final res = await _postChat(
+        c,
+        base: base,
+        key: key,
+        body: {
+          'model': taskModel,
+          'reasoning_effort': 'minimal',
+          'response_format': {'type': 'json_object'},
+          'max_completion_tokens': 200,
+          'messages': [
+            {
+              'role': 'system',
+              'content':
+                  'You grade one memory-recall answer. EXPECTED is the item '
+                  'the learner memorized; ANSWER is what they typed. Reply '
+                  'ONLY with JSON {"verdict": "correct" | "close" | "wrong"}. '
+                  '"correct": same meaning — synonym, translation into '
+                  'another language, singular/plural, missing or extra '
+                  'article, small spelling errors. "close": clearly the '
+                  'right idea but an important part is missing or wrong. '
+                  '"wrong": anything else. Be lenient with spelling, strict '
+                  'with meaning.',
+            },
+            {
+              'role': 'user',
+              'content': jsonEncode({'expected': expected, 'answer': answer}),
+            },
+          ],
+        },
+        timeoutSec: 8,
+      );
+      if (res.statusCode < 200 || res.statusCode >= 300) {
+        throw StateError('HTTP ${res.statusCode}: ${_snip(res.body)}');
+      }
+      final outer = jsonDecode(res.body);
+      if (outer is! Map<String, dynamic>) {
+        throw StateError('HTTP ${res.statusCode}: ${_snip(res.body)}');
+      }
+      final inner = jsonDecode(_choicesText(outer));
+      if (inner is! Map<String, dynamic>) {
+        throw StateError(_emptyChatNote(res, outer));
+      }
+      final verdict = (inner['verdict'] as String? ?? '').trim();
+      if (verdict != 'correct' && verdict != 'close' && verdict != 'wrong') {
+        throw StateError(_emptyChatNote(res, outer));
+      }
+      await _log(
+        MetaCallEntry(
+          model: taskModel,
+          kind: 'room:judge',
+          at: DateTime.now(),
+          success: true,
+          fallback: false,
+        ),
+      );
+      return verdict;
+    } catch (e) {
+      debugPrint('MetaAIService.judgeRecall fallback: $e');
+      return local(success: false, note: e.toString());
+    } finally {
+      if (owned) c.close();
+    }
+  }
 
   /// The prompt a self-hosted Glimmer would get. Kept (and tested) as
   /// the documented prompt shape — [glimmerTake] never sends it, because

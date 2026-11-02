@@ -1,11 +1,12 @@
 import 'fsrs_card.dart';
+import 'recall_scoring.dart' show fuzzyWordMatch, normalizeAnswer;
 
 /// One memory palace built on the learner's own room photo.
 /// Device-only: never synced (the photo is private), see MemoryStore.
 class RoomPalace {
   final String id; // 'room:<millisecondsSinceEpoch>'
   final DateTime createdAt;
-  final String imageRef; // square JPEG data URL (512x512)
+  final String imageRef; // square JPEG data URL (768x768)
   final List<String> stations; // object names, walk order
   final List<List<double>>
   boxes; // normalized [x0,y0,x1,y1] per station, may be empty
@@ -199,4 +200,42 @@ int roomGrade(int correct, int total) {
 String roomPalaceName(RoomPalace p) {
   if (p.stations.isEmpty) return p.id;
   return p.stations.take(2).join(' · ');
+}
+
+enum RecallMatch { exact, typo, none }
+
+/// exact: same after normalizing (case, accents, hyphens, punctuation).
+/// typo: within the fuzzy edit distance (1 for 5-8 chars, 2 for 9+).
+RecallMatch localRecallAnswer(String expected, String answer) {
+  final exp = normalizeAnswer(expected);
+  final got = normalizeAnswer(answer);
+  if (exp.isEmpty || got.isEmpty) return RecallMatch.none;
+  if (exp == got) return RecallMatch.exact;
+  return fuzzyWordMatch(exp, got) ? RecallMatch.typo : RecallMatch.none;
+}
+
+/// Reorders stations into a left-to-right walk (method of loci needs a
+/// fixed, natural route). Returns the same lists when boxes are missing.
+({List<String> stations, List<List<double>> boxes, List<String> masks})
+walkOrder(List<String> stations, List<List<double>> boxes, List<String> masks) {
+  if (boxes.length != stations.length || stations.length < 2) {
+    return (stations: stations, boxes: boxes, masks: masks);
+  }
+  double cx(List<double> b) =>
+      b.length >= 4 ? b[0] + b[2] / 2 : (b.isNotEmpty ? b[0] : 0.0);
+  double cy(List<double> b) =>
+      b.length >= 4 ? b[1] + b[3] / 2 : (b.length >= 2 ? b[1] : 0.0);
+  final idx = List<int>.generate(stations.length, (i) => i);
+  idx.sort((a, b) {
+    final dx = cx(boxes[a]).compareTo(cx(boxes[b]));
+    if (dx != 0) return dx;
+    return cy(boxes[a]).compareTo(cy(boxes[b]));
+  });
+  return (
+    stations: [for (final i in idx) stations[i]],
+    boxes: [for (final i in idx) boxes[i]],
+    masks: masks.length == stations.length
+        ? [for (final i in idx) masks[i]]
+        : masks,
+  );
 }

@@ -105,6 +105,9 @@ void main() {
       );
       expect(answer.fallback, isTrue);
       expect(answer.links.length, items.length);
+      expect(answer.links[0], contains('apple'));
+      expect(answer.links[1], contains('hammer'));
+      expect(answer.links[0], isNot(equals(answer.links[1])));
     });
 
     test('no key falls back to the local template', () async {
@@ -116,6 +119,7 @@ void main() {
       expect(answer.fallback, isTrue);
       expect(answer.links.length, items.length);
       expect(answer.links.first, contains('apple'));
+      expect(answer.links[0], isNot(equals(answer.links[1])));
     });
   });
 }

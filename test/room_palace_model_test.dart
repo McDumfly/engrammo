@@ -58,4 +58,43 @@ void main() {
       'desk',
     );
   });
+
+  test('walkOrder sorts left to right with masks moving along', () {
+    final ordered = walkOrder(
+      const ['door', 'lamp', 'desk'],
+      const [
+        [0.7, 0.0, 0.2, 0.2],
+        [0.1, 0.0, 0.2, 0.2],
+        [0.4, 0.0, 0.2, 0.2],
+      ],
+      const ['m-door', 'm-lamp', 'm-desk'],
+    );
+    expect(ordered.stations, ['lamp', 'desk', 'door']);
+    expect(ordered.masks, ['m-lamp', 'm-desk', 'm-door']);
+  });
+
+  test('walkOrder passes lists through when boxes are missing', () {
+    final ordered = walkOrder(
+      const ['door', 'lamp'],
+      const <List<double>>[],
+      const <String>[],
+    );
+    expect(ordered.stations, ['door', 'lamp']);
+  });
+
+  test('localRecallAnswer is accent-, case- and hyphen-blind', () {
+    expect(
+      localRecallAnswer('golgi készülék', 'Golgi-készülék'),
+      RecallMatch.exact,
+    );
+  });
+
+  test('localRecallAnswer allows small typos', () {
+    expect(localRecallAnswer('mitokondrium', 'mitokondrim'), RecallMatch.typo);
+  });
+
+  test('localRecallAnswer rejects different meanings', () {
+    expect(localRecallAnswer('sejtmag', 'riboszóma'), RecallMatch.none);
+    expect(localRecallAnswer('apple', ''), RecallMatch.none);
+  });
 }

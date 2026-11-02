@@ -4227,14 +4227,9 @@ class _SamCoverPainter extends CustomPainter {
         _paintShape(canvas, cover, fill);
         _paintShape(canvas, cover, shade);
       } else {
-        final blob = RRect.fromRectAndRadius(
-          rect,
-          Radius.circular(
-            (min(rect.width, rect.height) * 0.30).clamp(12.0, 26.0),
-          ),
-        );
-        canvas.drawRRect(blob, fill);
-        canvas.drawRRect(blob, shade);
+        // Box-only geometry: a soft oval reads as organic, not a box.
+        canvas.drawOval(rect, fill);
+        canvas.drawOval(rect, shade);
       }
       if (i == cue) {
         final ring = RRect.fromRectAndRadius(rect, const Radius.circular(14));
@@ -4493,6 +4488,20 @@ class _MaskedPictureState extends State<MaskedPicture> {
         final side = min(constraints.maxWidth, 380.0);
         final w = side;
         final h = side;
+        // No stations (yet): the grid math below would divide by zero,
+        // so show just the picture with no covers or badges.
+        if (widget.objects.isEmpty) {
+          return Center(
+            child: SizedBox(
+              width: side,
+              height: side,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: _base(context, w, h),
+              ),
+            ),
+          );
+        }
         return Center(
           child: SizedBox(
             width: side,

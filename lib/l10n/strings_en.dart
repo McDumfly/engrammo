@@ -1822,7 +1822,12 @@ const Map<String, String> enStrings = {
   'room_items_too_few': 'Add at least 2 items.',
   'room_encode_btn': 'Build my palace',
   'room_encode_tip': 'Pause 3 seconds on each station and see the scene in your mind. Vivid, interacting images stick best.',
-  'room_link_fallback': 'Picture a giant {item} crashing onto the {station} — hear the crash, feel it shake.',
+  'room_link_fb_0': 'A glowing {item} spins on top of the {station} like a hat, humming softly.',
+  'room_link_fb_1': 'Open the {station}: thousands of tiny {item} pour out, warm and ticklish in your hands.',
+  'room_link_fb_2': 'The {station} sneezes and a cloud of {item} bursts across the room — smell it.',
+  'room_link_fb_3':
+      'A giant {item} hugs the {station} so tight that it squeaks.',
+  'room_link_fb_4': 'The {station} has turned into {item} — touch it: cold, sticky and buzzing.',
   'room_station_n': 'Station {n}: {name}',
   'room_dream_loading': 'Muse Image is painting this scene…',
   'room_walk_btn': "I'm ready — hide everything",
@@ -1840,4 +1845,11 @@ const Map<String, String> enStrings = {
   'room_review_btn': 'Review',
   'room_new_btn': 'New palace',
   'room_delete': 'Delete this palace?',
+  'room_correct_typo': 'Correct! Watch the spelling: {item}',
+  'room_accepted': 'Accepted — the exact item was: {item}',
+  'room_almost': 'Almost! It was: {item}',
+  'room_dream_retry': 'Paint again',
+  'room_blind_btn': 'Walk it in your head (no photo)',
+  'room_blind_tip':
+      'The real skill: picture your room and walk the stations from memory.',
 };

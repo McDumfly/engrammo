@@ -5,7 +5,6 @@ import 'package:image_picker/image_picker.dart';
 import '../l10n/app_localizations.dart';
 import '../models/fsrs_card.dart';
 import '../models/meta_image.dart';
-import '../models/palace_drill.dart' show matchRecallAnswer;
 import '../models/room_palace.dart';
 import '../services/app_feedback.dart';
 import '../services/memory_store.dart';
@@ -62,6 +61,8 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
   String _feedback = '';
   bool _feedbackGood = false;
   bool _awaitNext = false;
+  bool _judging = false;
+  bool _blind = false;
   bool _rescheduled = false;
   DateTime? _nextDue;
 
@@ -121,6 +122,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       _imageFailed = false;
       _coverVersion++;
       _palace = found;
+      _blind = false;
       _resetRecall();
       _rescheduled = false;
       _nextDue = null;
@@ -170,10 +172,18 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
   Future<void> _scan(String dataUrl, int token) async {
     final round = await MetaAIService.pictureRecallRound(
       seed: 'room:${DateTime.now().millisecondsSinceEpoch}',
-      count: 6,
+      count: 8,
       locale: AppLocalizations.localeCode,
       imageRefOverride: dataUrl,
-      sceneOverride: 'a real photo of the learner\'s own room or desk',
+      sceneOverride:
+          'a real photo of the learner\'s own room, used as a memory palace. '
+          'Name ONLY large, fixed, clearly separate landmarks a person would '
+          'walk past and that never move: furniture and fixtures such as '
+          'door, window, bed, desk, chair, shelf, wardrobe, cabinet, lamp, '
+          'radiator, mirror, plant pot, picture frame. NEVER name walls, '
+          'floor, ceiling, carpet, rug, curtains as a whole room surface, '
+          'shadows, or small loose items (remote, bottle, cup, pen, cable, '
+          'ball, phone, headphones)',
       onProgress: (p, stage) {
         if (!mounted || token != _token) return;
         setState(() {
@@ -186,10 +196,47 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     final aiOk =
         round.live && round.imageUrl == dataUrl && round.objects.length >= 2;
     if (aiOk) {
+      // Drop room surfaces and loose items, keep the first 6 landmarks.
+      const badBits = [
+        'wall',
+        'floor',
+        'ceiling',
+        'carpet',
+        'rug',
+        'fal',
+        'padló',
+        'plafon',
+        'szőnyeg',
+        'mennyezet',
+      ];
+      var stations = <String>[];
+      var boxes = <List<double>>[];
+      var masks = <String>[];
+      final aligned =
+          round.boxes.length == round.objects.length &&
+          round.masks.length == round.objects.length;
+      for (var i = 0; i < round.objects.length; i++) {
+        final low = round.objects[i].toLowerCase();
+        if (badBits.any(low.contains)) continue;
+        stations.add(round.objects[i]);
+        if (aligned) {
+          boxes.add(round.boxes[i]);
+          masks.add(round.masks[i]);
+        }
+        if (stations.length >= 6) break;
+      }
+      if (stations.length < 2) {
+        // Filtering ate everything: keep the first landmarks unfiltered
+        // so the flow never strands the learner on an empty list.
+        stations = round.objects.take(6).toList();
+        boxes = aligned ? round.boxes.take(6).toList() : <List<double>>[];
+        masks = aligned ? round.masks.take(6).toList() : <String>[];
+      }
+      final ordered = walkOrder(stations, boxes, masks);
       setState(() {
-        _stations = round.objects;
-        _boxes = round.boxes;
-        _masks = round.masks;
+        _stations = ordered.stations;
+        _boxes = ordered.boxes;
+        _masks = ordered.masks;
         _live = true;
         _coverVersion++;
         _step = _Step.items;
@@ -269,64 +316,125 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     }
   }
 
+  Future<void> _dreamOne(RoomPalace palace, int token, int i) async {
+    final link = i < palace.links.length ? palace.links[i] : palace.items[i];
+    final img = await MetaAIService.generateImage(
+      MetaImageRequest(
+        prompt: MetaAIService.roomDreamPrompt(
+          palace.stations[i],
+          palace.items[i],
+          link,
+        ),
+        style: 'room-dream',
+      ),
+      timeoutSec: 60,
+    );
+    if (!mounted || token != _token) return;
+    setState(() => _dreams[i] = img.fallback ? '' : img.url);
+  }
+
   Future<void> _startDreams(RoomPalace palace, int token) async {
     if (!palace.live) return;
-    for (var i = 0; i < palace.items.length; i++) {
+    for (var i = 0; i < palace.items.length; i += 2) {
       if (!mounted || token != _token) return;
-      final link = i < palace.links.length ? palace.links[i] : palace.items[i];
-      final img = await MetaAIService.generateImage(
-        MetaImageRequest(
-          prompt: MetaAIService.roomDreamPrompt(
-            palace.stations[i],
-            palace.items[i],
-            link,
-          ),
-          style: 'room-dream',
-        ),
-      );
-      if (!mounted || token != _token) return;
-      setState(() => _dreams[i] = img.fallback ? '' : img.url);
+      final pair = <Future<void>>[
+        _dreamOne(palace, token, i),
+        if (i + 1 < palace.items.length) _dreamOne(palace, token, i + 1),
+      ];
+      await Future.wait(pair);
     }
   }
 
-  void _check() {
+  Future<void> _retryDream(int i) async {
     final palace = _palace;
-    if (palace == null || _awaitNext) return;
+    if (palace == null) return;
+    final token = _token;
+    setState(() => _dreams.remove(i));
+    await _dreamOne(palace, token, i);
+  }
+
+  Future<void> _check() async {
+    final palace = _palace;
+    if (palace == null || _awaitNext || _judging) return;
     final items = palace.items;
     if (_cue < 0 || _cue >= items.length) return;
-    final others = {
-      for (var i = 0; i < items.length; i++)
-        if (i != _cue) i,
-    };
-    final hit = matchRecallAnswer(_guessCtrl.text, items, others);
-    if (hit == _cue) {
-      final correct = _correct + 1;
-      final revealed = {..._revealed, _cue};
-      final feedback = tr('room_correct', {'item': items[_cue]});
-      final last = _cue + 1 >= items.length;
-      setState(() {
-        _correct = correct;
-        _revealed = revealed;
-        _feedback = feedback;
-        _feedbackGood = true;
-        _guessCtrl.clear();
-        if (!last) {
-          _cue++;
-        }
-      });
-      if (last) {
-        setState(() => _step = _Step.result);
-        _finishRun();
-      }
+    final input = _guessCtrl.text;
+    if (input.trim().isEmpty) return;
+    final token = _token;
+    final cue = _cue;
+    final m = localRecallAnswer(items[cue], input);
+    if (m != RecallMatch.none) {
+      _markCorrect(
+        cue,
+        token,
+        feedback: tr(
+          m == RecallMatch.exact ? 'room_correct' : 'room_correct_typo',
+          {'item': items[cue]},
+        ),
+      );
       return;
     }
-    final elsewhere = matchRecallAnswer(_guessCtrl.text, items, {});
+    for (var i = 0; i < items.length; i++) {
+      if (i == cue) continue;
+      if (localRecallAnswer(items[i], input) != RecallMatch.none) {
+        setState(() {
+          _feedbackGood = false;
+          _feedback = tr('room_elsewhere', {'n': i + 1});
+        });
+        return;
+      }
+    }
+    setState(() => _judging = true);
+    final verdict = await MetaAIService.judgeRecall(
+      expected: items[cue],
+      answer: input,
+      locale: AppLocalizations.localeCode,
+    );
+    if (!mounted || token != _token) return;
+    setState(() => _judging = false);
+    if (cue != _cue || _awaitNext) return;
+    if (verdict == 'correct') {
+      _markCorrect(
+        cue,
+        token,
+        feedback: tr('room_accepted', {'item': items[cue]}),
+      );
+    } else if (verdict == 'close') {
+      setState(() {
+        _revealed = {..._revealed, cue};
+        _feedbackGood = false;
+        _feedback = tr('room_almost', {'item': items[cue]});
+        _awaitNext = true;
+      });
+    } else {
+      setState(() {
+        _feedbackGood = false;
+        _feedback = tr('room_wrong');
+      });
+    }
+  }
+
+  void _markCorrect(int cue, int token, {required String feedback}) {
+    final palace = _palace;
+    if (palace == null || !mounted || token != _token || cue != _cue) return;
+    final correct = _correct + 1;
+    final revealed = {..._revealed, cue};
+    final last = cue + 1 >= palace.items.length;
     setState(() {
-      _feedbackGood = false;
-      _feedback = elsewhere >= 0 && elsewhere != _cue
-          ? tr('room_elsewhere', {'n': elsewhere + 1})
-          : tr('room_wrong');
+      _correct = correct;
+      _revealed = revealed;
+      _feedback = feedback;
+      _feedbackGood = true;
+      _judging = false;
+      _guessCtrl.clear();
+      if (!last) {
+        _cue++;
+      }
     });
+    if (last) {
+      setState(() => _step = _Step.result);
+      _finishRun();
+    }
   }
 
   void _reveal() {
@@ -367,6 +475,8 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
   Future<void> _finishRun() async {
     final palace = _palace;
     if (palace == null || _rescheduled) return;
+    // A blind run is practice: no rescheduling, no save, still a result.
+    if (_blind) return;
     _rescheduled = true;
     final grade = roomGrade(_correct, palace.items.length);
     final card = FsrsScheduler.next(palace.card, grade);
@@ -493,6 +603,24 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     int cue = -1,
     bool showWalk = false,
   }) {
+    // No stations yet (or nothing survived filtering): a plain photo,
+    // never an empty MaskedPicture.
+    if (objects.isEmpty) {
+      return Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 380),
+          child: AspectRatio(
+            aspectRatio: 1,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: _imageFailed
+                  ? _wordFallback(objects)
+                  : AiImage(imageRef: imageUrl, fit: BoxFit.cover),
+            ),
+          ),
+        ),
+      );
+    }
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 380),
@@ -621,6 +749,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
                       _imageFailed = false;
                       _coverVersion++;
                       _palace = p;
+                      _blind = false;
                       _resetRecall();
                       _rescheduled = false;
                       _nextDue = null;
@@ -683,13 +812,19 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
   Widget _scanningStep() {
     return _page([
       _header(tr('room_title')),
-      _covers(
-        imageUrl: _photo,
-        objects: const [],
-        boxes: const [],
-        masks: const [],
-        revealed: const {},
-        masked: false,
+      Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 380),
+          child: AspectRatio(
+            aspectRatio: 1,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: _Pulse(
+                child: AiImage(imageRef: _photo, fit: BoxFit.cover),
+              ),
+            ),
+          ),
+        ),
       ),
       const SizedBox(height: 16),
       LinearProgressIndicator(value: _progress),
@@ -791,6 +926,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         onPressed: () {
           AppFeedback.light();
           setState(() {
+            _blind = false;
             _resetRecall();
             _rescheduled = false;
             _nextDue = null;
@@ -864,6 +1000,15 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
                   ),
                 ],
               ),
+            ] else if (dream != null && dream.isEmpty && palace.live) ...[
+              const SizedBox(height: 4),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: () => _retryDream(i),
+                  child: Text(tr('room_dream_retry')),
+                ),
+              ),
             ],
           ],
         ),
@@ -879,15 +1024,46 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     final done = _cue >= palace.items.length;
     return _page([
       _header(tr('room_title')),
-      _covers(
-        imageUrl: palace.imageRef,
-        objects: palace.items,
-        boxes: palace.boxes,
-        masks: palace.masks,
-        revealed: _revealed,
-        masked: true,
-        cue: done ? -1 : _cue,
-      ),
+      if (_blind && !done)
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: context.cardBg,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: context.hairline, width: 2),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                tr('room_blind_tip'),
+                style: TextStyle(color: context.mutedText, fontSize: 14),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                tr('room_station_n', {
+                  'n': _cue + 1,
+                  'name': palace.stations[_cue],
+                }),
+                style: TextStyle(
+                  color: context.inkText,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+              ),
+            ],
+          ),
+        )
+      else
+        _covers(
+          imageUrl: palace.imageRef,
+          objects: palace.items,
+          boxes: palace.boxes,
+          masks: palace.masks,
+          revealed: _revealed,
+          masked: true,
+          cue: done ? -1 : _cue,
+        ),
       const SizedBox(height: 12),
       if (!done) ...[
         Text(
@@ -931,6 +1107,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
               Expanded(
                 child: EngramButton(
                   label: tr('room_check_btn'),
+                  isLoading: _judging,
                   onPressed: () {
                     AppFeedback.light();
                     _check();
@@ -994,11 +1171,27 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       ],
       const SizedBox(height: 16),
       EngramButton(
+        label: tr('room_blind_btn'),
+        variant: EngramButtonVariant.secondary,
+        onPressed: () {
+          AppFeedback.light();
+          setState(() {
+            _blind = true;
+            _resetRecall();
+            _rescheduled = false;
+            _nextDue = null;
+            _step = _Step.recall;
+          });
+        },
+      ),
+      const SizedBox(height: 10),
+      EngramButton(
         label: tr('room_review_btn'),
         variant: EngramButtonVariant.secondary,
         onPressed: () {
           AppFeedback.light();
           setState(() {
+            _blind = false;
             _resetRecall();
             _step = _Step.recall;
           });
@@ -1010,5 +1203,36 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         onPressed: () => Navigator.of(context).pop(),
       ),
     ]);
+  }
+}
+
+/// Soft breathing fade for the photo while the room is being scanned.
+class _Pulse extends StatefulWidget {
+  final Widget child;
+  const _Pulse({required this.child});
+
+  @override
+  State<_Pulse> createState() => _PulseState();
+}
+
+class _PulseState extends State<_Pulse> with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  )..repeat(reverse: true);
+  late final Animation<double> _opacity = Tween(
+    begin: 0.6,
+    end: 1.0,
+  ).animate(_ctrl);
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(opacity: _opacity, child: widget.child);
   }
 }

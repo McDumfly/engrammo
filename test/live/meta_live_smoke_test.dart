@@ -86,6 +86,27 @@ void main() {
         expect(answer.fallback, isFalse);
       }, timeout: const Timeout(Duration(minutes: 2)));
 
+      test('English concepts are live', () async {
+        final c = http.Client();
+        MetaAIService.debugClearConceptCache();
+        final concepts = await MetaAIService.englishConcepts(
+          const ['komód', 'ablak'],
+          locale: 'hu',
+          client: c,
+          apiKeyOverride: _key,
+        );
+        c.close();
+        expect(concepts.length, 2);
+        for (final s in concepts) {
+          expect(s.trim(), isNotEmpty);
+          expect(
+            RegExp(r'^[\x00-\x7F]+$').hasMatch(s),
+            isTrue,
+            reason: 'not ASCII: $s',
+          );
+        }
+      }, timeout: const Timeout(Duration(minutes: 2)));
+
       test('Room palace links are live', () async {
         final c = http.Client();
         final answer = await MetaAIService.roomPalaceLinks(

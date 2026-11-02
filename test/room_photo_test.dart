@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 
 void main() {
-  test('squareJpegDataUrl center-crops to a 512x512 JPEG data URL', () {
+  test('squareJpegDataUrl center-crops to a 768x768 JPEG data URL', () {
     final png = Uint8List.fromList(
       img.encodePng(img.Image(width: 300, height: 200)),
     );
@@ -15,8 +15,8 @@ void main() {
     final payload = base64Decode(url.substring(url.indexOf(',') + 1));
     final back = img.decodeJpg(payload);
     expect(back, isNotNull);
-    expect(back!.width, 512);
-    expect(back.height, 512);
+    expect(back!.width, 768);
+    expect(back.height, 768);
   });
 
   test('squareJpegDataUrl throws on unreadable bytes', () {

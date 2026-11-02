@@ -10,7 +10,7 @@ bool get roomCameraSupported =>
     (defaultTargetPlatform == TargetPlatform.android ||
         defaultTargetPlatform == TargetPlatform.iOS);
 
-/// Picks a photo and returns a square 512x512 JPEG data URL, or null if the
+/// Picks a photo and returns a square 768x768 JPEG data URL, or null if the
 /// user cancelled. Square on purpose: the SAM cover painter maps normalized
 /// boxes 1:1 onto a square picture (see docs/RESEARCH.md section 15).
 Future<String?> pickRoomPhoto(ImageSource source) async {
@@ -25,13 +25,13 @@ Future<String?> pickRoomPhoto(ImageSource source) async {
   return compute(squareJpegDataUrl, bytes);
 }
 
-/// Center-crops to a square, resizes to 512 px and encodes as a JPEG data
+/// Center-crops to a square, resizes to 768 px and encodes as a JPEG data
 /// URL. Top-level so `compute` can run it off the UI isolate.
 String squareJpegDataUrl(Uint8List bytes) {
   final decoded = img.decodeImage(bytes);
   if (decoded == null) throw StateError('unreadable image');
   final upright = img.bakeOrientation(decoded);
-  final square = img.copyResizeCropSquare(upright, size: 512);
+  final square = img.copyResizeCropSquare(upright, size: 768);
   final jpg = img.encodeJpg(square, quality: 85);
   return 'data:image/jpeg;base64,${base64Encode(jpg)}';
 }
