@@ -123,7 +123,7 @@ képernyő → MetaAIService.generateTask/generateImage/segment
 
 - Valós végpontok ([Meta Model API](https://dev.meta.ai/docs), fix cím
   `https://api.meta.ai/v1`, `Bearer MODEL_API_KEY`, OpenAI-kompatibilis):
-  feladat `POST /chat/completions` (`muse-spark-1.3-contributor`,
+  feladat `POST /chat/completions` (`muse-spark-1.3`,
   `minimal` efforttal, bő `max_completion_tokens` kerettel — élő mérés:
   a null-alap ~900 gondolati tokent éget, a szerver kicsi alapkeretét
   pedig a gondolkodás feli, `content: null` + `finish_reason: length`

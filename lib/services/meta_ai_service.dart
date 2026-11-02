@@ -112,7 +112,7 @@ class PictureRecallRound {
 }
 
 class MetaAIService {
-  static const String taskModel = 'muse-spark-1.3-contributor';
+  static const String taskModel = 'muse-spark-1.3';
   static const String imageModel = 'muse-image-1.0';
   static const String segmentModel = 'sam-3.1';
 
@@ -404,7 +404,9 @@ class MetaAIService {
       for (final e in raw) {
         if (e.isEmpty) continue;
         try {
-          _calls.add(MetaCallEntry.fromJson(jsonDecode(e) as Map<String, dynamic>));
+          _calls.add(
+            MetaCallEntry.fromJson(jsonDecode(e) as Map<String, dynamic>),
+          );
         } catch (_) {}
       }
       if (_calls.length > logCap) {
@@ -1394,8 +1396,7 @@ class MetaAIService {
     // (https://dev.meta.ai/docs/sam/segmenting). Box/point prompts need
     // absolute media pixels, which the app never knows (it only holds
     // normalized fractions), so only the concept path is ever sent.
-    final concept =
-        req.concept.trim().isEmpty ? 'object' : req.concept.trim();
+    final concept = req.concept.trim().isEmpty ? 'object' : req.concept.trim();
     final ref = req.imageRef.trim();
     if (isImageRef(ref)) {
       return {
@@ -1450,8 +1451,9 @@ class MetaAIService {
     final maskHits = maskRe.allMatches(outputText).toList();
     // Every record pairs exactly one box with exactly one mask, box
     // first — pair them in wire order.
-    final n =
-        boxHits.length < maskHits.length ? boxHits.length : maskHits.length;
+    final n = boxHits.length < maskHits.length
+        ? boxHits.length
+        : maskHits.length;
     for (var i = 0; i < n; i++) {
       final f = fields(boxHits[i].group(1) ?? '');
       final x1 = num(f, 'x1');
@@ -1563,8 +1565,7 @@ class MetaAIService {
     }
     final cached = _segmentCache[_segmentCacheKey(req)];
     if (cached != null) return cached;
-    final concept =
-        req.concept.trim().isEmpty ? 'object' : req.concept.trim();
+    final concept = req.concept.trim().isEmpty ? 'object' : req.concept.trim();
     final c = client ?? http.Client();
     final owned = client == null;
     try {
@@ -2086,9 +2087,9 @@ class MetaAIService {
             // spotted boxes are only its per-object fallback.
             final boxes =
                 objects.length == seg.labels.length &&
-                        seg.boxes.length == seg.labels.length
-                    ? seg.boxes
-                    : const <List<double>>[];
+                    seg.boxes.length == seg.labels.length
+                ? seg.boxes
+                : const <List<double>>[];
             return seg.copyWith(labels: objects, boxes: boxes);
           }
         }
@@ -2171,10 +2172,12 @@ class MetaAIService {
         final nh = max(b[3] * 0.96, floor);
         final cx = b[0] + b[2] / 2 + dx * 0.06;
         final cy = b[1] + b[3] / 2 + dy * 0.06;
-        final next = cleanMaskBox(
-          [cx - nw / 2, cy - nh / 2, nw, nh],
-          minSide: floor,
-        );
+        final next = cleanMaskBox([
+          cx - nw / 2,
+          cy - nh / 2,
+          nw,
+          nh,
+        ], minSide: floor);
         if (next[0] == b[0] &&
             next[1] == b[1] &&
             next[2] == b[2] &&
@@ -2243,12 +2246,7 @@ class MetaAIService {
       } catch (_) {}
       best ??= positional
           ? fallbackBoxes[i]
-          : [
-              (i % cols) / cols,
-              (i ~/ cols) / rows,
-              1 / cols,
-              1 / rows,
-            ];
+          : [(i % cols) / cols, (i ~/ cols) / rows, 1 / cols, 1 / rows];
       out.add(cleanMaskBox(best));
       masks.add(mask);
       onItem?.call(i + 1, objects.length);
@@ -2375,8 +2373,7 @@ class MetaAIService {
         client: client,
         apiKeyOverride: apiKeyOverride,
         baseUrlOverride: baseUrlOverride,
-        onItem: (done, total) =>
-            report(0.55 + 0.4 * done / total, 'sam'),
+        onItem: (done, total) => report(0.55 + 0.4 * done / total, 'sam'),
       );
       report(1.0, 'done');
       return PictureRecallRound(
@@ -3322,7 +3319,10 @@ class MetaAIService {
     String? apiKeyOverride,
     String? baseUrlOverride,
   }) async {
-    Future<GoalAnalysisAnswer> local({required bool success, String note = ''}) async {
+    Future<GoalAnalysisAnswer> local({
+      required bool success,
+      String note = '',
+    }) async {
       final answer = GoalAnalysisAnswer(
         analysis: localGoalAnalysis(
           title: title,
@@ -4128,7 +4128,10 @@ class MetaAIService {
     String? apiKeyOverride,
     String? baseUrlOverride,
   }) async {
-    Future<WordBatchAnswer> local({required bool success, String note = ''}) async {
+    Future<WordBatchAnswer> local({
+      required bool success,
+      String note = '',
+    }) async {
       final banned = {for (final w in avoid) w.trim().toLowerCase()};
       final pool = [
         for (final w in allConcreteNounsFor(locale))
@@ -4429,7 +4432,10 @@ class MetaAIService {
     String? apiKeyOverride,
     String? baseUrlOverride,
   }) async {
-    Future<WonderPreviewAnswer> local({required bool success, String note = ''}) async {
+    Future<WonderPreviewAnswer> local({
+      required bool success,
+      String note = '',
+    }) async {
       final answer = WonderPreviewAnswer(
         viewpoints: [for (final s in stations) localWonderCaption(s, locale)],
         fallback: true,

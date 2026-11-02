@@ -30,7 +30,7 @@ void main() {
     });
 
     test('valós modellnevek', () {
-      expect(MetaAIService.taskModel, 'muse-spark-1.3-contributor');
+      expect(MetaAIService.taskModel, 'muse-spark-1.3');
       expect(MetaAIService.imageModel, 'muse-image-1.0');
       expect(MetaAIService.segmentModel, 'sam-3.1');
     });
@@ -41,7 +41,7 @@ void main() {
 
     test('kérés törzse chat-completions formátum', () {
       final body = MetaAIService.taskRequestBody(req);
-      expect(body['model'], 'muse-spark-1.3-contributor');
+      expect(body['model'], 'muse-spark-1.3');
       expect(body['reasoning_effort'], 'minimal');
       expect(body['max_completion_tokens'], 3000);
       expect(body.containsKey('max_tokens'), isFalse);
@@ -59,7 +59,7 @@ void main() {
       );
       expect(task, isNotNull);
       expect(task!.fallback, isFalse);
-      expect(task.model, 'muse-spark-1.3-contributor');
+      expect(task.model, 'muse-spark-1.3');
       expect(task.correct, 2);
       expect(task.paradigm, 'chunk-span');
     });
@@ -235,9 +235,9 @@ void main() {
       final item = input.first as Map;
       expect(item['type'], 'message');
       final content = item['content'] as List;
-      final text = content
-          .whereType<Map>()
-          .firstWhere((e) => e['type'] == 'input_text')['text'];
+      final text = content.whereType<Map>().firstWhere(
+        (e) => e['type'] == 'input_text',
+      )['text'];
       // Egy rövid főnévi fogalom — nincs JSON-utasítás, nincs kérdés.
       expect(text, 'oak door');
       expect(
@@ -314,10 +314,7 @@ void main() {
         isNull,
       );
       expect(
-        MetaAIService.parseSegmentOutput({
-          'status': 'failed',
-          'output': [],
-        }),
+        MetaAIService.parseSegmentOutput({'status': 'failed', 'output': []}),
         isNull,
       );
       // Szöveges sáv, de nem geometria-nyelvtan.
@@ -428,14 +425,14 @@ void main() {
       final input = body['input'] as List;
       final content = ((input.first as Map)['content'] as List);
       expect(
-        content.any(
-          (e) => e is Map && e['type'] == 'input_image',
-        ),
+        content.any((e) => e is Map && e['type'] == 'input_image'),
         isTrue,
       );
-      final text = content
-          .whereType<Map>()
-          .firstWhere((e) => e['type'] == 'input_text')['text'] as String;
+      final text =
+          content.whereType<Map>().firstWhere(
+                (e) => e['type'] == 'input_text',
+              )['text']
+              as String;
       expect(text, contains('0-1000'));
       expect(text, contains('JSON array'));
     });

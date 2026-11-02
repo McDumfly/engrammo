@@ -55,7 +55,7 @@ The app places live Meta Model API calls at runtime
 (base URL `https://api.meta.ai/v1`, overridable via
 `META_API_BASE_URL`):
 
-- **Muse Spark** (`muse-spark-1.3-contributor`, with
+- **Muse Spark** (`muse-spark-1.3`, with
   `minimal` effort for fast answers) provides every
   lesson round's stimulus, every practice game's stimulus,
   the personalized technique explanation, the forgetting

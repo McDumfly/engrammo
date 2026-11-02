@@ -62,15 +62,12 @@ void main() {
       final body = MetaAIService.coachRequestBody(
         question: 'What do I do here?',
       );
-      expect(body['model'], 'muse-spark-1.3-contributor');
+      expect(body['model'], 'muse-spark-1.3');
       expect(body['reasoning_effort'], 'minimal');
       expect(body['max_completion_tokens'], 1000);
       expect(body.containsKey('max_tokens'), isFalse);
       final messages = body['messages'] as List;
-      expect(
-        messages[0]['content'] as String,
-        contains('at most 4 sentences'),
-      );
+      expect(messages[0]['content'] as String, contains('at most 4 sentences'));
     });
   });
 
@@ -103,11 +100,7 @@ void main() {
       for (final g in ['heyyy', 'hello']) {
         final answer = MetaAIService.localCoachAnswer(g);
         expect(answer, contains('coach'), reason: g);
-        expect(
-          answer,
-          isNot(contains('what is unclear')),
-          reason: g,
-        );
+        expect(answer, isNot(contains('what is unclear')), reason: g);
       }
     });
 
@@ -271,7 +264,10 @@ void main() {
             'choices': [
               {
                 'finish_reason': 'stop',
-                'message': {'content': 'Elo valasz egybol', 'role': 'assistant'},
+                'message': {
+                  'content': 'Elo valasz egybol',
+                  'role': 'assistant',
+                },
               },
             ],
           }),
@@ -290,9 +286,11 @@ void main() {
 
   Future<void> tapQuick(WidgetTester tester, String label) async {
     final row = find.byKey(const ValueKey('ai-help-quick-row'));
-    for (var i = 0;
-        i < 10 && find.text(label).hitTestable().evaluate().isEmpty;
-        i++) {
+    for (
+      var i = 0;
+      i < 10 && find.text(label).hitTestable().evaluate().isEmpty;
+      i++
+    ) {
       await tester.drag(row, const Offset(-200, 0));
       await tester.pumpAndSettle();
     }
@@ -378,9 +376,14 @@ void main() {
   });
 
   group('coach üzenetformázás', () {
-    Future<void> openSheet(WidgetTester tester, {String topic = 'general'}) async {
+    Future<void> openSheet(
+      WidgetTester tester, {
+      String topic = 'general',
+    }) async {
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: AiHelpButton(topic: topic))),
+        MaterialApp(
+          home: Scaffold(body: AiHelpButton(topic: topic)),
+        ),
       );
       await tester.tap(find.byKey(const ValueKey('ai-help-open')));
       await tester.pumpAndSettle();
@@ -393,7 +396,8 @@ void main() {
         'ai_help_history_v1_general': jsonEncode([
           {
             'mine': false,
-            'text': 'This is **Engrammo** — *great*!\n'
+            'text':
+                'This is **Engrammo** — *great*!\n'
                 '* First item\n'
                 '* Second item',
             'offline': false,

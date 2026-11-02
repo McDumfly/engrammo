@@ -32,7 +32,7 @@ Settings → Meta AI → recent calls.
 
 | Model | Where it shows in the demo |
 | --- | --- |
-| Muse Spark (`muse-spark-1.3-contributor`) | Lesson/practice stimuli, technique teaching, forgetting diagnosis, personal tasks from own material, post-lesson/duel recaps; vision spotting reads pictures into stations |
+| Muse Spark (`muse-spark-1.3`) | Lesson/practice stimuli, technique teaching, forgetting diagnosis, personal tasks from own material, post-lesson/duel recaps; vision spotting reads pictures into stations |
 | Muse Image (`muse-image-1.0`) | Palace illustration, visual-scene image, lesson art, endless unique picture-recall rounds |
 | SAM 3.1 (`sam-3.1`) | Locates the lead station/object in palace/picture images (geometry; names come from Spark spotting) |
 | Wonder (`muse-wonder-1.0`) | Spatial route preview from a second viewpoint |
