@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:engrammo/models/meta_image.dart';
 import 'package:engrammo/models/meta_task.dart';
 import 'package:engrammo/services/meta_ai_service.dart';
+import 'package:engrammo/services/session_coach.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -123,6 +124,25 @@ void main() {
         );
         expect(answer.links.length, 2);
       }, timeout: const Timeout(Duration(minutes: 2)));
+
+      test('Session Coach plans a live session', () async {
+        final c = http.Client();
+        final result = await SessionCoach.plan(
+          snapshot: const CoachSnapshot(
+            palaces: [(id: 'room:live', name: 'desk · lamp', dueInDays: 0)],
+            pathLessonsDue: 1,
+            leastPracticedGame: 'sequence',
+            dominantTrack: 'spatial',
+            streak: 2,
+            goalTitles: ['exam'],
+          ),
+          client: c,
+          apiKeyOverride: _key,
+        );
+        c.close();
+        expect(result.live, isTrue, reason: MetaAIService.lastCalls.first.note);
+        expect(result.trace.where((s) => s.kind == 'tool'), isNotEmpty);
+      }, timeout: const Timeout(Duration(minutes: 3)));
     },
   );
 }

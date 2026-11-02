@@ -721,6 +721,66 @@ class MetaAIService {
     }
   }
 
+  /// Raw Chat Completions call for the session-coach agent loop. Returns
+  /// the decoded body; throws StateError on no key / HTTP error / bad JSON
+  /// so the caller can fall back to the local planner. Logs one entry.
+  static Future<Map<String, dynamic>> agentChat(
+    Map<String, dynamic> body, {
+    required String kind,
+    http.Client? client,
+    String? apiKeyOverride,
+    String? baseUrlOverride,
+    int timeoutSec = 20,
+  }) async {
+    final key = await _liveKey(apiKeyOverride);
+    if (key.isEmpty) throw StateError('no key or no consent');
+    final base = resolveBaseUrl(baseUrlOverride);
+    final c = client ?? http.Client();
+    final owned = client == null;
+    try {
+      final res = await _postChat(
+        c,
+        base: base,
+        key: key,
+        body: body,
+        timeoutSec: timeoutSec,
+      );
+      if (res.statusCode < 200 || res.statusCode >= 300) {
+        throw StateError('HTTP ${res.statusCode}: ${_snip(res.body)}');
+      }
+      final data = jsonDecode(res.body);
+      if (data is! Map<String, dynamic>) throw StateError('non-object body');
+      await _log(
+        MetaCallEntry(
+          model: body['model'] as String? ?? taskModel,
+          kind: kind,
+          at: DateTime.now(),
+          success: true,
+          fallback: false,
+        ),
+      );
+      return data;
+    } catch (e) {
+      await _log(
+        MetaCallEntry(
+          model: body['model'] as String? ?? taskModel,
+          kind: kind,
+          at: DateTime.now(),
+          success: false,
+          fallback: true,
+          note: e.toString(),
+        ),
+      );
+      rethrow;
+    } finally {
+      if (owned) c.close();
+    }
+  }
+
+  /// Model for the tool-calling coach: the same Standard-mode Spark as
+  /// tasks (muse-spark-1.3, not used for training: goal titles go in).
+  static const String agentModel = taskModel;
+
   static Future<MetaTask> generateTask(
     MetaTaskRequest req, {
     http.Client? client,

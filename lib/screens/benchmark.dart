@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/ai_help_button.dart';
 import '../widgets/ai_image.dart';
 import '../widgets/app_buttons.dart';
+import '../widgets/session_coach_card.dart';
 import '../l10n/app_localizations.dart';
 import '../models/meta_task.dart';
 import '../models/sam_mask.dart'
@@ -672,8 +673,36 @@ final _games = <_GameDef>[
   ),
 ];
 
+/// Opens one practice game exactly as the hub card does.
+Future<void> openPracticeGame(BuildContext context, String gameId) async {
+  final g = _games.firstWhere(
+    (d) => d.id == gameId,
+    orElse: () => _games.first,
+  );
+  AppFeedback.light();
+  await Navigator.of(context).push(
+    MaterialPageRoute(
+      builder: (_) => BenchmarkDetailPage(
+        gameId: g.id,
+        title: g.titleIn(AppLocalizations.localeCode),
+        subtitle: g.subtitleIn(AppLocalizations.localeCode),
+        tint: g.tint,
+        bestLabel: g.bestLabelIn(AppLocalizations.localeCode),
+        higherIsBetter: true,
+        best: BenchmarkStore.best[g.id],
+        attempts: List.of(BenchmarkStore.attempts[g.id] ?? const <int>[]),
+        buildGame: g.build,
+        loadBest: () => BenchmarkStore.best[g.id],
+        loadAttempts: () =>
+            List.of(BenchmarkStore.attempts[g.id] ?? const <int>[]),
+      ),
+    ),
+  );
+}
+
 class BenchmarkHubPage extends StatefulWidget {
-  const BenchmarkHubPage({super.key});
+  final VoidCallback? onGoHome;
+  const BenchmarkHubPage({super.key, this.onGoHome});
 
   @override
   State<BenchmarkHubPage> createState() => _BenchmarkHubPageState();
@@ -728,6 +757,8 @@ class _BenchmarkHubPageState extends State<BenchmarkHubPage> {
             const SizedBox(height: 16),
             _RoomPalaceHeroCard(onTap: _openRoomPalace),
             const SizedBox(height: 12),
+            SessionCoachCard(onGoHome: widget.onGoHome),
+            const SizedBox(height: 12),
             if (!BenchmarkStore.loaded)
               const Center(
                 child: Padding(
@@ -739,28 +770,7 @@ class _BenchmarkHubPageState extends State<BenchmarkHubPage> {
               _BenchmarkCard(
                 def: g,
                 onTap: () async {
-                  AppFeedback.light();
-                  await Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => BenchmarkDetailPage(
-                        gameId: g.id,
-                        title: g.titleIn(AppLocalizations.localeCode),
-                        subtitle: g.subtitleIn(AppLocalizations.localeCode),
-                        tint: g.tint,
-                        bestLabel: g.bestLabelIn(AppLocalizations.localeCode),
-                        higherIsBetter: true,
-                        best: BenchmarkStore.best[g.id],
-                        attempts: List.of(
-                          BenchmarkStore.attempts[g.id] ?? const <int>[],
-                        ),
-                        buildGame: g.build,
-                        loadBest: () => BenchmarkStore.best[g.id],
-                        loadAttempts: () => List.of(
-                          BenchmarkStore.attempts[g.id] ?? const <int>[],
-                        ),
-                      ),
-                    ),
-                  );
+                  await openPracticeGame(context, g.id);
                   if (mounted) setState(() {});
                 },
               ),

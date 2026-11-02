@@ -278,7 +278,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
         _flowView(),
         const BrainLeaguePage(),
         const BattleZoneView(),
-        const BenchmarkHubPage(),
+        BenchmarkHubPage(onGoHome: () => setState(() => _tab = 0)),
         const KreedsProfilePage(),
       ],
     );
