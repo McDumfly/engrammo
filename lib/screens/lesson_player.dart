@@ -2408,6 +2408,12 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
                 ],
               ),
             ),
+            const SizedBox(height: 16),
+            EngramButton(
+              key: const ValueKey('lesson-continue'),
+              label: tr('lp_continue'),
+              onPressed: () => Navigator.of(context).pop(true),
+            ),
             if (_recapText.isNotEmpty) ...[
               const SizedBox(height: 16),
               _aiRecapCard(),
@@ -2416,12 +2422,6 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
               const SizedBox(height: 16),
               _missedCard(),
             ],
-            const SizedBox(height: 16),
-            EngramButton(
-              key: const ValueKey('lesson-continue'),
-              label: tr('lp_continue'),
-              onPressed: () => Navigator.of(context).pop(true),
-            ),
             const SizedBox(height: 16),
             Container(
               decoration: BoxDecoration(
@@ -2529,6 +2529,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
             EngramButton(
               key: const ValueKey('lesson-missed-diagnose'),
               label: tr('lp_missed_button'),
+              variant: EngramButtonVariant.secondary,
               isLoading: _missedBusy,
               onPressed: _missedBusy ? null : _runMissedDiagnose,
             ),

@@ -638,7 +638,6 @@ class _LearningPathPageState extends State<LearningPathPage> {
     final chapLocked = _chapterLocked(_progress, order, pos);
     const offsets = [0.0, -64.0, 64.0, 0.0];
     final body = <Widget>[];
-    var station = 0;
     _staggerIndex = 0;
 
     body.add(
@@ -734,14 +733,13 @@ class _LearningPathPageState extends State<LearningPathPage> {
           chapter.sections,
         );
         if (active) {
-          station++;
           body.add(
             Container(
               key: _nowKey,
               child: _staggerIn(
                 _stationNow(
                   offset: offset,
-                  number: station,
+                  number: l + 1,
                   title: lessonTitleIn(
                     AppLocalizations.localeCode,
                     chapterIdx,
@@ -757,12 +755,11 @@ class _LearningPathPageState extends State<LearningPathPage> {
           );
           continue;
         }
-        station++;
         body.add(
           _staggerIn(
             _stationTodo(
               offset: offset,
-              number: station,
+              number: l + 1,
               title: lessonTitleIn(
                 AppLocalizations.localeCode,
                 chapterIdx,

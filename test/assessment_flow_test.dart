@@ -7,11 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   Future<void> scrollSeek(WidgetTester tester, Finder target) async {
     if (target.evaluate().isEmpty) {
-      await tester.scrollUntilVisible(
-        target,
-        200,
-        maxScrolls: 20,
-      );
+      await tester.scrollUntilVisible(target, 200, maxScrolls: 20);
       await tester.pumpAndSettle();
     } else {
       await tester.ensureVisible(target);
@@ -23,11 +19,7 @@ void main() {
     final cont = find.text('Continue to question');
     if (cont.evaluate().isEmpty) {
       try {
-        await tester.scrollUntilVisible(
-          cont,
-          200,
-            maxScrolls: 20,
-        );
+        await tester.scrollUntilVisible(cont, 200, maxScrolls: 20);
         await tester.pumpAndSettle();
       } on StateError {
         return;
@@ -86,9 +78,7 @@ void main() {
     WidgetTester tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
-    await tester.pumpWidget(
-      const MaterialApp(home: MemoryAssessmentPage()),
-    );
+    await tester.pumpWidget(const MaterialApp(home: MemoryAssessmentPage()));
     await tester.pumpAndSettle();
 
     expect(find.text('Memory assessment 1/13'), findsOneWidget);
@@ -108,22 +98,13 @@ void main() {
       find.text('Hold these digits — the direction comes next!'),
       findsOneWidget,
     );
-    expect(
-      find.textContaining(RegExp(r'[Rr]evers')),
-      findsNothing,
-    );
-    expect(
-      find.textContaining(RegExp(r'[Ff]orward')),
-      findsNothing,
-    );
+    expect(find.textContaining(RegExp(r'[Rr]evers')), findsNothing);
+    expect(find.textContaining(RegExp(r'[Ff]orward')), findsNothing);
     await revealIfNeeded(tester);
-    expect(find.text('Type the order REVERSED.'), findsOneWidget);
+    expect(find.text('Type the order reversed.'), findsOneWidget);
     expect(find.text('Type the digits'), findsOneWidget);
     expect(find.textContaining('8-1-4'), findsNothing);
-    await tester.enterText(
-      find.byKey(const ValueKey('recall-input')),
-      '8 1 4',
-    );
+    await tester.enterText(find.byKey(const ValueKey('recall-input')), '8 1 4');
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey('recall-check')));
     await tapContinue(tester);
@@ -132,16 +113,10 @@ void main() {
       find.text('Five digits — the direction comes next, hold them all!'),
       findsOneWidget,
     );
-    expect(
-      find.textContaining(RegExp(r'[Rr]evers')),
-      findsNothing,
-    );
-    expect(
-      find.textContaining(RegExp(r'[Ff]orward')),
-      findsNothing,
-    );
+    expect(find.textContaining(RegExp(r'[Rr]evers')), findsNothing);
+    expect(find.textContaining(RegExp(r'[Ff]orward')), findsNothing);
     await revealIfNeeded(tester);
-    expect(find.text('Type the full order FORWARD.'), findsOneWidget);
+    expect(find.text('Type the full order forward.'), findsOneWidget);
     expect(find.textContaining('3-9-1-6-2'), findsNothing);
     await tester.enterText(
       find.byKey(const ValueKey('recall-input')),
@@ -151,10 +126,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('recall-check')));
     await tapContinue(tester);
 
-    expect(
-      find.text('Watch the tiles light up — 3 in order!'),
-      findsOneWidget,
-    );
+    expect(find.text('Watch the tiles light up — 3 in order!'), findsOneWidget);
     expect(find.byKey(const ValueKey('corsi-stimulus-cell-0')), findsOneWidget);
     expect(find.text('1'), findsNothing);
     expect(find.text('2'), findsNothing);
