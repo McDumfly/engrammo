@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
@@ -136,9 +138,15 @@ class _AuthScreenState extends State<AuthScreen> {
       body: ListenableBuilder(
         listenable: authService,
         builder: (context, _) => SafeArea(
-          child: Center(
+          child: Align(
+            alignment: Alignment.topCenter,
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+              padding: EdgeInsets.fromLTRB(
+                24,
+                max(24, MediaQuery.sizeOf(context).height * 0.10),
+                24,
+                32,
+              ),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 420),
                 child: Column(
