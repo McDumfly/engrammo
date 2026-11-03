@@ -11,6 +11,7 @@ import '../services/app_feedback.dart';
 import '../services/memory_store.dart';
 import '../services/meta_ai_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/app_tokens.dart';
 import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
 import '../widgets/app_kit.dart';
@@ -243,152 +244,169 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
                   ],
                 ),
               )
-            : ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: blue.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                    child: Text(
-                      tr(q.hintKey),
-                      style: TextStyle(
-                        color: context.accentText(blueDark),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
+            : AnimatedSwitcher(
+                duration: const Duration(milliseconds: 260),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeOutCubic,
+                transitionBuilder: (child, animation) {
+                  final curved = CurvedAnimation(
+                    parent: animation,
+                    curve: Curves.easeOutCubic,
+                  );
+                  return FadeTransition(
+                    opacity: curved,
+                    child: AnimatedBuilder(
+                      animation: curved,
+                      child: child,
+                      builder: (context, child) => Transform.translate(
+                        offset: Offset(0, 16 * (1 - curved.value)),
+                        child: child,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    tr(q.promptKey),
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                      height: 1.35,
+                  );
+                },
+                child: ListView(
+                  key: ValueKey(_step),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: blue.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: Text(
+                        tr(q.hintKey),
+                        style: TextStyle(
+                          color: context.accentText(blueDark),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
                     ),
-                  ),
-                  if (q.constructKey.isNotEmpty) ...[
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 12),
                     Text(
-                      '${tr(q.constructKey)} · ${tr(q.sourceKey)}',
-                      style: TextStyle(
-                        color: context.mutedText,
-                        fontStyle: FontStyle.italic,
-                        fontSize: 12,
-                      ),
+                      tr(q.promptKey),
+                      style: AppText.title.copyWith(color: context.inkText),
                     ),
-                  ],
-                  const SizedBox(height: 16),
-                  for (var i = 0; i < q.options.length; i++)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: GestureDetector(
-                        onTap: () {
-                          AppFeedback.light();
-                          setState(() => _picked[_step] = i);
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 13,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _picked[_step] == i
-                                ? blue.withValues(alpha: 0.12)
-                                : context.cardBg,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: _picked[_step] == i
-                                  ? blue
-                                  : context.hairline,
-                              width: 2,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  tr(q.options[i].labelKey),
-                                  style: TextStyle(
-                                    color: context.inkText,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                              ),
-                              if (_picked[_step] == i)
-                                const HugeIcon(
-                                  icon:
-                                      HugeIcons.strokeRoundedCheckmarkCircle02,
-                                  color: blue,
-                                  size: 22,
-                                  strokeWidth: 2.2,
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 8),
-                  Text(
-                    tr('assess_own_words'),
-                    style: TextStyle(
-                      color: context.mutedText,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  AppTextField(
-                    controller: _customs[_step],
-                    maxLines: 3,
-                    minLines: 1,
-                    autocorrect: false,
-                    textCapitalization: TextCapitalization.none,
-                    hint: tr('assess_example'),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      if (_step > 0)
-                        Expanded(
-                          child: EngramButton(
-                            variant: EngramButtonVariant.secondary,
-                            height: 52,
-                            onPressed: () {
-                              AppFeedback.light();
-                              setState(() => _step--);
-                            },
-                            label: tr('assess_back'),
-                          ),
-                        ),
-                      if (_step > 0) const SizedBox(width: 8),
-                      Expanded(
-                        flex: 2,
-                        child: EngramButton(
-                          label: _step + 1 < interviewQuestions.length
-                              ? tr('common_next')
-                              : tr('assess_analyze'),
-                          onPressed: () {
-                            AppFeedback.medium();
-                            if (_step + 1 < interviewQuestions.length) {
-                              setState(() => _step++);
-                            } else {
-                              _analyze();
-                            }
-                          },
+                    if (q.constructKey.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        '${tr(q.constructKey)} · ${tr(q.sourceKey)}',
+                        style: TextStyle(
+                          color: context.mutedText,
+                          fontStyle: FontStyle.italic,
+                          fontSize: 12,
                         ),
                       ),
                     ],
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    for (var i = 0; i < q.options.length; i++)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Tappable(
+                          onTap: () => setState(() => _picked[_step] = i),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            curve: Curves.easeOutCubic,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 13,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _picked[_step] == i
+                                  ? blue.withValues(alpha: 0.12)
+                                  : context.cardBg,
+                              borderRadius: BorderRadius.circular(AppRadius.l),
+                              border: Border.all(
+                                color: _picked[_step] == i
+                                    ? blue
+                                    : context.hairline,
+                                width: 2,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    tr(q.options[i].labelKey),
+                                    style: TextStyle(
+                                      color: context.inkText,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ),
+                                if (_picked[_step] == i)
+                                  const HugeIcon(
+                                    icon: HugeIcons
+                                        .strokeRoundedCheckmarkCircle02,
+                                    color: blue,
+                                    size: 22,
+                                    strokeWidth: 2.2,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 8),
+                    Text(
+                      tr('assess_own_words'),
+                      style: TextStyle(
+                        color: context.mutedText,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    AppTextField(
+                      controller: _customs[_step],
+                      maxLines: 3,
+                      minLines: 1,
+                      autocorrect: false,
+                      textCapitalization: TextCapitalization.none,
+                      hint: tr('assess_example'),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        if (_step > 0)
+                          Expanded(
+                            child: EngramButton(
+                              variant: EngramButtonVariant.secondary,
+                              height: 52,
+                              onPressed: () {
+                                AppFeedback.light();
+                                setState(() => _step--);
+                              },
+                              label: tr('assess_back'),
+                            ),
+                          ),
+                        if (_step > 0) const SizedBox(width: 8),
+                        Expanded(
+                          flex: 2,
+                          child: EngramButton(
+                            label: _step + 1 < interviewQuestions.length
+                                ? tr('common_next')
+                                : tr('assess_analyze'),
+                            onPressed: () {
+                              AppFeedback.medium();
+                              if (_step + 1 < interviewQuestions.length) {
+                                setState(() => _step++);
+                              } else {
+                                _analyze();
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
       ),
     );

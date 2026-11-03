@@ -209,6 +209,8 @@ void main() {
       );
       await tester.pumpAndSettle();
       for (var i = 1; i < interviewQuestions.length; i++) {
+        await tester.drag(find.byType(ListView), const Offset(0, -300));
+        await tester.pumpAndSettle();
         await tester.ensureVisible(find.text('Next'));
         await tester.pumpAndSettle();
         await tester.tap(find.text('Next'));
@@ -218,6 +220,8 @@ void main() {
 
     testWidgets('live key without consent asks before analyze', (tester) async {
       await openInterview(tester);
+      await tester.drag(find.byType(ListView), const Offset(0, -300));
+      await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Analyze me'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Analyze me'));
@@ -227,6 +231,8 @@ void main() {
 
     testWidgets('stay offline proceeds with local verdict', (tester) async {
       await openInterview(tester);
+      await tester.drag(find.byType(ListView), const Offset(0, -300));
+      await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Analyze me'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Analyze me'));
