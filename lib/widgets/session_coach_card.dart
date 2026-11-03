@@ -359,6 +359,24 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
     );
   }
 
+  /// "How this plan was made": the finished trace, folded. Shown above
+  /// the plan button while idle, below "Plan again" once finished.
+  Widget _traceDisclosure() {
+    return AppDisclosure(
+      title: Text(
+        tr('coach_trace_title'),
+        style: AppText.caption.copyWith(
+          fontWeight: FontWeight.w600,
+          color: context.mutedText,
+        ),
+      ),
+      children: [
+        for (var i = 0; i < _trace.length; i++)
+          Align(alignment: Alignment.centerLeft, child: _detailRow(i)),
+      ],
+    );
+  }
+
   Widget _itemRow(CoachItem item, int i) {
     final icon = switch (item.type) {
       CoachItemType.roomReview => HugeIcons.strokeRoundedCamera01,
@@ -536,22 +554,9 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
                             _timelineRow(i),
                       ],
                     )
-                  : AppDisclosure(
-                      title: Text(
-                        tr('coach_trace_title'),
-                        style: AppText.caption.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: context.mutedText,
-                        ),
-                      ),
-                      children: [
-                        for (var i = 0; i < _trace.length; i++)
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: _detailRow(i),
-                          ),
-                      ],
-                    ),
+                  : result == null
+                  ? _traceDisclosure()
+                  : const SizedBox.shrink(),
             ),
           if (!_running && result == null) ...[
             EngramButton(label: tr('coach_build_btn'), onPressed: _start),
@@ -575,6 +580,8 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
                 onPressed: _start,
               ),
             ),
+            const SizedBox(height: 12),
+            _traceDisclosure(),
             const SizedBox(height: 16),
           ],
         ],
