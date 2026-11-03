@@ -2107,6 +2107,8 @@ class _ScanStageState extends State<_ScanStage>
           Expanded(
             child: Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: AppText.body.copyWith(
                 color: isActive ? context.inkText : context.mutedText,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,

@@ -1032,7 +1032,7 @@ Widget _gameScaffold({
   );
 }
 
-/// Lumosity-trap guard for practice games. Drills alone improve mostly
+/// Brain-game-trap guard for practice games. Drills alone improve mostly
 /// the drilled screen (Simons et al. 2016; Owen et al. 2010) — durable
 /// daily-life skill comes from the SAME procedure on the user's OWN
 /// material (Dresler et al. 2017; Dunlosky et al. 2013). This card names
