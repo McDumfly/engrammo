@@ -1822,6 +1822,7 @@ const Map<String, String> huStrings = {
       'nincs AI-kulcs — add meg a Beállítások → Meta AI alatt, {tail}',
   'ai_note_consent_off': 'a felhő-AI ki van kapcsolva (Beállítások → Felhő-AI elemzés engedélyezése), {tail}',
   'ai_recap_title': 'AI-összegzés',
+  'lp_recap_local': 'Összegzés',
   'ai_recap_good': '{correct} találat {total}-ból, {track} területen — erős menet. Következő lépés: egy fokkal nehezebb, és este idézd fel még egyszer.',
   'ai_recap_mid': '{correct} találat {total}-ból, {track} területen. Szép középút: a hibázottakat most játszd vissza, holnap pedig idézd fel újra.',
   'ai_recap_low': '{correct} találat {total}-ból, {track} területen — a kezdet is számít. Következő lépés: egy könnyebb kör lassan, este pedig ugyanazok felidézése.',

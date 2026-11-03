@@ -542,6 +542,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
   DynamicTask? _ownDynamic;
   List<UserGoal> _userGoals = const [];
   String _recapText = '';
+  bool _recapLive = false;
   String _missedText = '';
   bool _missedBusy = false;
 
@@ -890,6 +891,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       _gainEngrams = 0;
       _streakNow = 0;
       _recapText = '';
+      _recapLive = false;
       _missedText = '';
       _missedBusy = false;
       _upgrading = false;
@@ -1130,7 +1132,10 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       locale: AppLocalizations.localeCode,
     );
     if (!mounted) return;
-    setState(() => _recapText = answer.text);
+    setState(() {
+      _recapText = answer.text;
+      _recapLive = !answer.fallback;
+    });
   }
 
   Future<void> _runMissedDiagnose() async {
@@ -2422,7 +2427,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _eyebrow(tr('ai_recap_title')),
+          _eyebrow(tr(_recapLive ? 'ai_recap_title' : 'lp_recap_local')),
           const SizedBox(height: 4),
           Text(
             _recapText,

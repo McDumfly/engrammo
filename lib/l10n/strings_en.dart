@@ -1699,6 +1699,7 @@ const Map<String, String> enStrings = {
   'ai_note_consent_off':
       'cloud AI consent is off (Settings → Allow cloud AI analysis), {tail}',
   'ai_recap_title': 'AI session recap',
+  'lp_recap_local': 'Session recap',
   'ai_recap_good': '{correct} of {total} right on {track} — strong run. Next: raise the difficulty one step and recall once more tonight.',
   'ai_recap_mid': '{correct} of {total} on {track}. Solid middle: replay the missed ones now, then recall them again tomorrow.',
   'ai_recap_low': '{correct} of {total} on {track} — the start counts too. Next: one easier round, slow, then recall the same items tonight.',
