@@ -1698,6 +1698,26 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         if (!_correctIdx.contains(i)) i,
     };
     final xp = 10 + _correct * 4;
+    void startBlind() {
+      AppFeedback.light();
+      setState(() {
+        _blind = true;
+        _resetRecall();
+        _rescheduled = false;
+        _nextDue = null;
+        _step = _Step.recall;
+      });
+    }
+
+    void startAgain() {
+      AppFeedback.light();
+      setState(() {
+        _blind = false;
+        _resetRecall();
+        _step = _Step.recall;
+      });
+    }
+
     return _page([
       Center(
         child: ConstrainedBox(
@@ -1732,7 +1752,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         ),
       ),
       const SizedBox(height: 16),
-      _ResultCelebration(correct: _correct, total: total),
+      _ResultCelebration(correct: _correct, total: total, blind: _blind),
       const SizedBox(height: 12),
       Wrap(
         alignment: WrapAlignment.center,
@@ -1750,45 +1770,56 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
             ),
         ],
       ),
-      const SizedBox(height: 16),
-      EngramButton(label: tr('common_done'), onPressed: _doneFromResult),
-      const SizedBox(height: 8),
-      Row(
-        children: [
-          Expanded(
-            child: Center(
-              child: EngramTextButton(
-                label: tr('room_blind_btn'),
-                onPressed: () {
-                  AppFeedback.light();
-                  setState(() {
-                    _blind = true;
-                    _resetRecall();
-                    _rescheduled = false;
-                    _nextDue = null;
-                    _step = _Step.recall;
-                  });
-                },
+      if (_blind) ...[
+        const SizedBox(height: 16),
+        Text(
+          tr('room_proof_title', {'correct': _correct, 'total': total}),
+          textAlign: TextAlign.center,
+          style: AppText.display.copyWith(color: context.inkText),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (var i = 0; i < palace.stations.length; i++)
+              AppBadge(
+                label: i < palace.items.length
+                    ? palace.items[i]
+                    : palace.stations[i],
+                color: _correctIdx.contains(i) ? teal : coral,
               ),
-            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        EngramButton(
+          label: tr('room_recall_again'),
+          variant: EngramButtonVariant.secondary,
+          onPressed: startAgain,
+        ),
+        Center(
+          child: EngramTextButton(
+            label: tr('common_done'),
+            onPressed: _doneFromResult,
           ),
-          Expanded(
-            child: Center(
-              child: EngramTextButton(
-                label: tr('room_recall_again'),
-                onPressed: () {
-                  AppFeedback.light();
-                  setState(() {
-                    _blind = false;
-                    _resetRecall();
-                    _step = _Step.recall;
-                  });
-                },
-              ),
-            ),
+        ),
+      ] else ...[
+        const SizedBox(height: 16),
+        EngramButton(label: tr('room_prove_btn'), onPressed: startBlind),
+        const SizedBox(height: 8),
+        EngramButton(
+          label: tr('room_recall_again'),
+          variant: EngramButtonVariant.secondary,
+          onPressed: startAgain,
+        ),
+        Center(
+          child: EngramTextButton(
+            label: tr('common_done'),
+            onPressed: _doneFromResult,
           ),
-        ],
-      ),
+        ),
+      ],
     ]);
   }
 }
@@ -1798,7 +1829,14 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
 class _ResultCelebration extends StatefulWidget {
   final int correct;
   final int total;
-  const _ResultCelebration({required this.correct, required this.total});
+
+  /// A blind (photo-hidden) run earns a firmer haptic than a plain one.
+  final bool blind;
+  const _ResultCelebration({
+    required this.correct,
+    required this.total,
+    this.blind = false,
+  });
 
   @override
   State<_ResultCelebration> createState() => _ResultCelebrationState();
@@ -1815,6 +1853,8 @@ class _ResultCelebrationState extends State<_ResultCelebration>
     super.initState();
     if (_perfect) {
       AppFeedback.heavy();
+    } else if (widget.blind) {
+      AppFeedback.medium();
     } else {
       AppFeedback.light();
     }

@@ -80,6 +80,67 @@ void main() {
     expect(find.text('Sample photo'), findsOneWidget);
   });
 
+  testWidgets('prove-it flow ends on a from-memory proof panel', (
+    tester,
+  ) async {
+    final photo = squareJpegDataUrl(
+      Uint8List.fromList(img.encodePng(img.Image(width: 10, height: 10))),
+    );
+    await MemoryStore.upsertRoomPalace(
+      RoomPalace(
+        id: 'room:prove',
+        createdAt: DateTime.utc(2026, 11, 1),
+        imageRef: photo,
+        stations: const ['desk', 'lamp', 'chair'],
+        items: const ['apple', 'hammer'],
+        links: const ['first link', 'second link'],
+        card: FsrsCard(
+          cardId: 'room:prove',
+          taskId: 'room_palace',
+          due: DateTime.now(),
+        ),
+      ),
+    );
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+    await tester.pumpWidget(
+      const MaterialApp(home: RoomPalacePage(reviewId: 'room:prove')),
+    );
+    await tester.pumpAndSettle();
+
+    Future<void> answer(String word) async {
+      await tester.enterText(find.byType(TextField), word);
+      await tester.pump();
+      await tester.tap(find.text('Check'));
+      await tester.pumpAndSettle();
+    }
+
+    await answer('apple');
+    await answer('hammer');
+
+    // Normal result: Prove it is the one primary button.
+    expect(find.text('Prove it: recall with the photo hidden'), findsOneWidget);
+    await tester.tap(find.text('Prove it: recall with the photo hidden'));
+    await tester.pumpAndSettle();
+
+    // Blind recall hides the photo behind the tip card.
+    expect(
+      find.text(
+        'The real skill: picture your room and walk the spots from memory.',
+      ),
+      findsOneWidget,
+    );
+    await answer('apple');
+    await answer('hammer');
+
+    // Blind result: proof panel with per-station chips.
+    expect(find.text('2/2 from memory alone'), findsOneWidget);
+    expect(find.text('apple'), findsOneWidget);
+    expect(find.text('hammer'), findsOneWidget);
+    expect(find.text('Done'), findsOneWidget);
+  });
+
   testWidgets(
     'MaskedPicture with no objects shows the photo without throwing',
     (tester) async {

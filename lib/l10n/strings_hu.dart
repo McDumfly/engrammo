@@ -1923,6 +1923,8 @@ const Map<String, String> huStrings = {
   'room_almost': 'Majdnem! Ez volt: {item}',
   'room_dream_retry': 'Újrafestés',
   'room_blind_btn': 'Járd be fejben (fotó nélkül)',
+  'room_prove_btn': 'Bizonyítsd: felidézés kép nélkül',
+  'room_proof_title': '{correct}/{total} csak emlékezetből',
   'room_blind_tip': 'Az igazi tudás: képzeld el a szobád, és emlékezetből járd be a pontokat.',
   'coach_title': 'Mai terv',
   'coach_sub': 'Megnézi, mi esedékes, és rövid tervet készít mára.',

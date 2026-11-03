@@ -1902,6 +1902,8 @@ const Map<String, String> enStrings = {
   'room_almost': 'Almost! It was: {item}',
   'room_dream_retry': 'Paint again',
   'room_blind_btn': 'Walk it in your head (no photo)',
+  'room_prove_btn': 'Prove it: recall with the photo hidden',
+  'room_proof_title': '{correct}/{total} from memory alone',
   'room_blind_tip':
       'The real skill: picture your room and walk the spots from memory.',
   'coach_title': "Today's plan",
