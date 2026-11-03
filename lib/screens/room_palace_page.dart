@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' show File;
 import 'dart:math';
 import 'dart:ui' show ImageFilter, MaskFilter;
 
@@ -10,6 +11,7 @@ import 'package:http/http.dart' as http;
 import 'package:hugeicons/hugeicons.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/fsrs_card.dart';
@@ -19,6 +21,8 @@ import '../models/sam_mask.dart'
     show SamMaskRun, decodeSamMaskToken, parseSamMaskToken, samMaskRuns;
 import '../services/active_palace_store.dart';
 import '../services/app_feedback.dart';
+import '../services/connectivity_service.dart';
+import '../services/demo_replay.dart';
 import '../services/memory_store.dart';
 import '../services/meta_ai_service.dart';
 import '../services/room_photo.dart';
@@ -42,9 +46,11 @@ Color _stationColor(int i) {
 /// Palace list row title: the first two memorised items plus how many
 /// more, e.g. "apple · hammer +3". Without items it falls back to the
 /// station names.
-String _listTitle(RoomPalace p) {
+String _listTitle(RoomPalace p, [int ownCount = 1]) {
   final items = p.items;
-  if (items.isEmpty) return roomPalaceName(p);
+  if (items.isEmpty) {
+    return roomPalaceName(p, AppLocalizations.localeCode, ownCount);
+  }
   if (items.length == 1) return items[0];
   if (items.length == 2) return '${items[0]} · ${items[1]}';
   return tr('room_list_title', {
@@ -101,6 +107,14 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
   bool _imageFailed = false;
   bool _sample = false;
   int _coverVersion = 0;
+
+  /// Demo-replay recording (C1) and playback (C2–C3). While the asset
+  /// files are missing [_replay] stays null and the flow is exactly
+  /// the live flow. [_scanClock]/[_scanEvents] record the live round
+  /// for the debug export tool; never hand-written.
+  final Stopwatch _scanClock = Stopwatch();
+  List<List<Object>> _scanEvents = [];
+  DemoReplay? _replay;
 
   // Items + encode state.
   final _itemsCtrl = TextEditingController();
@@ -283,6 +297,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       setState(() {
         _photo = url;
         _sample = false;
+        _replay = null;
         _stage = 'image';
         _samDone = 0;
         _samTotal = 0;
@@ -307,9 +322,59 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
   }
 
   /// Same as [_pick], but loads the bundled AI-generated sample room, so
-  /// judges on a simulator reach the scan in one tap. The scan still runs
-  /// the real Muse Spark + SAM 3.1 round on this image.
-  Future<void> _pickSample() async {
+  /// judges on a simulator reach the scan in one tap. With a live key the
+  /// scan still runs the real Muse Spark + SAM 3.1 round on this image;
+  /// without one (or on explicit replay) it replays a recorded real run,
+  /// honestly labelled, with no network and no consent check.
+  Future<void> _pickSample({
+    bool forceReplay = false,
+    bool forceLive = false,
+  }) async {
+    final locale = AppLocalizations.localeCode;
+    DemoReplay? replay;
+    try {
+      replay = await DemoReplay.load(locale);
+    } catch (_) {
+      replay = null;
+    }
+    if (replay != null && !forceLive) {
+      final cloudOk = await MetaAIService.cloudReady();
+      var online = connectivityService.online;
+      try {
+        online ??= await connectivityService.check();
+      } catch (_) {
+        online = false;
+      }
+      final liveOk = cloudOk && (online == true);
+      if (!liveOk || forceReplay) {
+        final token = ++_token;
+        try {
+          final bytes = (await rootBundle.load('assets/demo/sample_room.jpg'))
+              .buffer
+              .asUint8List();
+          final url = await compute(squareJpegDataUrl, bytes);
+          if (!mounted || token != _token) return;
+          setState(() {
+            _photo = url;
+            _sample = true;
+            _replay = replay;
+            _stage = 'image';
+            _samDone = 0;
+            _samTotal = 0;
+            _scanLabels = [];
+            _scanBoxes = [];
+            _baselineCorrect = null;
+            _imageFailed = false;
+            _step = _Step.scanning;
+          });
+          await _scanReplay(replay, url, token);
+        } catch (_) {
+          if (!mounted) return;
+          showAppToast(context, tr('room_pick_failed'), kind: ToastKind.error);
+        }
+        return;
+      }
+    }
     if (!await MetaAIService.cloudConsent()) {
       if (!mounted) return;
       _snack(tr('room_consent_off'));
@@ -325,6 +390,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       setState(() {
         _photo = url;
         _sample = true;
+        _replay = null;
         _stage = 'image';
         _samDone = 0;
         _samTotal = 0;
@@ -341,41 +407,13 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     }
   }
 
-  /// Cancel (and blocked back navigation) while scanning: drop the
-  /// in-flight round and go back to capture.
-  void _cancelScan() {
-    AppFeedback.light();
-    _token++;
-    if (!mounted) return;
-    _baselineTimer?.cancel();
-    setState(() {
-      _stage = 'image';
-      _samDone = 0;
-      _samTotal = 0;
-      _scanLabels = [];
-      _scanBoxes = [];
-      _baselineCorrect = null;
-      _sample = false;
-      _step = _Step.capture;
-    });
-  }
-
-  Future<void> _scan(String dataUrl, int token) async {
+  /// Replays a recorded real sample-room run on [dataUrl]: no network,
+  /// so no consent check. Downstream filtering and walk order stay
+  /// exactly the live path.
+  Future<void> _scanReplay(DemoReplay replay, String dataUrl, int token) async {
     try {
-      final round = await MetaAIService.pictureRecallRound(
-        seed: 'room:${DateTime.now().millisecondsSinceEpoch}',
-        count: 8,
-        locale: AppLocalizations.localeCode,
-        imageRefOverride: dataUrl,
-        sceneOverride:
-            'a real photo of the learner\'s own room, used as a memory palace. '
-            'Name ONLY large, fixed, clearly separate landmarks a person would '
-            'walk past and that never move: furniture and fixtures such as '
-            'door, window, bed, desk, chair, shelf, wardrobe, cabinet, lamp, '
-            'radiator, mirror, plant pot, picture frame. NEVER name walls, '
-            'floor, ceiling, carpet, rug, curtains as a whole room surface, '
-            'shadows, or small loose items (remote, bottle, cup, pen, cable, '
-            'ball, phone, headphones)',
+      final round = await replay.playScan(
+        dataUrl: dataUrl,
         onProgress: (p, stage) {
           if (!mounted || token != _token) return;
           setState(() => _stage = stage);
@@ -397,6 +435,150 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
           });
         },
       );
+      if (!mounted || token != _token) return;
+      final aiOk = round.live && round.objects.length >= 2;
+      if (aiOk) {
+        const badBits = [
+          'wall',
+          'floor',
+          'ceiling',
+          'carpet',
+          'rug',
+          'fal',
+          'padló',
+          'plafon',
+          'szőnyeg',
+          'mennyezet',
+        ];
+        var stations = <String>[];
+        var boxes = <List<double>>[];
+        var masks = <String>[];
+        final aligned =
+            round.boxes.length == round.objects.length &&
+            round.masks.length == round.objects.length;
+        for (var i = 0; i < round.objects.length; i++) {
+          final low = round.objects[i].toLowerCase();
+          if (badBits.any(low.contains)) continue;
+          stations.add(round.objects[i]);
+          if (aligned) {
+            boxes.add(round.boxes[i]);
+            masks.add(round.masks[i]);
+          }
+          if (stations.length >= 6) break;
+        }
+        if (stations.length < 2) {
+          stations = round.objects.take(6).toList();
+          boxes = aligned ? round.boxes.take(6).toList() : <List<double>>[];
+          masks = aligned ? round.masks.take(6).toList() : <String>[];
+        }
+        final ordered = walkOrder(stations, boxes, masks);
+        setState(() {
+          _stations = ordered.stations;
+          _boxes = ordered.boxes;
+          _masks = ordered.masks;
+          _live = true;
+          _coverVersion++;
+          _step = _Step.items;
+        });
+      } else {
+        setState(() {
+          _stations = [
+            for (var i = 1; i <= 4; i++) tr('room_spot', {'n': '$i'}),
+          ];
+          _boxes = [];
+          _masks = [];
+          _live = false;
+          _coverVersion++;
+          _step = _Step.items;
+        });
+      }
+    } catch (_) {
+      if (!mounted || token != _token) return;
+      setState(() => _step = _Step.capture);
+      showAppToast(context, tr('room_pick_failed'), kind: ToastKind.error);
+    }
+  }
+
+  /// Cancel (and blocked back navigation) while scanning: drop the
+  /// in-flight round and go back to capture.
+  void _cancelScan() {
+    AppFeedback.light();
+    _token++;
+    _scanClock.stop();
+    if (!mounted) return;
+    _baselineTimer?.cancel();
+    setState(() {
+      _stage = 'image';
+      _samDone = 0;
+      _samTotal = 0;
+      _scanLabels = [];
+      _scanBoxes = [];
+      _baselineCorrect = null;
+      _sample = false;
+      _replay = null;
+      _step = _Step.capture;
+    });
+  }
+
+  /// Cancels a replay scan and forces the live sample path.
+  Future<void> _runLiveInstead() async {
+    _token++;
+    if (!mounted) return;
+    setState(() {
+      _replay = null;
+      _step = _Step.capture;
+    });
+    await _pickSample(forceLive: true);
+  }
+
+  Future<void> _scan(String dataUrl, int token) async {
+    _scanClock.reset();
+    _scanClock.start();
+    _scanEvents = [];
+    try {
+      final round = await MetaAIService.pictureRecallRound(
+        seed: 'room:${DateTime.now().millisecondsSinceEpoch}',
+        count: 8,
+        locale: AppLocalizations.localeCode,
+        imageRefOverride: dataUrl,
+        sceneOverride:
+            'a real photo of the learner\'s own room, used as a memory palace. '
+            'Name ONLY large, fixed, clearly separate landmarks a person would '
+            'walk past and that never move: furniture and fixtures such as '
+            'door, window, bed, desk, chair, shelf, wardrobe, cabinet, lamp, '
+            'radiator, mirror, plant pot, picture frame. NEVER name walls, '
+            'floor, ceiling, carpet, rug, curtains as a whole room surface, '
+            'shadows, or small loose items (remote, bottle, cup, pen, cable, '
+            'ball, phone, headphones)',
+        onProgress: (p, stage) {
+          if (!mounted || token != _token) return;
+          setState(() => _stage = stage);
+        },
+        onSamItem: (done, total) {
+          if (!mounted || token != _token) return;
+          _scanEvents.add([_scanClock.elapsedMilliseconds, 'sam', done, total]);
+          AppFeedback.select();
+          setState(() {
+            _samDone = done;
+            _samTotal = total;
+          });
+        },
+        onObjects: (labels, boxes) {
+          if (!mounted || token != _token) return;
+          _scanEvents.add([
+            _scanClock.elapsedMilliseconds,
+            'labels',
+            labels.length,
+            boxes.length,
+          ]);
+          AppFeedback.medium();
+          setState(() {
+            _scanLabels = labels;
+            _scanBoxes = boxes;
+          });
+        },
+      );
+      _scanClock.stop();
       if (!mounted || token != _token) return;
       final aiOk =
           round.live && round.imageUrl == dataUrl && round.objects.length >= 2;
@@ -498,12 +680,89 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     final token = _token;
     setState(() => _building = true);
     try {
+      final replay = _replay;
+      final isReplaySample = replay != null && _sample;
+      final recordedLinks = replay != null && isReplaySample
+          ? replay.linksFor(items)
+          : null;
+      final liveReplay = replay;
+      if (recordedLinks != null && liveReplay != null) {
+        final id = 'room:${DateTime.now().millisecondsSinceEpoch}';
+        final palace = RoomPalace(
+          id: id,
+          createdAt: DateTime.now(),
+          imageRef: _photo,
+          stations: stations,
+          boxes: _boxes.length == _stations.length
+              ? _boxes.take(n).toList()
+              : const [],
+          masks: _masks.length == _stations.length
+              ? _masks.take(n).toList()
+              : const [],
+          items: items,
+          links: recordedLinks,
+          live: true,
+          card: FsrsCard(
+            cardId: id,
+            taskId: 'room_palace',
+            due: DateTime.now(),
+          ),
+          sample: _sample,
+          replay: true,
+          recordedAt: liveReplay.recordedAt,
+          receipt: List<Map<String, dynamic>>.of(liveReplay.receipt),
+        );
+        await MemoryStore.upsertRoomPalace(palace);
+        await ActivePalaceStore.setId(palace.id);
+        if (!mounted || token != _token) return;
+        setState(() {
+          _activeId = palace.id;
+          _palace = palace;
+          _focus = 0;
+          _dreams.clear();
+          _storedDreams.clear();
+          _revealedDreams.clear();
+          _building = false;
+          _step = _Step.encode;
+        });
+        _startReplayDreams(palace, liveReplay, token);
+        return;
+      }
+      if (isReplaySample) {
+        final cloudOk = await MetaAIService.cloudReady();
+        var online = connectivityService.online;
+        try {
+          online ??= await connectivityService.check();
+        } catch (_) {
+          online = false;
+        }
+        if (!cloudOk || online != true) {
+          if (mounted) {
+            showAppToast(
+              context,
+              tr('room_replay_custom_needs_live'),
+              kind: ToastKind.warning,
+            );
+          }
+        }
+      }
+      final buildStart = DateTime.now();
       final answer = await MetaAIService.roomPalaceLinks(
         stations: stations,
         items: items,
         locale: AppLocalizations.localeCode,
       );
       if (!mounted || token != _token) return;
+      List<Map<String, dynamic>> receipt = const [];
+      try {
+        final log = await MetaAIService.loadLog();
+        receipt = [
+          for (final e in log)
+            if (!e.at.isBefore(buildStart)) e.toJson(),
+        ];
+      } catch (_) {
+        receipt = const [];
+      }
       final id = 'room:${DateTime.now().millisecondsSinceEpoch}';
       final palace = RoomPalace(
         id: id,
@@ -521,6 +780,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         live: _live,
         card: FsrsCard(cardId: id, taskId: 'room_palace', due: DateTime.now()),
         sample: _sample,
+        receipt: receipt,
       );
       await MemoryStore.upsertRoomPalace(palace);
       // A freshly built palace becomes the lesson palace on the spot.
@@ -541,6 +801,51 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       if (!mounted || token != _token) return;
       setState(() => _building = false);
       _snack(tr('common_save_failed'));
+    }
+  }
+
+  /// Fills replay dream scenes every 700 ms through the existing reveal.
+  /// Test-fast: no delays under flutter test.
+  Future<void> _startReplayDreams(
+    RoomPalace palace,
+    DemoReplay replay,
+    int token,
+  ) async {
+    final scenes = List<String>.of(replay.dreams);
+    for (var i = 0; i < palace.items.length; i++) {
+      if (!mounted || token != _token) return;
+      if (i < scenes.length && scenes[i].isNotEmpty) {
+        setState(() => _dreams[i] = scenes[i]);
+        final stored = scenes[i];
+        _storedDreams[i] = stored;
+        final count = palace.stations.length;
+        final dreams = List<String>.filled(count, '');
+        final current = _palace;
+        if (current != null && current.id == palace.id) {
+          for (var k = 0; k < count && k < current.dreams.length; k++) {
+            dreams[k] = current.dreams[k];
+          }
+        }
+        _storedDreams.forEach((k, v) {
+          if (k >= 0 && k < count) dreams[k] = v;
+        });
+        final base = (current != null && current.id == palace.id)
+            ? current
+            : palace;
+        final updated = base.copyWith(dreams: dreams);
+        _persistChain = _persistChain.then(
+          (_) => MemoryStore.upsertRoomPalace(updated),
+        );
+        await _persistChain;
+        if (!mounted || token != _token) return;
+        final latest = _palace;
+        if (latest != null && latest.id == palace.id && mounted) {
+          setState(() => _palace = updated);
+        }
+      }
+      if (i + 1 < palace.items.length && !isFlutterTest) {
+        await Future<void>.delayed(const Duration(milliseconds: 700));
+      }
     }
   }
 
@@ -1289,6 +1594,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
   }
 
   Widget _listStep() {
+    final ownCount = _palaces.where((e) => !e.sample).length;
     return _page([
       _header(tr('room_saved_title')),
       for (final p in _palaces) ...[
@@ -1322,7 +1628,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _listTitle(p),
+                        _listTitle(p, ownCount),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppText.body.copyWith(
@@ -1388,6 +1694,61 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     ]);
   }
 
+  /// Honest replay entry: when a recorded real run exists, offer the
+  /// instant replay alongside the live sample (or the offline hint when
+  /// live is unavailable). Empty while the asset is missing, so the app
+  /// behaves exactly as today.
+  Widget _replayCaptureExtra() {
+    final locale = AppLocalizations.localeCode;
+    return FutureBuilder<DemoReplay?>(
+      future: DemoReplay.load(locale),
+      builder: (context, snap) {
+        final replay = snap.data;
+        if (replay == null) return const SizedBox.shrink();
+        return FutureBuilder<List<bool>>(
+          future: Future.wait([
+            MetaAIService.cloudReady(),
+            Future<bool>(() async {
+              var online = connectivityService.online;
+              try {
+                online ??= await connectivityService.check();
+              } catch (_) {
+                online = false;
+              }
+              return online == true;
+            }),
+          ]),
+          builder: (context, liveSnap) {
+            final data = liveSnap.data;
+            final liveOk = data != null && data[0] && data[1];
+            final date = palaceHumanDate(replay.recordedAt, locale);
+            if (liveOk) {
+              return Align(
+                alignment: Alignment.centerLeft,
+                child: AppLinkButton(
+                  key: const ValueKey('room-replay-instant'),
+                  label: tr('room_replay_instant'),
+                  icon: HugeIcons.strokeRoundedPlay,
+                  onTap: () => _pickSample(forceReplay: true),
+                ),
+              );
+            }
+            if (liveSnap.connectionState != ConnectionState.done) {
+              return const SizedBox.shrink();
+            }
+            return Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                tr('room_replay_offline_hint', {'date': date}),
+                style: AppText.caption.copyWith(color: context.mutedText),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _captureStep() {
     return _page([
       ConstrainedBox(
@@ -1439,8 +1800,9 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       EngramTextButton(
         key: const ValueKey('room-try-sample'),
         label: tr('room_try_sample'),
-        onPressed: _pickSample,
+        onPressed: () => _pickSample(),
       ),
+      _replayCaptureExtra(),
       const SizedBox(height: 12),
       Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1470,8 +1832,18 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
   }
 
   Widget _scanningStep() {
+    final replay = _replay;
+    final replayDate = replay == null
+        ? ''
+        : palaceHumanDate(replay.recordedAt, AppLocalizations.localeCode);
     return _page([
       if (_sample) ...[_sampleBadge(), const SizedBox(height: 8)],
+      if (replay != null)
+        Align(
+          alignment: Alignment.centerLeft,
+          child: AppBadge(label: tr('room_replay_badge', {'date': replayDate})),
+        ),
+      if (replay != null) const SizedBox(height: 8),
       _ScanStage(
         photo: _photo,
         stage: _stage,
@@ -1480,6 +1852,15 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         labels: _scanLabels,
         boxes: _scanBoxes,
       ),
+      if (replay != null)
+        Align(
+          alignment: Alignment.centerLeft,
+          child: AppLinkButton(
+            key: const ValueKey('room-replay-run-live'),
+            label: tr('room_replay_run_live'),
+            onTap: () => _runLiveInstead(),
+          ),
+        ),
       const SizedBox(height: 20),
       EngramButton(
         label: tr('common_cancel'),
@@ -2148,7 +2529,14 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       if (!mounted) return;
       showAppSheet(
         context,
-        builder: (_) => _ReceiptCard(log: log, palace: palace),
+        builder: (_) => _ReceiptCard(
+          log: log,
+          palace: palace,
+          scanEvents: List<List<Object>>.of(_scanEvents),
+          scanLabels: List<String>.of(_scanLabels),
+          scanBoxes: [for (final b in _scanBoxes) List<double>.of(b)],
+          scanTotalMs: _scanClock.elapsedMilliseconds,
+        ),
       );
     }
 
@@ -3547,12 +3935,49 @@ class _RipplePainter extends CustomPainter {
 class _ReceiptCard extends StatelessWidget {
   final List<MetaCallEntry> log;
   final RoomPalace palace;
-  const _ReceiptCard({required this.log, required this.palace});
+
+  /// Live scan timeline for the debug export tool. Empty when the card
+  /// reviews an older palace; the exporter then synthesizes the replay
+  /// pacing from the palace geometry.
+  final List<List<Object>> scanEvents;
+  final List<String> scanLabels;
+  final List<List<double>> scanBoxes;
+  final int scanTotalMs;
+
+  const _ReceiptCard({
+    required this.log,
+    required this.palace,
+    this.scanEvents = const [],
+    this.scanLabels = const [],
+    this.scanBoxes = const [],
+    this.scanTotalMs = 41000,
+  });
+
+  /// Snapshot entries when the palace carries its own receipt (live builds
+  /// snapshot at build time, replays carry the recorded receipt);
+  /// otherwise the log entries since the palace scan.
+  List<MetaCallEntry> _entries() {
+    if (palace.receipt.isNotEmpty) {
+      final out = <MetaCallEntry>[];
+      for (final m in palace.receipt) {
+        try {
+          out.add(MetaCallEntry.fromJson(m));
+        } catch (_) {
+          // Skip malformed receipt entries.
+        }
+      }
+      if (out.isNotEmpty) return out;
+    }
+    return [
+      for (final e in log)
+        if (!e.at.isBefore(palace.createdAt)) e,
+    ];
+  }
 
   /// Entries of one pipeline step ([kind]) logged since the palace scan.
   List<MetaCallEntry> _since(String kind) => [
-    for (final e in log)
-      if (e.kind == kind && !e.at.isBefore(palace.createdAt)) e,
+    for (final e in _entries())
+      if (e.kind == kind) e,
   ];
 
   String _callsLine(List<MetaCallEntry> entries) {
@@ -3608,11 +4033,17 @@ class _ReceiptCard extends StatelessWidget {
     final spark = _since('picture-objects');
     final sam = _since('segment');
     final image = _since('image');
-    final sparkLive = spark.any((e) => !e.fallback);
+    final roomLinks = _since('room:links');
+    final sparkEntries = spark.isNotEmpty ? spark : roomLinks;
+    final sparkLive = sparkEntries.any((e) => !e.fallback);
     final samLive = sam.any((e) => !e.fallback);
     final imageLive = image.any((e) => !e.fallback);
     final outlines = palace.masks.where((m) => m.isNotEmpty).length;
     final scenes = palace.dreams.where((d) => d.isNotEmpty).length;
+    final isReplay = palace.replay;
+    final recordedDate = palace.recordedAt == null
+        ? ''
+        : palaceHumanDate(palace.recordedAt!, AppLocalizations.localeCode);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -3622,12 +4053,20 @@ class _ReceiptCard extends StatelessWidget {
           textAlign: TextAlign.center,
           style: AppText.heading.copyWith(color: context.inkText),
         ),
+        if (isReplay) ...[
+          const SizedBox(height: 4),
+          Text(
+            tr('room_receipt_recorded', {'date': recordedDate}),
+            textAlign: TextAlign.center,
+            style: AppText.caption.copyWith(color: context.mutedText),
+          ),
+        ],
         const SizedBox(height: 16),
         _row(
           context,
           model: 'Muse Spark',
           color: blue,
-          entries: spark,
+          entries: sparkEntries,
           produced: palace.live && sparkLive
               ? tr('room_receipt_landmarks', {'n': '${palace.stations.length}'})
               : tr('room_receipt_local'),
@@ -3652,6 +4091,17 @@ class _ReceiptCard extends StatelessWidget {
               ? tr('room_receipt_scenes', {'n': '$scenes'})
               : tr('room_receipt_local'),
         ),
+        if (kDebugMode) ...[
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: AppLinkButton(
+              label: tr('room_replay_export'),
+              icon: HugeIcons.strokeRoundedDownload04,
+              onTap: () => _exportDemoRun(context),
+            ),
+          ),
+        ],
         const SizedBox(height: 16),
         Center(
           child: EngramTextButton(
@@ -3661,6 +4111,61 @@ class _ReceiptCard extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  /// Debug-only capture tool: writes a recorded real run for the offline
+  /// demo. Refuses unless the palace is the sample, every receipt entry
+  /// is live (no fallback) and all dream scenes exist.
+  Future<void> _exportDemoRun(BuildContext context) async {
+    final entries = _entries();
+    final allLive = entries.isNotEmpty && entries.every((e) => !e.fallback);
+    final dreamsOk =
+        palace.items.isNotEmpty &&
+        palace.dreams.length >= palace.items.length &&
+        palace.dreams.take(palace.items.length).every((d) => d.isNotEmpty);
+    if (!palace.sample || !allLive || !dreamsOk) {
+      showAppToast(context, tr('room_pick_failed'), kind: ToastKind.warning);
+      return;
+    }
+    try {
+      final locale = AppLocalizations.localeCode;
+      final events = scanEvents.isNotEmpty
+          ? scanEvents
+          : <List<Object>>[
+              [1000, 'labels', palace.stations.length, palace.boxes.length],
+              for (var i = 0; i < palace.stations.length; i++)
+                [8000 + i * 4000, 'sam', i + 1, palace.stations.length],
+            ];
+      final labels = scanLabels.isNotEmpty ? scanLabels : palace.stations;
+      final boxes = scanBoxes.isNotEmpty ? scanBoxes : palace.boxes;
+      final totalMs = scanTotalMs > 0 ? scanTotalMs : 41000;
+      final payload = <String, Object?>{
+        'v': 1,
+        'recordedAt': DateTime.now().toIso8601String(),
+        'locale': locale,
+        'scan': {
+          'events': events,
+          'labels': labels,
+          'boxes': boxes,
+          'masks': palace.masks,
+          'totalMs': totalMs,
+        },
+        'items': palace.items,
+        'links': palace.links,
+        'dreams': palace.dreams,
+        'receipt': [for (final e in entries) e.toJson()],
+      };
+      final dir = await getApplicationDocumentsDirectory();
+      final file = File('${dir.path}/demo_run_$locale.json');
+      await file.writeAsString(jsonEncode(payload));
+      if (context.mounted) {
+        showAppToast(context, file.path, kind: ToastKind.success);
+      }
+    } catch (_) {
+      if (context.mounted) {
+        showAppToast(context, tr('room_pick_failed'), kind: ToastKind.error);
+      }
+    }
   }
 }
 
@@ -3758,12 +4263,14 @@ class _ShareCard extends StatelessWidget {
           label: tr('room_share_copy'),
           variant: EngramButtonVariant.secondary,
           onPressed: () async {
+            final shareKey = palace.replay
+                ? 'room_share_text_replay'
+                : (palace.sample
+                      ? 'room_share_text_sample'
+                      : 'room_share_text');
             await Clipboard.setData(
               ClipboardData(
-                text: tr(
-                  palace.sample ? 'room_share_text_sample' : 'room_share_text',
-                  {'correct': '$correct', 'total': '$total'},
-                ),
+                text: tr(shareKey, {'correct': '$correct', 'total': '$total'}),
               ),
             );
             AppFeedback.light();
