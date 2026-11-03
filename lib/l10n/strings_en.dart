@@ -1908,6 +1908,7 @@ const Map<String, String> enStrings = {
   'coach_step_rejected': 'The checker sent it back — fixing it',
   'coach_step_generic': 'Reading data',
   'coach_step_fallback': 'Switched to a local plan',
+  'coach_step_start': 'Starting the planner…',
   'coach_live': 'Planned by Muse Spark · validated',
   'coach_minutes': '{min} min',
   'coach_start': 'Let\'s go',

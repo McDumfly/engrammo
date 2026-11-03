@@ -400,6 +400,9 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Plan my session'));
       await tester.pumpAndSettle();
+      // FX5 holds the finished timeline for 800ms before revealing the plan.
+      await tester.pump(const Duration(milliseconds: 900));
+      await tester.pumpAndSettle();
       expect(find.text('Local plan'), findsOneWidget);
       expect(find.text('Let\'s go'), findsWidgets);
     });

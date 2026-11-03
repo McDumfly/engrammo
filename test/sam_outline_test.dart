@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:engrammo/models/sam_mask.dart';
 import 'package:engrammo/screens/benchmark.dart' show buildSamOutline;
 import 'package:flutter/material.dart';
@@ -32,6 +34,43 @@ void main() {
         buildSamOutline(rect: rect, runs: many, rasterW: 1, rasterH: 301),
         isNull,
       );
+    });
+
+    test('unit outline transforms cheaply to display space', () {
+      const runs = [
+        SamMaskRun(0, 0, 2),
+        SamMaskRun(1, 0, 2),
+        SamMaskRun(2, 0, 2),
+      ];
+      final unit = buildSamOutline(
+        rect: const Rect.fromLTWH(0, 0, 3, 3),
+        runs: runs,
+        rasterW: 3,
+        rasterH: 3,
+      );
+      expect(unit, isNotNull);
+      const rect = Rect.fromLTWH(10, 20, 30, 60);
+      final transformed = unit!.transform(
+        Float64List.fromList([
+          rect.width / 3,
+          0,
+          0,
+          0,
+          0,
+          rect.height / 3,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          rect.left,
+          rect.top,
+          0,
+          1,
+        ]),
+      );
+      expect(transformed.getBounds(), const Rect.fromLTWH(10, 20, 30, 60));
     });
   });
 }

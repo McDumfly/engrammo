@@ -3,6 +3,7 @@ import '../theme/app_tokens.dart';
 
 import 'dart:async';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -4325,12 +4326,18 @@ class _DecodedShape {
   final double cx;
   final double cy;
 
+  /// Outline in raster-cell units (0..rasterW, 0..rasterH), computed once
+  /// per mask token in [_shapeFor] and cheaply transformed to display
+  /// space at build time. Null means fill only.
+  final Path? unitOutline;
+
   const _DecodedShape({
     required this.runs,
     required this.rasterW,
     required this.rasterH,
     required this.cx,
     required this.cy,
+    this.unitOutline,
   });
 }
 
@@ -4500,6 +4507,17 @@ class _MaskedPictureState extends State<MaskedPicture>
           rasterH: spec.height,
           cx: c.x,
           cy: c.y,
+          unitOutline: buildSamOutline(
+            rect: Rect.fromLTWH(
+              0,
+              0,
+              spec.width.toDouble(),
+              spec.height.toDouble(),
+            ),
+            runs: runs,
+            rasterW: spec.width,
+            rasterH: spec.height,
+          ),
         );
       }
     }
@@ -4666,11 +4684,25 @@ class _MaskedPictureState extends State<MaskedPicture>
                         rasterW: shape?.rasterW ?? 0,
                         rasterH: shape?.rasterH ?? 0,
                         anchor: anchor,
-                        outline: buildSamOutline(
-                          rect: rect,
-                          runs: runs,
-                          rasterW: shape?.rasterW ?? 0,
-                          rasterH: shape?.rasterH ?? 0,
+                        outline: shape?.unitOutline?.transform(
+                          Float64List.fromList([
+                            rect.width / shape.rasterW,
+                            0,
+                            0,
+                            0,
+                            0,
+                            rect.height / shape.rasterH,
+                            0,
+                            0,
+                            0,
+                            0,
+                            1,
+                            0,
+                            rect.left,
+                            rect.top,
+                            0,
+                            1,
+                          ]),
                         ),
                       ),
                     );

@@ -79,8 +79,12 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
     if (!mounted || id != _runId) return;
     setState(() {
       _result = r;
-      _running = false;
       _trace = List<CoachStep>.of(r.trace);
+    });
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (!mounted || id != _runId) return;
+    setState(() {
+      _running = false;
     });
   }
 
@@ -138,19 +142,25 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
     return _trace.skip(i + 1).any((s) => s.kind == 'reject');
   }
 
+  Widget _nodeBox(Widget node) {
+    return SizedBox(width: 24, height: 24, child: Center(child: node));
+  }
+
   Widget _popNode({required Color color, required dynamic icon}) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeOutBack,
-      builder: (context, t, _) => Transform.scale(
-        scale: t,
-        child: Container(
-          width: 24,
-          height: 24,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          alignment: Alignment.center,
-          child: HugeIcon(icon: icon, color: Colors.white, size: 14),
+    return _nodeBox(
+      TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutBack,
+        builder: (context, t, _) => Transform.scale(
+          scale: t,
+          child: Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            alignment: Alignment.center,
+            child: HugeIcon(icon: icon, color: Colors.white, size: 14),
+          ),
         ),
       ),
     );
@@ -165,15 +175,20 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
     final struck = _isStruck(i);
     Widget node;
     if (rejected) {
-      node = Container(
-        width: 24,
-        height: 24,
-        decoration: const BoxDecoration(color: orange, shape: BoxShape.circle),
-        alignment: Alignment.center,
-        child: const HugeIcon(
-          icon: HugeIcons.strokeRoundedRefresh,
-          color: Colors.white,
-          size: 14,
+      node = _nodeBox(
+        Container(
+          width: 24,
+          height: 24,
+          decoration: const BoxDecoration(
+            color: orange,
+            shape: BoxShape.circle,
+          ),
+          alignment: Alignment.center,
+          child: const HugeIcon(
+            icon: HugeIcons.strokeRoundedRefresh,
+            color: Colors.white,
+            size: 14,
+          ),
         ),
       );
     } else if (st.kind == 'accept') {
@@ -182,19 +197,23 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
         icon: HugeIcons.strokeRoundedCheckmarkCircle02,
       );
     } else if (st.kind == 'fallback') {
-      node = Container(
-        width: 24,
-        height: 24,
-        decoration: const BoxDecoration(color: blue, shape: BoxShape.circle),
-        alignment: Alignment.center,
-        child: const HugeIcon(
-          icon: HugeIcons.strokeRoundedInformationCircle,
-          color: Colors.white,
-          size: 14,
+      node = _nodeBox(
+        Container(
+          width: 24,
+          height: 24,
+          decoration: const BoxDecoration(color: blue, shape: BoxShape.circle),
+          alignment: Alignment.center,
+          child: const HugeIcon(
+            icon: HugeIcons.strokeRoundedInformationCircle,
+            color: Colors.white,
+            size: 14,
+          ),
         ),
       );
     } else if (last && _running) {
-      node = const AppLoader(size: 18, stroke: 2.5, color: teal);
+      node = _nodeBox(
+        const AppLoader(size: 18, stroke: 2.5, color: teal, instant: true),
+      );
     } else {
       node = _popNode(color: teal, icon: HugeIcons.strokeRoundedTick02);
     }
@@ -225,7 +244,7 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
             children: [
               node,
               if (!last)
-                Container(width: 2, height: 14, color: context.hairline),
+                Container(width: 2, height: 20, color: context.hairline),
             ],
           ),
           const SizedBox(width: 12),
@@ -241,6 +260,40 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
           ),
         ],
       ),
+    );
+  }
+
+  /// Blank-card state: one loader row while the trace is still empty.
+  Widget _startingRow() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Column(
+          children: [
+            _nodeBox(
+              const AppLoader(
+                size: 18,
+                stroke: 2.5,
+                color: teal,
+                instant: true,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 1),
+            child: Text(
+              tr('coach_step_start'),
+              style: AppText.body.copyWith(
+                color: context.inkText,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -305,62 +358,67 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
         opacity: t,
         child: Transform.translate(offset: Offset(0, 12 * (1 - t)), child: c),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: teal.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppRadius.s),
+      child: Tappable(
+        onTap: () => _openItem(item),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: teal.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppRadius.s),
+                ),
+                alignment: Alignment.center,
+                child: HugeIcon(
+                  icon: icon,
+                  color: teal,
+                  size: 22,
+                  strokeWidth: 2.0,
+                ),
               ),
-              alignment: Alignment.center,
-              child: HugeIcon(
-                icon: icon,
-                color: teal,
-                size: 22,
-                strokeWidth: 2.0,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    text,
-                    style: AppText.body.copyWith(
-                      color: context.inkText,
-                      fontWeight: FontWeight.w600,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      text,
+                      style: AppText.body.copyWith(
+                        color: context.inkText,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    why,
-                    style: AppText.caption.copyWith(color: context.mutedText),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    tr('coach_minutes', {'min': item.minutes}),
-                    style: AppText.caption.copyWith(color: context.mutedText),
-                  ),
-                ],
+                    const SizedBox(height: 2),
+                    Text(
+                      why,
+                      style: AppText.caption.copyWith(color: context.mutedText),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      tr('coach_minutes', {'min': item.minutes}),
+                      style: AppText.micro.copyWith(color: context.mutedText),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            // EngramButton needs a bounded width: fixed trailing slot.
-            SizedBox(
-              width: 128,
-              child: EngramButton(
-                label: tr('coach_start'),
-                height: 52,
-                onPressed: () => _openItem(item),
+              const SizedBox(width: 8),
+              HugeIcon(
+                icon: HugeIcons.strokeRoundedArrowRight01,
+                color: context.mutedText,
+                size: 20,
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -380,53 +438,56 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: teal.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(14),
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: teal.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  alignment: Alignment.center,
+                  child: const HugeIcon(
+                    icon: HugeIcons.strokeRoundedAiBrain01,
+                    color: teal,
+                    size: 26,
+                    strokeWidth: 2.0,
+                  ),
                 ),
-                alignment: Alignment.center,
-                child: const HugeIcon(
-                  icon: HugeIcons.strokeRoundedAiBrain01,
-                  color: teal,
-                  size: 26,
-                  strokeWidth: 2.0,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      tr('coach_title'),
-                      style: AppText.heading.copyWith(color: context.inkText),
-                    ),
-                    const SizedBox(height: 2),
-                    if (result == null && !_running)
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        tr('coach_sub'),
-                        style: AppText.caption.copyWith(
-                          color: context.mutedText,
-                        ),
+                        tr('coach_title'),
+                        style: AppText.heading.copyWith(color: context.inkText),
                       ),
-                  ],
+                      const SizedBox(height: 2),
+                      if (result == null || _running)
+                        Text(
+                          tr('coach_sub'),
+                          style: AppText.caption.copyWith(
+                            color: context.mutedText,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-              if (result != null) ...[
-                const SizedBox(width: 8),
-                AppBadge(
-                  label: result.live ? 'Muse Spark' : tr('coach_local'),
-                  color: result.live ? teal : blue,
-                ),
+                if (result != null) ...[
+                  const SizedBox(width: 8),
+                  AppBadge(
+                    label: result.live ? 'Muse Spark' : tr('coach_local'),
+                    color: result.live ? teal : blue,
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
-          const SizedBox(height: 12),
+          if (_running || result == null) const SizedBox(height: 12),
           if (_running || result != null)
             AnimatedSize(
               duration: const Duration(milliseconds: 260),
@@ -435,11 +496,21 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        for (var i = 0; i < _trace.length; i++) _timelineRow(i),
+                        if (_trace.isEmpty)
+                          _startingRow()
+                        else
+                          for (var i = 0; i < _trace.length; i++)
+                            _timelineRow(i),
                       ],
                     )
                   : AppDisclosure(
-                      title: Text(tr('coach_trace_title')),
+                      title: Text(
+                        tr('coach_trace_title'),
+                        style: AppText.caption.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: context.mutedText,
+                        ),
+                      ),
                       children: [
                         for (var i = 0; i < _trace.length; i++)
                           Align(
@@ -453,9 +524,16 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
             EngramButton(label: tr('coach_build_btn'), onPressed: _start),
           ],
           if (!_running && result != null) ...[
-            const SizedBox(height: 4),
-            for (var i = 0; i < result.items.length; i++)
+            for (var i = 0; i < result.items.length; i++) ...[
+              if (i > 0) const AppDivider(),
               _itemRow(result.items[i], i),
+            ],
+            const SizedBox(height: 12),
+            EngramButton(
+              label: tr('coach_start'),
+              height: 52,
+              onPressed: () => _openItem(result.items.first),
+            ),
             Center(
               child: EngramTextButton(
                 icon: HugeIcons.strokeRoundedRefresh,
@@ -463,6 +541,7 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
                 onPressed: _start,
               ),
             ),
+            const SizedBox(height: 16),
           ],
         ],
       ),
