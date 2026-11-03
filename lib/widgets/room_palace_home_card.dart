@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../l10n/app_localizations.dart';
+import '../models/room_palace.dart';
 import '../screens/room_palace_page.dart' show RoomPalacePage;
 import '../services/app_feedback.dart';
+import '../services/memory_store.dart';
 import '../theme/app_colors.dart' show blue, coral, teal;
 import '../theme/app_tokens.dart';
 import '../utils/test_mode.dart';
+import 'ai_image.dart';
 import 'app_kit.dart';
 
 /// The one shared "SAM 3.1 · Muse Spark · Muse Image" caption: model names
@@ -34,9 +37,14 @@ class _RoomPalaceHomeCardState extends State<RoomPalaceHomeCard>
   late final Animation<double> _fade;
   bool _settled = false;
 
+  /// The latest saved palace, if any. Loaded once; null keeps the
+  /// default invite look exactly as before.
+  RoomPalace? _mine;
+
   @override
   void initState() {
     super.initState();
+    _loadMine();
     // 400ms with the first 80ms as delay (no Timer: test-safe).
     _enter = AnimationController(
       vsync: this,
@@ -70,14 +78,51 @@ class _RoomPalaceHomeCardState extends State<RoomPalaceHomeCard>
     super.dispose();
   }
 
+  /// Loads the saved palaces once; the card shows the latest one.
+  Future<void> _loadMine() async {
+    final list = await MemoryStore.loadRoomPalaces();
+    if (!mounted) return;
+    if (list.isEmpty) return;
+    final latest = list.reduce(
+      (a, b) => a.createdAt.isAfter(b.createdAt) ? a : b,
+    );
+    setState(() => _mine = latest);
+  }
+
+  /// "today" / "tomorrow" / "in N days" for the palace's due date.
+  String _whenText(DateTime due) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final day = DateTime(due.year, due.month, due.day);
+    final diff = day.difference(today).inDays;
+    if (diff <= 0) return tr('room_home_today');
+    if (diff == 1) return tr('room_home_tomorrow');
+    return tr('room_home_in_days', {'d': '$diff'});
+  }
+
   Future<void> _open() async {
     AppFeedback.light();
-    await Navigator.of(context)
-        .push(MaterialPageRoute(builder: (_) => const RoomPalacePage()));
+    if (widget.onTap != null) {
+      widget.onTap!();
+      return;
+    }
+    final mine = _mine;
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => mine == null
+            ? const RoomPalacePage()
+            : RoomPalacePage(reviewId: mine.id),
+      ),
+    );
+    // The due date may have moved while reviewing: reload the card.
+    await _loadMine();
   }
 
   @override
   Widget build(BuildContext context) {
+    // A saved palace turns the card into its cover: the room photo under
+    // a dark gradient. Without one the invite look stays exactly as is.
+    final mine = _mine;
     // The entrance wraps the whole card (cached as `child`, so it never
     // rebuilds while fading in); the drift rebuilds ONLY the blob paint.
     return AnimatedBuilder(
@@ -94,42 +139,64 @@ class _RoomPalaceHomeCardState extends State<RoomPalaceHomeCard>
       },
       child: Tappable(
         haptic: false,
-        onTap: widget.onTap ?? _open,
+        onTap: _open,
         child: SizedBox(
           height: 152,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(AppRadius.l),
             child: Stack(
               children: [
-                Positioned.fill(
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Color(0xFF16233B), Color(0xFF0E3B4A)],
+                if (mine == null) ...[
+                  Positioned.fill(
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF16233B), Color(0xFF0E3B4A)],
+                        ),
                       ),
                     ),
                   ),
-                ),
-                Positioned.fill(
-                  child: AnimatedBuilder(
-                    animation: _drift,
-                    builder: (context, _) {
-                      final t = _drift.value * 2 * pi;
-                      final offsets = [
-                        Offset(0, 6 * sin(t)),
-                        Offset(0, 6 * sin(t + 2.09)),
-                        Offset(0, 6 * sin(t + 4.19)),
-                      ];
-                      return RepaintBoundary(
-                        child: CustomPaint(
-                          painter: _BlobPainter(offsets: offsets),
-                        ),
-                      );
-                    },
+                  Positioned.fill(
+                    child: AnimatedBuilder(
+                      animation: _drift,
+                      builder: (context, _) {
+                        final t = _drift.value * 2 * pi;
+                        final offsets = [
+                          Offset(0, 6 * sin(t)),
+                          Offset(0, 6 * sin(t + 2.09)),
+                          Offset(0, 6 * sin(t + 4.19)),
+                        ];
+                        return RepaintBoundary(
+                          child: CustomPaint(
+                            painter: _BlobPainter(offsets: offsets),
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
+                ] else ...[
+                  Positioned.fill(
+                    child: RepaintBoundary(
+                      child: AiImage(
+                        imageRef: mine.imageRef,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Color(0xCC16233B), Color(0x6616233B)],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
                 Padding(
                   padding: const EdgeInsets.all(20),
                   child: Column(
@@ -159,7 +226,7 @@ class _RoomPalaceHomeCardState extends State<RoomPalaceHomeCard>
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        tr('room_home_title'),
+                        tr(mine == null ? 'room_home_title' : 'room_home_mine'),
                         style: AppText.title.copyWith(color: Colors.white),
                       ),
                       const SizedBox(height: 2),
@@ -167,7 +234,12 @@ class _RoomPalaceHomeCardState extends State<RoomPalaceHomeCard>
                         children: [
                           Expanded(
                             child: Text(
-                              tr('room_home_sub'),
+                              mine == null
+                                  ? tr('room_home_sub')
+                                  : tr('room_home_due', {
+                                      'n': '${mine.items.length}',
+                                      'when': _whenText(mine.card.due),
+                                    }),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: AppText.caption.copyWith(
@@ -196,7 +268,11 @@ class _RoomPalaceHomeCardState extends State<RoomPalaceHomeCard>
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  tr('room_home_cta'),
+                                  tr(
+                                    mine == null
+                                        ? 'room_home_cta'
+                                        : 'room_home_review',
+                                  ),
                                   style: AppText.body.copyWith(
                                     fontWeight: FontWeight.w800,
                                     color: const Color(0xFF16233B),
