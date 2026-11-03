@@ -1900,6 +1900,7 @@ const Map<String, String> huStrings = {
   'room_link_fb_4': '{station}: „{item}” alakúvá változott — érintsd meg: hideg, ragacsos és zizeg.',
   'room_station_n': '{n}. pont: {name}',
   'room_dream_loading': 'A jelenet készül…',
+  'room_dreaming': 'A Muse Image megálmodja: {item}',
   'room_walk_btn': 'Mehet a felidézés',
   'room_tour_btn': 'Végigsétálok a palotán',
   'room_tour_line': '{n} · {station} → {item}',

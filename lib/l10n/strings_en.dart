@@ -1881,6 +1881,7 @@ const Map<String, String> enStrings = {
   'room_link_fb_4': 'The {station} has turned into {item} — touch it: cold, sticky and buzzing.',
   'room_station_n': 'Spot {n}: {name}',
   'room_dream_loading': 'Painting the scene…',
+  'room_dreaming': 'Muse Image is dreaming up {item}',
   'room_items_label': 'Your list',
   'room_judging': 'Muse Spark is checking your answer…',
   'room_wrong_with_link': 'Not quite. The image was: {link}',

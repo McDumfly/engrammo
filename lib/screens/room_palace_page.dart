@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -89,6 +90,10 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
   int _focus = 0;
   final Map<int, String> _dreams = {};
   final Map<int, String> _storedDreams = {};
+
+  /// Stations whose dream reveal already played (haptic included).
+  /// Cleared whenever a new palace build starts.
+  final Set<int> _revealedDreams = {};
   Future<void> _persistChain = Future.value();
 
   // Recall state.
@@ -209,6 +214,8 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       for (var i = 0; i < foundPalace.dreams.length; i++) {
         if (foundPalace.dreams[i].isNotEmpty) {
           _dreams[i] = foundPalace.dreams[i];
+          // Stored scenes are not new arrivals: no replay, no haptic.
+          _revealedDreams.add(i);
         }
       }
       _rescheduled = false;
@@ -494,6 +501,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         _focus = 0;
         _dreams.clear();
         _storedDreams.clear();
+        _revealedDreams.clear();
         _building = false;
         _step = _Step.encode;
       });
@@ -596,7 +604,11 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     final palace = _palace;
     if (palace == null) return;
     final token = _token;
-    setState(() => _dreams.remove(i));
+    setState(() {
+      _dreams.remove(i);
+      // A repainted dream is new again, so it reveals once more.
+      _revealedDreams.remove(i);
+    });
     await _dreamOne(palace, token, i);
   }
 
@@ -1121,7 +1133,11 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       _blind = false;
       _resetRecall();
       for (var i = 0; i < p.dreams.length; i++) {
-        if (p.dreams[i].isNotEmpty) _dreams[i] = p.dreams[i];
+        if (p.dreams[i].isNotEmpty) {
+          _dreams[i] = p.dreams[i];
+          // Stored scenes are not new arrivals: no replay, no haptic.
+          _revealedDreams.add(i);
+        }
       }
       _rescheduled = false;
       _nextDue = null;
@@ -1737,7 +1753,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
                 aspectRatio: 4 / 3,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(AppRadius.m),
-                  child: AiImage(imageRef: dream, fit: BoxFit.cover),
+                  child: _dreamImage(palace, i, dream),
                 ),
               ),
             ] else if (dream == null && palace.live) ...[
@@ -1764,7 +1780,9 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
                                 const SizedBox(width: 8),
                                 Flexible(
                                   child: Text(
-                                    tr('room_dream_loading'),
+                                    tr('room_dreaming', {
+                                      'item': palace.items[i],
+                                    }),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: AppText.micro.copyWith(
@@ -1796,6 +1814,18 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         ),
       ),
     );
+  }
+
+  /// The dream scene for station i. A brand-new arrival reveals once
+  /// (blur + scale + fade, one haptic); stored scenes and rebuilds render
+  /// the plain image. Only this image animates, never the whole photo.
+  Widget _dreamImage(RoomPalace palace, int i, String dream) {
+    if (_revealedDreams.contains(i)) {
+      return AiImage(imageRef: dream, fit: BoxFit.cover);
+    }
+    _revealedDreams.add(i);
+    AppFeedback.medium();
+    return _DreamReveal(imageRef: dream);
   }
 
   Widget _recallStep() {
@@ -3069,6 +3099,49 @@ class _TourPageState extends State<_TourPage>
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One-shot Muse Image reveal: blur + scale + fade over 700 ms, then the
+/// plain image (no Opacity left in the settled tree). Only a newly arrived
+/// scene is wrapped in this; every other station renders plain pixels.
+class _DreamReveal extends StatefulWidget {
+  final String imageRef;
+  const _DreamReveal({required this.imageRef});
+
+  @override
+  State<_DreamReveal> createState() => _DreamRevealState();
+}
+
+class _DreamRevealState extends State<_DreamReveal> {
+  bool _done = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_done || isFlutterTest) {
+      return AiImage(imageRef: widget.imageRef, fit: BoxFit.cover);
+    }
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 700),
+      curve: Curves.easeOutCubic,
+      onEnd: () {
+        if (mounted) setState(() => _done = true);
+      },
+      builder: (context, t, _) => Opacity(
+        opacity: t,
+        child: Transform.scale(
+          scale: 1.06 - 0.06 * t,
+          child: ImageFiltered(
+            imageFilter: ImageFilter.blur(
+              sigmaX: 14 * (1 - t),
+              sigmaY: 14 * (1 - t),
+            ),
+            child: AiImage(imageRef: widget.imageRef, fit: BoxFit.cover),
+          ),
         ),
       ),
     );
