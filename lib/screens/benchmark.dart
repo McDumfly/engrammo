@@ -3988,6 +3988,41 @@ class SamMaskGameBodyState extends State<SamMaskGameBody> {
   }
 }
 
+/// Unions every mask-run rect of one cover into a SINGLE outline path
+/// in display space, so the edge draws with one [canvas.drawPath] instead
+/// of one stroke per row-run (which hatched the silhouette). Returns null
+/// when there is nothing to outline or the union would be too slow
+/// (> 300 runs): callers keep the per-run fill and skip the edge then.
+/// Built when the cover is built, never in paint().
+Path? buildSamOutline({
+  required Rect rect,
+  required List<SamMaskRun> runs,
+  required int rasterW,
+  required int rasterH,
+}) {
+  if (runs.isEmpty || runs.length > 300) return null;
+  if (rasterW <= 0 || rasterH <= 0) return null;
+  if (rect.width <= 0 || rect.height <= 0) return null;
+  final cellW = rect.width / rasterW;
+  final cellH = rect.height / rasterH;
+  var acc = Path();
+  for (final run in runs) {
+    acc = Path.combine(
+      PathOperation.union,
+      acc,
+      Path()..addRect(
+        Rect.fromLTWH(
+          rect.left + run.start * cellW,
+          rect.top + run.row * cellH,
+          (run.end - run.start + 1) * cellW,
+          cellH,
+        ),
+      ),
+    );
+  }
+  return acc;
+}
+
 /// One SAM cover's display geometry: the bounding [rect] in picture
 /// pixels plus the decoded shape runs inside it (empty when the object
 /// has box geometry only — then a soft rounded cover is drawn instead).
@@ -3998,12 +4033,17 @@ class _CoverGeom {
   final int rasterH;
   final Offset anchor;
 
+  /// Unioned outline of all run rects (see [buildSamOutline]), drawn
+  /// once per shape. Null means fill only.
+  final Path? outline;
+
   const _CoverGeom({
     required this.rect,
     required this.runs,
     required this.rasterW,
     required this.rasterH,
     required this.anchor,
+    this.outline,
   });
 }
 
@@ -4104,7 +4144,8 @@ class _SamCoverPainter extends CustomPainter {
       if (cover.runs.isNotEmpty) {
         paintShape(canvas, cover, fill);
         paintShape(canvas, cover, shade);
-        paintShape(canvas, cover, edge);
+        final outline = cover.outline;
+        if (outline != null) canvas.drawPath(outline, edge);
       } else {
         // Box-only geometry: a soft oval reads as organic, not a box.
         canvas.drawOval(rect, fill);
@@ -4191,7 +4232,8 @@ class _SamHighlightPainter extends CustomPainter {
         ..color = station.withValues(alpha: (alpha + 0.52).clamp(0.0, 0.9));
       if (cover.runs.isNotEmpty) {
         _SamCoverPainter.paintShape(canvas, cover, fill);
-        _SamCoverPainter.paintShape(canvas, cover, edge);
+        final outline = cover.outline;
+        if (outline != null) canvas.drawPath(outline, edge);
       } else {
         // Fallback boxes paint as rounded rects, like the real shapes.
         final r = RRect.fromRectAndRadius(rect, const Radius.circular(12));
@@ -4624,6 +4666,12 @@ class _MaskedPictureState extends State<MaskedPicture>
                         rasterW: shape?.rasterW ?? 0,
                         rasterH: shape?.rasterH ?? 0,
                         anchor: anchor,
+                        outline: buildSamOutline(
+                          rect: rect,
+                          runs: runs,
+                          rasterW: shape?.rasterW ?? 0,
+                          rasterH: shape?.rasterH ?? 0,
+                        ),
                       ),
                     );
                     anchors.add(anchor);

@@ -102,6 +102,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
   DateTime? _nextDue;
   String? _popDream;
   Timer? _popTimer;
+  double _popOpacity = 1;
 
   @override
   void initState() {
@@ -202,6 +203,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     _awaitNext = false;
     _popTimer?.cancel();
     _popDream = null;
+    _popOpacity = 1;
     _guessCtrl.clear();
   }
 
@@ -278,6 +280,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         },
         onSamItem: (done, total) {
           if (!mounted || token != _token) return;
+          AppFeedback.select();
           setState(() {
             _samDone = done;
             _samTotal = total;
@@ -576,9 +579,10 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       });
     } else {
       AppFeedback.medium();
+      final link = cue < palace.links.length ? palace.links[cue] : items[cue];
       setState(() {
         _feedbackGood = false;
-        _feedback = tr('room_wrong');
+        _feedback = tr('room_wrong_with_link', {'link': link});
       });
     }
   }
@@ -601,6 +605,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       _judging = false;
       _guessCtrl.clear();
       _popDream = (dream != null && dream.isNotEmpty) ? dream : null;
+      _popOpacity = 1;
       if (!last) {
         _cue++;
       }
@@ -608,7 +613,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     if (_popDream != null) {
       _popTimer = Timer(const Duration(milliseconds: 1600), () {
         if (!mounted) return;
-        setState(() => _popDream = null);
+        setState(() => _popOpacity = 0);
       });
     }
     if (last) {
@@ -675,6 +680,17 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     );
   }
 
+  /// After "Done" show the palace list step (with the saved palace)
+  /// instead of popping. Only pop when the page was opened directly into
+  /// review and there is no list step behind it.
+  Future<void> _doneFromResult() async {
+    if (widget.reviewId != null && _palaces.isEmpty) {
+      if (mounted) Navigator.of(context).pop();
+      return;
+    }
+    await _loadList();
+  }
+
   Future<void> _confirmDelete(RoomPalace p) async {
     final ok = await showAppDialog<bool>(
       context,
@@ -712,7 +728,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppTopBar(
-          title: tr('room_title'),
+          title: _step == _Step.capture ? null : tr('room_title'),
           leading: const EngramBackButton(),
         ),
         resizeToAvoidBottomInset: !recallBar,
@@ -745,31 +761,8 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
                 ),
                 const SizedBox(height: 8),
               ],
-              if (_popDream != null) ...[
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0.9, end: 1),
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeOutBack,
-                    builder: (context, t, c) =>
-                        Transform.scale(scale: t, child: c),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(AppRadius.m),
-                      child: AiImage(
-                        imageRef: _popDream!,
-                        height: 120,
-                        width: 120,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-              ],
               AppTextField(
                 controller: _guessCtrl,
-                autofocus: true,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _check(),
                 onChanged: (_) {
@@ -890,13 +883,14 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     int cue = -1,
     bool showWalk = false,
     bool highlight = false,
+    double? maxSide,
   }) {
     // No stations yet (or nothing survived filtering): a plain photo,
     // never an empty MaskedPicture.
     if (objects.isEmpty) {
       return Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 380),
+          constraints: BoxConstraints(maxWidth: maxSide ?? 380),
           child: AspectRatio(
             aspectRatio: 1,
             child: ClipRRect(
@@ -911,7 +905,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     }
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 380),
+        constraints: BoxConstraints(maxWidth: maxSide ?? 380),
         child: AspectRatio(
           aspectRatio: 1,
           child: _imageFailed
@@ -1056,7 +1050,8 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     return _page([
       _header(tr('room_saved_title')),
       for (final p in _palaces) ...[
-        GestureDetector(
+        Tappable(
+          onTap: () => _reviewPalace(p),
           onLongPress: () => _confirmDelete(p),
           child: Container(
             padding: const EdgeInsets.all(12),
@@ -1121,10 +1116,6 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                EngramTextButton(
-                  label: tr('room_review_btn'),
-                  onPressed: () => _reviewPalace(p),
-                ),
                 AppIconButton(
                   onTap: () => _openRowSheet(p),
                   icon: HugeIcons.strokeRoundedMoreVertical,
@@ -1149,7 +1140,10 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
 
   Widget _captureStep() {
     return _page([
-      const RoomPreviewArt(),
+      ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 300),
+        child: const RoomPreviewArt(aspectRatio: 1.25),
+      ),
       const SizedBox(height: 16),
       Text(
         tr('room_title'),
@@ -1162,9 +1156,15 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         tr('room_sub'),
         style: AppText.body.copyWith(color: context.mutedText),
       ),
-      const SizedBox(height: 12),
+      const SizedBox(height: 16),
       AppDisclosure(
-        title: Text(tr('room_science_title')),
+        title: Text(
+          tr('room_science_title'),
+          style: AppText.body.copyWith(
+            fontWeight: FontWeight.w600,
+            color: context.inkText,
+          ),
+        ),
         children: [
           Text(
             tr('room_science'),
@@ -1485,6 +1485,11 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       return _page([_header(tr('room_title'))]);
     }
     final done = _cue >= palace.items.length;
+    // Keep the photo (and the keyboard) on screen on short phones.
+    final side = min(
+      380.0,
+      MediaQuery.sizeOf(context).height - 380,
+    ).clamp(220.0, 380.0).toDouble();
     return _page([
       _header(tr('room_title')),
       if (_blind && !done)
@@ -1514,17 +1519,69 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
           ),
         )
       else
-        Hero(
-          tag: 'room-${palace.id}',
-          child: _covers(
-            imageUrl: palace.imageRef,
-            objects: palace.items,
-            boxes: palace.boxes,
-            masks: palace.masks,
-            revealed: _revealed,
-            masked: true,
-            cue: done ? -1 : _cue,
-          ),
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Hero(
+              tag: 'room-${palace.id}',
+              child: _covers(
+                imageUrl: palace.imageRef,
+                objects: palace.items,
+                boxes: palace.boxes,
+                masks: palace.masks,
+                revealed: _revealed,
+                masked: true,
+                cue: done ? -1 : _cue,
+                maxSide: side,
+              ),
+            ),
+            if (_popDream != null)
+              Positioned(
+                right: 12,
+                bottom: 12,
+                child: TweenAnimationBuilder<double>(
+                  key: ValueKey(_cue),
+                  tween: Tween(begin: 0.9, end: 1.0),
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutBack,
+                  builder: (context, t, c) =>
+                      Transform.scale(scale: t, child: c),
+                  child: AnimatedOpacity(
+                    opacity: _popOpacity,
+                    duration: const Duration(milliseconds: 200),
+                    onEnd: () {
+                      if (_popOpacity == 0 && mounted) {
+                        setState(() => _popDream = null);
+                      }
+                    },
+                    child: Container(
+                      width: 96,
+                      height: 96,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.white, width: 2),
+                        borderRadius: BorderRadius.circular(AppRadius.m),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x1F000000),
+                            blurRadius: 24,
+                            offset: Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.m),
+                        child: AiImage(
+                          imageRef: _popDream!,
+                          width: 96,
+                          height: 96,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       const SizedBox(height: 12),
       if (!done)
@@ -1600,10 +1657,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         ],
       ),
       const SizedBox(height: 16),
-      EngramButton(
-        label: tr('common_done'),
-        onPressed: () => Navigator.of(context).pop(),
-      ),
+      EngramButton(label: tr('common_done'), onPressed: _doneFromResult),
       const SizedBox(height: 8),
       Row(
         children: [
@@ -1690,6 +1744,14 @@ class _ResultCelebrationState extends State<_ResultCelebration>
       clipBehavior: Clip.none,
       alignment: Alignment.center,
       children: [
+        if (_perfect)
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: _burst,
+              builder: (context, _) =>
+                  CustomPaint(painter: _BurstPainter(progress: _burst.value)),
+            ),
+          ),
         Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1715,14 +1777,6 @@ class _ResultCelebrationState extends State<_ResultCelebration>
             ),
           ],
         ),
-        if (_perfect)
-          Positioned.fill(
-            child: AnimatedBuilder(
-              animation: _burst,
-              builder: (context, _) =>
-                  CustomPaint(painter: _BurstPainter(progress: _burst.value)),
-            ),
-          ),
       ],
     );
   }
@@ -1869,6 +1923,23 @@ class _ScanStageState extends State<_ScanStage>
                         ),
                       ),
                     ),
+                    if (done > 0)
+                      Positioned(
+                        top: 12,
+                        left: 12,
+                        child: TweenAnimationBuilder<double>(
+                          key: ValueKey(done),
+                          tween: Tween(begin: 0.6, end: 1.0),
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeOutBack,
+                          builder: (context, t, c) =>
+                              Transform.scale(scale: t, child: c),
+                          child: AppBadge(
+                            label: tr('room_found_n', {'n': '$done'}),
+                            color: teal,
+                          ),
+                        ),
+                      ),
                     if (scanning)
                       Positioned.fill(
                         child: AnimatedBuilder(
@@ -1929,8 +2000,15 @@ class _ScanStageState extends State<_ScanStage>
         _stageRow(
           index: 2,
           active: active,
-          label: tr('room_stage_sam', {'done': done, 'total': total}),
+          label: total == 0
+              ? tr('room_stage_sam_idle')
+              : tr('room_stage_sam', {'done': done, 'total': total}),
           badge: const AppBadge(label: 'SAM 3.1', color: teal),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          tr('room_scan_eta'),
+          style: AppText.micro.copyWith(color: context.mutedText),
         ),
       ],
     );

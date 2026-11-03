@@ -96,38 +96,73 @@ class _PreviewPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w = size.width;
     final h = size.height;
-    final shapes = [
-      (teal, Rect.fromLTWH(0.06 * w, 0.69 * h, 0.40 * w, 0.25 * h)),
-      (blue, Rect.fromLTWH(0.62 * w, 0.60 * h, 0.32 * w, 0.22 * h)),
-      (coral, Rect.fromLTWH(0.06 * w, 0.08 * h, 0.30 * w, 0.16 * h)),
-      (orange, Rect.fromLTWH(0.76 * w, 0.08 * h, 0.16 * w, 0.22 * h)),
+
+    // Faint room shell behind the furniture: a window and a floor line.
+    final shell = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..color = Colors.white.withValues(alpha: .08);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(0.40 * w, 0.10 * h, 0.22 * w, 0.18 * h),
+        const Radius.circular(8),
+      ),
+      shell,
+    );
+    canvas.drawLine(
+      Offset(0.04 * w, 0.93 * h),
+      Offset(0.96 * w, 0.93 * h),
+      shell,
+    );
+
+    final regions = [
+      Rect.fromLTWH(0.06 * w, 0.69 * h, 0.40 * w, 0.25 * h),
+      Rect.fromLTWH(0.62 * w, 0.60 * h, 0.32 * w, 0.22 * h),
+      Rect.fromLTWH(0.06 * w, 0.08 * h, 0.30 * w, 0.16 * h),
+      Rect.fromLTWH(0.76 * w, 0.08 * h, 0.16 * w, 0.22 * h),
     ];
-    for (var i = 0; i < shapes.length; i++) {
-      final color = shapes[i].$1;
-      final rect = shapes[i].$2;
-      final ease = (i < opacities.length ? opacities[i] : 0.38) / 0.45;
+    final colors = [teal, blue, coral, orange];
+    for (var i = 0; i < regions.length; i++) {
+      final color = colors[i];
+      final region = regions[i];
+      final ease = ((i < opacities.length ? opacities[i] : 0.38) / 0.45).clamp(
+        0.0,
+        1.0,
+      );
       final op = i < opacities.length ? opacities[i] : 0.38;
       if (op <= 0) continue;
-      final r = RRect.fromRectAndRadius(rect, const Radius.circular(12));
-      canvas.drawRRect(r, Paint()..color = color.withValues(alpha: op));
-      canvas.drawRRect(
-        r,
+      final path = _furniturePath(i, region);
+      canvas.drawPath(path, Paint()..color = color.withValues(alpha: op));
+      canvas.drawPath(
+        path,
         Paint()
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2
           ..color = color.withValues(alpha: (ease * 0.9).clamp(0.0, 1.0)),
       );
-      final c = rect.center;
-      canvas.drawCircle(
-        c,
-        13,
-        Paint()..color = Colors.white.withValues(alpha: ease.clamp(0.0, 1.0)),
-      );
+      if (i == 2) {
+        // Shelf boards: 3 lines across in the edge colour at 60%.
+        final boards = Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2
+          ..color = color.withValues(alpha: 0.6 * ease);
+        for (var k = 1; k <= 3; k++) {
+          final y = region.top + region.height * k / 4;
+          canvas.drawLine(
+            Offset(region.left + 6, y),
+            Offset(region.right - 6, y),
+            boards,
+          );
+        }
+      }
+      // Numbered badge: opaque white with a dark digit.
+      final c = region.center;
+      canvas.drawCircle(c, 13, Paint()..color = Colors.white);
       final tp = TextPainter(
         text: TextSpan(
           text: '${i + 1}',
-          style: TextStyle(
-            color: color,
+          style: const TextStyle(
+            color: Color(0xFF16233B),
             fontWeight: FontWeight.w800,
             fontSize: 13,
           ),
@@ -135,6 +170,66 @@ class _PreviewPainter extends CustomPainter {
         textDirection: TextDirection.ltr,
       )..layout();
       tp.paint(canvas, c - Offset(tp.width / 2, tp.height / 2));
+    }
+  }
+
+  /// Furniture silhouette for slot [i] inside [r]: bed (body + pillow),
+  /// desk (top + two legs), shelf (tall rect, boards drawn separately),
+  /// lamp (round shade + thin stem).
+  Path _furniturePath(int i, Rect r) {
+    switch (i) {
+      case 0:
+        return Path()
+          ..addRRect(RRect.fromRectAndRadius(r, const Radius.circular(12)))
+          ..addRRect(
+            RRect.fromRectAndRadius(
+              Rect.fromLTWH(
+                r.left + r.width * 0.08,
+                r.top + r.height * 0.12,
+                r.width * 0.30,
+                r.height * 0.38,
+              ),
+              const Radius.circular(8),
+            ),
+          );
+      case 1:
+        final topH = r.height * 0.24;
+        final legW = (r.width * 0.07).clamp(3.0, 8.0);
+        return Path()
+          ..addRRect(
+            RRect.fromRectAndRadius(
+              Rect.fromLTWH(r.left, r.top, r.width, topH),
+              const Radius.circular(6),
+            ),
+          )
+          ..addRect(
+            Rect.fromLTWH(
+              r.left + r.width * 0.10,
+              r.top + topH,
+              legW,
+              r.height - topH,
+            ),
+          )
+          ..addRect(
+            Rect.fromLTWH(
+              r.right - r.width * 0.10 - legW,
+              r.top + topH,
+              legW,
+              r.height - topH,
+            ),
+          );
+      case 2:
+        return Path()
+          ..addRRect(RRect.fromRectAndRadius(r, const Radius.circular(8)));
+      default:
+        final shadeR = r.width * 0.30;
+        final cx = r.center.dx;
+        final cy = r.top + shadeR + 2;
+        return Path()
+          ..addOval(Rect.fromCircle(center: Offset(cx, cy), radius: shadeR))
+          ..addRect(
+            Rect.fromLTWH(cx - 2, cy + shadeR, 4, r.bottom - cy - shadeR),
+          );
     }
   }
 

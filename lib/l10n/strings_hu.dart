@@ -364,7 +364,7 @@ const Map<String, String> huStrings = {
   'assess_own_words': 'Vagy írd le a saját szavaiddal (nem kötelező):',
   'assess_example': 'Például: úgy látom, mint egy fotót…',
   'assess_back': 'Vissza',
-  'assess_analyze': 'Elemez ki',
+  'assess_analyze': 'Elemezz ki',
   'iv_q1_prompt': 'Csukd be a szemed, és képzeld magad elé egy közeli barátod arcát. Milyen tiszta a kép?',
   'iv_q1_hint': 'Vizuális élénkség (VVIQ-stílus)',
   'iv_q1_construct': 'Vizuális élénkség',
@@ -1854,6 +1854,9 @@ const Map<String, String> huStrings = {
   'room_stage_prepare': 'Fotó előkészítése',
   'room_stage_read': 'Tárgyak keresése a szobádban',
   'room_stage_sam': 'Körvonalak rajzolása ({done}/{total})',
+  'room_stage_sam_idle': 'Körvonalak rajzolása',
+  'room_found_n': '{n} megvan',
+  'room_scan_eta': 'Általában 10–20 másodperc',
   'room_stations_found': '{count} pont. Járd be őket sorban.',
   'room_no_stations': 'Kevés jól elkülönülő tárgyat találtam. Világosabb fotó 4–8 bútorral a legjobb.',
   'room_ai_unavailable':
@@ -1891,7 +1894,7 @@ const Map<String, String> huStrings = {
   'room_reveal_btn': 'Mutasd',
   'room_correct': 'Igen — {item}!',
   'room_elsewhere': 'Az a(z) {n}. ponton van. Mi van itt?',
-  'room_wrong': 'Nem egészen. Idézd fel a jelenetet:',
+  'room_wrong': 'Nem egészen.',
   'room_result': '{correct}/{total} felidézve a saját szobádból.',
   'room_next_review':
       'Következő ismétlés: {date}. A térközös felidézés rögzíti.',

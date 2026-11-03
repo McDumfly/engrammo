@@ -1833,6 +1833,9 @@ const Map<String, String> enStrings = {
   'room_stage_prepare': 'Preparing photo',
   'room_stage_read': 'Finding landmarks in your room',
   'room_stage_sam': 'Drawing outlines ({done}/{total})',
+  'room_stage_sam_idle': 'Drawing outlines',
+  'room_found_n': '{n} found',
+  'room_scan_eta': 'Usually 10–20 seconds',
   'room_stations_found': '{count} spots found. Walk them in order.',
   'room_no_stations': 'Found too few landmarks. A brighter photo with 4–8 pieces of furniture works best.',
   'room_ai_unavailable':
@@ -1871,7 +1874,7 @@ const Map<String, String> enStrings = {
   'room_reveal_btn': 'Show me',
   'room_correct': 'Yes — {item}!',
   'room_elsewhere': 'That one lives at spot {n}. Which item is here?',
-  'room_wrong': 'Not quite. Replay the scene:',
+  'room_wrong': 'Not quite.',
   'room_result': '{correct}/{total} recalled from your own room.',
   'room_next_review': 'Next review: {date}. Spaced recall locks it in.',
   'room_next_short': 'Next: {date}',
