@@ -60,6 +60,26 @@ void main() {
     expect(find.text('Yes — apple!'), findsOneWidget);
   });
 
+  testWidgets('sample room starts a scan with a non-empty photo', (
+    tester,
+  ) async {
+    MetaAIService.consentForTest = true;
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+    await tester.pumpWidget(const MaterialApp(home: RoomPalacePage()));
+    await tester.pumpAndSettle();
+    final sample = find.byKey(const ValueKey('room-try-sample'));
+    expect(sample, findsOneWidget);
+    await tester.tap(sample);
+    await tester.runAsync(() => Future.delayed(const Duration(seconds: 5)));
+    await tester.pumpAndSettle();
+    // The offline round lands on the items step with placeholder spots.
+    expect(find.byKey(const ValueKey('room-try-sample')), findsNothing);
+    expect(find.text('What do you want to remember?'), findsOneWidget);
+    expect(find.text('Sample photo'), findsOneWidget);
+  });
+
   testWidgets(
     'MaskedPicture with no objects shows the photo without throwing',
     (tester) async {

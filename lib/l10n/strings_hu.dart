@@ -1872,6 +1872,8 @@ const Map<String, String> huStrings = {
   'room_perm_denied': 'Nincs hozzáférés a kamerához vagy a fotókhoz. Engedélyezd a Beállításokban.',
   'room_pick_failed': 'Nem sikerült megnyitni a fotót.',
   'room_spot': '{n}. pont',
+  'room_try_sample': 'Kipróbálom egy mintaszobával',
+  'room_sample_badge': 'Mintafotó',
   'room_items_title': 'Mit szeretnél megjegyezni?',
   'room_items_hint': 'Soronként egy elem (legfeljebb {count})',
   'room_items_sample': 'Mintalista',

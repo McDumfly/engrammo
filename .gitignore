@@ -87,3 +87,7 @@ engrammo-for-claude.zip
 MUSE_PLAN.md
 MUSE_PROMPT.md
 MUSE_SESSION_*.md
+
+# Private room photos for the demo — never commit
+image.jpeg
+/room_photos/

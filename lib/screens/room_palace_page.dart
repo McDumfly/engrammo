@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -76,6 +77,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
   List<String> _masks = [];
   bool _live = false;
   bool _imageFailed = false;
+  bool _sample = false;
   int _coverVersion = 0;
 
   // Items + encode state.
@@ -173,6 +175,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       _palaces = list;
       _ready = true;
       _photo = foundPalace.imageRef;
+      _sample = false;
       _stations = foundPalace.stations;
       _boxes = foundPalace.boxes;
       _masks = foundPalace.masks;
@@ -224,6 +227,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       if (url == null) return; // Cancelled: stay on this step.
       setState(() {
         _photo = url;
+        _sample = false;
         _stage = 'image';
         _samDone = 0;
         _samTotal = 0;
@@ -244,6 +248,38 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     }
   }
 
+  /// Same as [_pick], but loads the bundled AI-generated sample room, so
+  /// judges on a simulator reach the scan in one tap. The scan still runs
+  /// the real Muse Spark + SAM 3.1 round on this image.
+  Future<void> _pickSample() async {
+    if (!await MetaAIService.cloudConsent()) {
+      if (!mounted) return;
+      _snack(tr('room_consent_off'));
+      return;
+    }
+    final token = ++_token;
+    try {
+      final bytes = (await rootBundle.load('assets/demo/sample_room.jpg'))
+          .buffer
+          .asUint8List();
+      final url = await compute(squareJpegDataUrl, bytes);
+      if (!mounted || token != _token) return;
+      setState(() {
+        _photo = url;
+        _sample = true;
+        _stage = 'image';
+        _samDone = 0;
+        _samTotal = 0;
+        _imageFailed = false;
+        _step = _Step.scanning;
+      });
+      _scan(url, token);
+    } catch (_) {
+      if (!mounted) return;
+      showAppToast(context, tr('room_pick_failed'), kind: ToastKind.error);
+    }
+  }
+
   /// Cancel (and blocked back navigation) while scanning: drop the
   /// in-flight round and go back to capture.
   void _cancelScan() {
@@ -254,6 +290,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       _stage = 'image';
       _samDone = 0;
       _samTotal = 0;
+      _sample = false;
       _step = _Step.capture;
     });
   }
@@ -1214,6 +1251,12 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         variant: EngramButtonVariant.secondary,
         onPressed: () => _pick(ImageSource.gallery),
       ),
+      const SizedBox(height: 10),
+      EngramTextButton(
+        key: const ValueKey('room-try-sample'),
+        label: tr('room_try_sample'),
+        onPressed: _pickSample,
+      ),
       const SizedBox(height: 12),
       Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1235,8 +1278,16 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     ]);
   }
 
+  Widget _sampleBadge() {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: AppBadge(label: tr('room_sample_badge'), color: blue),
+    );
+  }
+
   Widget _scanningStep() {
     return _page([
+      if (_sample) ...[_sampleBadge(), const SizedBox(height: 8)],
       _ScanStage(
         photo: _photo,
         stage: _stage,
@@ -1255,6 +1306,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
   Widget _itemsStep() {
     return _page([
       _header(tr('room_items_title')),
+      if (_sample) ...[_sampleBadge(), const SizedBox(height: 8)],
       _covers(
         imageUrl: _photo,
         objects: _stations,

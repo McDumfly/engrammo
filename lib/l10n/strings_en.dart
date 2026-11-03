@@ -1851,6 +1851,8 @@ const Map<String, String> enStrings = {
   'room_perm_denied': 'No access to camera or photos. Allow it in Settings.',
   'room_pick_failed': 'Couldn\'t open the photo.',
   'room_spot': 'spot {n}',
+  'room_try_sample': 'Try with a sample room',
+  'room_sample_badge': 'Sample photo',
   'room_items_title': 'What do you want to remember?',
   'room_items_hint': 'One item per line (up to {count})',
   'room_items_sample': 'Use sample list',
