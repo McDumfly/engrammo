@@ -2517,6 +2517,7 @@ class MetaAIService {
     String? baseUrlOverride,
     void Function(double progress, String stage)? onProgress,
     void Function(int done, int total)? onSamItem,
+    void Function(List<String> labels, List<List<double>> boxes)? onObjects,
   }) async {
     final n = count.clamp(2, 8);
     final scene = (sceneOverride != null && sceneOverride.trim().isNotEmpty)
@@ -2588,6 +2589,14 @@ class MetaAIService {
         );
       }
       final objects = seg.labels.take(n).toList();
+      // Live overlay seam: report the same labels the round finally
+      // returns, with their aligned Spark boxes, before the SAM loop.
+      onObjects?.call(
+        objects,
+        seg.boxes.length == seg.labels.length
+            ? seg.boxes.take(n).toList()
+            : const <List<double>>[],
+      );
       report(0.55, 'sam');
       final refined = await refinePictureMasks(
         imageRef: imageUrl,

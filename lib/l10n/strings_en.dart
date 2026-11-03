@@ -1842,6 +1842,8 @@ const Map<String, String> enStrings = {
   'room_stage_sam': 'Drawing outlines ({done}/{total})',
   'room_stage_sam_idle': 'Drawing outlines',
   'room_found_n': '{n} found',
+  'room_scan_spark_found': 'Muse Spark found {n} landmarks',
+  'room_scan_sam_tracing': 'SAM 3.1 is outlining {name}',
   'room_scan_eta': 'Usually 30–45 seconds',
   'room_stations_found': '{count} spots found. Walk them in order.',
   'room_no_stations': 'Found too few landmarks. A brighter photo with 4–8 pieces of furniture works best.',

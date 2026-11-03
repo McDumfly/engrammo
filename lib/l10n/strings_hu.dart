@@ -1863,6 +1863,8 @@ const Map<String, String> huStrings = {
   'room_stage_sam': 'Körvonalak rajzolása ({done}/{total})',
   'room_stage_sam_idle': 'Körvonalak rajzolása',
   'room_found_n': '{n} megvan',
+  'room_scan_spark_found': 'A Muse Spark {n} tereptárgyat talált',
+  'room_scan_sam_tracing': 'A SAM 3.1 körberajzolja: {name}',
   'room_scan_eta': 'Általában 30–45 másodperc',
   'room_stations_found': '{count} pont. Járd be őket sorban.',
   'room_no_stations': 'Kevés jól elkülönülő tárgyat találtam. Világosabb fotó 4–8 bútorral a legjobb.',

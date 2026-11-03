@@ -611,6 +611,60 @@ void main() {
       expect(round.objects, ['tölgyfa ajtó', 'rézlámpa']);
     });
 
+    test('onObjects a kör által visszaadott címkéket jelenti', () async {
+      final client = MockClient((req) async {
+        final path = req.url.path;
+        if (path.endsWith('/responses')) {
+          return http.Response(
+            jsonEncode(
+              responsesPayload(
+                jsonEncode([
+                  {
+                    'object_name': 'oak door',
+                    'bbox': [
+                      {'x_min': 0, 'y_min': 0, 'x_max': 500, 'y_max': 1000},
+                    ],
+                  },
+                  {
+                    'object_name': 'brass lamp',
+                    'bbox': [
+                      {'x_min': 500, 'y_min': 0, 'x_max': 1000, 'y_max': 500},
+                    ],
+                  },
+                ]),
+              ),
+            ),
+            200,
+          );
+        }
+        return http.Response(
+          jsonEncode(chatPayload('{"objects": ["oak door", "brass lamp"]}')),
+          200,
+        );
+      });
+      var calls = 0;
+      List<String>? seenLabels;
+      List<List<double>>? seenBoxes;
+      final round = await MetaAIService.pictureRecallRound(
+        seed: 'on-objects-teszt',
+        count: 2,
+        locale: 'en',
+        imageRefOverride: 'https://img/szoba.png',
+        client: client,
+        apiKeyOverride: 'teszt-kulcs',
+        onObjects: (labels, boxes) {
+          calls++;
+          seenLabels = labels;
+          seenBoxes = boxes;
+        },
+      );
+      expect(round.live, isTrue);
+      expect(calls, 1);
+      expect(seenLabels, round.objects);
+      expect(seenLabels, ['oak door', 'brass lamp']);
+      expect(seenBoxes!.length, round.objects.length);
+    });
+
     test('olvashatatlan képpel is van kép, de a kör helyi marad', () async {
       final client = MockClient((req) async {
         if (req.url.path.contains('images/generations')) {

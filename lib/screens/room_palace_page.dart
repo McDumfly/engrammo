@@ -75,6 +75,8 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
   List<String> _stations = [];
   List<List<double>> _boxes = [];
   List<String> _masks = [];
+  List<String> _scanLabels = [];
+  List<List<double>> _scanBoxes = [];
   bool _live = false;
   bool _imageFailed = false;
   bool _sample = false;
@@ -231,6 +233,8 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         _stage = 'image';
         _samDone = 0;
         _samTotal = 0;
+        _scanLabels = [];
+        _scanBoxes = [];
         _imageFailed = false;
         _step = _Step.scanning;
       });
@@ -270,6 +274,8 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         _stage = 'image';
         _samDone = 0;
         _samTotal = 0;
+        _scanLabels = [];
+        _scanBoxes = [];
         _imageFailed = false;
         _step = _Step.scanning;
       });
@@ -290,6 +296,8 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       _stage = 'image';
       _samDone = 0;
       _samTotal = 0;
+      _scanLabels = [];
+      _scanBoxes = [];
       _sample = false;
       _step = _Step.capture;
     });
@@ -321,6 +329,14 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
           setState(() {
             _samDone = done;
             _samTotal = total;
+          });
+        },
+        onObjects: (labels, boxes) {
+          if (!mounted || token != _token) return;
+          AppFeedback.medium();
+          setState(() {
+            _scanLabels = labels;
+            _scanBoxes = boxes;
           });
         },
       );
@@ -1293,6 +1309,8 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         stage: _stage,
         samDone: _samDone,
         samTotal: _samTotal,
+        labels: _scanLabels,
+        boxes: _scanBoxes,
       ),
       const SizedBox(height: 20),
       EngramButton(
@@ -1894,19 +1912,25 @@ class _ScanStage extends StatefulWidget {
   final String stage;
   final int samDone;
   final int samTotal;
+
+  /// Live Muse Spark labels (and their aligned normalized boxes) reported
+  /// by the round before the SAM loop starts. Empty until they arrive.
+  final List<String> labels;
+  final List<List<double>> boxes;
   const _ScanStage({
     required this.photo,
     required this.stage,
     required this.samDone,
     required this.samTotal,
+    this.labels = const [],
+    this.boxes = const [],
   });
 
   @override
   State<_ScanStage> createState() => _ScanStageState();
 }
 
-class _ScanStageState extends State<_ScanStage>
-    with SingleTickerProviderStateMixin {
+class _ScanStageState extends State<_ScanStage> with TickerProviderStateMixin {
   static const _grey60 = <double>[
     0.52756,
     0.42912,
@@ -1931,6 +1955,10 @@ class _ScanStageState extends State<_ScanStage>
   ];
   late final AnimationController _sweep;
 
+  /// Staggered pop-in for the live landmark chips (900 ms, one interval
+  /// per chip). No timers; jumps to the end under tests.
+  late final AnimationController _pop;
+
   @override
   void initState() {
     super.initState();
@@ -1938,13 +1966,40 @@ class _ScanStageState extends State<_ScanStage>
       vsync: this,
       duration: const Duration(milliseconds: 1800),
     );
+    _pop = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
     // Static scan line under tests so pumpAndSettle keeps working.
-    if (!isFlutterTest) _sweep.repeat(reverse: true);
+    if (!isFlutterTest) {
+      _sweep.repeat(reverse: true);
+    } else {
+      _pop.value = 1;
+    }
+    if (widget.labels.isNotEmpty) _restartPop();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ScanStage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.labels.isNotEmpty &&
+        !listEquals(oldWidget.labels, widget.labels)) {
+      _restartPop();
+    }
+  }
+
+  void _restartPop() {
+    if (isFlutterTest) {
+      _pop.value = 1;
+    } else {
+      _pop.forward(from: 0);
+    }
   }
 
   @override
   void dispose() {
     _sweep.dispose();
+    _pop.dispose();
     super.dispose();
   }
 
@@ -1964,6 +2019,13 @@ class _ScanStageState extends State<_ScanStage>
     final scanning = active < 2;
     final total = widget.samTotal;
     final done = widget.samDone.clamp(0, total == 0 ? 0 : total);
+    final labels = widget.labels;
+    final labelsArrived = labels.isNotEmpty;
+    // Chips sit on real Spark boxes only; without aligned boxes there is
+    // nothing honest to point at, so the overlay stays off.
+    final showOverlay = labelsArrived && widget.boxes.length == labels.length;
+    // The photo wakes up in colour as soon as Muse Spark names landmarks.
+    final greyed = scanning && !labelsArrived;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1986,7 +2048,7 @@ class _ScanStageState extends State<_ScanStage>
                     ),
                     Positioned.fill(
                       child: AnimatedOpacity(
-                        opacity: scanning ? 1 : 0,
+                        opacity: greyed ? 1 : 0,
                         duration: const Duration(milliseconds: 260),
                         child: RepaintBoundary(
                           child: ColorFiltered(
@@ -1999,6 +2061,75 @@ class _ScanStageState extends State<_ScanStage>
                         ),
                       ),
                     ),
+                    if (showOverlay)
+                      Positioned.fill(
+                        child: RepaintBoundary(
+                          child: AnimatedBuilder(
+                            animation: _pop,
+                            builder: (context, _) => LayoutBuilder(
+                              builder: (context, constraints) {
+                                final w = constraints.maxWidth;
+                                final h = constraints.maxHeight;
+                                final rects = <Rect>[
+                                  for (final b in widget.boxes)
+                                    Rect.fromLTWH(
+                                      b[0] * w,
+                                      b[1] * h,
+                                      b[2] * w,
+                                      b[3] * h,
+                                    ),
+                                ];
+                                return Stack(
+                                  children: [
+                                    Positioned.fill(
+                                      child: CustomPaint(
+                                        painter: _ScanBoxPainter(
+                                          rects: rects,
+                                          solid: done,
+                                        ),
+                                      ),
+                                    ),
+                                    for (var i = 0; i < labels.length; i++)
+                                      Positioned(
+                                        left: rects[i].left,
+                                        top: rects[i].top,
+                                        child: Builder(
+                                          builder: (context) {
+                                            final t = Interval(
+                                              i * 0.12,
+                                              min(1.0, i * 0.12 + 0.4),
+                                              curve: Curves.easeOutBack,
+                                            ).transform(_pop.value);
+                                            return Transform.scale(
+                                              scale: t,
+                                              child: Opacity(
+                                                opacity: t.clamp(0.0, 1.0),
+                                                child: ConstrainedBox(
+                                                  constraints: BoxConstraints(
+                                                    maxWidth:
+                                                        (w - rects[i].left - 4)
+                                                            .clamp(48.0, w)
+                                                            .toDouble(),
+                                                  ),
+                                                  child: _ScanChip(
+                                                    text:
+                                                        '${i + 1} · ${labels[i]}',
+                                                    color: _stationColor(i),
+                                                    done: done > i,
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
                     if (done > 0)
                       Positioned(
                         top: 12,
@@ -2016,7 +2147,7 @@ class _ScanStageState extends State<_ScanStage>
                           ),
                         ),
                       ),
-                    if (scanning)
+                    if (scanning && !labelsArrived)
                       Positioned.fill(
                         child: AnimatedBuilder(
                           animation: _sweep,
@@ -2082,6 +2213,26 @@ class _ScanStageState extends State<_ScanStage>
           badge: const AppBadge(label: 'SAM 3.1', color: teal),
         ),
         const SizedBox(height: 8),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: labelsArrived
+              ? Padding(
+                  key: ValueKey('scan-ticker-$done-${labels.length}'),
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    total > 0
+                        ? tr('room_scan_sam_tracing', {
+                            'name': labels[done.clamp(0, labels.length - 1)],
+                          })
+                        : tr('room_scan_spark_found', {'n': labels.length}),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.caption.copyWith(color: context.mutedText),
+                  ),
+                )
+              : const SizedBox.shrink(key: ValueKey('scan-ticker-empty')),
+        ),
         Text(
           tr('room_scan_eta'),
           style: AppText.micro.copyWith(color: context.mutedText),
@@ -2155,5 +2306,108 @@ class _ScanStageState extends State<_ScanStage>
         ],
       ),
     );
+  }
+}
+
+/// One live landmark chip on the scan photo: the station-coloured badge.
+/// Gets a quick 1.0 → 1.15 → 1.0 scale pulse (220 ms) the moment SAM
+/// finishes outlining its station. No timers; completes under tests.
+class _ScanChip extends StatefulWidget {
+  final String text;
+  final Color color;
+  final bool done;
+  const _ScanChip({
+    required this.text,
+    required this.color,
+    required this.done,
+  });
+
+  @override
+  State<_ScanChip> createState() => _ScanChipState();
+}
+
+class _ScanChipState extends State<_ScanChip>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 220),
+  );
+
+  @override
+  void didUpdateWidget(covariant _ScanChip oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.done && !oldWidget.done) {
+      if (isFlutterTest) {
+        _pulse.value = 1;
+      } else {
+        _pulse.forward(from: 0);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _pulse,
+      builder: (context, child) {
+        final s = 1 + 0.15 * sin(pi * _pulse.value);
+        return Transform.scale(scale: s, child: child);
+      },
+      child: AppBadge(label: widget.text, color: widget.color),
+    );
+  }
+}
+
+/// Live landmark boxes on the scan photo: 2 pt rounded rectangles in the
+/// station colour, dashed until SAM outlines the station, solid after.
+class _ScanBoxPainter extends CustomPainter {
+  final List<Rect> rects;
+
+  /// Indices below [solid] are already outlined by SAM.
+  final int solid;
+  const _ScanBoxPainter({required this.rects, required this.solid});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (var i = 0; i < rects.length; i++) {
+      final rect = rects[i];
+      if (rect.width <= 0 || rect.height <= 0) continue;
+      final paint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = _stationColor(i);
+      final rrect = RRect.fromRectAndRadius(
+        rect,
+        const Radius.circular(AppRadius.s),
+      );
+      if (i < solid) {
+        canvas.drawRRect(rrect, paint);
+        continue;
+      }
+      final path = Path()..addRRect(rrect);
+      const dash = 6.0;
+      const gap = 4.0;
+      for (final metric in path.computeMetrics()) {
+        var d = 0.0;
+        while (d < metric.length) {
+          canvas.drawPath(
+            metric.extractPath(d, min(d + dash, metric.length)),
+            paint,
+          );
+          d += dash + gap;
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ScanBoxPainter old) {
+    return old.solid != solid || old.rects.length != rects.length;
   }
 }
