@@ -4034,6 +4034,47 @@ Path? buildSamOutline({
   return acc;
 }
 
+/// Lays out the revealed item chips on a picture so none overlap: each
+/// chip sits centred under its object ([anchors] are the object rects),
+/// sized by [widths], and a chip that would cover an earlier one (walk
+/// order) moves just below it, or above it when there is no room below.
+/// Everything stays inside the [w] x [h] picture.
+@visibleForTesting
+List<Rect> layoutRecallChips(
+  List<Rect> anchors,
+  List<double> widths,
+  double w,
+  double h, {
+  double height = 26,
+  double gap = 4,
+}) {
+  final out = <Rect>[];
+  final maxY = max(gap, h - height - gap);
+  for (var i = 0; i < anchors.length; i++) {
+    final cw = min(widths[i], w - 2 * gap);
+    final left = (anchors[i].center.dx - cw / 2)
+        .clamp(gap, max(gap, w - cw - gap))
+        .toDouble();
+    var top = (anchors[i].bottom - height - gap).clamp(gap, maxY).toDouble();
+    for (var pass = 0; pass < 12; pass++) {
+      final r = Rect.fromLTWH(left, top, cw, height);
+      Rect? hit;
+      for (final o in out) {
+        if (o.inflate(gap / 2).overlaps(r)) {
+          hit = o;
+          break;
+        }
+      }
+      if (hit == null) break;
+      final below = hit.bottom + gap;
+      top = below <= maxY ? below : max(gap, hit.top - height - gap);
+      if (below > maxY && top == gap && pass > 0) break;
+    }
+    out.add(Rect.fromLTWH(left, top, cw, height));
+  }
+  return out;
+}
+
 /// One SAM cover's display geometry: the bounding [rect] in picture
 /// pixels plus the decoded shape runs inside it (empty when the object
 /// has box geometry only — then a soft rounded cover is drawn instead).
@@ -4719,6 +4760,46 @@ class _MaskedPictureState extends State<MaskedPicture>
                     anchors.add(anchor);
                   }
                   final badges = _spreadBadges(anchors, w, h);
+                  final chipSlots = <int, Rect>{};
+                  if (widget.masked) {
+                    final shown = [
+                      for (var i = 0; i < n; i++)
+                        if (widget.revealed.contains(i) &&
+                            i < widget.objects.length)
+                          i,
+                    ];
+                    // Measure with the inherited font (Lexend), exactly as
+                    // the chip's Text will render.
+                    final chipStyle = DefaultTextStyle.of(context).style
+                        .merge(AppText.micro)
+                        .copyWith(fontWeight: FontWeight.w700);
+                    final scaler = MediaQuery.textScalerOf(context);
+                    final widths = [
+                      for (final i in shown)
+                        min(
+                          w * 0.42,
+                          (TextPainter(
+                                text: TextSpan(
+                                  text: widget.objects[i],
+                                  style: chipStyle,
+                                ),
+                                textDirection: TextDirection.ltr,
+                                textScaler: scaler,
+                                maxLines: 1,
+                              )..layout()).width +
+                              22,
+                        ),
+                    ];
+                    final slots = layoutRecallChips(
+                      [for (final i in shown) covers[i].rect],
+                      widths,
+                      w,
+                      h,
+                    );
+                    for (var k = 0; k < shown.length; k++) {
+                      chipSlots[shown[k]] = slots[k];
+                    }
+                  }
                   final anims = <Listenable>[
                     ?_stagger,
                     _pulse,
@@ -4762,20 +4843,14 @@ class _MaskedPictureState extends State<MaskedPicture>
                               Builder(
                                 builder: (context) {
                                   // The chip floats below the object on its
-                                  // own centred slot: a narrow object rect
-                                  // must never cap the chip width.
-                                  final cw = w * 0.42;
-                                  final rect = covers[i].rect;
-                                  final maxX = max(4.0, w - cw - 4);
-                                  final maxY = max(4.0, h - 30);
-                                  return Positioned(
-                                    left: (rect.center.dx - cw / 2)
-                                        .clamp(4.0, maxX)
-                                        .toDouble(),
-                                    top: (rect.bottom - 30)
-                                        .clamp(4.0, maxY)
-                                        .toDouble(),
-                                    width: cw,
+                                  // own slot (never capped by a narrow
+                                  // object rect) and never covers another.
+                                  final slot = chipSlots[i];
+                                  if (slot == null) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  return Positioned.fromRect(
+                                    rect: slot,
                                     child: Center(
                                       child: Container(
                                         height: 26,

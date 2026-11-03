@@ -1917,6 +1917,8 @@ const Map<String, String> huStrings = {
   'room_share_btn': 'Eredmény megosztása',
   'room_share_title': '{correct}/{total} felidézve a saját szobámból',
   'room_share_text': '{correct}/{total} dolgot idéztem fel a saját szobámat bejárva. Engrammo: Muse Spark + SAM 3.1 + Muse Image.',
+  'room_share_title_sample': '{correct}/{total} felidézve a mintaszobából',
+  'room_share_text_sample': '{correct}/{total} dolgot idéztem fel egy mintaszobát bejárva. Engrammo: Muse Spark + SAM 3.1 + Muse Image.',
   'room_share_copy': 'Szöveg másolása',
   'room_share_private': 'A fotód nem hagyja el ezt az eszközt.',
   'room_receipt_btn': 'Mit csinált az AI',

@@ -866,16 +866,18 @@ class AppSheet extends StatelessWidget {
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOutCubic,
-      child: SafeArea(
-        top: false,
-        child: Container(
-          decoration: BoxDecoration(
-            color: context.cardBg,
-            borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(AppRadius.xl),
-            ),
-            border: Border(top: BorderSide(color: context.hairline, width: 2)),
+      // The card runs to the bottom edge; only its content keeps clear of
+      // the home indicator, so no strip of backdrop shows under the sheet.
+      child: Container(
+        decoration: BoxDecoration(
+          color: context.cardBg,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppRadius.xl),
           ),
+          border: Border(top: BorderSide(color: context.hairline, width: 2)),
+        ),
+        child: SafeArea(
+          top: false,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -915,7 +917,14 @@ Future<T?> showAppSheet<T>(
     backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withValues(alpha: 0.35),
     elevation: 0,
-    useSafeArea: true,
+    // Not useSafeArea: it would stop the sheet above the home indicator.
+    // The top stays clear of the status bar through the max height below.
+    constraints: BoxConstraints(
+      maxHeight:
+          MediaQuery.sizeOf(context).height -
+          MediaQuery.paddingOf(context).top -
+          12,
+    ),
     isScrollControlled: isScrollControlled,
     showDragHandle: false,
     sheetAnimationStyle: const AnimationStyle(

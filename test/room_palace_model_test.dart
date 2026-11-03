@@ -97,4 +97,20 @@ void main() {
     expect(localRecallAnswer('sejtmag', 'riboszóma'), RecallMatch.none);
     expect(localRecallAnswer('apple', ''), RecallMatch.none);
   });
+
+  test('a mintaszoba jelzés mentés után is megmarad', () {
+    final p = RoomPalace(
+      id: 'room:1',
+      createdAt: DateTime.utc(2026),
+      imageRef: 'data:image/jpeg;base64,AA==',
+      card: FsrsCard(
+        cardId: 'room:1',
+        taskId: 'room_palace',
+        due: DateTime.utc(2026),
+      ),
+      sample: true,
+    );
+    expect(RoomPalace.fromJson(p.toJson()).sample, isTrue);
+    expect(RoomPalace.fromJson({'id': 'room:2'}).sample, isFalse);
+  });
 }

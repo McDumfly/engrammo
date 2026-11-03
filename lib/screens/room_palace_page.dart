@@ -222,7 +222,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       _palaces = list;
       _ready = true;
       _photo = foundPalace.imageRef;
-      _sample = false;
+      _sample = foundPalace.sample;
       _baselineCorrect = null;
       _stations = foundPalace.stations;
       _boxes = foundPalace.boxes;
@@ -516,6 +516,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         links: answer.links,
         live: _live,
         card: FsrsCard(cardId: id, taskId: 'room_palace', due: DateTime.now()),
+        sample: _sample,
       );
       await MemoryStore.upsertRoomPalace(palace);
       if (!mounted || token != _token) return;
@@ -1170,6 +1171,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       _boxes = p.boxes;
       _masks = p.masks;
       _live = p.live;
+      _sample = p.sample;
       _imageFailed = false;
       _coverVersion++;
       _palace = p;
@@ -3664,10 +3666,12 @@ class _ShareCard extends StatelessWidget {
                           ),
                         ),
                         child: Text(
-                          tr('room_share_title', {
-                            'correct': '$correct',
-                            'total': '$total',
-                          }),
+                          tr(
+                            palace.sample
+                                ? 'room_share_title_sample'
+                                : 'room_share_title',
+                            {'correct': '$correct', 'total': '$total'},
+                          ),
                           textAlign: TextAlign.center,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -3704,10 +3708,10 @@ class _ShareCard extends StatelessWidget {
           onPressed: () async {
             await Clipboard.setData(
               ClipboardData(
-                text: tr('room_share_text', {
-                  'correct': '$correct',
-                  'total': '$total',
-                }),
+                text: tr(
+                  palace.sample ? 'room_share_text_sample' : 'room_share_text',
+                  {'correct': '$correct', 'total': '$total'},
+                ),
               ),
             );
             AppFeedback.light();

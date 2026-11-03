@@ -17,6 +17,8 @@ class RoomPalace {
   final bool live; // true = stations came from Muse Spark + SAM
   final FsrsCard card;
   final List<String> dreams; // persisted dream scenes per station (data URLs)
+  final bool
+  sample; // true = built on the bundled sample room, not the learner's
 
   const RoomPalace({
     required this.id,
@@ -30,6 +32,7 @@ class RoomPalace {
     this.live = false,
     required this.card,
     this.dreams = const [],
+    this.sample = false,
   });
 
   RoomPalace copyWith({
@@ -44,6 +47,7 @@ class RoomPalace {
     bool? live,
     FsrsCard? card,
     List<String>? dreams,
+    bool? sample,
   }) {
     return RoomPalace(
       id: id ?? this.id,
@@ -57,6 +61,7 @@ class RoomPalace {
       live: live ?? this.live,
       card: card ?? this.card,
       dreams: dreams ?? this.dreams,
+      sample: sample ?? this.sample,
     );
   }
 
@@ -72,6 +77,7 @@ class RoomPalace {
     'live': live,
     'card': card.toJson(),
     'dreams': dreams,
+    'sample': sample,
   };
 
   /// Never throws: missing lists become empty, a bad date becomes epoch,
@@ -135,6 +141,7 @@ class RoomPalace {
       card: card,
       dreams:
           (json['dreams'] as List?)?.whereType<String>().toList() ?? const [],
+      sample: (json['sample'] as bool?) ?? false,
     );
   }
 

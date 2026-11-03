@@ -1905,6 +1905,8 @@ const Map<String, String> enStrings = {
   'room_share_btn': 'Share my result',
   'room_share_title': '{correct}/{total} recalled from my own room',
   'room_share_text': 'I recalled {correct}/{total} items by walking my own room. Engrammo: Muse Spark + SAM 3.1 + Muse Image.',
+  'room_share_title_sample': '{correct}/{total} recalled from the sample room',
+  'room_share_text_sample': 'I recalled {correct}/{total} items by walking a sample room. Engrammo: Muse Spark + SAM 3.1 + Muse Image.',
   'room_share_copy': 'Copy text',
   'room_share_private': 'Your photo never leaves this device.',
   'room_receipt_btn': 'What the AI did',
