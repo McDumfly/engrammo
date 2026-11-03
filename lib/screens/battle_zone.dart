@@ -1,4 +1,5 @@
 import '../theme/app_theme.dart';
+import '../theme/app_tokens.dart';
 
 import 'dart:async';
 import 'dart:math';
@@ -428,7 +429,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
             '$_rating',
             style: const TextStyle(
               color: Colors.white,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               fontSize: 56,
               height: 1.1,
             ),
@@ -493,7 +494,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
       children: [
         _sectionTitle(tr('btz_gamemode'), tr('btz_gamemode_sub')),
         const SizedBox(height: 10),
-        GestureDetector(
+        Tappable(
           onTap: _openKindPicker,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -571,7 +572,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
             tr('btz_gamemode'),
             style: TextStyle(
               color: Theme.of(sheetContext).colorScheme.onSurface,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               fontSize: 17,
             ),
           ),
@@ -588,7 +589,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
             itemBuilder: (_, i) {
               final option = memoryKinds[i];
               final selected = i == _kind;
-              return GestureDetector(
+              return Tappable(
                 onTap: () {
                   Navigator.of(sheetContext).pop();
                   _pickKind(i);
@@ -700,7 +701,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
                 padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
                   color: memoryKinds[_kind].tint.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(AppRadius.m),
                 ),
                 child: HugeIcon(
                   icon: memoryKinds[_kind].icon,
@@ -724,7 +725,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
                             }),
                       style: TextStyle(
                         color: context.inkText,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w800,
                         fontSize: 16,
                       ),
                     ),
@@ -750,7 +751,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: teal.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppRadius.m),
               border: Border.all(color: teal.withValues(alpha: 0.35)),
             ),
             child: Row(
@@ -826,7 +827,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
                       tr('btz_friends_title'),
                       style: TextStyle(
                         color: context.inkText,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w800,
                         fontSize: 16,
                       ),
                     ),
@@ -1026,7 +1027,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
           title,
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w800,
             fontSize: 17,
           ),
         ),
@@ -1044,7 +1045,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: teal.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.l),
         border: Border.all(color: teal.withValues(alpha: 0.35), width: 2),
       ),
       child: Row(
@@ -1065,7 +1066,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
                   tr('btz_fair_title'),
                   style: TextStyle(
                     color: context.inkText,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w800,
                     fontSize: 14,
                   ),
                 ),
@@ -1128,7 +1129,7 @@ class _ScoutCardState extends State<_ScoutCard> {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: context.cardBg,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(AppRadius.l),
             border: Border.all(color: context.hairline, width: 2),
           ),
           child: Row(
@@ -1158,7 +1159,7 @@ class _ScoutCardState extends State<_ScoutCard> {
                       tr('duel_scout_title'),
                       style: TextStyle(
                         color: context.mutedText,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w800,
                         fontSize: 12,
                         letterSpacing: 1.2,
                       ),
@@ -1202,7 +1203,8 @@ class _ModeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Tappable(
+      haptic: false,
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
@@ -1227,7 +1229,7 @@ class _ModeCard extends StatelessWidget {
                   padding: const EdgeInsets.all(9),
                   decoration: BoxDecoration(
                     color: tint.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(AppRadius.m),
                   ),
                   child: HugeIcon(
                     icon: icon,
@@ -1251,7 +1253,7 @@ class _ModeCard extends StatelessWidget {
               title,
               style: TextStyle(
                 color: context.inkText,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w800,
                 fontSize: 15,
               ),
             ),
@@ -1291,7 +1293,7 @@ class _StatCard extends StatelessWidget {
             value,
             style: TextStyle(
               color: context.inkText,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               fontSize: 18,
             ),
           ),
@@ -1327,7 +1329,7 @@ class _LiveBattleRow extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: context.cardBg,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.l),
         border: Border.all(color: context.hairline, width: 2),
       ),
       child: Row(
@@ -1342,7 +1344,7 @@ class _LiveBattleRow extends StatelessWidget {
               mode,
               style: TextStyle(
                 color: badge,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w800,
                 fontSize: 12,
               ),
             ),
@@ -1400,7 +1402,7 @@ class _StepRow extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: context.cardBg,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.l),
         border: Border.all(color: context.hairline, width: 2),
       ),
       child: Row(
@@ -1410,7 +1412,7 @@ class _StepRow extends StatelessWidget {
             index,
             style: TextStyle(
               color: context.accentText(orange),
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               fontSize: 16,
             ),
           ),
@@ -1423,7 +1425,7 @@ class _StepRow extends StatelessWidget {
                   title,
                   style: TextStyle(
                     color: context.inkText,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w800,
                     fontSize: 14,
                   ),
                 ),
@@ -1495,7 +1497,7 @@ class _MatchDetailContent extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
             color: context.hairline.withValues(alpha: 0.4),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppRadius.m),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -1504,7 +1506,7 @@ class _MatchDetailContent extends StatelessWidget {
                 '${match.playerScore}',
                 style: TextStyle(
                   color: context.inkText,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w800,
                   fontSize: 26,
                 ),
               ),
@@ -1514,7 +1516,7 @@ class _MatchDetailContent extends StatelessWidget {
                   ':',
                   style: TextStyle(
                     color: context.mutedText,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w800,
                     fontSize: 22,
                   ),
                 ),
@@ -1523,7 +1525,7 @@ class _MatchDetailContent extends StatelessWidget {
                 '${match.foeScore}',
                 style: TextStyle(
                   color: context.inkText,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w800,
                   fontSize: 26,
                 ),
               ),
@@ -1592,13 +1594,14 @@ class _PastMatchRow extends StatelessWidget {
         : drawn
         ? context.mutedText
         : error;
-    return GestureDetector(
+    return Tappable(
+      haptic: false,
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: context.cardBg,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppRadius.l),
           border: Border.all(color: context.hairline, width: 2),
         ),
         child: Row(
@@ -1617,7 +1620,7 @@ class _PastMatchRow extends StatelessWidget {
                     : tr('btz_l'),
                 style: TextStyle(
                   color: accent,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w800,
                   fontSize: 13,
                 ),
               ),
@@ -1659,7 +1662,7 @@ class _PastMatchRow extends StatelessWidget {
                   '${match.playerScore}:${match.foeScore}',
                   style: TextStyle(
                     color: context.inkText,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w800,
                     fontSize: 14,
                   ),
                 ),
@@ -1710,7 +1713,7 @@ class _FriendInviteRow extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: invited ? context.washBg : context.softBg,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadius.m),
         border: Border.all(
           color: invited ? blue.withValues(alpha: 0.5) : context.hairline,
           width: invited ? 2 : 1.5,
@@ -1736,7 +1739,7 @@ class _FriendInviteRow extends StatelessWidget {
                       friend.name.characters.first,
                       style: TextStyle(
                         color: context.accentText(blue),
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w800,
                         fontSize: 16,
                       ),
                     ),

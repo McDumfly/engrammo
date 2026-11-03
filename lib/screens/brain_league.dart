@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../theme/app_tokens.dart';
 import '../services/app_feedback.dart';
 
 import 'package:hugeicons/hugeicons.dart';
@@ -242,7 +243,8 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
     );
     final botId = rival.botId;
     if (rival.isMe || botId == null) return row;
-    return GestureDetector(
+    return Tappable(
+      haptic: false,
       onTap: () => _openLeagueBot(context, botId),
       child: row,
     );
@@ -316,7 +318,7 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
                                     )),
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurface,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w800,
                           fontSize: 24,
                         ),
                       ),
@@ -466,7 +468,8 @@ class _FriendsTab extends StatelessWidget {
               subtitle: tr('blg_suggest_sub'),
             ),
             for (var i = 0; i < suggestions.length; i++)
-              GestureDetector(
+              Tappable(
+                haptic: false,
                 onTap: () => _openLeagueBot(context, suggestions[i].id),
                 child: _BoardRow(
                   key: ValueKey('suggest-${suggestions[i].id}'),
@@ -494,7 +497,8 @@ class _FriendsTab extends StatelessWidget {
                 ),
               ),
             for (var i = 0; i < friends.length; i++)
-              GestureDetector(
+              Tappable(
+                haptic: false,
                 onTap: () => _openLeagueBot(context, friends[i].id),
                 child: _BoardRow(
                   key: ValueKey('friend-${friends[i].id}'),
@@ -525,7 +529,7 @@ class _FriendsTab extends StatelessWidget {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: context.cardBg,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(AppRadius.m),
                   border: Border.all(color: context.hairline, width: 1.5),
                 ),
                 child: Column(
@@ -571,7 +575,7 @@ class _FriendsSectionTitle extends StatelessWidget {
             title,
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               fontSize: 16,
             ),
           ),
@@ -640,7 +644,7 @@ class _EmptyBoard extends StatelessWidget {
             tr('blg_empty_title'),
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               fontSize: 16,
             ),
           ),
@@ -689,7 +693,7 @@ class _TournamentTierCellState extends State<_TournamentTierCell>
     const gold = Color(0xFFFFC400);
     const deep = Color(0xFF0B1026);
     final size = widget.selected ? 76.0 : 64.0;
-    return GestureDetector(
+    return Tappable(
       onTap: widget.onTap,
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 200),
@@ -755,7 +759,7 @@ class _TournamentTierCellState extends State<_TournamentTierCell>
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: widget.selected ? context.inkText : context.mutedText,
-                fontWeight: widget.selected ? FontWeight.w900 : FontWeight.w700,
+                fontWeight: widget.selected ? FontWeight.w800 : FontWeight.w700,
                 fontSize: 12,
               ),
             ),
@@ -780,7 +784,7 @@ class _TierCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Tappable(
       onTap: onTap,
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 200),
@@ -800,7 +804,7 @@ class _TierCell extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: selected ? context.inkText : context.mutedText,
-                fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
+                fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
                 fontSize: 12,
               ),
             ),
@@ -1095,7 +1099,7 @@ class _BoardRow extends StatelessWidget {
               '$rank',
               style: TextStyle(
                 color: medal ?? context.mutedText,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w800,
                 fontSize: 14,
               ),
             ),
@@ -1113,7 +1117,7 @@ class _BoardRow extends StatelessWidget {
               rival.name.characters.first,
               style: TextStyle(
                 color: isMe ? blueDark : context.inkText,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w800,
                 fontSize: 17,
               ),
             ),
@@ -1152,7 +1156,7 @@ class _BoardRow extends StatelessWidget {
                           tr('blg_you'),
                           style: TextStyle(
                             color: Colors.white,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w800,
                             fontSize: 12,
                           ),
                         ),
@@ -1200,7 +1204,7 @@ class _BoardRow extends StatelessWidget {
               '${rival.xp} XP',
               style: TextStyle(
                 color: context.accentText(blueDark),
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w800,
                 fontSize: 12,
               ),
             ),
@@ -1267,7 +1271,7 @@ class _TournamentCard extends StatelessWidget {
                         tr('blg_tournament'),
                         style: const TextStyle(
                           color: Colors.white,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w800,
                           fontSize: 16,
                         ),
                       ),
@@ -1295,7 +1299,7 @@ class _TournamentCard extends StatelessWidget {
                     tr('blg_top8'),
                     style: TextStyle(
                       color: deep,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w800,
                       fontSize: 12,
                     ),
                   ),
@@ -1318,7 +1322,7 @@ class _TournamentCard extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: gold.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppRadius.m),
                 border: Border.all(color: gold.withValues(alpha: 0.5)),
               ),
               child: Row(
@@ -1339,7 +1343,7 @@ class _TournamentCard extends StatelessWidget {
                           tr('blg_reward'),
                           style: const TextStyle(
                             color: Colors.white,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w800,
                             fontSize: 13,
                           ),
                         ),
@@ -1560,7 +1564,7 @@ class _BracketMatch extends StatelessWidget {
       height: _TournamentBracket.matchH,
       decoration: BoxDecoration(
         color: context.cardBg.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.m),
         border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
       ),
       child: Column(
@@ -1600,7 +1604,7 @@ class _BracketSeed extends StatelessWidget {
               '$seed',
               style: const TextStyle(
                 color: gold,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w800,
                 fontSize: 12,
               ),
             ),
@@ -1643,7 +1647,7 @@ class _ChampionCard extends StatelessWidget {
       height: 56,
       decoration: BoxDecoration(
         color: gold.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.m),
         border: Border.all(color: gold.withValues(alpha: 0.7)),
       ),
       child: Row(
@@ -1660,7 +1664,7 @@ class _ChampionCard extends StatelessWidget {
             tr('blg_champion'),
             style: const TextStyle(
               color: gold,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               fontSize: 12,
             ),
           ),
@@ -1759,7 +1763,7 @@ class _LockedCard extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w800,
                 fontSize: 17,
               ),
             ),

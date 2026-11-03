@@ -1,4 +1,5 @@
 import 'package:engrammo/models/avatar_traits.dart';
+import 'package:engrammo/theme/app_tokens.dart';
 import 'package:engrammo/widgets/app_kit.dart';
 import 'package:engrammo/screens/avatar_selection_screen.dart';
 import 'package:engrammo/services/app_feedback.dart';
@@ -31,7 +32,7 @@ void tallWindow(WidgetTester tester) {
 }
 
 bool _isRailFace(BoxDecoration? d) =>
-    d != null && d.borderRadius == BorderRadius.circular(18);
+    d != null && d.borderRadius == BorderRadius.circular(AppRadius.l);
 
 void main() {
   testWidgets(

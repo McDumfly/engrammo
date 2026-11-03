@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../theme/app_tokens.dart';
 
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -433,7 +434,7 @@ class _Header extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurface,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w800,
                     fontSize: 18,
                   ),
                 ),
@@ -633,11 +634,12 @@ class _SectionRail extends StatelessWidget {
             child: EngramPress3D(
               onTap: () => onPick(i),
               shadowColor: sel ? blueShadow : context.hairline,
+              borderRadius: BorderRadius.circular(AppRadius.l),
               semanticLabel: tr(s.labelKey),
               top: Container(
                 decoration: BoxDecoration(
                   color: sel ? blueDark : context.cardBg,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(AppRadius.l),
                   border: Border.all(
                     color: sel ? blueDark : context.hairline,
                     width: 2,
@@ -703,7 +705,7 @@ class _ColorStrip extends StatelessWidget {
             title,
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               fontSize: 14,
             ),
           ),
@@ -725,12 +727,12 @@ class _ColorStrip extends StatelessWidget {
                   onTap: () => onPick(v),
                   shadowColor: sel ? blueShadow : context.hairline,
                   depth: 3,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(AppRadius.m),
                   semanticLabel: '$title $v',
                   top: Container(
                     decoration: BoxDecoration(
                       color: _c(v),
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(AppRadius.m),
                       border: Border.all(
                         color: sel ? blueDark : Colors.white,
                         width: sel ? 3 : 2,
@@ -771,7 +773,7 @@ class _GridTitle extends StatelessWidget {
               title,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w800,
                 fontSize: 14,
               ),
             ),
@@ -837,7 +839,7 @@ class _BigSwatchGrid extends StatelessWidget {
             top: Container(
               decoration: BoxDecoration(
                 color: _c(v),
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(AppRadius.l),
                 border: Border.all(
                   color: sel ? blueDark : Colors.white,
                   width: sel ? 3 : 2,
@@ -975,10 +977,10 @@ class _OptionTile extends StatelessWidget {
                 margin: const EdgeInsets.fromLTRB(7, 7, 7, 0),
                 decoration: BoxDecoration(
                   color: stageColor,
-                  borderRadius: BorderRadius.circular(13),
+                  borderRadius: BorderRadius.circular(AppRadius.m),
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(13),
+                  borderRadius: BorderRadius.circular(AppRadius.m),
                   child: FutureBuilder<String>(
                     future: preview,
                     builder: (context, snapshot) {
@@ -1045,7 +1047,7 @@ class _GraphicStrip extends StatelessWidget {
             tr('avatar_shirt_print'),
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               fontSize: 14,
             ),
           ),

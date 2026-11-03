@@ -13,6 +13,7 @@ import '../services/memory_store.dart';
 import '../services/meta_ai_service.dart';
 import '../theme/app_colors.dart' show blue, coral, teal;
 import '../theme/app_theme.dart';
+import '../theme/app_tokens.dart';
 import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
 import '../widgets/app_kit.dart';
@@ -200,8 +201,9 @@ class _MyGoalsPageState extends State<MyGoalsPage> {
 
   Widget _goalCard(UserGoal goal) {
     final analysis = goal.analysis;
-    return GestureDetector(
+    return Tappable(
       key: ValueKey('goals-open-${goal.id}'),
+      haptic: false,
       onTap: () => _openGoal(goal),
       child: Container(
         padding: const EdgeInsets.all(14),
@@ -1051,7 +1053,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
                 title,
                 style: TextStyle(
                   color: context.mutedText,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w800,
                   fontSize: 12,
                   letterSpacing: 1.2,
                 ),
@@ -1101,8 +1103,9 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
         for (var i = 0; i < plan.length; i++)
           Padding(
             padding: const EdgeInsets.only(bottom: 6),
-            child: GestureDetector(
+            child: Tappable(
               key: ValueKey('goal-plan-step-$i'),
+              haptic: false,
               onTap: () {
                 AppFeedback.light();
                 setState(() {
@@ -1121,7 +1124,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
                   color: _planDone.contains(i)
                       ? teal.withValues(alpha: 0.12)
                       : context.washBg,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppRadius.m),
                   border: Border.all(
                     color: _planDone.contains(i) ? teal : context.faintBorder,
                   ),
@@ -1377,8 +1380,9 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
         for (var i = 0; i < drill.options.length; i++)
           Padding(
             padding: const EdgeInsets.only(bottom: 6),
-            child: GestureDetector(
+            child: Tappable(
               key: ValueKey('goal-drill-option-$i'),
+              haptic: false,
               onTap: _drillPicked == null ? () => _answerDrill(i) : null,
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -1391,7 +1395,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
                       : _drillPicked != null && i == _drillPicked
                       ? coral.withValues(alpha: 0.12)
                       : context.washBg,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(AppRadius.m),
                   border: Border.all(color: context.faintBorder),
                 ),
                 child: Text(

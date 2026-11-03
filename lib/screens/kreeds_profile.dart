@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme/app_theme.dart';
+import '../theme/app_tokens.dart';
 import '../services/app_feedback.dart';
 
 import 'package:flutter_svg/flutter_svg.dart';
@@ -445,7 +446,7 @@ class _TopBar extends StatelessWidget {
               tr('kreeds_title'),
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w800,
                 fontSize: 22,
               ),
             ),
@@ -467,7 +468,8 @@ class _CircleBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Tappable(
+      haptic: false,
       onTap: onTap,
       child: Container(
         width: 44,
@@ -518,7 +520,8 @@ class _Hero extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
       child: Column(
         children: [
-          GestureDetector(
+          Tappable(
+            haptic: false,
             onTap: () {
               AppFeedback.light();
               onAvatarTap();
@@ -558,7 +561,7 @@ class _Hero extends StatelessWidget {
                           '$streak',
                           style: TextStyle(
                             color: context.accentText(coral),
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w800,
                             fontSize: 13,
                           ),
                         ),
@@ -617,7 +620,7 @@ class _Hero extends StatelessWidget {
             displayName,
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               fontSize: 22,
             ),
             maxLines: 1,
@@ -676,7 +679,7 @@ class _FollowStats extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
                 color: context.softBg,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(AppRadius.l),
               ),
               child: Column(
                 children: [
@@ -684,7 +687,7 @@ class _FollowStats extends StatelessWidget {
                     '$following',
                     style: TextStyle(
                       color: context.accentText(blue),
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w800,
                       fontSize: 26,
                     ),
                   ),
@@ -707,7 +710,7 @@ class _FollowStats extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
                 color: const Color(0xFF9B7BFF).withValues(alpha: 0.16),
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(AppRadius.l),
               ),
               child: Column(
                 children: [
@@ -715,7 +718,7 @@ class _FollowStats extends StatelessWidget {
                     '$followers',
                     style: TextStyle(
                       color: const Color(0xFF9B7BFF),
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w800,
                       fontSize: 26,
                     ),
                   ),
@@ -772,8 +775,8 @@ class _SignOutCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    return Tappable(
+      haptic: false,
       onTap: () {
         AppFeedback.light();
         onTap();
@@ -793,7 +796,7 @@ class _SignOutCard extends StatelessWidget {
               height: 44,
               decoration: BoxDecoration(
                 color: context.softBg,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppRadius.m),
                 border: Border.all(color: context.hairline, width: 2),
               ),
               alignment: Alignment.center,
@@ -813,7 +816,7 @@ class _SignOutCard extends StatelessWidget {
                     tr('settings_sign_out'),
                     style: TextStyle(
                       color: context.inkText,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w800,
                       fontSize: 16,
                     ),
                   ),
@@ -977,13 +980,14 @@ class ProfileSignInNudge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Tappable(
+      haptic: false,
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: teal.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppRadius.l),
           border: Border.all(color: teal, width: 2),
         ),
         child: Row(
@@ -993,7 +997,7 @@ class ProfileSignInNudge extends StatelessWidget {
               height: 52,
               decoration: BoxDecoration(
                 color: teal.withValues(alpha: 0.16),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppRadius.m),
               ),
               alignment: Alignment.center,
               child: const HugeIcon(
@@ -1012,7 +1016,7 @@ class ProfileSignInNudge extends StatelessWidget {
                     tr('kreeds_save'),
                     style: TextStyle(
                       color: context.inkText,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w800,
                       fontSize: 16,
                     ),
                   ),
@@ -1043,13 +1047,14 @@ class _AssessmentCtaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Tappable(
+      haptic: false,
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: blue.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppRadius.l),
           border: Border.all(color: blue, width: 2),
         ),
         child: Row(
@@ -1059,7 +1064,7 @@ class _AssessmentCtaCard extends StatelessWidget {
               height: 52,
               decoration: BoxDecoration(
                 color: blue.withValues(alpha: 0.16),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppRadius.m),
               ),
               alignment: Alignment.center,
               child: const HugeIcon(
@@ -1078,7 +1083,7 @@ class _AssessmentCtaCard extends StatelessWidget {
                     tr('kreeds_discover'),
                     style: TextStyle(
                       color: context.inkText,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w800,
                       fontSize: 16,
                     ),
                   ),
@@ -1127,7 +1132,7 @@ class _MemoryIdentityCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: context.cardBg,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.l),
         border: Border.all(color: context.hairline, width: 2),
       ),
       child: Column(
@@ -1140,7 +1145,7 @@ class _MemoryIdentityCard extends StatelessWidget {
                 height: 52,
                 decoration: BoxDecoration(
                   color: kindTint.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(AppRadius.m),
                 ),
                 alignment: Alignment.center,
                 child: HugeIcon(
@@ -1159,7 +1164,7 @@ class _MemoryIdentityCard extends StatelessWidget {
                       tr('kreeds_strongest'),
                       style: TextStyle(
                         color: context.mutedText,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w800,
                         fontSize: 12,
                         letterSpacing: 1.1,
                       ),
@@ -1169,7 +1174,7 @@ class _MemoryIdentityCard extends StatelessWidget {
                       kindName,
                       style: TextStyle(
                         color: context.inkText,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w800,
                         fontSize: 20,
                       ),
                     ),
@@ -1195,7 +1200,7 @@ class _MemoryIdentityCard extends StatelessWidget {
                   '$score%',
                   style: const TextStyle(
                     color: Color(0xFF6B4E00),
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w800,
                     fontSize: 14,
                   ),
                 ),
@@ -1227,8 +1232,9 @@ class _MemoryIdentityCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        GestureDetector(
+                        Tappable(
                           key: const ValueKey('memory-level-info'),
+                          haptic: false,
                           onTap: () {
                             AppFeedback.light();
                             showAppDialog<void>(
@@ -1278,7 +1284,7 @@ class _MemoryIdentityCard extends StatelessWidget {
                         tr('kreeds_retake'),
                         style: TextStyle(
                           color: context.accentText(blue),
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w700,
                           fontSize: 13,
                         ),
                       ),
@@ -1314,7 +1320,7 @@ class _TypeBars extends StatelessWidget {
             tr('kreeds_map'),
             style: TextStyle(
               color: context.inkText,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               fontSize: 15,
             ),
           ),
@@ -1382,7 +1388,7 @@ class _TypeBars extends StatelessWidget {
                       textAlign: TextAlign.right,
                       style: TextStyle(
                         color: context.inkText,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w800,
                         fontSize: 13,
                       ),
                     ),
@@ -1472,7 +1478,7 @@ class _Pill extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
         color: context.cardBg,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadius.m),
         border: Border.all(color: context.hairline, width: 2),
       ),
       child: Column(
@@ -1483,7 +1489,7 @@ class _Pill extends StatelessWidget {
             value,
             style: TextStyle(
               color: context.inkText,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               fontSize: 14,
             ),
           ),
@@ -1541,7 +1547,7 @@ class _WeekCard extends StatelessWidget {
                 tr('kreeds_week'),
                 style: TextStyle(
                   color: context.inkText,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w800,
                   fontSize: 15,
                 ),
               ),
@@ -1773,7 +1779,7 @@ class _MemoryBadgesState extends State<_MemoryBadges> {
                   tr('kreeds_badges'),
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurface,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w800,
                     fontSize: 15,
                   ),
                 ),
@@ -1805,13 +1811,15 @@ class _MemoryBadgesState extends State<_MemoryBadges> {
               itemBuilder: (_, i) {
                 if (i < tournamentTitles.length) {
                   final t = tournamentTitles[i];
-                  return GestureDetector(
+                  return Tappable(
+                    haptic: false,
                     onTap: () => openTournament(t),
                     child: _TournamentMedal(year: t.year, wins: t.wins),
                   );
                 }
                 final b = badges[i - tournamentTitles.length];
-                return GestureDetector(
+                return Tappable(
+                  haptic: false,
                   onTap: () => openSkill(b),
                   child: _SkillMedal(
                     icon: b.$1,
@@ -1873,7 +1881,8 @@ class _AllBadgesPage extends StatelessWidget {
         itemBuilder: (_, i) {
           if (i < tournamentTitles.length) {
             final t = tournamentTitles[i];
-            return GestureDetector(
+            return Tappable(
+              haptic: false,
               onTap: () => _open(
                 context,
                 _TournamentMedal(year: t.year, wins: t.wins, showLabel: false),
@@ -1898,7 +1907,8 @@ class _AllBadgesPage extends StatelessWidget {
           }
           final b = badges[i - tournamentTitles.length];
           final label = b.$3.replaceAll('\n', ' ');
-          return GestureDetector(
+          return Tappable(
+            haptic: false,
             onTap: () => _open(
               context,
               _SkillMedal(
@@ -1967,7 +1977,7 @@ class _BadgeDetailPage extends StatelessWidget {
                 title,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurface,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w800,
                   fontSize: 28,
                 ),
                 textAlign: TextAlign.center,
@@ -2014,7 +2024,7 @@ class _TournamentMedal extends StatelessWidget {
             '$year',
             style: TextStyle(
               color: context.inkText,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               fontSize: 13,
             ),
           ),
@@ -2103,7 +2113,7 @@ class _TournamentDisc extends StatelessWidget {
                   '${wins}x',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w800,
                     fontSize: 12,
                   ),
                 ),

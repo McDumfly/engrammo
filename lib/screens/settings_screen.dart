@@ -8,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import '../models/claims_policy.dart'
     show aiCloudConsentBody, aiCloudConsentTitle;
 import '../theme/app_theme.dart';
+import '../theme/app_tokens.dart';
 import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
 import '../widgets/app_kit.dart';
@@ -300,7 +301,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   tr('settings_change_email'),
                   style: TextStyle(
                     color: Theme.of(sheetCtx).colorScheme.onSurface,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w800,
                     fontSize: 18,
                   ),
                 ),
@@ -401,7 +402,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   tr('settings_change_password'),
                   style: TextStyle(
                     color: Theme.of(sheetCtx).colorScheme.onSurface,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w800,
                     fontSize: 18,
                   ),
                 ),
@@ -804,7 +805,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               tr('settings_delete_account'),
                               style: TextStyle(
                                 color: context.inkText,
-                                fontWeight: FontWeight.w900,
+                                fontWeight: FontWeight.w800,
                                 fontSize: 16,
                               ),
                             ),
@@ -859,7 +860,7 @@ class _Header extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurface,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w800,
                     fontSize: 18,
                   ),
                 ),
@@ -919,7 +920,7 @@ class _SectionTitle extends StatelessWidget {
                     color: accent == coral
                         ? context.dangerText
                         : Theme.of(context).colorScheme.onSurface,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w800,
                     fontSize: 16,
                   ),
                 ),
@@ -1033,8 +1034,8 @@ class _AccountRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    return Tappable(
+      haptic: false,
       onTap: () {
         AppFeedback.light();
         onTap();
@@ -1046,7 +1047,7 @@ class _AccountRow extends StatelessWidget {
             height: 44,
             decoration: BoxDecoration(
               color: context.softBg,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(AppRadius.m),
               border: Border.all(color: context.hairline, width: 2),
             ),
             alignment: Alignment.center,
@@ -1107,7 +1108,7 @@ class _GoogleBanner extends StatelessWidget {
           height: 44,
           decoration: BoxDecoration(
             color: context.softBg,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(AppRadius.m),
             border: Border.all(color: context.hairline, width: 2),
           ),
           alignment: Alignment.center,

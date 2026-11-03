@@ -19,6 +19,7 @@ import '../services/memory_growth.dart';
 import '../services/memory_store.dart';
 import '../services/meta_ai_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/app_tokens.dart';
 import '../widgets/ai_image.dart';
 import '../widgets/app_buttons.dart';
 import '../widgets/app_kit.dart';
@@ -143,7 +144,7 @@ class _ClockBar extends StatelessWidget {
             '$secondsLeft',
             style: TextStyle(
               color: context.inkText,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               fontSize: 14,
             ),
           ),
@@ -968,7 +969,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: context.cardBg,
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(AppRadius.l),
               border: Border.all(color: context.hairline, width: 2),
             ),
             child: Column(
@@ -985,7 +986,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                     _foeLabel.characters.first,
                     style: TextStyle(
                       color: context.accentText(blueDark),
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w800,
                       fontSize: 30,
                     ),
                   ),
@@ -996,7 +997,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: context.inkText,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w800,
                     fontSize: 20,
                   ),
                 ),
@@ -1087,7 +1088,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
             key: const ValueKey('duel-countdown'),
             style: TextStyle(
               color: context.inkText,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               fontSize: 96,
               height: 1,
             ),
@@ -1117,7 +1118,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.m),
         child: AiImage(
           imageRef: imageUrl,
           height: height,
@@ -1192,7 +1193,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                         ),
                         decoration: BoxDecoration(
                           color: blue.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.m),
                         ),
                         child: Text(
                           item,
@@ -1282,7 +1283,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                         ),
                         decoration: BoxDecoration(
                           color: blue.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.m),
                         ),
                         child: Text(
                           item,
@@ -1301,7 +1302,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                 task.question,
                 style: TextStyle(
                   color: context.inkText,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w800,
                   fontSize: 16,
                   height: 1.4,
                 ),
@@ -1367,7 +1368,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
           tr('duel_sam_title'),
           style: TextStyle(
             color: context.mutedText,
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w800,
             fontSize: 12,
             letterSpacing: 1.2,
           ),
@@ -1432,7 +1433,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
             key: const ValueKey('duel-ticker'),
             style: const TextStyle(
               color: Colors.white,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               fontSize: 22,
             ),
           ),
@@ -1548,7 +1549,8 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
       border = blue;
       bg = blue.withValues(alpha: 0.1);
     }
-    return GestureDetector(
+    return Tappable(
+      haptic: false,
       onTap: locked || reveal ? null : () => _lockPlayerChoice(index),
       child: Container(
         key: ValueKey('duel-option-$index'),
@@ -1556,7 +1558,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
         decoration: BoxDecoration(
           color: bg,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppRadius.m),
           border: Border.all(color: border, width: 2),
         ),
         child: Row(
@@ -1625,7 +1627,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                       entry.bot.name.characters.first,
                       style: TextStyle(
                         color: entry.isFoe ? orange : teal,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w800,
                         fontSize: 14,
                       ),
                     ),
@@ -1694,7 +1696,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
               label,
               style: TextStyle(
                 color: context.inkText,
-                fontWeight: total ? FontWeight.w900 : FontWeight.w700,
+                fontWeight: total ? FontWeight.w800 : FontWeight.w700,
                 fontSize: 12,
               ),
             ),
@@ -1703,7 +1705,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
             '+$xp XP',
             style: TextStyle(
               color: total ? blueDark : success,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               fontSize: 12,
             ),
           ),
@@ -1736,7 +1738,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
           padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(AppRadius.l),
             border: Border.all(color: color.withValues(alpha: 0.5), width: 2),
           ),
           child: Column(
@@ -1745,7 +1747,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                 title,
                 style: TextStyle(
                   color: color,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w800,
                   fontSize: 26,
                 ),
               ),
@@ -1754,7 +1756,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                 '$_playerTotal : $_foeTotal',
                 style: TextStyle(
                   color: context.inkText,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w800,
                   fontSize: 44,
                 ),
               ),
@@ -1785,7 +1787,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                         }),
                         style: TextStyle(
                           color: context.inkText,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w800,
                           fontSize: 13,
                         ),
                       ),
@@ -1804,7 +1806,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                         '+$_xp XP',
                         style: TextStyle(
                           color: context.accentText(blueDark),
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w800,
                           fontSize: 13,
                         ),
                       ),
@@ -1821,7 +1823,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                     ),
                     decoration: BoxDecoration(
                       color: context.cardBg,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(AppRadius.m),
                       border: Border.all(color: context.hairline, width: 1.5),
                     ),
                     child: Column(
@@ -1922,7 +1924,7 @@ class _DuelHypeState extends State<_DuelHype> {
                 tr('duel_hype_title'),
                 style: TextStyle(
                   color: context.mutedText,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w800,
                   fontSize: 12,
                   letterSpacing: 1.2,
                 ),
@@ -1980,7 +1982,7 @@ class _RoundCommentState extends State<_RoundComment> {
               tr('duel_round_title'),
               style: TextStyle(
                 color: context.mutedText,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w800,
                 fontSize: 12,
                 letterSpacing: 1.2,
               ),
@@ -2041,7 +2043,7 @@ class _DuelRecapState extends State<_DuelRecap> {
                 tr('duel_ai_title'),
                 style: TextStyle(
                   color: context.mutedText,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w800,
                   fontSize: 12,
                   letterSpacing: 1.2,
                 ),
@@ -2100,7 +2102,7 @@ class _BattleGridStimulus extends StatelessWidget {
                         color: lit.contains(row * 3 + col)
                             ? teal
                             : context.hairline,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppRadius.m),
                       ),
                     ),
                 ],
@@ -2166,7 +2168,7 @@ class _BattleCellPickerState extends State<_BattleCellPicker> {
                           builder: (_) {
                             final cell = row * 3 + col;
                             final on = _selected.contains(cell);
-                            return GestureDetector(
+                            return Tappable(
                               key: ValueKey('duel-cell-$cell'),
                               onTap: () => _toggle(cell),
                               child: Container(
@@ -2176,7 +2178,9 @@ class _BattleCellPickerState extends State<_BattleCellPicker> {
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
                                   color: on ? teal : context.softBg,
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.m,
+                                  ),
                                   border: Border.all(
                                     color: on ? teal : context.hairline,
                                     width: 2,
@@ -2210,8 +2214,9 @@ class _BattleCellPickerState extends State<_BattleCellPicker> {
           style: TextStyle(color: context.mutedText, fontSize: 12),
         ),
         const SizedBox(height: 8),
-        GestureDetector(
+        Tappable(
           key: const ValueKey('duel-cells-done'),
+          haptic: false,
           onTap: widget.submitted
               ? null
               : () => widget.onDone(_selected.toList()),
@@ -2220,13 +2225,13 @@ class _BattleCellPickerState extends State<_BattleCellPicker> {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: widget.submitted ? context.hairline : teal,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(AppRadius.m),
             ),
             child: Text(
               tr('btd_done'),
               style: TextStyle(
                 color: widget.submitted ? context.mutedText : Colors.white,
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w700,
                 fontSize: 15,
                 letterSpacing: 1,
               ),

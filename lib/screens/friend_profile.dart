@@ -3,6 +3,7 @@ import 'package:hugeicons/hugeicons.dart';
 
 import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
+import '../theme/app_tokens.dart';
 import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
 import '../widgets/app_kit.dart';
@@ -146,7 +147,7 @@ class _HeroCard extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: context.cardBg,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(AppRadius.l),
         border: Border.all(color: context.hairline, width: 2),
       ),
       child: Column(
@@ -170,7 +171,7 @@ class _HeroCard extends StatelessWidget {
                   friend.name.characters.first,
                   style: TextStyle(
                     color: context.accentText(blueDark),
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w800,
                     fontSize: 40,
                   ),
                 ),
@@ -196,7 +197,7 @@ class _HeroCard extends StatelessWidget {
             friend.name,
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               fontSize: 22,
             ),
           ),
@@ -307,7 +308,7 @@ class _CompareCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: context.cardBg,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.l),
         border: Border.all(color: context.hairline, width: 2),
       ),
       child: Column(
@@ -317,7 +318,7 @@ class _CompareCard extends StatelessWidget {
             tr('friend_you_vs', {'name': bot.name}),
             style: TextStyle(
               color: context.inkText,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               fontSize: 15,
             ),
           ),
@@ -424,7 +425,7 @@ class _StatTile extends StatelessWidget {
             value,
             style: TextStyle(
               color: context.inkText,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               fontSize: 14,
             ),
           ),

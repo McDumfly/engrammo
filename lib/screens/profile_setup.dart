@@ -201,7 +201,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurface,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w800,
                         fontSize: 28,
                       ),
                     ),

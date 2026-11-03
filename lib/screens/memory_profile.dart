@@ -1,4 +1,5 @@
 import '../theme/app_theme.dart';
+import '../theme/app_tokens.dart';
 
 import 'dart:async';
 import 'dart:math';
@@ -285,7 +286,7 @@ List<_Task> _buildTasks(BuildContext context, {int form = 0}) {
           iconicEasy[f].join('   '),
           style: TextStyle(
             fontSize: 40,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w700,
             color: context.inkText,
             letterSpacing: 4,
           ),
@@ -309,7 +310,7 @@ List<_Task> _buildTasks(BuildContext context, {int form = 0}) {
           iconicHard[f].join('   '),
           style: TextStyle(
             fontSize: 32,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w700,
             color: context.inkText,
             letterSpacing: 3,
           ),
@@ -335,7 +336,7 @@ List<_Task> _buildTasks(BuildContext context, {int form = 0}) {
           backEasy[f].join('   '),
           style: TextStyle(
             fontSize: 40,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w700,
             color: context.inkText,
             letterSpacing: 4,
           ),
@@ -359,7 +360,7 @@ List<_Task> _buildTasks(BuildContext context, {int form = 0}) {
           backHard[f].join('   '),
           style: TextStyle(
             fontSize: 36,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w700,
             color: context.inkText,
             letterSpacing: 3,
           ),
@@ -489,7 +490,7 @@ List<_Task> _buildTasks(BuildContext context, {int form = 0}) {
           catEasy.category,
           style: TextStyle(
             fontSize: 32,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w700,
             color: context.inkText,
           ),
         ),
@@ -510,7 +511,7 @@ List<_Task> _buildTasks(BuildContext context, {int form = 0}) {
           catHard.category,
           style: TextStyle(
             fontSize: 32,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w700,
             color: context.inkText,
           ),
         ),
@@ -556,7 +557,7 @@ class MemoryAssessmentIntroPage extends StatelessWidget {
             tr('mprof_nocheat'),
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               fontSize: 28,
               height: 1.2,
             ),
@@ -590,7 +591,7 @@ class MemoryAssessmentIntroPage extends StatelessWidget {
                   tr('mprof_next'),
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurface,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w700,
                     fontSize: 16,
                   ),
                 ),
@@ -934,7 +935,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                   height: 44,
                   decoration: BoxDecoration(
                     color: kind.tint.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppRadius.m),
                   ),
                   alignment: Alignment.center,
                   child: HugeIcon(
@@ -953,7 +954,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                         kind.displayName,
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurface,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w700,
                           fontSize: 16,
                         ),
                       ),
@@ -996,7 +997,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                         tr('streak_balance', {'n': _xp}),
                         style: TextStyle(
                           color: context.inkText,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w700,
                           fontSize: 13,
                         ),
                       ),
@@ -1019,7 +1020,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                       tr('mprof_combo', {'n': _combo}),
                       style: TextStyle(
                         color: context.accentText(blueDark),
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w700,
                         fontSize: 13,
                       ),
                     ),
@@ -1037,7 +1038,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                 task.stimulusTitle,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurface,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w700,
                   fontSize: 18,
                 ),
               ),
@@ -1062,7 +1063,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: context.accentText(coral),
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w700,
                     fontSize: 14,
                   ),
                 ),
@@ -1072,21 +1073,21 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                 onTap: _reveal,
                 shadowColor: blueDark,
                 depth: 4,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppRadius.m),
                 haptic: false,
                 semanticLabel: tr('mprof_continue'),
                 top: Container(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   decoration: BoxDecoration(
                     color: blue,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(AppRadius.m),
                   ),
                   alignment: Alignment.center,
                   child: Text(
                     tr('mprof_continue'),
                     style: const TextStyle(
                       color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w700,
                       fontSize: 15,
                       letterSpacing: 1,
                     ),
@@ -1104,7 +1105,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                 task.question,
                 style: TextStyle(
                   color: Theme.of(context).colorScheme.onSurface,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w700,
                   fontSize: 18,
                 ),
               ),
@@ -1117,7 +1118,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                 for (var i = 0; i < task.options.length; i++)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
-                    child: GestureDetector(
+                    child: Tappable(
                       onTap: () => _answer(i),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
@@ -1132,7 +1133,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                               : (i == _picked
                                     ? coral.withValues(alpha: 0.12)
                                     : context.cardBg),
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(AppRadius.m),
                           border: Border.all(
                             color: _picked != null && i == task.correct
                                 ? teal
@@ -1201,7 +1202,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: context.inkText,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w700,
                       fontSize: 14,
                     ),
                   ),
@@ -1218,7 +1219,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                     color: _lastGood
                         ? orange.withValues(alpha: 0.16)
                         : context.cardBg,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(AppRadius.m),
                     border: Border.all(
                       color: _lastGood ? orange : context.hairline,
                       width: 2,
@@ -1249,7 +1250,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                               : tr('mprof_next_double'),
                           style: TextStyle(
                             color: context.inkText,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w700,
                             fontSize: 14,
                           ),
                         ),
@@ -1267,21 +1268,21 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                   },
                   shadowColor: blueDark,
                   depth: 4,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(AppRadius.m),
                   haptic: false,
                   semanticLabel: tr('mprof_continue_btn'),
                   top: Container(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     decoration: BoxDecoration(
                       color: blue,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(AppRadius.m),
                     ),
                     alignment: Alignment.center,
                     child: Text(
                       tr('mprof_continue_btn'),
                       style: const TextStyle(
                         color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w700,
                         fontSize: 15,
                         letterSpacing: 1,
                       ),
@@ -1379,7 +1380,7 @@ class MemoryResultPage extends StatelessWidget {
                   height: 48,
                   decoration: BoxDecoration(
                     color: context.cardBg.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(AppRadius.m),
                   ),
                   alignment: Alignment.center,
                   child: HugeIcon(
@@ -1404,7 +1405,7 @@ class MemoryResultPage extends StatelessWidget {
                               }),
                         style: const TextStyle(
                           color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w700,
                           fontSize: 17,
                         ),
                       ),
@@ -1425,7 +1426,7 @@ class MemoryResultPage extends StatelessWidget {
                     '${scores[best]}%',
                     style: const TextStyle(
                       color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w700,
                       fontSize: 20,
                     ),
                   ),
@@ -1458,7 +1459,7 @@ class MemoryResultPage extends StatelessWidget {
               tr('onboarding_honesty_link'),
               style: TextStyle(
                 color: context.accentText(blue),
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w700,
                 fontSize: 13,
               ),
             ),
@@ -1469,7 +1470,7 @@ class MemoryResultPage extends StatelessWidget {
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: context.cardBg,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppRadius.m),
                 border: Border.all(color: blue, width: 2),
               ),
               child: Row(
@@ -1480,7 +1481,7 @@ class MemoryResultPage extends StatelessWidget {
                     height: 44,
                     decoration: BoxDecoration(
                       color: blue.withValues(alpha: 0.14),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppRadius.m),
                     ),
                     alignment: Alignment.center,
                     child: const HugeIcon(
@@ -1507,7 +1508,7 @@ class MemoryResultPage extends StatelessWidget {
                                 }),
                           style: TextStyle(
                             color: context.inkText,
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w700,
                             fontSize: 15,
                           ),
                         ),
@@ -1532,7 +1533,7 @@ class MemoryResultPage extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: teal.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(AppRadius.m),
               border: Border.all(color: teal, width: 2),
             ),
             child: Column(
@@ -1546,7 +1547,7 @@ class MemoryResultPage extends StatelessWidget {
                       height: 44,
                       decoration: BoxDecoration(
                         color: teal.withValues(alpha: 0.16),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppRadius.m),
                       ),
                       alignment: Alignment.center,
                       child: const HugeIcon(
@@ -1571,7 +1572,7 @@ class MemoryResultPage extends StatelessWidget {
                                   }),
                             style: TextStyle(
                               color: context.inkText,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w700,
                               fontSize: 15,
                             ),
                           ),
@@ -1608,7 +1609,7 @@ class MemoryResultPage extends StatelessWidget {
                     onTap: () => onStartTrack!(rec.track),
                     shadowColor: tealDark,
                     depth: 4,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(AppRadius.m),
                     haptic: false,
                     semanticLabel: tr('mprof_start_track', {
                       'name': memoryKinds[rec.track].displayName,
@@ -1617,7 +1618,7 @@ class MemoryResultPage extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 13),
                       decoration: BoxDecoration(
                         color: teal,
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(AppRadius.m),
                       ),
                       alignment: Alignment.center,
                       child: Text(
@@ -1626,7 +1627,7 @@ class MemoryResultPage extends StatelessWidget {
                         }),
                         style: const TextStyle(
                           color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w700,
                           fontSize: 14,
                           letterSpacing: 1,
                         ),
@@ -1644,7 +1645,7 @@ class MemoryResultPage extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: context.cardBg,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(AppRadius.m),
               border: Border.all(color: orange, width: 2),
             ),
             child: Row(
@@ -1654,7 +1655,7 @@ class MemoryResultPage extends StatelessWidget {
                   height: 44,
                   decoration: BoxDecoration(
                     color: orange.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppRadius.m),
                   ),
                   alignment: Alignment.center,
                   child: HugeIcon(
@@ -1673,7 +1674,7 @@ class MemoryResultPage extends StatelessWidget {
                         tr('mprof_earned', {'n': xp}),
                         style: TextStyle(
                           color: context.inkText,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w700,
                           fontSize: 16,
                         ),
                       ),
@@ -1703,28 +1704,29 @@ class MemoryResultPage extends StatelessWidget {
             },
             shadowColor: blueDark,
             depth: 4,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(AppRadius.m),
             haptic: false,
             semanticLabel: tr('mprof_continue_btn'),
             top: Container(
               padding: const EdgeInsets.symmetric(vertical: 14),
               decoration: BoxDecoration(
                 color: blue,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppRadius.m),
               ),
               alignment: Alignment.center,
               child: Text(
                 tr('mprof_continue_btn'),
                 style: const TextStyle(
                   color: Colors.white,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w700,
                   letterSpacing: 1,
                 ),
               ),
             ),
           ),
           const SizedBox(height: 8),
-          GestureDetector(
+          Tappable(
+            haptic: false,
             onTap: () {
               AppFeedback.light();
               Navigator.of(context).pushReplacement(
@@ -1737,7 +1739,7 @@ class MemoryResultPage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 14),
               decoration: BoxDecoration(
                 color: context.cardBg,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppRadius.m),
                 border: Border.all(color: context.hairline, width: 2),
               ),
               alignment: Alignment.center,
@@ -1755,7 +1757,7 @@ class MemoryResultPage extends StatelessWidget {
                     tr('mprof_retake'),
                     style: TextStyle(
                       color: context.accentText(blue),
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w700,
                       letterSpacing: 1,
                     ),
                   ),
@@ -1833,7 +1835,7 @@ class _CalibrationCardState extends State<_CalibrationCard> {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: context.cardBg,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(AppRadius.m),
             border: Border.all(color: context.hairline, width: 2),
           ),
           child: Column(
@@ -1843,7 +1845,7 @@ class _CalibrationCardState extends State<_CalibrationCard> {
                 tr('mprof_quality'),
                 style: TextStyle(
                   color: context.inkText,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w700,
                   fontSize: 15,
                 ),
               ),
@@ -1885,7 +1887,7 @@ class _ScoreRow extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: context.cardBg,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadius.m),
         border: Border.all(color: context.hairline, width: 2),
       ),
       child: Row(
@@ -1895,7 +1897,7 @@ class _ScoreRow extends StatelessWidget {
             height: 44,
             decoration: BoxDecoration(
               color: kind.tint.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppRadius.m),
             ),
             alignment: Alignment.center,
             child: HugeIcon(
@@ -1917,7 +1919,7 @@ class _ScoreRow extends StatelessWidget {
                         kind.displayName,
                         style: TextStyle(
                           color: context.inkText,
-                          fontWeight: FontWeight.bold,
+                          fontWeight: FontWeight.w700,
                           fontSize: 15,
                         ),
                       ),
@@ -1926,7 +1928,7 @@ class _ScoreRow extends StatelessWidget {
                       '$score%',
                       style: TextStyle(
                         color: context.inkText,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w700,
                         fontSize: 15,
                       ),
                     ),
