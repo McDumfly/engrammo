@@ -99,6 +99,37 @@ void main() {
     expect(localRecallAnswer('apple', ''), RecallMatch.none);
   });
 
+  test('a felidézési futások körbejárnak a mentésben', () {
+    final at = DateTime.utc(2026, 11, 3, 10);
+    final p = _sample().copyWith(
+      runs: [
+        RoomRun(at: at, kind: 'baseline', correct: 1, total: 2),
+        RoomRun(
+          at: at.add(const Duration(days: 1)),
+          kind: 'palace',
+          correct: 2,
+          total: 2,
+        ),
+        RoomRun(
+          at: at.add(const Duration(days: 2)),
+          kind: 'blind',
+          correct: 1,
+          total: 2,
+        ),
+      ],
+    );
+    final back = RoomPalace.fromJson(p.toJson());
+    expect(back, p);
+    expect(back.runs.map((r) => r.kind), ['baseline', 'palace', 'blind']);
+    expect(back.runs.first.at, at);
+  });
+
+  test('régi mentés futások nélkül is betöltődik', () {
+    final json = _sample().toJson()..remove('runs');
+    final back = RoomPalace.fromJson(json);
+    expect(back.runs, isEmpty);
+  });
+
   test('a mintaszoba jelzés mentés után is megmarad', () {
     final p = RoomPalace(
       id: 'room:1',

@@ -489,6 +489,13 @@ void main() {
       await tester.tap(find.text(tr('room_check_btn')));
       await tester.pump(const Duration(milliseconds: 1200));
       await tester.pump(const Duration(milliseconds: 500));
+      // The result step is taller than the viewport, and lazily built
+      // rows below the cache extent do not exist until scrolled to.
+      final lv = find.byType(ListView);
+      for (var k = 0; k < 6; k++) {
+        await tester.drag(lv.first, const Offset(0, -400));
+        await tester.pump(const Duration(milliseconds: 300));
+      }
       expect(find.text(tr('common_done'), skipOffstage: false), findsOneWidget);
     }
 

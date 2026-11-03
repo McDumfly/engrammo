@@ -2,6 +2,56 @@ import '../l10n/app_localizations.dart' show trFor;
 import 'fsrs_card.dart';
 import 'recall_scoring.dart' show fuzzyWordMatch, normalizeAnswer;
 
+/// One tracked recall run on a palace: when it happened, what kind of run
+/// it was, and the score. Kind is `baseline` (the no-palace probe before
+/// building), `palace` (the first walk with the palace), `blind` (the
+/// photo-hidden proof) or `review` (later walks). Blind runs never move
+/// the FSRS card; they are only tracked.
+class RoomRun {
+  final DateTime at;
+  final String kind;
+  final int correct;
+  final int total;
+
+  const RoomRun({
+    required this.at,
+    required this.kind,
+    required this.correct,
+    required this.total,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'at': at.toIso8601String(),
+    'kind': kind,
+    'correct': correct,
+    'total': total,
+  };
+
+  /// Never throws: a bad date becomes epoch, bad numbers become zero.
+  factory RoomRun.fromJson(Map<String, dynamic> json) {
+    return RoomRun(
+      at:
+          DateTime.tryParse(json['at'] as String? ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      kind: json['kind'] as String? ?? 'review',
+      correct: (json['correct'] as num?)?.toInt() ?? 0,
+      total: (json['total'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is RoomRun &&
+          at == other.at &&
+          kind == other.kind &&
+          correct == other.correct &&
+          total == other.total;
+
+  @override
+  int get hashCode => Object.hash(at, kind, correct, total);
+}
+
 /// One memory palace built on the learner's own room photo.
 /// Device-only: never synced (the photo is private), see MemoryStore.
 class RoomPalace {
@@ -23,6 +73,7 @@ class RoomPalace {
   final bool replay; // true = built from a recorded demo run, honestly labelled
   final DateTime? recordedAt; // when the recorded run happened
   final List<Map<String, dynamic>> receipt; // snapshot of the recorded call log
+  final List<RoomRun> runs; // tracked recall runs, oldest first
 
   const RoomPalace({
     required this.id,
@@ -40,6 +91,7 @@ class RoomPalace {
     this.replay = false,
     this.recordedAt,
     this.receipt = const [],
+    this.runs = const [],
   });
 
   RoomPalace copyWith({
@@ -58,6 +110,7 @@ class RoomPalace {
     bool? replay,
     DateTime? recordedAt,
     List<Map<String, dynamic>>? receipt,
+    List<RoomRun>? runs,
   }) {
     return RoomPalace(
       id: id ?? this.id,
@@ -75,6 +128,7 @@ class RoomPalace {
       replay: replay ?? this.replay,
       recordedAt: recordedAt ?? this.recordedAt,
       receipt: receipt ?? this.receipt,
+      runs: runs ?? this.runs,
     );
   }
 
@@ -94,6 +148,7 @@ class RoomPalace {
     'replay': replay,
     'recordedAt': recordedAt?.toIso8601String(),
     'receipt': receipt,
+    'runs': [for (final r in runs) r.toJson()],
   };
 
   /// Never throws: missing lists become empty, a bad date becomes epoch,
@@ -161,6 +216,23 @@ class RoomPalace {
       return out;
     }
 
+    List<RoomRun> runsOf(Object? raw) {
+      if (raw is! List) return const [];
+      final out = <RoomRun>[];
+      for (final e in raw) {
+        try {
+          if (e is Map<String, dynamic>) {
+            out.add(RoomRun.fromJson(e));
+          } else if (e is Map) {
+            out.add(RoomRun.fromJson({for (final k in e.keys) '$k': e[k]}));
+          }
+        } catch (_) {
+          // Skip malformed runs.
+        }
+      }
+      return out;
+    }
+
     final recordedRaw = json['recordedAt'] as String?;
     return RoomPalace(
       id: id,
@@ -179,6 +251,7 @@ class RoomPalace {
       replay: (json['replay'] as bool?) ?? false,
       recordedAt: recordedRaw == null ? null : DateTime.tryParse(recordedRaw),
       receipt: receiptOf(json['receipt']),
+      runs: runsOf(json['runs']),
     );
   }
 
@@ -199,7 +272,8 @@ class RoomPalace {
           _strListEq(dreams, other.dreams) &&
           replay == other.replay &&
           recordedAt == other.recordedAt &&
-          _receiptEq(receipt, other.receipt);
+          _receiptEq(receipt, other.receipt) &&
+          _runsEq(runs, other.runs);
 
   @override
   int get hashCode => Object.hash(
@@ -217,10 +291,19 @@ class RoomPalace {
     replay,
     recordedAt,
     Object.hashAll([for (final m in receipt) Object.hashAll(m.entries)]),
+    Object.hashAll(runs),
   );
 }
 
 bool _strListEq(List<String> a, List<String> b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
+
+bool _runsEq(List<RoomRun> a, List<RoomRun> b) {
   if (a.length != b.length) return false;
   for (var i = 0; i < a.length; i++) {
     if (a[i] != b[i]) return false;

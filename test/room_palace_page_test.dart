@@ -382,6 +382,125 @@ void main() {
     },
   );
 
+  testWidgets('finishing a review appends one palace run to the strip', (
+    tester,
+  ) async {
+    final photo = squareJpegDataUrl(
+      Uint8List.fromList(img.encodePng(img.Image(width: 10, height: 10))),
+    );
+    await MemoryStore.upsertRoomPalace(
+      RoomPalace(
+        id: 'room:retention',
+        createdAt: DateTime.now().subtract(const Duration(days: 2)),
+        imageRef: photo,
+        stations: const ['desk', 'lamp', 'chair'],
+        items: const ['apple', 'hammer'],
+        links: const ['first link', 'second link'],
+        card: FsrsCard(
+          cardId: 'room:retention',
+          taskId: 'room_palace',
+          due: DateTime.now(),
+        ),
+      ),
+    );
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+    await tester.pumpWidget(
+      const MaterialApp(home: RoomPalacePage(reviewId: 'room:retention')),
+    );
+    await tester.pumpAndSettle();
+
+    Future<void> answer(String word) async {
+      await tester.enterText(find.byType(TextField), word);
+      await tester.pump();
+      await tester.tap(find.text('Check'));
+      await tester.pumpAndSettle();
+    }
+
+    await answer('apple');
+    await answer('hammer');
+
+    // One finish appends exactly one palace run with the score.
+    final stored = await MemoryStore.loadRoomPalaces();
+    final palace = stored.firstWhere((p) => p.id == 'room:retention');
+    expect(palace.runs, hasLength(1));
+    expect(palace.runs.single.kind, 'palace');
+    expect(palace.runs.single.correct, 2);
+    expect(palace.runs.single.total, 2);
+
+    // The strip shows the honest caption, the next review is in the
+    // future so the early link appears, and the pending node stays a
+    // question mark, never a guessed score.
+    expect(
+      find.text('Tracked on this device. One learner, not a study.'),
+      findsOneWidget,
+    );
+    expect(find.text('Review now (early)'), findsOneWidget);
+    expect(find.text('?'), findsOneWidget);
+  });
+
+  testWidgets('a blind finish keeps the card due and records a blind run', (
+    tester,
+  ) async {
+    final photo = squareJpegDataUrl(
+      Uint8List.fromList(img.encodePng(img.Image(width: 10, height: 10))),
+    );
+    final due = DateTime.now();
+    await MemoryStore.upsertRoomPalace(
+      RoomPalace(
+        id: 'room:blind-due',
+        createdAt: DateTime.utc(2026, 11, 1),
+        imageRef: photo,
+        stations: const ['desk', 'lamp', 'chair'],
+        items: const ['apple', 'hammer'],
+        links: const ['first link', 'second link'],
+        card: FsrsCard(
+          cardId: 'room:blind-due',
+          taskId: 'room_palace',
+          due: due,
+        ),
+      ),
+    );
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+    await tester.pumpWidget(
+      const MaterialApp(home: RoomPalacePage(reviewId: 'room:blind-due')),
+    );
+    await tester.pumpAndSettle();
+
+    Future<void> answer(String word) async {
+      await tester.enterText(find.byType(TextField), word);
+      await tester.pump();
+      await tester.tap(find.text('Check'));
+      await tester.pumpAndSettle();
+    }
+
+    await answer('apple');
+    await answer('hammer');
+
+    // The first (sighted) finish reschedules and appends a palace run.
+    final afterFirst = await MemoryStore.loadRoomPalaces();
+    final firstDue = afterFirst
+        .firstWhere((p) => p.id == 'room:blind-due')
+        .card
+        .due;
+
+    await tester.tap(find.text('Prove it: photo hidden'));
+    await tester.pumpAndSettle();
+    await answer('apple');
+    await answer('hammer');
+
+    // The blind run is tracked, but the FSRS card never moves on it.
+    final stored = await MemoryStore.loadRoomPalaces();
+    final palace = stored.firstWhere((p) => p.id == 'room:blind-due');
+    expect(palace.card.due, firstDue);
+    expect(palace.runs, hasLength(2));
+    expect(palace.runs.last.kind, 'blind');
+    expect(palace.runs.last.correct, 2);
+  });
+
   testWidgets('revealed chip on a 40px cover still renders the full label', (
     tester,
   ) async {

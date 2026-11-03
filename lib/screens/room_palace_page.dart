@@ -731,6 +731,15 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
           replay: true,
           recordedAt: liveReplay.recordedAt,
           receipt: List<Map<String, dynamic>>.of(liveReplay.receipt),
+          runs: [
+            if (_baselineCorrect != null)
+              RoomRun(
+                at: DateTime.now(),
+                kind: 'baseline',
+                correct: _baselineCorrect!,
+                total: n,
+              ),
+          ],
         );
         await MemoryStore.upsertRoomPalace(palace);
         await ActivePalaceStore.setId(palace.id);
@@ -801,6 +810,15 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         card: FsrsCard(cardId: id, taskId: 'room_palace', due: DateTime.now()),
         sample: _sample,
         receipt: receipt,
+        runs: [
+          if (_baselineCorrect != null)
+            RoomRun(
+              at: DateTime.now(),
+              kind: 'baseline',
+              correct: _baselineCorrect!,
+              total: n,
+            ),
+        ],
       );
       await MemoryStore.upsertRoomPalace(palace);
       // A freshly built palace becomes the lesson palace on the spot.
@@ -1136,12 +1154,45 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
   Future<void> _finishRun() async {
     final palace = _palace;
     if (palace == null || _rescheduled) return;
-    // A blind run is practice: no rescheduling, no save, still a result.
-    if (_blind) return;
+    // A blind run is practice: tracked and saved, but the FSRS card
+    // never moves on a blind run.
+    if (_blind) {
+      final updated = palace.copyWith(
+        runs: [
+          ...palace.runs,
+          RoomRun(
+            at: DateTime.now(),
+            kind: 'blind',
+            correct: _correct,
+            total: palace.items.length,
+          ),
+        ],
+      );
+      await MemoryStore.upsertRoomPalace(updated);
+      if (!mounted) return;
+      setState(() => _palace = updated);
+      return;
+    }
     _rescheduled = true;
     final grade = roomGrade(_correct, palace.items.length);
     final card = FsrsScheduler.next(palace.card, grade);
-    final updated = palace.copyWith(card: card);
+    // The first walk with the palace is `palace`; every later one is a
+    // `review`, so the strip turns the n = 1 baseline into a curve.
+    final walked = palace.runs.any(
+      (r) => r.kind == 'palace' || r.kind == 'review',
+    );
+    final updated = palace.copyWith(
+      card: card,
+      runs: [
+        ...palace.runs,
+        RoomRun(
+          at: DateTime.now(),
+          kind: walked ? 'review' : 'palace',
+          correct: _correct,
+          total: palace.items.length,
+        ),
+      ],
+    );
     await MemoryStore.upsertRoomPalace(updated);
     if (!mounted) return;
     setState(() {
@@ -1628,74 +1679,87 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: context.hairline, width: 2),
             ),
-            child: Row(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Hero(
-                  tag: 'room-${p.id}',
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(AppRadius.s),
-                    child: AiImage(
-                      imageRef: p.imageRef,
-                      height: 56,
-                      width: 56,
-                      fit: BoxFit.cover,
+                Row(
+                  children: [
+                    Hero(
+                      tag: 'room-${p.id}',
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.s),
+                        child: AiImage(
+                          imageRef: p.imageRef,
+                          height: 56,
+                          width: 56,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _listTitle(p, ownCount),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppText.body.copyWith(
-                          color: context.inkText,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        p.card.isDue()
-                            ? tr('room_due')
-                            : tr('room_not_due', {
-                                'date': MaterialLocalizations.of(context)
-                                    .formatShortDate(p.card.due),
-                              }),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppText.caption.copyWith(
-                          color: context.mutedText,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: [
-                            AppBadge(
-                              label: tr(
-                                p.live ? 'room_badge_live' : 'room_badge_local',
-                              ),
-                              color: p.live ? teal : blue,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _listTitle(p, ownCount),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.body.copyWith(
+                              color: context.inkText,
+                              fontWeight: FontWeight.w700,
                             ),
-                            if (p.id == _activeId)
-                              AppBadge(label: tr('palace_active')),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            p.card.isDue()
+                                ? tr('room_due')
+                                : tr('room_not_due', {
+                                    'date': MaterialLocalizations.of(context)
+                                        .formatShortDate(p.card.due),
+                                  }),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.caption.copyWith(
+                              color: context.mutedText,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: [
+                                AppBadge(
+                                  label: tr(
+                                    p.live
+                                        ? 'room_badge_live'
+                                        : 'room_badge_local',
+                                  ),
+                                  color: p.live ? teal : blue,
+                                ),
+                                if (p.id == _activeId)
+                                  AppBadge(label: tr('palace_active')),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 8),
+                    AppIconButton(
+                      onTap: () => _openRowSheet(p),
+                      icon: HugeIcons.strokeRoundedMoreVertical,
+                      color: context.mutedText,
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                AppIconButton(
-                  onTap: () => _openRowSheet(p),
-                  icon: HugeIcons.strokeRoundedMoreVertical,
-                  color: context.mutedText,
+                const SizedBox(height: 8),
+                _RetentionStrip(
+                  palace: p,
+                  onReviewEarly: () => _reviewPalace(p),
                 ),
               ],
             ),
@@ -2607,14 +2671,19 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         ),
         const SizedBox(height: 12),
       ],
-      if (!_blind)
+      if (!_blind) ...[
         _ResultCelebration(
           correct: _correct,
           total: total,
           blind: _blind,
           sample: _sample,
         ),
-      const SizedBox(height: 12),
+        const SizedBox(height: 12),
+        // The blind proof panel stays untouched: no score repeats there.
+        Center(
+          child: _RetentionStrip(palace: palace, onReviewEarly: startAgain),
+        ),
+      ],
       Wrap(
         alignment: WrapAlignment.center,
         spacing: 8,
@@ -2762,6 +2831,181 @@ class _BaselineComparisonState extends State<_BaselineComparison> {
       textAlign: TextAlign.center,
     );
   }
+}
+
+/// Tracked retention on the palace: one node per recorded run plus a
+/// dashed "Day N ?" node for the next due review. The pending node stays
+/// a question mark until a real review exists; it is never filled with a
+/// guess. Baseline runs are grey, palace/review runs teal, blind blue.
+class _RetentionStrip extends StatelessWidget {
+  final RoomPalace palace;
+  final VoidCallback? onReviewEarly;
+  const _RetentionStrip({required this.palace, this.onReviewEarly});
+
+  int _day(DateTime at) => max(0, at.difference(palace.createdAt).inDays);
+
+  Color _kindColor(BuildContext context, String kind) => switch (kind) {
+    'baseline' => context.mutedText,
+    'blind' => blue,
+    _ => teal,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final runs = palace.runs;
+    final early =
+        onReviewEarly != null && palace.card.due.isAfter(DateTime.now());
+    Widget line() => Expanded(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            height: 20,
+            child: Center(child: Container(height: 2, color: context.hairline)),
+          ),
+        ],
+      ),
+    );
+    Widget runNode(RoomRun r) => SizedBox(
+      width: 64,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            height: 20,
+            child: Center(
+              child: Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _kindColor(context, r.kind),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            tr('room_day_n', {'n': '${_day(r.at)}'}),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppText.micro.copyWith(color: context.mutedText),
+          ),
+          Text(
+            '${r.correct}/${r.total}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppText.caption.copyWith(
+              color: context.inkText,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (var i = 0; i < runs.length; i++) ...[
+              if (i > 0) line(),
+              runNode(runs[i]),
+            ],
+            if (runs.isNotEmpty) line(),
+            SizedBox(
+              width: 64,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    height: 20,
+                    child: Center(
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CustomPaint(
+                          painter: _DashedRingPainter(color: context.mutedText),
+                          child: Center(
+                            child: Text(
+                              '?',
+                              style: AppText.micro.copyWith(
+                                color: context.mutedText,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    tr('room_day_n', {'n': '${_day(palace.card.due)}'}),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.micro.copyWith(color: context.mutedText),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          tr('room_retention_caption'),
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: AppText.micro.copyWith(color: context.mutedText),
+        ),
+        if (early)
+          Center(
+            child: AppLinkButton(
+              label: tr('room_review_early'),
+              onTap: onReviewEarly,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Dashed ring for the pending retention node.
+class _DashedRingPainter extends CustomPainter {
+  final Color color;
+  const _DashedRingPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const dashes = 8;
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    for (var i = 0; i < dashes; i++) {
+      final a0 = (i / dashes) * 2 * pi;
+      final a1 = ((i + 0.55) / dashes) * 2 * pi;
+      canvas.drawArc(Offset.zero & size, a0, a1 - a0, false, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedRingPainter oldDelegate) =>
+      oldDelegate.color != color;
+}
+
+/// One-line retention summary for the share card: the tracked day span
+/// plus the honest caption.
+String retentionLine(RoomPalace p) {
+  final last = p.runs.isEmpty
+      ? 0
+      : max(0, p.runs.last.at.difference(p.createdAt).inDays);
+  return '${tr('room_day_n', {'n': '0'})} → '
+      '${tr('room_day_n', {'n': '$last'})} · '
+      '${tr('room_retention_caption')}';
 }
 
 /// Result score with a count-up number and, on a perfect run, a burst
@@ -4302,6 +4546,14 @@ class _ShareCard extends StatelessWidget {
               style: AppText.micro.copyWith(color: context.mutedText),
             ),
           ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          retentionLine(palace),
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: AppText.micro.copyWith(color: context.mutedText),
         ),
         const SizedBox(height: 16),
         EngramButton(
