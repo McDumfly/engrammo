@@ -103,6 +103,14 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
   List<String> _masks = [];
   List<String> _scanLabels = [];
   List<List<double>> _scanBoxes = [];
+
+  /// The live round's final aligned geometry (labels, boxes, masks as
+  /// pictureRecallRound returned them) and when the scan started, so
+  /// the receipt and the debug export see the whole real run.
+  List<String> _roundLabels = [];
+  List<List<double>> _roundBoxes = [];
+  List<String> _roundMasks = [];
+  DateTime? _scanStartedAt;
   bool _live = false;
   bool _imageFailed = false;
   bool _sample = false;
@@ -535,6 +543,10 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     _scanClock.reset();
     _scanClock.start();
     _scanEvents = [];
+    _scanStartedAt = DateTime.now();
+    _roundLabels = [];
+    _roundBoxes = [];
+    _roundMasks = [];
     try {
       final round = await MetaAIService.pictureRecallRound(
         seed: 'room:${DateTime.now().millisecondsSinceEpoch}',
@@ -580,6 +592,13 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       );
       _scanClock.stop();
       if (!mounted || token != _token) return;
+      if (round.live &&
+          round.boxes.length == round.objects.length &&
+          round.masks.length == round.objects.length) {
+        _roundLabels = List<String>.of(round.objects);
+        _roundBoxes = [for (final b in round.boxes) List<double>.of(b)];
+        _roundMasks = List<String>.of(round.masks);
+      }
       final aiOk =
           round.live && round.imageUrl == dataUrl && round.objects.length >= 2;
       if (aiOk) {
@@ -758,7 +777,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         final log = await MetaAIService.loadLog();
         receipt = [
           for (final e in log)
-            if (!e.at.isBefore(buildStart)) e.toJson(),
+            if (!e.at.isBefore(_scanStartedAt ?? buildStart)) e.toJson(),
         ];
       } catch (_) {
         receipt = const [];
@@ -2533,8 +2552,9 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
           log: log,
           palace: palace,
           scanEvents: List<List<Object>>.of(_scanEvents),
-          scanLabels: List<String>.of(_scanLabels),
-          scanBoxes: [for (final b in _scanBoxes) List<double>.of(b)],
+          scanLabels: List<String>.of(_roundLabels),
+          scanBoxes: [for (final b in _roundBoxes) List<double>.of(b)],
+          scanMasks: List<String>.of(_roundMasks),
           scanTotalMs: _scanClock.elapsedMilliseconds,
         ),
       );
@@ -3942,6 +3962,7 @@ class _ReceiptCard extends StatelessWidget {
   final List<List<Object>> scanEvents;
   final List<String> scanLabels;
   final List<List<double>> scanBoxes;
+  final List<String> scanMasks;
   final int scanTotalMs;
 
   const _ReceiptCard({
@@ -3950,6 +3971,7 @@ class _ReceiptCard extends StatelessWidget {
     this.scanEvents = const [],
     this.scanLabels = const [],
     this.scanBoxes = const [],
+    this.scanMasks = const [],
     this.scanTotalMs = 41000,
   });
 
@@ -3966,7 +3988,21 @@ class _ReceiptCard extends StatelessWidget {
           // Skip malformed receipt entries.
         }
       }
-      if (out.isNotEmpty) return out;
+      // A replay shows only what was recorded. A live palace adds the
+      // calls logged after it was built (the Muse Image scenes).
+      if (out.isNotEmpty && palace.replay) return out;
+      if (out.isNotEmpty) {
+        final seen = {
+          for (final e in out) '${e.at.toIso8601String()}|${e.kind}',
+        };
+        return [
+          ...out,
+          for (final e in log)
+            if (!e.at.isBefore(palace.createdAt) &&
+                !seen.contains('${e.at.toIso8601String()}|${e.kind}'))
+              e,
+        ];
+      }
     }
     return [
       for (final e in log)
@@ -4114,11 +4150,16 @@ class _ReceiptCard extends StatelessWidget {
   }
 
   /// Debug-only capture tool: writes a recorded real run for the offline
-  /// demo. Refuses unless the palace is the sample, every receipt entry
-  /// is live (no fallback) and all dream scenes exist.
+  /// demo. Refuses unless the palace is the sample, Muse Spark, SAM 3.1
+  /// and Muse Image each made live calls, and all dream scenes exist.
+  /// Individual fallbacks (e.g. one SAM box) stay in the recorded
+  /// receipt, so the replay shows them as honestly as the live run did.
   Future<void> _exportDemoRun(BuildContext context) async {
     final entries = _entries();
-    final allLive = entries.isNotEmpty && entries.every((e) => !e.fallback);
+    bool liveFor(String kind) =>
+        entries.any((e) => e.kind == kind && !e.fallback);
+    final allLive =
+        liveFor('picture-objects') && liveFor('segment') && liveFor('image');
     final dreamsOk =
         palace.items.isNotEmpty &&
         palace.dreams.length >= palace.items.length &&
@@ -4136,8 +4177,16 @@ class _ReceiptCard extends StatelessWidget {
               for (var i = 0; i < palace.stations.length; i++)
                 [8000 + i * 4000, 'sam', i + 1, palace.stations.length],
             ];
-      final labels = scanLabels.isNotEmpty ? scanLabels : palace.stations;
-      final boxes = scanBoxes.isNotEmpty ? scanBoxes : palace.boxes;
+      // Labels, boxes and masks must stay index-aligned for the replay:
+      // use the live round's own geometry when it is complete, otherwise
+      // the palace's walk-ordered stations.
+      final roundOk =
+          scanLabels.isNotEmpty &&
+          scanBoxes.length == scanLabels.length &&
+          scanMasks.length == scanLabels.length;
+      final labels = roundOk ? scanLabels : palace.stations;
+      final boxes = roundOk ? scanBoxes : palace.boxes;
+      final masks = roundOk ? scanMasks : palace.masks;
       final totalMs = scanTotalMs > 0 ? scanTotalMs : 41000;
       final payload = <String, Object?>{
         'v': 1,
@@ -4147,7 +4196,7 @@ class _ReceiptCard extends StatelessWidget {
           'events': events,
           'labels': labels,
           'boxes': boxes,
-          'masks': palace.masks,
+          'masks': masks,
           'totalMs': totalMs,
         },
         'items': palace.items,
