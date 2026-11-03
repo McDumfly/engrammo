@@ -89,9 +89,9 @@ void main() {
     try {
       expect(tr('myg_title'), 'Céljaim');
       expect(tr('bench_hub_title'), 'Tedd próbára magad');
-      expect(tr('lp_start'), 'GYAKORLÁS INDÍTÁSA');
+      expect(tr('lp_start'), 'Gyakorlás indítása');
       expect(tr('btz_title'), 'Csatazóna');
-      expect(tr('btd_go'), 'RAJT!');
+      expect(tr('btd_go'), 'Rajt!');
       expect(tr('blg_title'), 'Ranglista');
       expect(tr('lpt_track_title'), 'Tanulási útvonal');
       expect(tr('mar_due'), 'Ismétlés esedékes');

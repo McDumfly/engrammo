@@ -82,7 +82,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Offline practice'), findsOneWidget);
-      expect(find.text('START BOT DUEL'), findsOneWidget);
+      expect(find.text('Start bot duel'), findsOneWidget);
       botArena.resetForTest();
     });
   });

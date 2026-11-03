@@ -1611,7 +1611,7 @@ class MemoryResultPage extends StatelessWidget {
                     borderRadius: BorderRadius.circular(14),
                     haptic: false,
                     semanticLabel: tr('mprof_start_track', {
-                      'name': memoryKinds[rec.track].displayName.toUpperCase(),
+                      'name': memoryKinds[rec.track].displayName,
                     }),
                     top: Container(
                       padding: const EdgeInsets.symmetric(vertical: 13),
@@ -1622,8 +1622,7 @@ class MemoryResultPage extends StatelessWidget {
                       alignment: Alignment.center,
                       child: Text(
                         tr('mprof_start_track', {
-                          'name': memoryKinds[rec.track].displayName
-                              .toUpperCase(),
+                          'name': memoryKinds[rec.track].displayName,
                         }),
                         style: const TextStyle(
                           color: Colors.white,

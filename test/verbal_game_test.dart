@@ -86,10 +86,10 @@ void main() {
         expect(word, isNotEmpty);
         final saysSeen = seen.contains(word);
         seen.add(word);
-        await tester.tap(find.text(saysSeen ? 'SEEN' : 'NEW WORD'));
+        await tester.tap(find.text(saysSeen ? 'Seen' : 'New word'));
         await tester.pump();
         // The built-in pool is long exhausted by round 150: perfect play
-        // must still meet genuinely new words, otherwise "SEEN" spam
+        // must still meet genuinely new words, otherwise "Seen" spam
         // would score infinite points.
         if (round >= 150 && !saysSeen) freshInTail++;
       }
@@ -112,7 +112,7 @@ void main() {
 
     test('returns null when nothing new is left', () {
       expect(VerbalGamePage.takeAiWord([], <String>{}), isNull);
-      expect(VerbalGamePage.takeAiWord(['seen'], {'SEEN'}), isNull);
+      expect(VerbalGamePage.takeAiWord(['seen'], {'Seen'}), isNull);
     });
   });
 
@@ -128,7 +128,7 @@ void main() {
       // Offline (no key in tests) the strip honestly says LOCAL: the
       // models join only when online.
       expect(find.textContaining('Local round'), findsOneWidget);
-      expect(find.text('LOCAL MODE'), findsOneWidget);
+      expect(find.text('Local mode'), findsOneWidget);
       expect(find.textContaining('Muse Spark'), findsOneWidget);
     });
 
@@ -138,7 +138,7 @@ void main() {
       await tester.pumpWidget(const MaterialApp(home: VerbalGamePage()));
       await tester.pump();
       // The first word is always new, so SEEN is always wrong here.
-      await tester.tap(find.text('SEEN'));
+      await tester.tap(find.text('Seen'));
       await tester.pump();
       final hearts = tester.widgetList<LifeHeart>(find.byType(LifeHeart));
       expect(hearts.length, 3);
@@ -163,7 +163,7 @@ void main() {
         final saysSeen = seen.contains(word);
         seen.add(word);
         // Always answer wrong on purpose.
-        await tester.tap(find.text(saysSeen ? 'NEW WORD' : 'SEEN'));
+        await tester.tap(find.text(saysSeen ? 'New word' : 'Seen'));
         await tester.pump();
       }
       // The verdict arrives over async model calls (or their local
@@ -176,7 +176,7 @@ void main() {
       }
       expect(verdict, findsOneWidget);
       expect(
-        find.text('ASK THE AI COACH', skipOffstage: false),
+        find.text('Ask the AI coach', skipOffstage: false),
         findsOneWidget,
       );
     });
@@ -186,8 +186,8 @@ void main() {
     ) async {
       await tester.pumpWidget(const MaterialApp(home: VerbalGamePage()));
       await tester.pump();
-      expect(find.text('SEEN'), findsOneWidget);
-      expect(find.text('NEW WORD'), findsOneWidget);
+      expect(find.text('Seen'), findsOneWidget);
+      expect(find.text('New word'), findsOneWidget);
       expect(find.text('ANSWER BY VOICE'), findsNothing);
     });
   });

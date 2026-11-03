@@ -10,16 +10,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Discover your memory type'), findsOneWidget);
-    expect(find.text('STRONGEST TYPE'), findsNothing);
+    expect(find.text('Strongest type'), findsNothing);
 
     await tester.tap(find.text('Discover your memory type'));
     await tester.pumpAndSettle();
     expect(find.text('One rule: no cheating.'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.text('START — I PLAY FAIR'),
+      find.text('Start — I play fair'),
       100,
     );
-    await tester.tap(find.text('START — I PLAY FAIR'));
+    await tester.tap(find.text('Start — I play fair'));
     await tester.pumpAndSettle();
     expect(find.text('Memory assessment 1/13'), findsOneWidget);
   });
@@ -31,7 +31,7 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: KreedsProfilePage()));
     await tester.pumpAndSettle();
 
-    expect(find.text('STRONGEST TYPE'), findsOneWidget);
+    expect(find.text('Strongest type'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('Sensory'), 50);
     expect(find.text('Working memory'), findsNWidgets(2));
     expect(find.text('Retake'), findsOneWidget);

@@ -140,9 +140,9 @@ void main() {
       await tester.ensureVisible(keyField);
       await tester.pumpAndSettle();
       await tester.enterText(keyField, 'LLM_uj-kulcs');
-      await tester.ensureVisible(find.text('SAVE KEY'));
+      await tester.ensureVisible(find.text('Save key'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('SAVE KEY'));
+      await tester.tap(find.text('Save key'));
       await tester.pumpAndSettle();
       expect(await MetaAIService.storedApiKey(), 'LLM_uj-kulcs');
       expect(find.textContaining('to go live'), findsOneWidget);

@@ -24,7 +24,7 @@ void main() {
 
     await tester.enterText(fieldByHint('Your name'), 'Teszt Elek');
     await tester.enterText(fieldByHint('username'), 'teszt_elek');
-    await tester.tap(find.text('SAVE PROFILE'));
+    await tester.tap(find.text('Save profile'));
     await tester.pumpAndSettle();
 
     expect(find.text('Saved ✓'), findsOneWidget);
@@ -43,7 +43,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(fieldByHint('username'), 'x');
-    await tester.tap(find.text('SAVE PROFILE'));
+    await tester.tap(find.text('Save profile'));
     await tester.pumpAndSettle();
 
     expect(find.text('Saved ✓'), findsNothing);

@@ -98,7 +98,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Set up your profile'), findsOneWidget);
-    expect(find.text('SAVE & CONTINUE'), findsOneWidget);
+    expect(find.text('Save & continue'), findsOneWidget);
     expect(find.byType(BackButton), findsNothing);
     expect(find.byType(CloseButton), findsNothing);
   });
@@ -109,7 +109,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('SAVE & CONTINUE'));
+    await tester.tap(find.text('Save & continue'));
     await tester.pumpAndSettle();
     expect(find.text('Add your name.'), findsOneWidget);
   });
@@ -125,7 +125,7 @@ void main() {
     expect(fields, findsNWidgets(2));
     await tester.enterText(fields.at(0), 'Jane');
     await tester.enterText(fields.at(1), 'ab');
-    await tester.tap(find.text('SAVE & CONTINUE'));
+    await tester.tap(find.text('Save & continue'));
     await tester.pumpAndSettle();
     expect(
       find.text('Username needs at least 3 characters.'),

@@ -23,7 +23,6 @@ import '../models/marathon.dart'
         tierForAverageDepthIn,
         trackDepthAverage,
         trackProgramLineIn;
-import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
 import '../widgets/app_kit.dart';
 import '../widgets/honesty_sheet.dart';
@@ -251,21 +250,6 @@ class _LearningPathPageState extends State<LearningPathPage> {
     SynapseTab(HugeIcons.strokeRoundedDumbbell01, tr('lpt_practice')),
     SynapseTab(HugeIcons.strokeRoundedUser02, tr('lpt_profile')),
   ];
-
-  String get _helpTopic {
-    switch (_tab) {
-      case 0:
-        return AiHelpTopics.path;
-      case 1:
-        return AiHelpTopics.league;
-      case 2:
-        return AiHelpTopics.battle;
-      case 3:
-        return AiHelpTopics.benchmark;
-      default:
-        return AiHelpTopics.general;
-    }
-  }
 
   /// Tabváltáskor az oldalak állapota (scroll, kiválasztott altab, félbehagyott
   /// játék) megmarad: az IndexedStack nem dobja el a rejtett oldalakat.
@@ -570,15 +554,8 @@ class _LearningPathPageState extends State<LearningPathPage> {
               ],
             ),
           ),
-          // A Kezdőlapon nem takarjuk el az útvonalgrafikát, a Ligának és
-          // a Gyakorlás oldalnak pedig saját segítőgombja van.
-          if (_tab != 0 && _tab != 1 && _tab != 3)
-            Positioned(
-              key: const ValueKey('ai-help-fab'),
-              left: 16,
-              bottom: 110,
-              child: AiHelpButton(topic: _helpTopic),
-            ),
+          // Nincs lebegő segítőgomb: az 1-4. lapoknak saját van a
+          // fejlécükben, a Kezdőlapon pedig direkt nem takarunk el semmit.
           if (_tab == 0)
             Positioned(
               key: const ValueKey('back-to-now-fab'),

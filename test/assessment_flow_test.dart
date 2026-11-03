@@ -20,7 +20,7 @@ void main() {
   }
 
   Future<void> revealIfNeeded(WidgetTester tester) async {
-    final cont = find.text('CONTINUE TO QUESTION');
+    final cont = find.text('Continue to question');
     if (cont.evaluate().isEmpty) {
       try {
         await tester.scrollUntilVisible(
@@ -33,7 +33,7 @@ void main() {
         return;
       }
     }
-    final found = find.text('CONTINUE TO QUESTION');
+    final found = find.text('Continue to question');
     if (found.evaluate().isNotEmpty) {
       await tester.ensureVisible(found);
       await tester.pumpAndSettle();

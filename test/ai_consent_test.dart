@@ -218,18 +218,18 @@ void main() {
 
     testWidgets('live key without consent asks before analyze', (tester) async {
       await openInterview(tester);
-      await tester.ensureVisible(find.text('ANALYZE ME'));
+      await tester.ensureVisible(find.text('Analyze me'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('ANALYZE ME'));
+      await tester.tap(find.text('Analyze me'));
       await tester.pumpAndSettle();
       expect(find.text(aiCloudConsentTitle), findsOneWidget);
     });
 
     testWidgets('stay offline proceeds with local verdict', (tester) async {
       await openInterview(tester);
-      await tester.ensureVisible(find.text('ANALYZE ME'));
+      await tester.ensureVisible(find.text('Analyze me'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('ANALYZE ME'));
+      await tester.tap(find.text('Analyze me'));
       await tester.pumpAndSettle();
       await tester.tap(find.text(tr('assess_offline')));
       await tester.pumpAndSettle();

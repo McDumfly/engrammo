@@ -37,11 +37,11 @@ void main() {
 
     expect(find.text('One rule: no cheating.'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.text('START — I PLAY FAIR'),
+      find.text('Start — I play fair'),
       300,
     );
     await tester.pumpAndSettle();
-    expect(find.text('START — I PLAY FAIR'), findsOneWidget);
+    expect(find.text('Start — I play fair'), findsOneWidget);
   });
 
   testWidgets('a sávválasztás az új első sor mellett is működik', (

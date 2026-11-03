@@ -48,14 +48,14 @@ void main() {
     await tester.pump();
     await tester.enterText(find.byType(TextField).first, palace);
     await tester.scrollUntilVisible(
-      find.text('START WITH MY PALACE'),
+      find.text('Start with my palace'),
       500,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pump();
-    await tester.tap(find.text('START WITH MY PALACE'));
+    await tester.tap(find.text('Start with my palace'));
     await tester.pump();
-    final gotIt = find.text('GOT IT, ASK ME');
+    final gotIt = find.text('Got it, ask me');
     for (var i = 0; i < 30 && gotIt.evaluate().isEmpty; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }
@@ -68,7 +68,7 @@ void main() {
       await tester.pumpWidget(const MaterialApp(home: NumberGamePage()));
       await tester.pump();
       final number = readSpacedNumber(tester);
-      expect(find.text('GOT IT, SHOW THE QUESTION'), findsOneWidget);
+      expect(find.text('Got it, show the question'), findsOneWidget);
       expect(find.textContaining('Time:'), findsOneWidget);
 
       // Past the old 2500 ms auto-hide: still memorizing.
@@ -76,7 +76,7 @@ void main() {
       expect(readSpacedNumber(tester), number);
       expect(find.text('Which number did you see?'), findsNothing);
 
-      await tapGotIt(tester, 'GOT IT, SHOW THE QUESTION');
+      await tapGotIt(tester, 'Got it, show the question');
       expect(find.text('Which number did you see?'), findsOneWidget);
       expect(find.textContaining('Memorized this one in'), findsOneWidget);
 
@@ -87,7 +87,7 @@ void main() {
 
       // Wrong answer: the result shows the total time.
       final harder = readSpacedNumber(tester);
-      await tapGotIt(tester, 'GOT IT, SHOW THE QUESTION');
+      await tapGotIt(tester, 'Got it, show the question');
       final options = tester
           .widgetList<Text>(find.byType(Text))
           .map((t) => t.data ?? '')
@@ -112,7 +112,7 @@ void main() {
           .where(pairs.hasMatch)
           .length;
       expect(pairCount(), 3);
-      expect(find.text('GOT IT, ASK ME'), findsOneWidget);
+      expect(find.text('Got it, ask me'), findsOneWidget);
 
       // Past the old 2500 + 3*900 ms auto-hide: still memorizing.
       await tester.pump(const Duration(seconds: 10));
@@ -122,7 +122,7 @@ void main() {
         findsNothing,
       );
 
-      await tapGotIt(tester, 'GOT IT, ASK ME');
+      await tapGotIt(tester, 'Got it, ask me');
       expect(
         find.textContaining(RegExp('^What did you place')),
         findsOneWidget,
@@ -153,7 +153,7 @@ void main() {
         findsNothing,
       );
 
-      await tapGotIt(tester, 'GOT IT, ASK ME');
+      await tapGotIt(tester, 'Got it, ask me');
       expect(
         find.textContaining(RegExp('^What did you place')),
         findsOneWidget,

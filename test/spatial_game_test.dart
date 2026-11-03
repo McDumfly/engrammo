@@ -103,25 +103,25 @@ void main() {
     }
 
     Future<void> tapGotIt(WidgetTester tester) async {
-      await tester.ensureVisible(find.text('GOT IT, ASK ME'));
+      await tester.ensureVisible(find.text('Got it, ask me'));
       await tester.pump();
-      await tester.tap(find.text('GOT IT, ASK ME'));
+      await tester.tap(find.text('Got it, ask me'));
       await tester.pump();
     }
 
     Future<void> tapStart(WidgetTester tester) async {
       await tester.scrollUntilVisible(
-        find.text('START WITH MY PALACE'),
+        find.text('Start with my palace'),
         500,
         scrollable: find.byType(Scrollable).first,
       );
       await tester.pump();
-      await tester.tap(find.text('START WITH MY PALACE'));
+      await tester.tap(find.text('Start with my palace'));
       await tester.pump();
     }
 
     Future<void> waitForDeal(WidgetTester tester) async {
-      final gotIt = find.text('GOT IT, ASK ME');
+      final gotIt = find.text('Got it, ask me');
       for (var i = 0; i < 30 && gotIt.evaluate().isEmpty; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
@@ -289,10 +289,10 @@ void main() {
       await tester.tap(find.text(wrong).first);
       await tester.pump();
 
-      expect(find.text('RESTART'), findsOneWidget);
+      expect(find.text('Restart'), findsOneWidget);
       expect(BenchmarkStore.best['spatial'], 2);
 
-      await tester.tap(find.text('RESTART'));
+      await tester.tap(find.text('Restart'));
       await tester.pump();
       await waitForDeal(tester);
       expect(find.text('3 stations'), findsOneWidget);
@@ -306,7 +306,7 @@ void main() {
       await tester.pumpWidget(const MaterialApp(home: SpatialGamePage()));
       await tester.pump();
       expect(find.text('Your route stations, in order'), findsOneWidget);
-      expect(find.text('START WITH MY PALACE'), findsOneWidget);
+      expect(find.text('Start with my palace'), findsOneWidget);
       expect(find.text('Palace walk'), findsNothing);
       expect(find.text('My palace · list (practice)'), findsNothing);
       expect(find.text('Change palace'), findsNothing);
@@ -323,7 +323,7 @@ void main() {
       await tester.tap(find.text('Picture masking · SAM'));
       await tester.pump();
 
-      final maskBtn = find.text('MASK WITH SAM');
+      final maskBtn = find.text('Mask with SAM');
       for (var i = 0; i < 30 && maskBtn.evaluate().isEmpty; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
@@ -344,7 +344,7 @@ void main() {
         const MaterialApp(home: SamMaskGamePage(count: 3, seed: 'mask-score')),
       );
       await tester.pump();
-      final maskBtn = find.text('MASK WITH SAM');
+      final maskBtn = find.text('Mask with SAM');
       for (var i = 0; i < 30 && maskBtn.evaluate().isEmpty; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
@@ -374,11 +374,11 @@ void main() {
         await tester.enterText(find.byType(TextField), w);
         await tester.pump();
         await tester.scrollUntilVisible(
-          find.text('GUESS'),
+          find.text('Guess'),
           300,
           scrollable: find.byType(Scrollable).first,
         );
-        await tester.tap(find.text('GUESS'));
+        await tester.tap(find.text('Guess'));
         await tester.pump();
       }
       expect(BenchmarkStore.best['visual'], 3);
@@ -395,16 +395,16 @@ void main() {
       await tester.pumpWidget(const MaterialApp(home: SamMaskGamePage()));
       expect(find.text('Painting the picture…'), findsOneWidget);
       expect(find.text('0%'), findsOneWidget);
-      expect(find.text('CONNECTING'), findsOneWidget);
-      expect(find.text('LOCAL MODE'), findsNothing);
+      expect(find.text('Connecting'), findsOneWidget);
+      expect(find.text('Local mode'), findsNothing);
 
-      final maskBtn = find.text('MASK WITH SAM');
+      final maskBtn = find.text('Mask with SAM');
       for (var i = 0; i < 30 && maskBtn.evaluate().isEmpty; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
       expect(maskBtn, findsOneWidget);
-      expect(find.text('LOCAL MODE'), findsOneWidget);
-      expect(find.text('CONNECTING'), findsNothing);
+      expect(find.text('Local mode'), findsOneWidget);
+      expect(find.text('Connecting'), findsNothing);
     });
 
     testWidgets('change-palace link fits a narrow Hungarian phone screen', (
@@ -423,12 +423,12 @@ void main() {
       await tester.pump();
       await tester.enterText(find.byType(TextField).first, 'A lakásom');
       await tester.scrollUntilVisible(
-        find.text('KEZDÉS A PALOTÁMMAL'),
+        find.text('Kezdés a palotámmal'),
         500,
         scrollable: find.byType(Scrollable).first,
       );
       await tester.pump();
-      await tester.tap(find.text('KEZDÉS A PALOTÁMMAL'));
+      await tester.tap(find.text('Kezdés a palotámmal'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
       expect(find.text('Palota módosítása'), findsOneWidget);
@@ -467,7 +467,7 @@ void main() {
       }
       expect(verdict, findsOneWidget);
       expect(
-        find.text('ASK THE AI COACH', skipOffstage: false),
+        find.text('Ask the AI coach', skipOffstage: false),
         findsOneWidget,
       );
     });

@@ -27,7 +27,7 @@ void main() {
       await tester.ensureVisible(find.text(q.options.first.label));
       await tester.tap(find.text(q.options.first.label));
       await tester.pump();
-      final next = i + 1 < interviewQuestions.length ? 'Next' : 'ANALYZE ME';
+      final next = i + 1 < interviewQuestions.length ? 'Next' : 'Analyze me';
       await tester.ensureVisible(find.text(next));
       await tester.tap(find.text(next));
       await tester.pumpAndSettle();

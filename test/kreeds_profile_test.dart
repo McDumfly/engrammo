@@ -64,14 +64,14 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('SAVE PROFILE'), findsOneWidget);
+    expect(find.text('Save profile'), findsOneWidget);
 
     Finder fieldByHint(String hint) => find.byWidgetPredicate(
       (w) => w is TextField && w.decoration?.hintText == hint,
     );
     await tester.enterText(fieldByHint('Your name'), 'Teszt Elek');
     await tester.enterText(fieldByHint('username'), 'teszt_elek');
-    await tester.tap(find.text('SAVE PROFILE'));
+    await tester.tap(find.text('Save profile'));
     await tester.pumpAndSettle();
     expect(find.text('Saved ✓'), findsOneWidget);
 
@@ -152,7 +152,7 @@ void main() {
         (w) => w is TextField && w.decoration?.hintText == hint,
       );
       await tester.enterText(fieldByHint('Your name'), 'Friss Nev');
-      await tester.tap(find.text('SAVE PROFILE'));
+      await tester.tap(find.text('Save profile'));
       await tester.pumpAndSettle();
       await tester.tap(find.byType(EngramBackButton));
       await tester.pumpAndSettle();

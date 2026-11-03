@@ -2,6 +2,7 @@ import 'package:engrammo/theme/app_theme.dart';
 import 'package:engrammo/widgets/app_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 Widget _wrap(Widget child) {
   return MaterialApp(
@@ -206,6 +207,40 @@ void main() {
     expect(focusNode.hasFocus, isTrue);
     expect(identical(tester.state(find.byType(EditableText)), before), isTrue);
   });
+
+  testWidgets(
+    'single-line AppTextFields share one height with or without suffix',
+    (tester) async {
+      Size boxOf(String key) => tester.getSize(
+        find.descendant(
+          of: find.byKey(ValueKey(key)),
+          matching: find.byType(AnimatedContainer),
+        ),
+      );
+      await tester.pumpWidget(
+        _wrap(
+          Column(
+            children: [
+              const AppTextField(key: ValueKey('plain'), hint: 'Email'),
+              const SizedBox(height: 8),
+              AppTextField(
+                key: const ValueKey('suffixed'),
+                hint: 'Password',
+                obscureText: true,
+                suffix: AppIconButton(
+                  icon: HugeIcons.strokeRoundedEye,
+                  onTap: () {},
+                  size: 32,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(boxOf('plain').height, boxOf('suffixed').height);
+    },
+  );
 
   testWidgets('AppTopBar shows the back button only when it can pop', (
     tester,

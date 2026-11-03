@@ -29,6 +29,27 @@ void main() {
     expect(await MemoryStore.loadOnboardingDone(), isTrue);
   });
 
+  testWidgets('a fejléc közepére koppintás nem léptet ki, a Skip igen', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(402, 874));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    var done = false;
+    await tester.pumpWidget(frame(onDone: () => done = true));
+    await tester.pumpAndSettle();
+
+    // A fejléc: 12 pt felső margó + 48 pt magas sáv, a pöttyök középen.
+    await tester.tapAt(const Offset(201, 36));
+    await tester.pumpAndSettle();
+    expect(done, isFalse);
+    expect(find.byType(OnboardingPage), findsOneWidget);
+
+    await tester.tap(find.text(tr('onboarding_skip')));
+    await tester.pumpAndSettle();
+    expect(done, isTrue);
+    expect(await MemoryStore.loadOnboardingDone(), isTrue);
+  });
+
   testWidgets('végiglapozva a felmérő indítható', (tester) async {
     await tester.pumpWidget(frame(onDone: () {}));
     await tester.pumpAndSettle();

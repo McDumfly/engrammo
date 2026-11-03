@@ -1569,7 +1569,15 @@ class _AppTextFieldState extends State<AppTextField>
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            constraints: widget.maxLines == 1
+                ? const BoxConstraints(minHeight: 54)
+                : null,
+            padding: widget.maxLines == 1
+                ? EdgeInsets.only(
+                    left: 16,
+                    right: widget.suffix != null ? 8 : 16,
+                  )
+                : const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               color: context.softBg,
               borderRadius: BorderRadius.circular(AppRadius.m),

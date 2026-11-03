@@ -62,11 +62,11 @@ void main() {
 
     await tester.scrollUntilVisible(find.text('Battle with friends'), 300);
     expect(find.textContaining('No friends yet'), findsOneWidget);
-    expect(find.text('FIND FRIENDS'), findsOneWidget);
+    expect(find.text('Find friends'), findsOneWidget);
 
-    await tester.ensureVisible(find.text('FIND FRIENDS'));
+    await tester.ensureVisible(find.text('Find friends'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('FIND FRIENDS'));
+    await tester.tap(find.text('Find friends'));
     await tester.pumpAndSettle();
     expect(find.text('Suggested players'), findsOneWidget);
   });

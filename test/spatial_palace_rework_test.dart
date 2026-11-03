@@ -175,14 +175,14 @@ void main() {
 
       await tester.enterText(find.byType(TextField).first, 'My flat');
       await tester.scrollUntilVisible(
-        find.text('START WITH MY PALACE'),
+        find.text('Start with my palace'),
         500,
         scrollable: find.byType(Scrollable).first,
       );
       await tester.pump();
-      await tester.tap(find.text('START WITH MY PALACE'));
+      await tester.tap(find.text('Start with my palace'));
       await tester.pump();
-      final gotIt = find.text('GOT IT, ASK ME');
+      final gotIt = find.text('Got it, ask me');
       for (var i = 0; i < 30 && gotIt.evaluate().isEmpty; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
@@ -207,7 +207,7 @@ void main() {
       );
       await tester.pump();
       // Memorize phase offers the masking button.
-      final maskBtn = find.text('MASK WITH SAM');
+      final maskBtn = find.text('Mask with SAM');
       for (var i = 0; i < 30 && maskBtn.evaluate().isEmpty; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
@@ -219,7 +219,7 @@ void main() {
       );
       await tester.tap(maskBtn);
       await tester.pump();
-      expect(find.text('MASK WITH SAM'), findsNothing);
+      expect(find.text('Mask with SAM'), findsNothing);
     });
 
     testWidgets('offline round never masks the placeholder', (
@@ -229,7 +229,7 @@ void main() {
         const MaterialApp(home: SamMaskGamePage(count: 3, seed: 'mask-t0')),
       );
       await tester.pump();
-      final maskBtn = find.text('MASK WITH SAM');
+      final maskBtn = find.text('Mask with SAM');
       for (var i = 0; i < 30 && maskBtn.evaluate().isEmpty; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }

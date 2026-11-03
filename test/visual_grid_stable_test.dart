@@ -41,10 +41,10 @@ void main() {
     expect(find.text('Jegyezd meg a mintát!'), findsOneWidget);
     // Settle the scroll before measuring: the scroll itself moves the
     // grid, the text swap must not.
-    await tester.ensureVisible(find.text('MEGVAN, KÉRDEZZ'));
+    await tester.ensureVisible(find.text('Megvan, kérdezz'));
     await tester.pump();
     final before = tester.getTopLeft(find.byType(GridView));
-    await tester.tap(find.text('MEGVAN, KÉRDEZZ'));
+    await tester.tap(find.text('Megvan, kérdezz'));
     await tester.pump();
     expect(
       find.text('Koppints vissza ugyanazokra a mezőkre!'),

@@ -143,6 +143,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   @override
   Widget build(BuildContext context) {
     const total = 4;
+    final last = _index == total - 1;
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -177,19 +178,33 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     ),
                     Align(
                       alignment: Alignment.centerRight,
-                      child: Tappable(
-                        onTap: _skip,
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(
-                            minWidth: 44,
-                            minHeight: 44,
-                          ),
-                          child: Center(
-                            child: Text(
-                              tr('onboarding_skip'),
-                              style: AppText.body.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: context.mutedText,
+                      child: AnimatedOpacity(
+                        opacity: last ? 0 : 1,
+                        duration: const Duration(milliseconds: 200),
+                        child: IgnorePointer(
+                          ignoring: last,
+                          child: Tappable(
+                            onTap: _skip,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(
+                                minWidth: 44,
+                                minHeight: 44,
+                              ),
+                              child: Center(
+                                widthFactor: 1,
+                                heightFactor: 1,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                  ),
+                                  child: Text(
+                                    tr('onboarding_skip'),
+                                    style: AppText.body.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: context.mutedText,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ),
@@ -294,9 +309,21 @@ class _OnboardingPageState extends State<OnboardingPage> {
         style: AppText.body.copyWith(color: context.inkText),
       ),
       const SizedBox(height: 8),
-      EngramTextButton(
-        label: tr('onboarding_honesty_link'),
-        onPressed: () => showHonestySheet(context),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: Tappable(
+          onTap: () => showHonestySheet(context),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Text(
+              tr('onboarding_honesty_link'),
+              style: AppText.body.copyWith(
+                color: context.accentText(blue),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
       ),
     ]);
   }

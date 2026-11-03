@@ -109,7 +109,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 2000));
       expect(cellColor(1), palette.tealDark);
-      expect(find.text('RESUME'), findsOneWidget);
+      expect(find.text('Resume'), findsOneWidget);
 
       await tester.tap(find.byKey(const ValueKey('corsi-pause')));
       await tester.pump(const Duration(milliseconds: 600));
@@ -132,13 +132,13 @@ void main() {
         ),
       );
       await tester.pump();
-      expect(find.text('SPEED 1×'), findsOneWidget);
+      expect(find.text('Speed 1×'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('corsi-speed')));
       await tester.pump();
-      expect(find.text('SPEED 2×'), findsOneWidget);
+      expect(find.text('Speed 2×'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('corsi-speed')));
       await tester.pump();
-      expect(find.text('SPEED 0.5×'), findsOneWidget);
+      expect(find.text('Speed 0.5×'), findsOneWidget);
       await tester.pump(const Duration(milliseconds: 2000));
     });
   });
