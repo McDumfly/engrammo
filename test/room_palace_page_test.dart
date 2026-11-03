@@ -120,25 +120,68 @@ void main() {
     await answer('hammer');
 
     // Normal result: Prove it is the one primary button.
-    expect(find.text('Prove it: recall with the photo hidden'), findsOneWidget);
-    await tester.tap(find.text('Prove it: recall with the photo hidden'));
+    expect(find.text('Prove it: photo hidden'), findsOneWidget);
+    await tester.tap(find.text('Prove it: photo hidden'));
     await tester.pumpAndSettle();
 
-    // Blind recall hides the photo behind the tip card.
+    // Blind recall hides the photo behind the same-size dark card.
     expect(
-      find.text(
-        'The real skill: picture your room and walk the spots from memory.',
-      ),
+      find.text('Photo hidden. Walk the room in your head.'),
       findsOneWidget,
     );
     await answer('apple');
     await answer('hammer');
 
-    // Blind result: proof panel with per-station chips.
+    // Blind result: proof panel with per-station chips, and the generic
+    // big score stays hidden so the proof title is the one hero.
     expect(find.text('2/2 from memory alone'), findsOneWidget);
+    expect(find.text('2/2'), findsNothing);
+    expect(find.text('landmarks recalled from your own room'), findsNothing);
     expect(find.text('apple'), findsOneWidget);
     expect(find.text('hammer'), findsOneWidget);
     expect(find.text('Done'), findsOneWidget);
+  });
+
+  testWidgets('wrong answer keeps focus and selects the wrong text', (
+    tester,
+  ) async {
+    final photo = squareJpegDataUrl(
+      Uint8List.fromList(img.encodePng(img.Image(width: 10, height: 10))),
+    );
+    await MemoryStore.upsertRoomPalace(
+      RoomPalace(
+        id: 'room:wrong',
+        createdAt: DateTime.utc(2026, 11, 1),
+        imageRef: photo,
+        stations: const ['desk', 'lamp', 'chair'],
+        items: const ['apple', 'hammer'],
+        links: const ['first link', 'second link'],
+        card: FsrsCard(
+          cardId: 'room:wrong',
+          taskId: 'room_palace',
+          due: DateTime.now(),
+        ),
+      ),
+    );
+    await tester.pumpWidget(
+      const MaterialApp(home: RoomPalacePage(reviewId: 'room:wrong')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'vacuole');
+    await tester.pump();
+    await tester.tap(find.text('Check'));
+    await tester.pumpAndSettle();
+
+    // The judged-wrong feedback shows and the whole wrong text is
+    // selected, so the next keystroke replaces it.
+    expect(find.textContaining('Not quite.'), findsWidgets);
+    final field = tester.widget<TextField>(find.byType(TextField));
+    expect(field.controller!.text, 'vacuole');
+    expect(
+      field.controller!.selection,
+      const TextSelection(baseOffset: 0, extentOffset: 7),
+    );
   });
 
   testWidgets('baseline probe compares before and after on the result', (

@@ -97,6 +97,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
   Set<int> _revealed = {};
   Set<int> _correctIdx = {};
   final _guessCtrl = TextEditingController();
+  final _guessFocus = FocusNode();
   String _feedback = '';
   bool _feedbackGood = false;
   bool _awaitNext = false;
@@ -140,6 +141,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     _itemsCtrl.removeListener(_onItemsChanged);
     _itemsCtrl.dispose();
     _guessCtrl.dispose();
+    _guessFocus.dispose();
     _baselineCtrl.dispose();
     super.dispose();
   }
@@ -626,6 +628,11 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
           _feedbackGood = false;
           _feedback = tr('room_elsewhere', {'n': i + 1});
         });
+        _guessFocus.requestFocus();
+        _guessCtrl.selection = TextSelection(
+          baseOffset: 0,
+          extentOffset: _guessCtrl.text.length,
+        );
         return;
       }
     }
@@ -658,6 +665,13 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         _feedbackGood = false;
         _feedback = tr('room_wrong_with_link', {'link': link});
       });
+      // Keep focus and select the wrong text so the next keystroke
+      // replaces it instead of appending to it.
+      _guessFocus.requestFocus();
+      _guessCtrl.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: _guessCtrl.text.length,
+      );
     }
   }
 
@@ -888,6 +902,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
               ],
               AppTextField(
                 controller: _guessCtrl,
+                focusNode: _guessFocus,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _check(),
                 onChanged: (_) {
@@ -1766,29 +1781,48 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     ).clamp(220.0, 380.0).toDouble();
     return _page([
       if (_blind && !done)
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: context.cardBg,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: context.hairline, width: 2),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                tr('room_blind_tip'),
-                style: AppText.caption.copyWith(color: context.mutedText),
+        Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: side),
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF16233B),
+                  borderRadius: BorderRadius.circular(AppRadius.xl),
+                ),
+                padding: const EdgeInsets.all(24),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      HugeIcon(
+                        icon: HugeIcons.strokeRoundedViewOff,
+                        color: Colors.white.withValues(alpha: 0.7),
+                        size: 40,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        tr('room_blind_card'),
+                        textAlign: TextAlign.center,
+                        style: AppText.body.copyWith(
+                          color: Colors.white.withValues(alpha: 0.85),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        tr('room_station_n', {
+                          'n': _cue + 1,
+                          'name': palace.stations[_cue],
+                        }),
+                        textAlign: TextAlign.center,
+                        style: AppText.title.copyWith(color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              const SizedBox(height: 12),
-              Text(
-                tr('room_station_n', {
-                  'n': _cue + 1,
-                  'name': palace.stations[_cue],
-                }),
-                style: AppText.title.copyWith(color: context.inkText),
-              ),
-            ],
+            ),
           ),
         )
       else
@@ -1937,11 +1971,18 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
             a: _baselineCorrect!,
             b: _correct,
             n: total,
+            proof: _blind,
           ),
         ),
         const SizedBox(height: 12),
       ],
-      _ResultCelebration(correct: _correct, total: total, blind: _blind),
+      if (!_blind)
+        _ResultCelebration(
+          correct: _correct,
+          total: total,
+          blind: _blind,
+          sample: _sample,
+        ),
       const SizedBox(height: 12),
       Wrap(
         alignment: WrapAlignment.center,
@@ -2020,10 +2061,14 @@ class _BaselineComparison extends StatefulWidget {
   final int a;
   final int b;
   final int n;
+
+  /// After a blind run the "with it" half becomes "from memory".
+  final bool proof;
   const _BaselineComparison({
     required this.a,
     required this.b,
     required this.n,
+    this.proof = false,
   });
 
   @override
@@ -2039,11 +2084,10 @@ class _BaselineComparisonState extends State<_BaselineComparison> {
 
   @override
   Widget build(BuildContext context) {
-    final full = tr('room_baseline_vs', {
-      'a': widget.a,
-      'b': widget.b,
-      'n': widget.n,
-    });
+    final full = tr(
+      widget.proof ? 'room_baseline_vs_proof' : 'room_baseline_vs',
+      {'a': widget.a, 'b': widget.b, 'n': widget.n},
+    );
     final parts = full.split('→');
     final before = TextStyle(
       color: context.mutedText,
@@ -2073,10 +2117,14 @@ class _ResultCelebration extends StatefulWidget {
 
   /// A blind (photo-hidden) run earns a firmer haptic than a plain one.
   final bool blind;
+
+  /// A palace built from the sample photo says so under the score.
+  final bool sample;
   const _ResultCelebration({
     required this.correct,
     required this.total,
     this.blind = false,
+    this.sample = false,
   });
 
   @override
@@ -2146,7 +2194,7 @@ class _ResultCelebrationState extends State<_ResultCelebration>
             ),
             const SizedBox(height: 4),
             Text(
-              tr('room_result_sub'),
+              tr(widget.sample ? 'room_recalled_sample' : 'room_result_sub'),
               textAlign: TextAlign.center,
               style: AppText.caption.copyWith(color: context.mutedText),
             ),
@@ -2360,6 +2408,61 @@ class _ScanStageState extends State<_ScanStage> with TickerProviderStateMixin {
                                       b[3] * h,
                                     ),
                                 ];
+                                // Short labels stay readable; longer ones get
+                                // an ellipsis after 16 characters.
+                                String shortLabel(String s) => s.length > 16
+                                    ? '${s.substring(0, 16)}…'
+                                    : s;
+                                const chipH = 26.0;
+                                const chipGap = 4.0;
+                                final chipW = <double>[
+                                  for (var i = 0; i < labels.length; i++)
+                                    min(
+                                      w * 0.40,
+                                      30 +
+                                          7.5 *
+                                              '${i + 1} · ${shortLabel(labels[i])}'
+                                                  .length,
+                                    ),
+                                ];
+                                // Simple collision pass (same idea as
+                                // _spreadBadges): a chip overlapping an
+                                // earlier chip moves down by chip height + 4,
+                                // clamped inside the photo.
+                                final chipXY = <Offset>[
+                                  for (var i = 0; i < labels.length; i++)
+                                    Offset(rects[i].left, rects[i].top),
+                                ];
+                                for (var i = 0; i < chipXY.length; i++) {
+                                  var p = Offset(
+                                    chipXY[i].dx.clamp(
+                                      0.0,
+                                      max(0.0, w - chipW[i]),
+                                    ),
+                                    chipXY[i].dy.clamp(
+                                      0.0,
+                                      max(0.0, h - chipH),
+                                    ),
+                                  );
+                                  for (var k = 0; k < i; k++) {
+                                    final q = chipXY[k];
+                                    final overlaps =
+                                        p.dx < q.dx + chipW[k] + chipGap &&
+                                        q.dx < p.dx + chipW[i] + chipGap &&
+                                        p.dy < q.dy + chipH + chipGap &&
+                                        q.dy < p.dy + chipH + chipGap;
+                                    if (overlaps) {
+                                      p = Offset(
+                                        p.dx,
+                                        min(
+                                          max(0.0, h - chipH),
+                                          q.dy + chipH + chipGap,
+                                        ),
+                                      );
+                                    }
+                                  }
+                                  chipXY[i] = p;
+                                }
                                 return Stack(
                                   children: [
                                     Positioned.fill(
@@ -2372,8 +2475,8 @@ class _ScanStageState extends State<_ScanStage> with TickerProviderStateMixin {
                                     ),
                                     for (var i = 0; i < labels.length; i++)
                                       Positioned(
-                                        left: rects[i].left,
-                                        top: rects[i].top,
+                                        left: chipXY[i].dx,
+                                        top: chipXY[i].dy,
                                         child: Builder(
                                           builder: (context) {
                                             final t = Interval(
@@ -2387,14 +2490,11 @@ class _ScanStageState extends State<_ScanStage> with TickerProviderStateMixin {
                                                 opacity: t.clamp(0.0, 1.0),
                                                 child: ConstrainedBox(
                                                   constraints: BoxConstraints(
-                                                    maxWidth:
-                                                        (w - rects[i].left - 4)
-                                                            .clamp(48.0, w)
-                                                            .toDouble(),
+                                                    maxWidth: w * 0.40,
                                                   ),
                                                   child: _ScanChip(
                                                     text:
-                                                        '${i + 1} · ${labels[i]}',
+                                                        '${i + 1} · ${shortLabel(labels[i])}',
                                                     color: _stationColor(i),
                                                     done: done > i,
                                                   ),
@@ -2494,25 +2594,34 @@ class _ScanStageState extends State<_ScanStage> with TickerProviderStateMixin {
           badge: const AppBadge(label: 'SAM 3.1', color: teal),
         ),
         const SizedBox(height: 8),
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 200),
-          child: labelsArrived
-              ? Padding(
-                  key: ValueKey('scan-ticker-$done-${labels.length}'),
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    total > 0
-                        ? tr('room_scan_sam_tracing', {
-                            'name': labels[done.clamp(0, labels.length - 1)],
-                          })
-                        : tr('room_scan_spark_found', {'n': labels.length}),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppText.caption.copyWith(color: context.mutedText),
-                  ),
-                )
-              : const SizedBox.shrink(key: ValueKey('scan-ticker-empty')),
+        // Fixed height from the start so the Cancel button below never
+        // moves when the first ticker line arrives.
+        SizedBox(
+          height: 20,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            switchInCurve: const Interval(0.5, 1),
+            switchOutCurve: const Interval(0.5, 1),
+            transitionBuilder: (child, animation) =>
+                FadeTransition(opacity: animation, child: child),
+            child: labelsArrived
+                ? Padding(
+                    key: ValueKey('scan-ticker-$done-${labels.length}'),
+                    padding: const EdgeInsets.only(bottom: 2),
+                    child: Text(
+                      total > 0
+                          ? tr('room_scan_sam_tracing', {
+                              'name': labels[done.clamp(0, labels.length - 1)],
+                            })
+                          : tr('room_scan_spark_found', {'n': labels.length}),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.caption.copyWith(color: context.mutedText),
+                    ),
+                  )
+                : const SizedBox.shrink(key: ValueKey('scan-ticker-empty')),
+          ),
         ),
         Text(
           tr('room_scan_eta'),

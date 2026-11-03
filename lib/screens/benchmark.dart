@@ -4765,7 +4765,45 @@ class _MaskedPictureState extends State<MaskedPicture>
                                   alignment: Alignment.bottomCenter,
                                   child: Padding(
                                     padding: const EdgeInsets.all(4),
-                                    child: AppBadge(label: widget.objects[i]),
+                                    child: ConstrainedBox(
+                                      constraints: BoxConstraints(
+                                        maxWidth: w * 0.42,
+                                      ),
+                                      child: Container(
+                                        height: 26,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: teal.withValues(alpha: 0.14),
+                                          borderRadius: BorderRadius.circular(
+                                            AppRadius.pill,
+                                          ),
+                                        ),
+                                        child: Center(
+                                          widthFactor: 1,
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Flexible(
+                                                child: Text(
+                                                  widget.objects[i],
+                                                  style: AppText.micro.copyWith(
+                                                    color: context.accentText(
+                                                      teal,
+                                                    ),
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),

@@ -1866,6 +1866,10 @@ const Map<String, String> enStrings = {
   'room_baseline_memorize': 'Memorize the list — {n} s left',
   'room_baseline_prompt': 'Type every item you still remember',
   'room_baseline_vs': 'Without the palace {a}/{n}  →  with it {b}/{n}',
+  'room_baseline_vs_proof':
+      'Without the palace {a}/{n}  →  from memory {b}/{n}',
+  'room_recalled_sample': 'landmarks recalled from the sample room',
+  'room_blind_card': 'Photo hidden. Walk the room in your head.',
   'room_encode_tip':
       'Picture it vividly sitting on the landmark. The weirder, the better.',
   'room_link_fb_0': 'A glowing {item} spins on top of the {station} like a hat, humming softly.',
@@ -1907,7 +1911,7 @@ const Map<String, String> enStrings = {
   'room_almost': 'Almost! It was: {item}',
   'room_dream_retry': 'Paint again',
   'room_blind_btn': 'Walk it in your head (no photo)',
-  'room_prove_btn': 'Prove it: recall with the photo hidden',
+  'room_prove_btn': 'Prove it: photo hidden',
   'room_proof_title': '{correct}/{total} from memory alone',
   'room_blind_tip':
       'The real skill: picture your room and walk the spots from memory.',
