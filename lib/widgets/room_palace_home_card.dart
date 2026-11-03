@@ -208,53 +208,60 @@ class _RoomPalaceHomeCardState extends State<RoomPalaceHomeCard>
               ],
               Padding(
                 padding: const EdgeInsets.all(20),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Expanded(
-                      child: Tappable(
-                        haptic: false,
-                        onTap: _openList,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 5,
+                    Tappable(
+                      haptic: false,
+                      onTap: _openList,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.14),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.pill,
                                 ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.14),
-                                  borderRadius: BorderRadius.circular(
-                                    AppRadius.pill,
-                                  ),
-                                ),
-                                child: Text(
-                                  kRoomModelsCaption,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppText.micro.copyWith(
-                                    color: Colors.white.withValues(alpha: 0.92),
-                                  ),
+                              ),
+                              child: Text(
+                                kRoomModelsCaption,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppText.micro.copyWith(
+                                  color: Colors.white.withValues(alpha: 0.92),
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 6),
-                            Text(
-                              tr(
-                                mine == null
-                                    ? 'room_home_title'
-                                    : 'room_home_mine',
-                              ),
-                              style: AppText.title.copyWith(
-                                color: Colors.white,
-                              ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            tr(
+                              mine == null
+                                  ? 'room_home_title'
+                                  : 'room_home_mine',
                             ),
-                            const SizedBox(height: 2),
-                            Text(
+                            style: AppText.title.copyWith(color: Colors.white),
+                          ),
+                          const SizedBox(height: 2),
+                        ],
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Tappable(
+                            haptic: false,
+                            onTap: _openList,
+                            child: Text(
                               mine == null
                                   ? tr('room_home_sub')
                                   : tr('room_home_due', {
@@ -267,45 +274,47 @@ class _RoomPalaceHomeCardState extends State<RoomPalaceHomeCard>
                                 color: Colors.white.withValues(alpha: 0.8),
                               ),
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Tappable(
-                      haptic: false,
-                      onTap: _openReview,
-                      child: Container(
-                        height: 40,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(AppRadius.pill),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const HugeIcon(
-                              icon: HugeIcons.strokeRoundedCamera01,
-                              color: Color(0xFF16233B),
-                              size: 18,
-                              strokeWidth: 2.0,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              tr(
-                                mine == null
-                                    ? 'room_home_cta'
-                                    : 'room_home_review',
-                              ),
-                              style: AppText.body.copyWith(
-                                fontWeight: FontWeight.w800,
-                                color: const Color(0xFF16233B),
+                        const SizedBox(width: 12),
+                        Tappable(
+                          haptic: false,
+                          onTap: _openReview,
+                          child: Container(
+                            height: 40,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.pill,
                               ),
                             ),
-                          ],
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const HugeIcon(
+                                  icon: HugeIcons.strokeRoundedCamera01,
+                                  color: Color(0xFF16233B),
+                                  size: 18,
+                                  strokeWidth: 2.0,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  tr(
+                                    mine == null
+                                        ? 'room_home_cta'
+                                        : 'room_home_review',
+                                  ),
+                                  style: AppText.body.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF16233B),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ],
                 ),
