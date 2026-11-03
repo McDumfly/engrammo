@@ -83,6 +83,14 @@ class AiImage extends StatelessWidget {
         fit: fit,
         cacheWidth: cacheWidth,
         gaplessPlayback: true,
+        frameBuilder: (context, child, frame, wasSync) => wasSync
+            ? child
+            : AnimatedOpacity(
+                opacity: frame == null ? 0 : 1,
+                duration: const Duration(milliseconds: 320),
+                curve: Curves.easeOut,
+                child: child,
+              ),
         errorBuilder: (context, error, stack) {
           _report();
           return fallback;
@@ -97,6 +105,14 @@ class AiImage extends StatelessWidget {
         fit: fit,
         cacheWidth: cacheWidth,
         gaplessPlayback: true,
+        frameBuilder: (context, child, frame, wasSync) => wasSync
+            ? child
+            : AnimatedOpacity(
+                opacity: frame == null ? 0 : 1,
+                duration: const Duration(milliseconds: 320),
+                curve: Curves.easeOut,
+                child: child,
+              ),
         loadingBuilder: (context, child, progress) {
           if (progress == null) return child;
           return _loadingBox();

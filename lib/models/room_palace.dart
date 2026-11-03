@@ -16,6 +16,7 @@ class RoomPalace {
   final List<String> links; // vivid image sentence per item
   final bool live; // true = stations came from Muse Spark + SAM
   final FsrsCard card;
+  final List<String> dreams; // persisted dream scenes per station (data URLs)
 
   const RoomPalace({
     required this.id,
@@ -28,6 +29,7 @@ class RoomPalace {
     this.links = const [],
     this.live = false,
     required this.card,
+    this.dreams = const [],
   });
 
   RoomPalace copyWith({
@@ -41,6 +43,7 @@ class RoomPalace {
     List<String>? links,
     bool? live,
     FsrsCard? card,
+    List<String>? dreams,
   }) {
     return RoomPalace(
       id: id ?? this.id,
@@ -53,6 +56,7 @@ class RoomPalace {
       links: links ?? this.links,
       live: live ?? this.live,
       card: card ?? this.card,
+      dreams: dreams ?? this.dreams,
     );
   }
 
@@ -67,6 +71,7 @@ class RoomPalace {
     'links': links,
     'live': live,
     'card': card.toJson(),
+    'dreams': dreams,
   };
 
   /// Never throws: missing lists become empty, a bad date becomes epoch,
@@ -128,6 +133,8 @@ class RoomPalace {
       links: stringsOf(json['links']),
       live: (json['live'] as bool?) ?? false,
       card: card,
+      dreams:
+          (json['dreams'] as List?)?.whereType<String>().toList() ?? const [],
     );
   }
 
@@ -144,7 +151,8 @@ class RoomPalace {
           _strListEq(items, other.items) &&
           _strListEq(links, other.links) &&
           live == other.live &&
-          card == other.card;
+          card == other.card &&
+          _strListEq(dreams, other.dreams);
 
   @override
   int get hashCode => Object.hash(
@@ -158,6 +166,7 @@ class RoomPalace {
     Object.hashAll(links),
     live,
     card,
+    Object.hashAll(dreams),
   );
 }
 

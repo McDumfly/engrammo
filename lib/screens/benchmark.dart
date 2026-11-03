@@ -32,6 +32,7 @@ import '../models/palace_drill.dart'
 import '../services/app_feedback.dart';
 import '../services/memory_store.dart';
 import '../services/meta_ai_service.dart';
+import '../utils/test_mode.dart';
 import 'benchmark_stats.dart' show BenchmarkDetailPage;
 import 'room_palace_page.dart' show RoomPalacePage;
 import '../theme/app_colors.dart' show blue, blueDark, teal, orange, coral, sky;
@@ -4078,6 +4079,12 @@ class _CoverGeom {
   });
 }
 
+/// Station colour cycle, shared by covers, highlights and badges.
+Color _stationColor(int i) {
+  const cycle = [teal, blue, orange, coral];
+  return cycle[i % cycle.length];
+}
+
 /// Paints every hidden cover: shape-faithful SAM silhouettes where a
 /// mask decoded, soft rounded covers where only a box is known. The
 /// cover under question gets a glow ring around its bounding box (the
@@ -4089,15 +4096,20 @@ class _SamCoverPainter extends CustomPainter {
   // Round identity: without it a fresh round with the same object count
   // would keep the previous round's covers (same lengths, same cue).
   final int version;
+  // Cue-ring pulse 0..1 (1200ms loop) and per-index reveal fade 0..1.
+  final double cueT;
+  final Map<int, double> revealT;
 
   const _SamCoverPainter({
     required this.covers,
     required this.revealed,
     required this.cue,
     this.version = 0,
+    this.cueT = 0,
+    this.revealT = const {},
   });
 
-  void _paintShape(Canvas canvas, _CoverGeom cover, Paint paint) {
+  static void paintShape(Canvas canvas, _CoverGeom cover, Paint paint) {
     final rect = cover.rect;
     final cellW = rect.width / cover.rasterW;
     final cellH = rect.height / cover.rasterH;
@@ -4121,33 +4133,58 @@ class _SamCoverPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     for (var i = 0; i < covers.length; i++) {
-      if (revealed.contains(i)) continue;
+      final rt = revealT[i];
+      if (revealed.contains(i) && rt == null) continue;
       final cover = covers[i];
       final rect = cover.rect;
       if (rect.width <= 0 || rect.height <= 0) continue;
+      final station = _stationColor(i);
+      // Newly revealed covers fade out and grow slightly instead of
+      // vanishing instantly.
+      final fade = rt == null ? 1.0 : (1 - rt);
+      final grow = rt == null ? 1.0 : (1 + 0.08 * rt);
       final fill = Paint()
-        ..shader = const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF3A4354), Color(0xFF171C26)],
-        ).createShader(rect);
+        ..color = Color.lerp(
+          station,
+          const Color(0xFF0F172A),
+          0.55,
+        )!.withValues(alpha: 0.92 * fade);
       final shade = Paint()
         ..shader = LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Colors.white.withValues(alpha: 0.10),
-            Colors.black.withValues(alpha: 0.22),
+            Colors.white.withValues(alpha: 0.10 * fade),
+            Colors.black.withValues(alpha: 0.22 * fade),
           ],
         ).createShader(rect);
+      final edge = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = station.withValues(alpha: fade);
+      final center = rect.center;
+      if (fade < 1) {
+        canvas.saveLayer(
+          rect,
+          Paint()..color = const Color(0xFFFFFFFF).withValues(alpha: fade),
+        );
+      }
+      canvas.save();
+      canvas.translate(center.dx, center.dy);
+      canvas.scale(grow);
+      canvas.translate(-center.dx, -center.dy);
       if (cover.runs.isNotEmpty) {
-        _paintShape(canvas, cover, fill);
-        _paintShape(canvas, cover, shade);
+        paintShape(canvas, cover, fill);
+        paintShape(canvas, cover, shade);
+        paintShape(canvas, cover, edge);
       } else {
         // Box-only geometry: a soft oval reads as organic, not a box.
         canvas.drawOval(rect, fill);
         canvas.drawOval(rect, shade);
+        canvas.drawOval(rect, edge);
       }
+      canvas.restore();
+      if (fade < 1) canvas.restore();
       if (i == cue) {
         final ring = RRect.fromRectAndRadius(rect, const Radius.circular(14));
         canvas.drawRRect(
@@ -4161,7 +4198,7 @@ class _SamCoverPainter extends CustomPainter {
           ring,
           Paint()
             ..style = PaintingStyle.stroke
-            ..strokeWidth = 2.5
+            ..strokeWidth = 2.5 + 1.5 * cueT
             ..color = coral,
         );
       }
@@ -4172,9 +4209,87 @@ class _SamCoverPainter extends CustomPainter {
   bool shouldRepaint(covariant _SamCoverPainter old) {
     return old.version != version ||
         old.cue != cue ||
+        old.cueT != cueT ||
         old.covers.length != covers.length ||
         old.revealed.length != revealed.length ||
-        !old.revealed.containsAll(revealed);
+        !old.revealed.containsAll(revealed) ||
+        !_doubleMapEq(old.revealT, revealT);
+  }
+
+  static bool _doubleMapEq(Map<int, double> a, Map<int, double> b) {
+    if (a.length != b.length) return false;
+    for (final e in a.entries) {
+      if (b[e.key] != e.value) return false;
+    }
+    return true;
+  }
+}
+
+/// Translucent station-colour silhouettes for highlight mode (items,
+/// encode, result): the SAM shapes at 38% alpha with a 2px edge,
+/// dimmed stations at 12%, the focused station pulsing 38% ↔ 60%.
+class _SamHighlightPainter extends CustomPainter {
+  final List<_CoverGeom> covers;
+  final List<double> opacities;
+  final int cue;
+  final double cueT;
+  final Set<int> dimmed;
+  final int version;
+
+  const _SamHighlightPainter({
+    required this.covers,
+    required this.opacities,
+    required this.cue,
+    required this.cueT,
+    required this.dimmed,
+    this.version = 0,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (var i = 0; i < covers.length; i++) {
+      final cover = covers[i];
+      final rect = cover.rect;
+      if (rect.width <= 0 || rect.height <= 0) continue;
+      final station = _stationColor(i);
+      final shown = i < opacities.length ? opacities[i] : 1.0;
+      final alpha = dimmed.contains(i)
+          ? 0.12
+          : (i == cue ? 0.38 + 0.22 * cueT : 0.38) * shown;
+      final fill = Paint()..color = station.withValues(alpha: alpha);
+      final edge = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = station.withValues(alpha: (alpha + 0.52).clamp(0.0, 0.9));
+      if (cover.runs.isNotEmpty) {
+        _SamCoverPainter.paintShape(canvas, cover, fill);
+        _SamCoverPainter.paintShape(canvas, cover, edge);
+      } else {
+        // Fallback boxes paint as rounded rects, like the real shapes.
+        final r = RRect.fromRectAndRadius(rect, const Radius.circular(12));
+        canvas.drawRRect(r, fill);
+        canvas.drawRRect(r, edge);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SamHighlightPainter old) {
+    return old.version != version ||
+        old.cue != cue ||
+        old.cueT != cueT ||
+        old.covers.length != covers.length ||
+        old.dimmed.length != dimmed.length ||
+        !old.dimmed.containsAll(dimmed) ||
+        !_doubleListEq(old.opacities, opacities);
+  }
+
+  static bool _doubleListEq(List<double> a, List<double> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 }
 
@@ -4269,6 +4384,11 @@ class MaskedPicture extends StatefulWidget {
   final int version;
   final bool showWalk;
   final VoidCallback? onImageError;
+  // Highlight mode (Room Palace items/encode/result): translucent
+  // station-colour silhouettes instead of dark covers. Indexes in
+  // [dimmed] stay dim (result step misses).
+  final bool highlight;
+  final Set<int> dimmed;
   const MaskedPicture({
     super.key,
     required this.imageUrl,
@@ -4281,6 +4401,8 @@ class MaskedPicture extends StatefulWidget {
     this.cue = -1,
     this.version = 0,
     this.showWalk = false,
+    this.highlight = false,
+    this.dimmed = const {},
     this.onImageError,
   });
 
@@ -4288,10 +4410,110 @@ class MaskedPicture extends StatefulWidget {
   State<MaskedPicture> createState() => _MaskedPictureState();
 }
 
-class _MaskedPictureState extends State<MaskedPicture> {
+class _MaskedPictureState extends State<MaskedPicture>
+    with TickerProviderStateMixin {
   /// Decoded shapes by mask token (null = undecodable, box cover).
   /// Mask tokens are unique per round; the cap bounds long sessions.
   final _shapes = <String, _DecodedShape?>{};
+
+  /// Highlight stagger (120ms per station, 300ms each) and the 1200ms
+  /// cue pulse. Both are finite/repeating tickers: the pulse never
+  /// starts under `flutter test` so pumpAndSettle keeps working.
+  AnimationController? _stagger;
+  late final AnimationController _pulse;
+
+  /// Reveal fade-outs (260ms) for indexes newly added to [revealed].
+  final _reveals = <int, AnimationController>{};
+
+  bool get _wantPulse => widget.cue >= 0 && !isFlutterTest;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    if (widget.highlight && widget.objects.isNotEmpty) {
+      _stagger = AnimationController(
+        vsync: this,
+        duration: Duration(
+          milliseconds: 300 + 120 * (widget.objects.length - 1),
+        ),
+      )..forward();
+      AppFeedback.select();
+    }
+    if (_wantPulse) _pulse.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(covariant MaskedPicture oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.masked) {
+      for (final i in widget.revealed) {
+        if (!oldWidget.revealed.contains(i) && !_reveals.containsKey(i)) {
+          final c = AnimationController(
+            vsync: this,
+            duration: const Duration(milliseconds: 260),
+          );
+          _reveals[i] = c;
+          c.addStatusListener((s) {
+            if (s == AnimationStatus.completed) {
+              _reveals.remove(i)?.dispose();
+            }
+          });
+          c.forward();
+        }
+      }
+      for (final i in _reveals.keys.toList()) {
+        if (!widget.revealed.contains(i)) _reveals.remove(i)?.dispose();
+      }
+    } else if (_reveals.isNotEmpty) {
+      for (final c in _reveals.values) {
+        c.dispose();
+      }
+      _reveals.clear();
+    }
+    if (widget.highlight &&
+        widget.objects.length != oldWidget.objects.length) {
+      _stagger?.dispose();
+      _stagger = widget.objects.isEmpty
+          ? null
+          : (AnimationController(
+              vsync: this,
+              duration: Duration(
+                milliseconds: 300 + 120 * (widget.objects.length - 1),
+              ),
+            )..forward());
+    }
+    if (_wantPulse && !_pulse.isAnimating) {
+      _pulse.repeat(reverse: true);
+    } else if (!_wantPulse && _pulse.isAnimating) {
+      _pulse.stop();
+      _pulse.reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _stagger?.dispose();
+    _pulse.dispose();
+    for (final c in _reveals.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  /// Staggered highlight progress of station [i]: 0 → 1 starting at
+  /// i * 120ms, 300ms each, easeOutCubic.
+  double _staggerT(int i) {
+    final c = _stagger;
+    if (c == null) return 1.0;
+    final elapsed = c.value * c.duration!.inMilliseconds;
+    return Curves.easeOutCubic.transform(
+      ((elapsed - i * 120) / 300).clamp(0.0, 1.0),
+    );
+  }
 
   _DecodedShape? _shapeFor(String token) {
     if (token.isEmpty) return null;
@@ -4480,68 +4702,99 @@ class _MaskedPictureState extends State<MaskedPicture> {
                     anchors.add(anchor);
                   }
                   final badges = _spreadBadges(anchors, w, h);
+                  final anims = <Listenable>[
+                    ?_stagger,
+                    _pulse,
+                    ..._reveals.values,
+                  ];
 
-                  return Stack(
-                    children: [
-                      Positioned.fill(child: _base(context, w, h)),
-                      if (widget.masked)
-                        Positioned.fill(
-                          child: CustomPaint(
-                            painter: _SamCoverPainter(
-                              covers: covers,
-                              revealed: widget.revealed,
-                              cue: widget.cue,
-                              version: widget.version,
+                  return AnimatedBuilder(
+                    animation: Listenable.merge(anims),
+                    builder: (context, _) => Stack(
+                      children: [
+                        Positioned.fill(child: _base(context, w, h)),
+                        if (widget.masked)
+                          Positioned.fill(
+                            child: CustomPaint(
+                              painter: _SamCoverPainter(
+                                covers: covers,
+                                revealed: widget.revealed,
+                                cue: widget.cue,
+                                version: widget.version,
+                                cueT: _pulse.value,
+                                revealT: {
+                                  for (final e in _reveals.entries)
+                                    e.key: e.value.value,
+                                },
+                              ),
                             ),
                           ),
-                        ),
-                      if (widget.masked)
-                        for (var i = 0; i < n; i++)
-                          if (!widget.revealed.contains(i))
-                            Positioned(
-                              left: badges[i].dx - 13,
-                              top: badges[i].dy - 13,
-                              child: _CoverBadge(
-                                number: i + 1,
-                                isCue: i == widget.cue,
-                              ),
-                            )
-                          else
-                            Positioned.fromRect(
-                              rect: covers[i].rect,
-                              child: Align(
-                                alignment: Alignment.bottomCenter,
-                                child: Container(
-                                  margin: const EdgeInsets.all(4),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withValues(alpha: 0.65),
-                                    borderRadius: BorderRadius.circular(99),
-                                  ),
-                                  child: Text(
-                                    widget.objects[i],
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 11,
+                        if (widget.masked)
+                          for (var i = 0; i < n; i++)
+                            if (!widget.revealed.contains(i))
+                              Positioned(
+                                left: badges[i].dx - 13,
+                                top: badges[i].dy - 13,
+                                child: _CoverBadge(
+                                  number: i + 1,
+                                  isCue: i == widget.cue,
+                                ),
+                              )
+                            else
+                              Positioned.fromRect(
+                                rect: covers[i].rect,
+                                child: Align(
+                                  alignment: Alignment.bottomCenter,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(4),
+                                    child: AppBadge(
+                                      label: widget.objects[i],
                                     ),
                                   ),
                                 ),
                               ),
+                        if (widget.highlight && !widget.masked) ...[
+                          Positioned.fill(
+                            child: CustomPaint(
+                              painter: _SamHighlightPainter(
+                                covers: covers,
+                                opacities: [
+                                  for (var i = 0; i < n; i++) _staggerT(i),
+                                ],
+                                cue: widget.cue,
+                                cueT: _pulse.value,
+                                dimmed: widget.dimmed,
+                                version: widget.version,
+                              ),
                             ),
-                      if (widget.showWalk)
-                        for (var i = 0; i < n; i++)
-                          Positioned(
-                            left: badges[i].dx - 13,
-                            top: badges[i].dy - 13,
-                            child: _CoverBadge(number: i + 1, isWalk: true),
                           ),
-                    ],
+                          for (var i = 0; i < n; i++)
+                            Positioned(
+                              left: badges[i].dx - 13,
+                              top: badges[i].dy - 13,
+                              child: Transform.scale(
+                                scale:
+                                    (0.6 +
+                                        0.4 *
+                                            Curves.easeOutBack.transform(
+                                              _staggerT(i),
+                                            )) *
+                                    (i == widget.cue ? 1.15 : 1.0),
+                                child: _CoverBadge(
+                                  number: i + 1,
+                                  isWalk: true,
+                                ),
+                              ),
+                            ),
+                        ] else if (widget.showWalk)
+                          for (var i = 0; i < n; i++)
+                            Positioned(
+                              left: badges[i].dx - 13,
+                              top: badges[i].dy - 13,
+                              child: _CoverBadge(number: i + 1, isWalk: true),
+                            ),
+                      ],
+                    ),
                   );
                 },
               ),

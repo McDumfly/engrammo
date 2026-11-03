@@ -2516,6 +2516,7 @@ class MetaAIService {
     String? apiKeyOverride,
     String? baseUrlOverride,
     void Function(double progress, String stage)? onProgress,
+    void Function(int done, int total)? onSamItem,
   }) async {
     final n = count.clamp(2, 8);
     final scene = (sceneOverride != null && sceneOverride.trim().isNotEmpty)
@@ -2597,7 +2598,10 @@ class MetaAIService {
         client: client,
         apiKeyOverride: apiKeyOverride,
         baseUrlOverride: baseUrlOverride,
-        onItem: (done, total) => report(0.55 + 0.4 * done / total, 'sam'),
+        onItem: (done, total) {
+          report(0.55 + 0.4 * done / total, 'sam');
+          onSamItem?.call(done, total);
+        },
       );
       report(1.0, 'done');
       return PictureRecallRound(
