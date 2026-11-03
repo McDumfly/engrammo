@@ -15,6 +15,7 @@ import 'package:engrammo/models/fsrs_card.dart';
 import 'package:engrammo/models/room_palace.dart';
 import 'package:engrammo/screens/auth_screen.dart';
 import 'package:engrammo/screens/benchmark.dart';
+import 'package:engrammo/screens/learning_path.dart';
 import 'package:engrammo/screens/onboarding.dart';
 import 'package:engrammo/screens/room_palace_page.dart';
 import 'package:engrammo/services/auth_service.dart';
@@ -418,6 +419,41 @@ void main() {
               );
             },
           );
+        }
+      }
+    }
+  });
+
+  group('LearningPath Home tab', () {
+    for (final size in _sizes) {
+      for (final scale in _scales) {
+        for (final locale in _locales) {
+          testWidgets('LearningPath ${_combo(size, scale, locale, 'light')}', (
+            tester,
+          ) async {
+            await _pumpCombo(
+              tester,
+              home: const LearningPathPage(),
+              size: size,
+              scale: scale,
+              locale: locale,
+              dark: false,
+            );
+            expect(find.byType(LearningPathPage), findsOneWidget);
+          });
+          testWidgets('LearningPath ${_combo(size, scale, locale, 'dark')}', (
+            tester,
+          ) async {
+            await _pumpCombo(
+              tester,
+              home: const LearningPathPage(),
+              size: size,
+              scale: scale,
+              locale: locale,
+              dark: true,
+            );
+            expect(find.byType(LearningPathPage), findsOneWidget);
+          });
         }
       }
     }

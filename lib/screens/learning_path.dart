@@ -1465,9 +1465,13 @@ class _LearningPathPageState extends State<LearningPathPage> {
                     strokeWidth: 2.0,
                   ),
                   const SizedBox(width: 6),
-                  Text(
-                    tr('lpt_missions_tip'),
-                    style: TextStyle(color: context.mutedText, fontSize: 12),
+                  Flexible(
+                    child: Text(
+                      tr('lpt_missions_tip'),
+                      style: TextStyle(color: context.mutedText, fontSize: 12),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),
@@ -1480,18 +1484,29 @@ class _LearningPathPageState extends State<LearningPathPage> {
 
   Widget _lockedNote() {
     final sub = context.mutedText;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        HugeIcon(
-          icon: HugeIcons.strokeRoundedLock,
-          color: sub,
-          size: 15,
-          strokeWidth: 2.2,
-        ),
-        const SizedBox(width: 6),
-        Text(tr('lpt_locked_note'), style: TextStyle(color: sub, fontSize: 13)),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          HugeIcon(
+            icon: HugeIcons.strokeRoundedLock,
+            color: sub,
+            size: 15,
+            strokeWidth: 2.2,
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              tr('lpt_locked_note'),
+              style: TextStyle(color: sub, fontSize: 13),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
