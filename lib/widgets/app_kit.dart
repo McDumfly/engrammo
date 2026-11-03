@@ -2010,6 +2010,9 @@ class _AppTopBarState extends State<AppTopBar> {
                                 textAlign: TextAlign.center,
                               ),
                       ),
+                      // The title ellipsizes at this edge: a fixed gap keeps
+                      // long titles from running into the action cluster.
+                      const SizedBox(width: 8),
                       ConstrainedBox(
                         constraints: const BoxConstraints(minWidth: 60),
                         child: Padding(

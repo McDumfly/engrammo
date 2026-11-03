@@ -502,7 +502,7 @@ const Map<String, String> huStrings = {
   'bstat_play_first_short': 'játssz előbb',
   'bstat_this_game': 'ez a játék',
   'bstat_empty':
-      'Még nincs próbálkozás — nyomd meg: JÁTÉK, és itt megjelenik a görbéd.',
+      'Még nincs próbálkozás — nyomd meg: Játék, és itt megjelenik a görbéd.',
   'avatar_title': 'Avatárstúdió',
   'avatar_subtitle': 'Tedd sajátoddá',
   'avatar_save': 'Avatár mentése',
@@ -974,6 +974,9 @@ const Map<String, String> huStrings = {
   'bench_seq_watch': 'Figyeld a sorozatot… ({n} lépés)',
   'bench_seq_turn': 'Te jössz! Ismételd meg a sorozatot.',
   'bench_seq_tile': '{r}. sor, {c}. oszlop',
+  'bench_seq_zero_title': 'Most nem jött össze',
+  'bench_seq_zero_detail':
+      'Az első villanás elsiklott. Nézd végig a mintát, aztán koppints.',
   'bench_digits_n': '{n} számjegy',
   'bench_num_done_title': '{n} számjegy!',
   'bench_num_done_detail':
@@ -1093,7 +1096,7 @@ const Map<String, String> huStrings = {
   'ai_glimmer_mid': '{score} — egy figyelmes ismétlésre a csúcsodtól.',
   'ai_glimmer_low': '{score} — lassú kezdés, legközelebb erős hajrá.',
   'bench_ai_models': 'Meta AI ebben a játékban: {models}',
-  'bench_ai_models_local': 'Helyi kör — {models} online kapcsolódik be',
+  'bench_ai_models_local': 'Helyi kör — AI ({models}) online kapcsolódik be',
   'bench_ai_models_connecting': 'Kapcsolódás — {models}…',
   'bench_ai_live': 'AI élő',
   'bench_ai_local': 'Helyi mód',

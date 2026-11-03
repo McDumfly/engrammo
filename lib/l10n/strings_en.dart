@@ -491,7 +491,7 @@ const Map<String, String> enStrings = {
   'bstat_last': 'Last',
   'bstat_play_first_short': 'play first',
   'bstat_this_game': 'this game',
-  'bstat_empty': 'No tries yet — tap PLAY and your curve appears here.',
+  'bstat_empty': 'No tries yet — tap Play and your curve appears here.',
   'avatar_title': 'Avatar studio',
   'avatar_subtitle': 'Make it yours',
   'avatar_save': 'Save avatar',
@@ -950,6 +950,9 @@ const Map<String, String> enStrings = {
   'bench_seq_watch': 'Watch the sequence… ({n} steps)',
   'bench_seq_turn': 'Your turn! Repeat the sequence.',
   'bench_seq_tile': 'Row {r}, column {c}',
+  'bench_seq_zero_title': 'Not this time',
+  'bench_seq_zero_detail':
+      'The first flash slipped by. Watch the whole pattern, then tap.',
   'bench_digits_n': '{n} digits',
   'bench_num_done_title': '{n} digits!',
   'bench_num_done_detail':
@@ -1742,7 +1745,7 @@ const Map<String, String> enStrings = {
   'duel_scout_first': 'First {kind} duel — memorize slowly, answer fast, and trust your first recall.',
   'duel_scout_default': '{w} wins in {m} duels. For {kind}: picture each answer once before you lock it.',
   'bench_ai_models': 'Meta AI in this game: {models}',
-  'bench_ai_models_local': 'Local round — {models} join when online',
+  'bench_ai_models_local': 'Local round — AI ({models}) joins when online',
   'bench_ai_models_connecting': 'Connecting — {models}…',
   'bench_ai_live': 'AI live',
   'bench_ai_local': 'Local mode',

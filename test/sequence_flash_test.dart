@@ -87,15 +87,15 @@ void main() {
     expect(icon(HugeIcons.strokeRoundedCancel01), findsOneWidget);
     // Still hidden before the 650 ms reveal (checked twice under 650 ms).
     await tester.pump(const Duration(milliseconds: 400));
-    expect(find.text('Nice streak!'), findsNothing);
+    expect(find.text('Not this time'), findsNothing);
     await tester.pump(const Duration(milliseconds: 200));
-    expect(find.text('Nice streak!'), findsNothing);
+    expect(find.text('Not this time'), findsNothing);
     // The reveal fires at +650 ms; poll past it with slack for harness
     // scroll-settle jitter, then require the result box.
     var shown = false;
     for (var i = 0; i < 15 && !shown; i++) {
       await tester.pump(const Duration(milliseconds: 100));
-      shown = find.text('Nice streak!').evaluate().isNotEmpty;
+      shown = find.text('Not this time').evaluate().isNotEmpty;
     }
     expect(shown, isTrue);
   });

@@ -925,11 +925,9 @@ class _LiveTimerChipState extends State<_LiveTimerChip> {
       tr('bench_time_live', {
         't': _formatElapsed(DateTime.now().difference(widget.since)),
       }),
-      style: TextStyle(
-        color: context.mutedText,
-        fontWeight: FontWeight.bold,
-        fontSize: 12,
-      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: AppText.caption.copyWith(color: context.mutedText),
     );
   }
 }
@@ -951,32 +949,50 @@ Widget _gameScaffold({
       leading: const EngramBackButton(),
       // 360px-es keskeny kijelzőn is be kell férnie: a metaadatok
       // 12-esek, a jobb szélső térközt a sáv saját 16-os margója adja.
-      actions: [
-        if (timerSince != null)
-          Padding(
-            padding: const EdgeInsets.only(right: 4),
-            child: Center(child: _LiveTimerChip(since: timerSince)),
-          ),
-        Padding(
-          padding: const EdgeInsets.only(right: 4),
-          child: Center(
-            child: Text(
-              counter,
-              style: TextStyle(
-                color: context.mutedText,
-                fontWeight: FontWeight.bold,
-                fontSize: 12,
-              ),
-            ),
-          ),
-        ),
-        const AiHelpButton(topic: AiHelpTopics.benchmark),
-      ],
+      actions: const [AiHelpButton(topic: AiHelpTopics.benchmark)],
     ),
-    body: aiModels.isEmpty
-        ? body
-        : Column(
-            children: [
+    body: Builder(
+      builder: (context) {
+        // The timer and the level live here — one muted caption line under
+        // the bar — so a long game title never collides with them, even on
+        // narrow screens.
+        final hasCaption = timerSince != null || counter.isNotEmpty;
+        final caption = !hasCaption
+            ? null
+            : Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (counter.isNotEmpty)
+                        Flexible(
+                          child: Text(
+                            counter,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.caption.copyWith(
+                              color: context.mutedText,
+                            ),
+                          ),
+                        ),
+                      if (counter.isNotEmpty && timerSince != null)
+                        Text(
+                          ' · ',
+                          style: AppText.caption.copyWith(
+                            color: context.mutedText,
+                          ),
+                        ),
+                      if (timerSince != null) _LiveTimerChip(since: timerSince),
+                    ],
+                  ),
+                ),
+              );
+        if (aiModels.isEmpty && caption == null) return body;
+        return Column(
+          children: [
+            ?caption,
+            if (aiModels.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: _AiModelsStrip(
@@ -985,9 +1001,11 @@ Widget _gameScaffold({
                   loading: aiLoading,
                 ),
               ),
-              Expanded(child: body),
-            ],
-          ),
+            Expanded(child: body),
+          ],
+        );
+      },
+    ),
   );
 }
 
@@ -1337,8 +1355,12 @@ class _SequenceGamePageState extends State<SequenceGamePage> {
           if (_over) ...[
             _resultBox(
               context,
-              title: tr('bench_seq_done_title'),
-              detail: tr('bench_seq_done_detail', {'n': _seq.length - 1}),
+              title: _seq.length - 1 <= 0
+                  ? tr('bench_seq_zero_title')
+                  : tr('bench_seq_done_title'),
+              detail: _seq.length - 1 <= 0
+                  ? tr('bench_seq_zero_detail')
+                  : tr('bench_seq_done_detail', {'n': _seq.length - 1}),
               onRetry: () => setState(() {
                 _seq.clear();
                 _startedAt = DateTime.now();
@@ -1970,8 +1992,12 @@ class _VerbalGamePageState extends State<VerbalGamePage> {
           if (_over) ...[
             _resultBox(
               context,
-              title: tr('bench_verbal_done_title', {'n': _score}),
-              detail: _score >= 20
+              title: _score <= 0
+                  ? tr('bench_seq_zero_title')
+                  : tr('bench_verbal_done_title', {'n': _score}),
+              detail: _score <= 0
+                  ? tr('bench_seq_zero_detail')
+                  : _score >= 20
                   ? tr('bench_verbal_hi')
                   : _score >= 10
                   ? tr('bench_verbal_mid')
@@ -2485,8 +2511,12 @@ class _VisualGamePageState extends State<VisualGamePage> {
                 if (_over) ...[
                   _resultBox(
                     context,
-                    title: tr('bench_visual_done_title', {'n': _level - 1}),
-                    detail: tr('bench_visual_done_detail'),
+                    title: _level - 1 <= 0
+                        ? tr('bench_seq_zero_title')
+                        : tr('bench_visual_done_title', {'n': _level - 1}),
+                    detail: _level - 1 <= 0
+                        ? tr('bench_seq_zero_detail')
+                        : tr('bench_visual_done_detail'),
                     onRetry: () => setState(() {
                       _level = 1;
                       _over = false;
