@@ -1847,6 +1847,8 @@ const Map<String, String> enStrings = {
   'room_review_btn': 'Review',
   'room_new_btn': 'New palace',
   'room_delete': 'Delete this palace?',
+  'room_delete_title': 'Delete this palace?',
+  'room_delete_body': 'The photo and recall history will be deleted too.',
   'room_correct_typo': 'Correct! Watch the spelling: {item}',
   'room_accepted': 'Accepted — the exact item was: {item}',
   'room_almost': 'Almost! It was: {item}',

@@ -7,16 +7,12 @@ import '../models/transfer_missions.dart'
     show TransferMission, missionsForTrack;
 import '../services/memory_store.dart';
 import '../theme/app_theme.dart';
+import 'app_kit.dart';
 
 Future<void> showMissionsSheet(BuildContext context, int track) {
   final t = track.clamp(0, memoryTracks.length - 1);
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-    ),
+  return showAppSheet<void>(
+    context,
     builder: (context) => _MissionsSheet(track: t),
   );
 }
@@ -68,55 +64,40 @@ class _MissionsSheetState extends State<_MissionsSheet> {
   Widget build(BuildContext context) {
     final missions = missionsForTrack(widget.track);
     final doneCount = missions.where((m) => _done.contains(m.id)).length;
-    return SafeArea(
-      child: DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.85,
-        minChildSize: 0.5,
-        maxChildSize: 0.95,
-        builder: (context, controller) => ListView(
-          controller: controller,
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: context.washBorder,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.85,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (context, controller) => ListView(
+        controller: controller,
+        padding: const EdgeInsets.fromLTRB(0, 12, 0, 32),
+        children: [
+          Text(
+            tr('missions_title', {'track': tr('track_${widget.track}_name')}),
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurface,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
             ),
-            const SizedBox(height: 12),
-            Text(
-              tr('missions_title', {
-                'track': tr('track_${widget.track}_name'),
-              }),
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              tr('missions_progress', {
-                'done': doneCount,
-                'total': missions.length,
-              }),
-              style: TextStyle(color: context.mutedText, fontSize: 13),
-            ),
-            const SizedBox(height: 12),
-            for (final mission in missions) _missionCard(mission),
-            const SizedBox(height: 8),
-            Text(
-              honestPromise,
-              style: TextStyle(color: context.mutedText, fontSize: 12),
-            ),
-            if (!_loaded) const SizedBox(height: 8),
-          ],
-        ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            tr('missions_progress', {
+              'done': doneCount,
+              'total': missions.length,
+            }),
+            style: TextStyle(color: context.mutedText, fontSize: 13),
+          ),
+          const SizedBox(height: 12),
+          for (final mission in missions) _missionCard(mission),
+          const SizedBox(height: 8),
+          Text(
+            honestPromise,
+            style: TextStyle(color: context.mutedText, fontSize: 12),
+          ),
+          if (!_loaded) const SizedBox(height: 8),
+        ],
       ),
     );
   }
@@ -159,10 +140,7 @@ class _MissionsSheetState extends State<_MissionsSheet> {
                   ],
                 ),
               ),
-              Checkbox(
-                value: done,
-                onChanged: (v) => _toggle(mission, v ?? false),
-              ),
+              AppCheckbox(value: done, onChanged: (v) => _toggle(mission, v)),
             ],
           ),
           const SizedBox(height: 6),

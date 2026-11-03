@@ -3,6 +3,8 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import 'app_kit.dart';
+
 /// Decodes a `data:image/...;base64,<payload>` URI into bytes. Returns
 /// null for anything else (network URLs, empty or plain refs) and for
 /// malformed payloads, so callers can fall back to network loading or a
@@ -33,7 +35,7 @@ class AiImage extends StatelessWidget {
   final double? width;
   final BoxFit fit;
   final int? cacheWidth;
-  final Widget loading;
+  final Widget? loading;
   final Widget fallback;
   final VoidCallback? onError;
 
@@ -44,11 +46,7 @@ class AiImage extends StatelessWidget {
     this.width,
     this.fit = BoxFit.cover,
     this.cacheWidth,
-    this.loading = const SizedBox(
-      width: 28,
-      height: 28,
-      child: CircularProgressIndicator(strokeWidth: 3),
-    ),
+    this.loading,
     this.fallback = const SizedBox.shrink(),
     this.onError,
   });
@@ -60,9 +58,13 @@ class AiImage extends StatelessWidget {
   }
 
   Widget _loadingBox() {
+    final ph = loading ?? AppSkeleton(height: height ?? 160, width: width);
     final h = height;
-    if (h == null) return Center(child: loading);
-    return SizedBox(height: h, child: Center(child: loading));
+    if (h == null) return Center(child: ph);
+    return SizedBox(
+      height: h,
+      child: Center(child: ph),
+    );
   }
 
   @override

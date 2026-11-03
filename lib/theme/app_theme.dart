@@ -55,9 +55,6 @@ class AppTheme {
           surfaceContainerLowest: darkCard,
         );
 
-    const heavy = TextStyle(fontWeight: FontWeight.w900, fontSize: 15);
-    const firm = TextStyle(fontWeight: FontWeight.w800, fontSize: 14);
-
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
@@ -94,35 +91,17 @@ class AppTheme {
         bodySmall: AppText.caption.copyWith(color: darkOnSurface),
         labelSmall: AppText.micro.copyWith(color: darkOnSurface),
       ),
-      dividerTheme: const DividerThemeData(color: darkBorder, thickness: 1.5),
       dialogTheme: const DialogThemeData(
         backgroundColor: darkCard,
         surfaceTintColor: Colors.transparent,
       ),
-      snackBarTheme: SnackBarThemeData(
-        backgroundColor: darkCard,
-        contentTextStyle: const TextStyle(color: darkOnSurface),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: const BorderSide(color: darkBorder, width: 1.5),
-        ),
-        behavior: SnackBarBehavior.floating,
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: darkInput,
-        hintStyle: const TextStyle(
-          color: darkOnSurfaceVariant,
-          fontWeight: FontWeight.w600,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: darkBorder, width: 2),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: blue, width: 2),
-        ),
+      inputDecorationTheme: const InputDecorationTheme(
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        errorBorder: InputBorder.none,
+        disabledBorder: InputBorder.none,
+        contentPadding: EdgeInsets.zero,
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: darkScaffold,
@@ -140,67 +119,9 @@ class AppTheme {
       highlightColor: Colors.transparent,
       hoverColor: Colors.transparent,
       focusColor: Colors.transparent,
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: blueDark,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-          shape: buttonShape,
-          textStyle: heavy,
-          overlayColor: Colors.transparent,
-          splashFactory: NoSplash.splashFactory,
-        ),
-      ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          backgroundColor: blueDark,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-          shape: buttonShape,
-          textStyle: heavy,
-          overlayColor: Colors.transparent,
-          splashFactory: NoSplash.splashFactory,
-        ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: darkOnSurface,
-          side: const BorderSide(color: Color(0xFF2C3B55), width: 2),
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-          shape: buttonShape,
-          textStyle: firm,
-          overlayColor: Colors.transparent,
-          splashFactory: NoSplash.splashFactory,
-        ),
-      ),
-      textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: blue,
-          textStyle: firm,
-          overlayColor: Colors.transparent,
-          splashFactory: NoSplash.splashFactory,
-        ),
-      ),
-      iconButtonTheme: IconButtonThemeData(
-        style: IconButton.styleFrom(
-          foregroundColor: darkOnSurface,
-          overlayColor: Colors.transparent,
-        ),
-      ),
       tabBarTheme: const TabBarThemeData(
         overlayColor: WidgetStatePropertyAll(Colors.transparent),
         splashFactory: NoSplash.splashFactory,
-      ),
-      switchTheme: const SwitchThemeData(
-        overlayColor: WidgetStatePropertyAll(Colors.transparent),
-        splashRadius: 0,
-      ),
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: blueDark,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        shape: StadiumBorder(),
       ),
     );
   }
@@ -227,9 +148,6 @@ class AppTheme {
           surfaceContainerLow: Colors.white,
           surfaceContainerLowest: Colors.white,
         );
-
-    const heavy = TextStyle(fontWeight: FontWeight.w900, fontSize: 15);
-    const firm = TextStyle(fontWeight: FontWeight.w800, fontSize: 14);
 
     return ThemeData(
       useMaterial3: true,
@@ -267,32 +185,17 @@ class AppTheme {
         bodySmall: AppText.caption.copyWith(color: ink),
         labelSmall: AppText.micro.copyWith(color: ink),
       ),
-      dividerTheme: const DividerThemeData(color: line, thickness: 1.5),
       dialogTheme: const DialogThemeData(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
       ),
-      snackBarTheme: SnackBarThemeData(
-        backgroundColor: Colors.white,
-        contentTextStyle: const TextStyle(color: ink),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-          side: const BorderSide(color: line, width: 1.5),
-        ),
-        behavior: SnackBarBehavior.floating,
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: const Color(0xFFF4F8FE),
-        hintStyle: const TextStyle(color: muted, fontWeight: FontWeight.w600),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: line, width: 2),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: blue, width: 2),
-        ),
+      inputDecorationTheme: const InputDecorationTheme(
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
+        errorBorder: InputBorder.none,
+        disabledBorder: InputBorder.none,
+        contentPadding: EdgeInsets.zero,
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.white,
@@ -310,67 +213,9 @@ class AppTheme {
       highlightColor: Colors.transparent,
       hoverColor: Colors.transparent,
       focusColor: Colors.transparent,
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: blueDark,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-          shape: buttonShape,
-          textStyle: heavy,
-          overlayColor: Colors.transparent,
-          splashFactory: NoSplash.splashFactory,
-        ),
-      ),
-      filledButtonTheme: FilledButtonThemeData(
-        style: FilledButton.styleFrom(
-          backgroundColor: blueDark,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-          shape: buttonShape,
-          textStyle: heavy,
-          overlayColor: Colors.transparent,
-          splashFactory: NoSplash.splashFactory,
-        ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: muted,
-          side: const BorderSide(color: line, width: 2),
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-          shape: buttonShape,
-          textStyle: firm,
-          overlayColor: Colors.transparent,
-          splashFactory: NoSplash.splashFactory,
-        ),
-      ),
-      textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: blueDark,
-          textStyle: firm,
-          overlayColor: Colors.transparent,
-          splashFactory: NoSplash.splashFactory,
-        ),
-      ),
-      iconButtonTheme: IconButtonThemeData(
-        style: IconButton.styleFrom(
-          foregroundColor: ink,
-          overlayColor: Colors.transparent,
-        ),
-      ),
       tabBarTheme: const TabBarThemeData(
         overlayColor: WidgetStatePropertyAll(Colors.transparent),
         splashFactory: NoSplash.splashFactory,
-      ),
-      switchTheme: const SwitchThemeData(
-        overlayColor: WidgetStatePropertyAll(Colors.transparent),
-        splashRadius: 0,
-      ),
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: blueDark,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        shape: StadiumBorder(),
       ),
     );
   }

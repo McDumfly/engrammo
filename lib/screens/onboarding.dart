@@ -7,6 +7,7 @@ import '../services/memory_store.dart';
 import '../theme/app_theme.dart';
 import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
+import '../widgets/app_kit.dart';
 import '../widgets/honesty_sheet.dart';
 import 'memory_profile.dart';
 
@@ -151,16 +152,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
               child: Row(
                 children: [
                   Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(99),
-                      child: LinearProgressIndicator(
-                        value: (_index + 1) / total,
-                        minHeight: 6,
-                        backgroundColor: context.hairline,
-                        valueColor: const AlwaysStoppedAnimation(
-                          blue,
-                        ),
-                      ),
+                    child: AppProgressBar(
+                      value: (_index + 1) / total,
+                      height: 6,
                     ),
                   ),
                   const SizedBox(width: 12),

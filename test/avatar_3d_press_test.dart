@@ -1,4 +1,5 @@
 import 'package:engrammo/models/avatar_traits.dart';
+import 'package:engrammo/widgets/app_kit.dart';
 import 'package:engrammo/screens/avatar_selection_screen.dart';
 import 'package:engrammo/services/app_feedback.dart';
 import 'package:engrammo/services/app_settings.dart';
@@ -14,7 +15,10 @@ Future<void> settleStudio(WidgetTester tester) async {
       () => Future<void>.delayed(const Duration(milliseconds: 50)),
     );
     await tester.pump(const Duration(milliseconds: 50));
-    if (find.byType(CircularProgressIndicator).evaluate().isEmpty) break;
+    if (find.byType(AppLoader).evaluate().isEmpty &&
+        find.byType(AppSkeleton).evaluate().isEmpty) {
+      break;
+    }
   }
   await tester.pumpAndSettle();
 }

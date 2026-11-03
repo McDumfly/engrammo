@@ -9,6 +9,7 @@ import '../services/session_coach.dart';
 import '../theme/app_colors.dart' show orange, teal;
 import '../theme/app_theme.dart';
 import 'app_buttons.dart';
+import 'app_kit.dart';
 
 /// One-tap entry to the Session Coach agent: Muse Spark inspects the real
 /// learner state through read-only tools, a validator checks the plan, and
@@ -177,9 +178,9 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
               ],
             ),
           ),
-          TextButton(
+          EngramTextButton(
+            label: tr('coach_start'),
             onPressed: () => _openItem(item),
-            child: Text(tr('coach_start')),
           ),
         ],
       ),
@@ -246,7 +247,7 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
           ),
           if (_running) ...[
             const SizedBox(height: 12),
-            const LinearProgressIndicator(),
+            const AppProgressBar(),
             const SizedBox(height: 8),
             for (final st in _trace) _traceLine(st),
           ] else if (result == null) ...[
@@ -271,33 +272,26 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
             ),
             const SizedBox(height: 4),
             for (final item in result.items) _itemRow(item),
-            // Transparent Material: ExpansionTile builds a ListTile, which
-            // asserts when a colored DecoratedBox sits between it and the
-            // nearest Material ancestor (the tinted card above).
-            Material(
-              type: MaterialType.transparency,
-              child: ExpansionTile(
-                tilePadding: EdgeInsets.zero,
-                title: Text(
-                  tr('coach_trace_title'),
-                  style: TextStyle(color: context.mutedText, fontSize: 14),
-                ),
-                children: [
-                  for (final st in _trace)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 2),
-                        child: _traceLine(st),
-                      ),
-                    ),
-                ],
+            AppDisclosure(
+              title: Text(
+                tr('coach_trace_title'),
+                style: TextStyle(color: context.mutedText, fontSize: 14),
               ),
+              children: [
+                for (final st in _trace)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: _traceLine(st),
+                    ),
+                  ),
+              ],
             ),
             Center(
-              child: TextButton(
+              child: EngramTextButton(
+                label: tr('coach_replan'),
                 onPressed: _start,
-                child: Text(tr('coach_replan')),
               ),
             ),
           ],

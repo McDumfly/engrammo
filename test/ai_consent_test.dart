@@ -1,6 +1,9 @@
 import 'dart:convert';
 
+import 'package:engrammo/l10n/app_localizations.dart';
+import 'package:engrammo/models/claims_policy.dart' show aiCloudConsentTitle;
 import 'package:engrammo/models/interview.dart' show interviewQuestions;
+import 'package:engrammo/widgets/app_kit.dart';
 import 'package:engrammo/models/memory_verdict.dart' show InterviewAnswer;
 import 'package:engrammo/screens/assessment_interview.dart';
 import 'package:engrammo/screens/memory_profile.dart';
@@ -122,7 +125,10 @@ void main() {
       );
       await tester.pumpAndSettle();
       final field = tester.widget<TextField>(
-        find.byKey(const ValueKey('recall-input')),
+        find.descendant(
+          of: find.byKey(const ValueKey('recall-input')),
+          matching: find.byType(TextField),
+        ),
       );
       expect(field.autocorrect, isFalse);
       expect(field.enableSuggestions, isFalse);
@@ -133,14 +139,12 @@ void main() {
   group('assessment safeguards', () {
     testWidgets('progress starts at 1/13 on the first probe', (tester) async {
       SharedPreferences.setMockInitialValues({});
-      await tester.pumpWidget(
-        const MaterialApp(home: MemoryAssessmentPage()),
-      );
+      await tester.pumpWidget(const MaterialApp(home: MemoryAssessmentPage()));
       await tester.pumpAndSettle();
-      final bar = tester.widget<LinearProgressIndicator>(
+      final bar = tester.widget<AppProgressBar>(
         find.descendant(
-          of: find.byType(AppBar),
-          matching: find.byType(LinearProgressIndicator),
+          of: find.byType(AppTopBar),
+          matching: find.byType(AppProgressBar),
         ),
       );
       expect(bar.value, closeTo(1 / 13, 1e-9));
@@ -173,22 +177,16 @@ void main() {
 
       await tester.tap(find.byType(EngramBackButton));
       await tester.pumpAndSettle();
-      expect(
-        find.byKey(const ValueKey('assessment-exit-dialog')),
-        findsOneWidget,
-      );
+      expect(find.text(tr('assess_leave')), findsOneWidget);
 
-      await tester.tap(find.byKey(const ValueKey('assessment-exit-stay')));
+      await tester.tap(find.text(tr('assess_keep')));
       await tester.pumpAndSettle();
-      expect(
-        find.byKey(const ValueKey('assessment-exit-dialog')),
-        findsNothing,
-      );
+      expect(find.text(tr('assess_leave')), findsNothing);
       expect(find.byType(MemoryAssessmentPage), findsOneWidget);
 
       await tester.tap(find.byType(EngramBackButton));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('assessment-exit-leave')));
+      await tester.tap(find.text(tr('assess_leave_btn')));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('open-assessment')), findsOneWidget);
     });
@@ -218,18 +216,13 @@ void main() {
       }
     }
 
-    testWidgets('live key without consent asks before analyze', (
-      tester,
-    ) async {
+    testWidgets('live key without consent asks before analyze', (tester) async {
       await openInterview(tester);
       await tester.ensureVisible(find.text('ANALYZE ME'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('ANALYZE ME'));
       await tester.pumpAndSettle();
-      expect(
-        find.byKey(const ValueKey('interview-consent-dialog')),
-        findsOneWidget,
-      );
+      expect(find.text(aiCloudConsentTitle), findsOneWidget);
     });
 
     testWidgets('stay offline proceeds with local verdict', (tester) async {
@@ -238,9 +231,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('ANALYZE ME'));
       await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey('interview-consent-offline')),
-      );
+      await tester.tap(find.text(tr('assess_offline')));
       await tester.pumpAndSettle();
       expect(await MetaAIService.cloudConsent(), isFalse);
       expect(find.byType(MemoryResultPage), findsOneWidget);
@@ -250,20 +241,18 @@ void main() {
   group('settings consent switch', () {
     testWidgets('switch reflects and persists consent', (tester) async {
       SharedPreferences.setMockInitialValues({});
-      await tester.pumpWidget(
-        const MaterialApp(home: SettingsScreen()),
-      );
+      await tester.pumpWidget(const MaterialApp(home: SettingsScreen()));
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Allow cloud AI analysis'));
       await tester.pumpAndSettle();
-      final switches = find.byType(Switch);
+      final switches = find.byType(AppSwitch);
       expect(switches, findsNWidgets(3));
-      expect(tester.widget<Switch>(switches.last).value, isTrue);
+      expect(tester.widget<AppSwitch>(switches.last).value, isTrue);
 
       await tester.tap(switches.last);
       await tester.pumpAndSettle();
       expect(await MetaAIService.cloudConsent(), isFalse);
-      expect(tester.widget<Switch>(switches.last).value, isFalse);
+      expect(tester.widget<AppSwitch>(switches.last).value, isFalse);
     });
   });
 }

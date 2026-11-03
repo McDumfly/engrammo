@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 
@@ -40,6 +41,7 @@ class AppLoader extends StatefulWidget {
 class _AppLoaderState extends State<AppLoader> with TickerProviderStateMixin {
   late final AnimationController _spin;
   late final AnimationController _breath;
+  late final AnimationController _delay;
   bool _visible = false;
 
   @override
@@ -53,16 +55,25 @@ class _AppLoaderState extends State<AppLoader> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
-    Future.delayed(const Duration(milliseconds: 150), () {
-      if (!mounted) return;
-      setState(() => _visible = true);
-    });
+    // Ticker-driven 150ms delay (not Future.delayed): leaves no pending
+    // Timer behind, so tests that pump a loader briefly stay green.
+    _delay =
+        AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 150),
+        )..addStatusListener((status) {
+          if (status == AnimationStatus.completed && mounted) {
+            setState(() => _visible = true);
+          }
+        });
+    _delay.forward();
   }
 
   @override
   void dispose() {
     _spin.dispose();
     _breath.dispose();
+    _delay.dispose();
     super.dispose();
   }
 
@@ -489,6 +500,7 @@ void showAppToast(
       message: message,
       kind: kind,
       actionLabel: actionLabel,
+      duration: duration,
       onAction: () {
         onAction?.call();
         dismiss();
@@ -498,9 +510,6 @@ void showAppToast(
   );
   _currentToast = entry;
   overlay.insert(entry);
-  Future.delayed(duration, () {
-    dismiss();
-  });
 }
 
 class _ToastViewState extends State<_ToastView>
@@ -508,6 +517,7 @@ class _ToastViewState extends State<_ToastView>
   late final AnimationController _ctrl;
   late final Animation<Offset> _slide;
   late final Animation<double> _fade;
+  Timer? _autoDismiss;
 
   @override
   void initState() {
@@ -526,6 +536,9 @@ class _ToastViewState extends State<_ToastView>
       end: 1,
     ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
     _ctrl.forward();
+    // State-owned timer: cancelled on dispose, so a toast shown during a
+    // test never leaves a pending Timer behind at teardown.
+    _autoDismiss = Timer(widget.duration, () => widget.onSwipeUp());
   }
 
   void dismiss(VoidCallback onDone) {
@@ -534,6 +547,7 @@ class _ToastViewState extends State<_ToastView>
 
   @override
   void dispose() {
+    _autoDismiss?.cancel();
     _ctrl.dispose();
     super.dispose();
   }
@@ -636,12 +650,14 @@ class _ToastView extends StatefulWidget {
     super.key,
     required this.message,
     required this.kind,
+    required this.duration,
     this.actionLabel,
     this.onAction,
     required this.onSwipeUp,
   });
   final String message;
   final ToastKind kind;
+  final Duration duration;
   final String? actionLabel;
   final VoidCallback? onAction;
   final VoidCallback onSwipeUp;
@@ -1368,6 +1384,7 @@ class AppTextField extends StatefulWidget {
     this.inputFormatters,
     this.obscureText = false,
     this.autocorrect = true,
+    this.enableSuggestions = true,
     this.enabled = true,
     this.autofocus = false,
     this.errorText,
@@ -1390,6 +1407,7 @@ class AppTextField extends StatefulWidget {
   final List<TextInputFormatter>? inputFormatters;
   final bool obscureText;
   final bool autocorrect;
+  final bool enableSuggestions;
   final bool enabled;
   final bool autofocus;
   final String? errorText;
@@ -1537,6 +1555,7 @@ class _AppTextFieldState extends State<AppTextField> {
                     inputFormatters: widget.inputFormatters,
                     obscureText: widget.obscureText,
                     autocorrect: widget.autocorrect,
+                    enableSuggestions: widget.enableSuggestions,
                     enabled: widget.enabled,
                     autofocus: widget.autofocus,
                     scrollPadding: widget.scrollPadding,

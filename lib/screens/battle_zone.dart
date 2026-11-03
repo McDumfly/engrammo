@@ -12,6 +12,7 @@ import 'package:hugeicons/hugeicons.dart';
 
 import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
+import '../widgets/app_kit.dart';
 import '../models/battle_invites.dart';
 import '../models/battle_match.dart';
 import '../models/battle_rating.dart';
@@ -23,16 +24,8 @@ import 'battle_duel_page.dart';
 import 'brain_league.dart';
 import 'friend_profile.dart';
 import '../theme/app_colors.dart'
-    show
-        ink,
-        blue,
-        blueDark,
-        error,
-        success,
-        teal,
-        orange;
-import 'memory_profile.dart'
-    show memoryKinds, MemoryAssessmentIntroPage;
+    show ink, blue, blueDark, error, success, teal, orange;
+import 'memory_profile.dart' show memoryKinds, MemoryAssessmentIntroPage;
 import '../services/memory_store.dart';
 import '../services/meta_ai_service.dart';
 
@@ -57,20 +50,9 @@ class BattleZonePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+      appBar: AppTopBar(
+        title: tr('btz_title'),
         leading: const EngramBackButton(),
-        title: Text(
-          tr('btz_title'),
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
-        centerTitle: true,
         actions: const [
           AiHelpButton(topic: AiHelpTopics.battle),
           SizedBox(width: 12),
@@ -139,9 +121,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
           _rating = rating;
           _arenaStats = botArena.stats;
           _arenaHistory = botArena.history;
-          _liveDuels = botArena.liveDuels(
-            locale: AppLocalizations.localeCode,
-          );
+          _liveDuels = botArena.liveDuels(locale: AppLocalizations.localeCode);
         });
       });
     });
@@ -185,9 +165,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
   void _openFriendsTab() {
     AppFeedback.light();
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const BrainLeaguePage(initialTab: 1),
-      ),
+      MaterialPageRoute(builder: (_) => const BrainLeaguePage(initialTab: 1)),
     );
   }
 
@@ -200,9 +178,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
   }
 
   void _noOpponentNote() {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(tr('btz_no_opponent'))));
+    showAppToast(context, tr('btz_no_opponent'));
   }
 
   void _findMatch() {
@@ -288,11 +264,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
     if (!friend.online) {
       // Offline bot sosem fogadná el: a meghívó függőben marad, és ezt
       // meg is mondjuk a csend helyett.
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(tr('btz_offline_wait', {'name': friend.name})),
-        ),
-      );
+      showAppToast(context, tr('btz_offline_wait', {'name': friend.name}));
       return;
     }
     final delay = Duration(seconds: 3 + Random().nextInt(6));
@@ -301,39 +273,15 @@ class _BattleZoneViewState extends State<BattleZoneView> {
       if (!battleInvites.isInvited(friend.name)) return;
       battleInvites.withdraw(friend.name);
       if (!mounted) return;
-      showDialog<void>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: Text(
-            tr('btz_accepted', {'name': friend.name}),
-            style: TextStyle(
-              color: dialogContext.inkText,
-              fontWeight: FontWeight.w900,
-              fontSize: 17,
-            ),
-          ),
-          content: Text(
-            tr('btz_accepted_body'),
-            style: TextStyle(color: dialogContext.mutedText, fontSize: 13),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(tr('btz_later')),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop();
-                _duelWithBot(friend.name);
-              },
-              child: Text(tr('btz_start_duel')),
-            ),
-          ],
-        ),
-      );
+      showAppDialog<bool>(
+        context,
+        title: tr('btz_accepted', {'name': friend.name}),
+        body: tr('btz_accepted_body'),
+        primary: AppDialogAction(tr('btz_start_duel'), value: true),
+        secondary: AppDialogAction(tr('btz_later'), value: false),
+      ).then((go) {
+        if (go == true && mounted) _duelWithBot(friend.name);
+      });
     });
   }
 
@@ -363,7 +311,9 @@ class _BattleZoneViewState extends State<BattleZoneView> {
           const SizedBox(height: 12),
           _ScoutCard(
             key: ValueKey('scout-$_kind-${_arenaStats.matches}'),
-            kindLabel: tr(memoryKinds[_kind.clamp(0, memoryKinds.length - 1)].nameKey),
+            kindLabel: tr(
+              memoryKinds[_kind.clamp(0, memoryKinds.length - 1)].nameKey,
+            ),
             rating: _rating,
             wins: _arenaStats.wins,
             matches: _arenaStats.matches,
@@ -381,12 +331,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
           ),
           const SizedBox(height: 10),
           if (!botArena.isLoaded)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: CircularProgressIndicator(),
-              ),
-            )
+            const AppSkeletonList(count: 3)
           else if (_arenaHistory.isEmpty)
             Text(
               tr('btz_no_battles'),
@@ -615,148 +560,125 @@ class _BattleZoneViewState extends State<BattleZoneView> {
   }
 
   void _openKindPicker() {
-    showModalBottomSheet<void>(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) => SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
+    showAppSheet<void>(
+      context,
+      builder: (sheetContext) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 12),
+          Text(
+            tr('btz_gamemode'),
+            style: TextStyle(
+              color: Theme.of(sheetContext).colorScheme.onSurface,
+              fontWeight: FontWeight.w900,
+              fontSize: 17,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            tr('btz_pick_sub'),
+            style: TextStyle(color: context.mutedText, fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+          ListView.separated(
+            shrinkWrap: true,
+            itemCount: memoryKinds.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 8),
+            itemBuilder: (_, i) {
+              final option = memoryKinds[i];
+              final selected = i == _kind;
+              return GestureDetector(
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _pickKind(i);
+                },
                 child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: context.hairline,
-                    borderRadius: BorderRadius.circular(99),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
                   ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                tr('btz_gamemode'),
-                style: TextStyle(
-                  color: Theme.of(sheetContext).colorScheme.onSurface,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 17,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                tr('btz_pick_sub'),
-                style: TextStyle(color: context.mutedText, fontSize: 12),
-              ),
-              const SizedBox(height: 12),
-              Flexible(
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: memoryKinds.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 8),
-                  itemBuilder: (_, i) {
-                    final option = memoryKinds[i];
-                    final selected = i == _kind;
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.of(sheetContext).pop();
-                        _pickKind(i);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? option.tint.withValues(alpha: 0.14)
+                        : context.cardBg,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: selected ? option.tint : context.hairline,
+                      width: selected ? 2.5 : 2,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(7),
                         decoration: BoxDecoration(
-                          color: selected
-                              ? option.tint.withValues(alpha: 0.14)
-                              : context.cardBg,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: selected ? option.tint : context.hairline,
-                            width: selected ? 2.5 : 2,
-                          ),
+                          color: option.tint.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Row(
+                        child: HugeIcon(
+                          icon: option.icon,
+                          color: option.tint,
+                          size: 20,
+                          strokeWidth: 2,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(7),
-                              decoration: BoxDecoration(
-                                color: option.tint.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: HugeIcon(
-                                icon: option.icon,
-                                color: option.tint,
-                                size: 20,
-                                strokeWidth: 2,
+                            Text(
+                              option.displayName,
+                              style: TextStyle(
+                                color: context.inkText,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
                               ),
                             ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    option.displayName,
-                                    style: TextStyle(
-                                      color: context.inkText,
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  Text(
-                                    option.displayModule,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: context.mutedText,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                                  Builder(
-                                    builder: (_) {
-                                      final level = _levelForKind(i);
-                                      return Text(
-                                        level == null
-                                            ? tr('btz_not_assessed')
-                                            : tr('btz_mem_level', {
-                                                'n': level,
-                                              }),
-                                        style: TextStyle(
-                                          color: level == null
-                                              ? context.mutedText
-                                              : option.tint,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 11,
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ],
+                            Text(
+                              option.displayModule,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: context.mutedText,
+                                fontSize: 11,
                               ),
                             ),
-                            if (selected)
-                              HugeIcon(
-                                icon: HugeIcons.strokeRoundedCheckmarkCircle02,
-                                color: option.tint,
-                                size: 22,
-                                strokeWidth: 2,
-                              ),
+                            Builder(
+                              builder: (_) {
+                                final level = _levelForKind(i);
+                                return Text(
+                                  level == null
+                                      ? tr('btz_not_assessed')
+                                      : tr('btz_mem_level', {'n': level}),
+                                  style: TextStyle(
+                                    color: level == null
+                                        ? context.mutedText
+                                        : option.tint,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 11,
+                                  ),
+                                );
+                              },
+                            ),
                           ],
                         ),
                       ),
-                    );
-                  },
+                      if (selected)
+                        HugeIcon(
+                          icon: HugeIcons.strokeRoundedCheckmarkCircle02,
+                          color: option.tint,
+                          size: 22,
+                          strokeWidth: 2,
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              );
+            },
           ),
-        ),
+        ],
       ),
     );
   }
@@ -808,9 +730,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      tr('btz_matched_within', {
-                        'w': BattleRating.matchWindow,
-                      }),
+                      tr('btz_matched_within', {'w': BattleRating.matchWindow}),
                       style: TextStyle(color: context.mutedText, fontSize: 12),
                     ),
                   ],
@@ -861,23 +781,17 @@ class _BattleZoneViewState extends State<BattleZoneView> {
             ),
           ),
           const SizedBox(height: 10),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _findMatch,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: Text(tr('btz_find')),
-            ),
+          EngramButton(
+            height: 52,
+            onPressed: _findMatch,
+            label: tr('btz_find'),
           ),
           const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: _openPractice,
-              child: Text(tr('btz_practice')),
-            ),
+          EngramButton(
+            variant: EngramButtonVariant.secondary,
+            height: 52,
+            onPressed: _openPractice,
+            label: tr('btz_practice'),
           ),
         ],
       ),
@@ -927,64 +841,28 @@ class _BattleZoneViewState extends State<BattleZoneView> {
             ],
           ),
           const SizedBox(height: 12),
-          TextField(
+          AppTextField(
             controller: _friendSearch,
             onChanged: (v) => setState(() => _friendQuery = v),
             textInputAction: TextInputAction.search,
-            decoration: InputDecoration(
-              hintText: tr('btz_search_hint'),
-              hintStyle: TextStyle(color: context.mutedText, fontSize: 13),
-              prefixIconConstraints: const BoxConstraints(
-                minWidth: 44,
-                minHeight: 44,
-              ),
-              prefixIcon: Padding(
-                padding: const EdgeInsets.all(12),
-                child: HugeIcon(
-                  icon: HugeIcons.strokeRoundedSearch01,
-                  color: context.mutedText,
-                  size: 20,
-                  strokeWidth: 2,
-                ),
-              ),
-              suffixIconConstraints: const BoxConstraints(
-                minWidth: 44,
-                minHeight: 44,
-              ),
-              suffixIcon: _friendQuery.isEmpty
-                  ? null
-                  : GestureDetector(
-                      onTap: () {
-                        AppFeedback.light();
-                        _friendSearch.clear();
-                        setState(() => _friendQuery = '');
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: HugeIcon(
-                          icon: HugeIcons.strokeRoundedCancel01,
-                          color: context.mutedText,
-                          size: 20,
-                          strokeWidth: 2,
-                        ),
-                      ),
-                    ),
-              filled: true,
-              fillColor: context.softBg,
-              contentPadding: const EdgeInsets.symmetric(vertical: 12),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(color: context.hairline, width: 2),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide(color: context.hairline, width: 2),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: const BorderSide(color: blue, width: 2),
-              ),
+            hint: tr('btz_search_hint'),
+            prefix: HugeIcon(
+              icon: HugeIcons.strokeRoundedSearch01,
+              color: context.mutedText,
+              size: 20,
+              strokeWidth: 2,
             ),
+            suffix: _friendQuery.isEmpty
+                ? null
+                : AppIconButton(
+                    icon: HugeIcons.strokeRoundedCancel01,
+                    color: context.mutedText,
+                    onTap: () {
+                      AppFeedback.light();
+                      _friendSearch.clear();
+                      setState(() => _friendQuery = '');
+                    },
+                  ),
           ),
           const SizedBox(height: 8),
           ListenableBuilder(
@@ -1037,9 +915,11 @@ class _BattleZoneViewState extends State<BattleZoneView> {
                           const SizedBox(height: 10),
                           SizedBox(
                             width: double.infinity,
-                            child: OutlinedButton(
+                            child: EngramButton(
+                              variant: EngramButtonVariant.secondary,
+                              height: 52,
                               onPressed: _openFriendsTab,
-                              child: Text(tr('btz_find_friends')),
+                              label: tr('btz_find_friends'),
                             ),
                           ),
                         ],
@@ -1108,153 +988,33 @@ class _BattleZoneViewState extends State<BattleZoneView> {
 
   void _showMatchDetail(_PastMatch match) {
     AppFeedback.light();
-    final won = match.outcome == BattleOutcome.win;
-    final drawn = match.outcome == BattleOutcome.draw;
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          tr('btz_you_vs', {'name': match.opponent}),
-          style: TextStyle(
-            color: context.inkText,
-            fontWeight: FontWeight.w900,
-            fontSize: 17,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              tr('btz_meta', {
-                'mode': match.duel ? '1v1' : '2v2',
-                'name': memoryKinds[match.kind].displayName,
-                'date': match.date,
-              }),
-              style: TextStyle(color: context.mutedText, fontSize: 12),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: context.hairline.withValues(alpha: 0.4),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    '${match.playerScore}',
-                    style: TextStyle(
-                      color: context.inkText,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 26,
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(
-                      ':',
-                      style: TextStyle(
-                        color: context.mutedText,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 22,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    '${match.foeScore}',
-                    style: TextStyle(
-                      color: context.inkText,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 26,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-            for (var i = 0; i < match.rounds.length; i++)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Row(
-                  children: [
-                    Text(
-                      tr('btl_round', {'round': '${i + 1}'}),
-                      style: TextStyle(
-                        color: context.mutedText,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        match.rounds[i],
-                        style: TextStyle(color: context.inkText, fontSize: 13),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 4),
-            Text(
-              match.forfeit
-                  ? tr('btz_forfeit', {'d': match.delta})
-                  : won
-                  ? tr('btz_win', {'d': match.delta})
-                  : drawn
-                  ? tr('btz_draw', {'d': match.delta})
-                  : tr('btz_loss', {'d': match.delta}),
-              style: TextStyle(
-                color: won
-                    ? success
-                    : drawn
-                    ? context.mutedText
-                    : error,
-                fontWeight: FontWeight.w800,
-                fontSize: 13,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              AppFeedback.light();
-              Navigator.of(context).pop();
-            },
-            child: Text(tr('btz_close')),
-          ),
-          if (match.duel && botArena.botByName(match.opponent) != null)
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                setState(() {
-                  _mode = BattleMode.duel;
-                  _kind = match.kind;
-                });
-                unawaited(MemoryStore.saveBattleKind(match.kind));
-                _duelWithBot(match.opponent);
-              },
-              child: Text(tr('btz_rematch')),
-            ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              setState(() {
-                _mode = match.duel ? BattleMode.duel : BattleMode.team;
-                _kind = match.kind;
-              });
-              unawaited(MemoryStore.saveBattleKind(match.kind));
-              _openPractice();
-            },
-            child: Text(tr('btz_practice_btn')),
-          ),
-        ],
-      ),
-    );
+    final canRematch = match.duel && botArena.botByName(match.opponent) != null;
+    showAppDialog<String>(
+      context,
+      title: tr('btz_you_vs', {'name': match.opponent}),
+      content: _MatchDetailContent(match: match),
+      primary: canRematch
+          ? AppDialogAction(tr('btz_rematch'), value: 'rematch')
+          : AppDialogAction(tr('btz_practice_btn'), value: 'practice'),
+      secondary: AppDialogAction(tr('btz_close'), value: 'close'),
+    ).then((action) {
+      if (!mounted) return;
+      if (action == 'rematch') {
+        setState(() {
+          _mode = BattleMode.duel;
+          _kind = match.kind;
+        });
+        unawaited(MemoryStore.saveBattleKind(match.kind));
+        _duelWithBot(match.opponent);
+      } else if (action == 'practice') {
+        setState(() {
+          _mode = match.duel ? BattleMode.duel : BattleMode.team;
+          _kind = match.kind;
+        });
+        unawaited(MemoryStore.saveBattleKind(match.kind));
+        _openPractice();
+      }
+    });
   }
 
   Widget _sectionTitle(String title, String subtitle) {
@@ -1606,10 +1366,7 @@ class _LiveBattleRow extends StatelessWidget {
                   task,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: context.mutedText,
-                    fontSize: 11,
-                  ),
+                  style: TextStyle(color: context.mutedText, fontSize: 11),
                 ),
               ],
             ),
@@ -1710,6 +1467,114 @@ class _PastMatch {
     required this.outcome,
     this.forfeit = false,
   });
+}
+
+class _MatchDetailContent extends StatelessWidget {
+  final _PastMatch match;
+  const _MatchDetailContent({required this.match});
+
+  @override
+  Widget build(BuildContext context) {
+    final won = match.outcome == BattleOutcome.win;
+    final drawn = match.outcome == BattleOutcome.draw;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          tr('btz_meta', {
+            'mode': match.duel ? '1v1' : '2v2',
+            'name': memoryKinds[match.kind].displayName,
+            'date': match.date,
+          }),
+          style: TextStyle(color: context.mutedText, fontSize: 12),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: context.hairline.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '${match.playerScore}',
+                style: TextStyle(
+                  color: context.inkText,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 26,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  ':',
+                  style: TextStyle(
+                    color: context.mutedText,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 22,
+                  ),
+                ),
+              ),
+              Text(
+                '${match.foeScore}',
+                style: TextStyle(
+                  color: context.inkText,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 26,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        for (var i = 0; i < match.rounds.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
+              children: [
+                Text(
+                  tr('btl_round', {'round': '${i + 1}'}),
+                  style: TextStyle(
+                    color: context.mutedText,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    match.rounds[i],
+                    style: TextStyle(color: context.inkText, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        const SizedBox(height: 4),
+        Text(
+          match.forfeit
+              ? tr('btz_forfeit', {'d': match.delta})
+              : won
+              ? tr('btz_win', {'d': match.delta})
+              : drawn
+              ? tr('btz_draw', {'d': match.delta})
+              : tr('btz_loss', {'d': match.delta}),
+          style: TextStyle(
+            color: won
+                ? success
+                : drawn
+                ? context.mutedText
+                : error,
+            fontWeight: FontWeight.w800,
+            fontSize: 13,
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _PastMatchRow extends StatelessWidget {

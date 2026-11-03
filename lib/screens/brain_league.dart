@@ -9,7 +9,7 @@ import '../l10n/app_localizations.dart';
 import '../models/battle_match.dart' show battleDateLabelIn;
 import '../services/bot_arena_store.dart';
 import '../widgets/ai_help_button.dart';
-import '../widgets/app_buttons.dart';
+import '../widgets/app_kit.dart';
 import 'friend_profile.dart';
 
 import '../theme/app_colors.dart'
@@ -182,21 +182,17 @@ class BrainLeaguePage extends StatefulWidget {
 
 class _BrainLeaguePageState extends State<BrainLeaguePage>
     with SingleTickerProviderStateMixin {
-  late final TabController _tabs;
   late final PageController _tiers;
   late final ScrollController _listScroll;
 
   int get _myTier => botArena.cachedTierIndex.clamp(0, brainTiers.length - 1);
   int _selected = 0;
+  int _tab = 0;
 
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(
-      length: 2,
-      vsync: this,
-      initialIndex: widget.initialTab.clamp(0, 1),
-    );
+    _tab = widget.initialTab.clamp(0, 1);
     _tiers = PageController(viewportFraction: 0.3, initialPage: _myTier);
     _listScroll = ScrollController();
     _selected = _myTier;
@@ -223,7 +219,6 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
   @override
   void dispose() {
     botArena.removeListener(_refreshArena);
-    _tabs.dispose();
     _tiers.dispose();
     _listScroll.dispose();
     super.dispose();
@@ -263,45 +258,43 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
     return Scaffold(
       primary: false,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        primary: false,
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        automaticallyImplyLeading: false,
-        // Tabként nincs hova visszalépni, push-olt útként viszont kell.
-        leading: Navigator.of(context).canPop()
-            ? const EngramBackButton()
-            : null,
-        title: Text(
-          tr('blg_title'),
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
+      // A lap primary:false Scaffoldban él (tabként beágyazva): a felső
+      // státusz-térközt kivesszük, mint az eredeti primary:false AppBar.
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(56 + 56),
+        child: MediaQuery.removePadding(
+          context: context,
+          removeTop: true,
+          child: AppTopBar(
+            title: tr('blg_title'),
+            // Tabként nincs hova visszalépni, push-olt útként viszont kell.
+            showBack: Navigator.of(context).canPop(),
+            actions: const [
+              AiHelpButton(topic: AiHelpTopics.league),
+              SizedBox(width: 12),
+            ],
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(56),
+              child: SizedBox(
+                height: 56,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: AppSegmented<int>(
+                    options: [
+                      (0, tr('blg_tab_league')),
+                      (1, tr('blg_tab_friends')),
+                    ],
+                    value: _tab,
+                    onChanged: (v) => setState(() => _tab = v),
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
-        centerTitle: true,
-        actions: const [
-          AiHelpButton(topic: AiHelpTopics.league),
-          SizedBox(width: 12),
-        ],
-        bottom: TabBar(
-          controller: _tabs,
-          dividerColor: Colors.transparent,
-          indicatorColor: blue,
-          indicatorWeight: 3,
-          labelColor: Theme.of(context).colorScheme.onSurface,
-          unselectedLabelColor: context.mutedText,
-          labelStyle: const TextStyle(fontWeight: FontWeight.w800),
-          tabs: [
-            Tab(text: tr('blg_tab_league')),
-            Tab(text: tr('blg_tab_friends')),
-          ],
-        ),
       ),
-      body: TabBarView(
-        controller: _tabs,
+      body: IndexedStack(
+        index: _tab,
         children: [
           CustomScrollView(
             controller: _listScroll,
@@ -396,7 +389,7 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
                 const SliverToBoxAdapter(
                   child: Padding(
                     padding: EdgeInsets.all(32),
-                    child: Center(child: CircularProgressIndicator()),
+                    child: AppSkeletonList(count: 3),
                   ),
                 )
               else if (rivals.isEmpty)
@@ -456,12 +449,12 @@ class _FriendsTab extends StatelessWidget {
     return ListenableBuilder(
       listenable: botArena,
       builder: (context, _) {
+        if (!botArena.isLoaded) {
+          return const AppSkeletonList(count: 3);
+        }
         final friends = botArena.friendBots();
         final suggestions = botArena.suggestions();
         final feed = botArena.feed;
-        if (!botArena.isLoaded) {
-          return const Center(child: CircularProgressIndicator());
-        }
         if (!botArena.hasSeason && friends.isEmpty) {
           return const Center(child: _EmptyBoard());
         }

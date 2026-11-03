@@ -7,6 +7,7 @@ import '../services/connectivity_service.dart';
 import '../services/memory_store.dart';
 import '../theme/app_theme.dart';
 import 'app_buttons.dart';
+import 'app_kit.dart';
 
 /// Connectivity gate in front of the app root: with no internet it shows a
 /// "Connect to the internet" message with a retry button instead of the
@@ -56,8 +57,8 @@ class _ConnectivityGateState extends State<ConnectivityGate>
     final online = connectivityService.online;
     if (online == true) return widget.child;
     if (online == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        body: Center(child: AppLoader(caption: tr('common_loading'))),
       );
     }
     return Scaffold(
@@ -72,9 +73,9 @@ class _ConnectivityGateState extends State<ConnectivityGate>
                   tr('gate_connect_title'),
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: context.inkText,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    color: context.inkText,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -174,20 +175,9 @@ class _OfflineBattleEntryPageState extends State<OfflineBattleEntryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+      appBar: AppTopBar(
+        title: tr('gate_offline_title'),
         leading: const EngramBackButton(),
-        title: Text(
-          tr('gate_offline_title'),
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
-        centerTitle: true,
       ),
       body: SafeArea(
         child: ListView(

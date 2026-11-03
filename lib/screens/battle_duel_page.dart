@@ -21,6 +21,7 @@ import '../services/meta_ai_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/ai_image.dart';
 import '../widgets/app_buttons.dart';
+import '../widgets/app_kit.dart';
 import '../widgets/recall_inputs.dart' show RecallTextField;
 import '../theme/app_colors.dart'
     show blue, blueDark, error, success, teal, orange;
@@ -130,38 +131,21 @@ class _ClockBar extends StatelessWidget {
             ? 0.0
             : (elapsed / totalMs).clamp(0.0, 1.0);
         if (!circular) {
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(99),
-            child: LinearProgressIndicator(
-              value: 1 - progress,
-              minHeight: 8,
-              backgroundColor: context.hairline,
-              color: blue,
-            ),
-          );
+          return AppProgressBar(value: 1 - progress, height: 8);
         }
         final secondsLeft = ((totalMs - elapsed) / 1000).ceil().clamp(0, 60);
-        return SizedBox(
-          width: 44,
-          height: 44,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              CircularProgressIndicator(
-                value: 1 - progress,
-                strokeWidth: 5,
-                backgroundColor: context.hairline,
-                color: secondsLeft <= 5 ? error : blue,
-              ),
-              Text(
-                '$secondsLeft',
-                style: TextStyle(
-                  color: context.inkText,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 14,
-                ),
-              ),
-            ],
+        return AppProgressRing(
+          value: 1 - progress,
+          size: 44,
+          stroke: 5,
+          color: secondsLeft <= 5 ? error : blue,
+          child: Text(
+            '$secondsLeft',
+            style: TextStyle(
+              color: context.inkText,
+              fontWeight: FontWeight.w900,
+              fontSize: 14,
+            ),
           ),
         );
       },
@@ -225,12 +209,11 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
     // Pre-generate the 3 duel tasks during matchmaking so the countdown
     // starts instantly and offline duels never wait on the network.
     _taskFuture = _generateTasks();
-    MemoryStore.loadBattleRating(
-      defaultRating: BattleRating.startingRating,
-    ).then((rating) {
-      if (!mounted) return;
-      setState(() => _playerRating = rating);
-    });
+    MemoryStore.loadBattleRating(defaultRating: BattleRating.startingRating)
+        .then((rating) {
+          if (!mounted) return;
+          setState(() => _playerRating = rating);
+        });
     if (widget.skipMatchmaking) {
       _startCountdown();
     } else {
@@ -490,10 +473,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
       );
       _botPlanned[bot.id] = out;
       final captured = bot;
-      _later(
-        Duration(milliseconds: out.latencyMs),
-        () => _lockBot(captured),
-      );
+      _later(Duration(milliseconds: out.latencyMs), () => _lockBot(captured));
     }
     if (widget.spectate) {
       final home = _bots.firstWhere((b) => !b.isFoe).bot;
@@ -569,7 +549,12 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
     if (out == null) return;
     final task = _tasks[_questionIndex];
     setState(
-      () => _botLocks[bot.id] = _botLockFor(bot, task, _responseKindFor(task), out),
+      () => _botLocks[bot.id] = _botLockFor(
+        bot,
+        task,
+        _responseKindFor(task),
+        out,
+      ),
     );
     _maybeFinishQuestion();
   }
@@ -599,10 +584,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
     if (_playerLock != null || widget.spectate) return;
     final task = _tasks[_questionIndex];
     final score = battleScoreResponse(task, text: text);
-    final present = battleResponsePresent(
-      _responseKindFor(task),
-      text: text,
-    );
+    final present = battleResponsePresent(_responseKindFor(task), text: text);
     AppFeedback.select();
     setState(() {
       _playerLock = _Lock(
@@ -624,10 +606,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
     if (_playerLock != null || widget.spectate) return;
     final task = _tasks[_questionIndex];
     final score = battleScoreResponse(task, taps: taps);
-    final present = battleResponsePresent(
-      _responseKindFor(task),
-      taps: taps,
-    );
+    final present = battleResponsePresent(_responseKindFor(task), taps: taps);
     AppFeedback.select();
     setState(() {
       _playerLock = _Lock(
@@ -657,8 +636,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
     final task = _tasks[_questionIndex];
     final binary = _responseKindFor(task) == BattleResponseKind.choice4;
     final player =
-        _playerLock ??
-        _Lock(answer: -1, ms: _recallMs, correct: false);
+        _playerLock ?? _Lock(answer: -1, ms: _recallMs, correct: false);
     var playerPts = BattleScore.questionPoints(
       correct: player.correct,
       latencyMs: player.ms,
@@ -802,11 +780,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
       final r = _rounds[i];
       final paradigm = i < _tasks.length ? _tasks[i].paradigm : 'round';
       lines.add(
-        tr('btd_round_line', {
-          'p': paradigm,
-          'a': r.playerPts,
-          'b': r.foePts,
-        }),
+        tr('btd_round_line', {'p': paradigm, 'a': r.playerPts, 'b': r.foePts}),
       );
     }
     final record = BattleRecord(
@@ -827,7 +801,10 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
     await botArena.recordBattle(
       record: record,
       outcome: outcome,
-      botIds: [for (final b in _bots) if (b.isFoe) b.bot.id],
+      botIds: [
+        for (final b in _bots)
+          if (b.isFoe) b.bot.id,
+      ],
     );
     if (_answered > 0 && _rounds.isNotEmpty) {
       final exact = _rounds.where((r) => r.playerExact).length;
@@ -887,7 +864,10 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
     await botArena.recordBattle(
       record: record,
       outcome: BattleOutcome.loss,
-      botIds: [for (final b in _bots) if (b.isFoe) b.bot.id],
+      botIds: [
+        for (final b in _bots)
+          if (b.isFoe) b.bot.id,
+      ],
     );
   }
 
@@ -902,36 +882,17 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
     }
     AppFeedback.light();
     final navigator = Navigator.of(context);
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          tr('btd_forfeit_title'),
-          style: TextStyle(
-            color: dialogContext.inkText,
-            fontWeight: FontWeight.w900,
-            fontSize: 17,
-          ),
-        ),
-        content: Text(
-          tr('btd_forfeit_body'),
-          style: TextStyle(color: dialogContext.mutedText, fontSize: 13),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(tr('btd_keep_playing')),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              _forfeitAndExit(navigator);
-            },
-            child: Text(tr('btd_forfeit_btn')),
-          ),
-        ],
+    showAppDialog<void>(
+      context,
+      title: tr('btd_forfeit_title'),
+      body: tr('btd_forfeit_body'),
+      destructive: true,
+      primary: AppDialogAction(
+        tr('btd_forfeit_btn'),
+        value: 'forfeit',
+        onPressed: () => _forfeitAndExit(navigator),
       ),
+      secondary: AppDialogAction(tr('btd_keep_playing'), value: 'keep'),
     );
   }
 
@@ -974,24 +935,13 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
       },
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: AppBar(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          elevation: 0,
-          scrolledUnderElevation: 0,
+        appBar: AppTopBar(
+          title: widget.spectate
+              ? tr('btd_title_show')
+              : widget.team
+              ? tr('btd_title_team')
+              : tr('btd_title_duel'),
           leading: EngramBackButton(onPressed: _handleBack),
-          title: Text(
-            widget.spectate
-                ? tr('btd_title_show')
-                : widget.team
-                ? tr('btd_title_team')
-                : tr('btd_title_duel'),
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface,
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
-            ),
-          ),
-          centerTitle: true,
         ),
         body: SafeArea(
           child: switch (_phase) {
@@ -1082,10 +1032,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                       decoration: BoxDecoration(
                         color: context.softBg,
                         borderRadius: BorderRadius.circular(99),
-                        border: Border.all(
-                          color: context.hairline,
-                          width: 1.5,
-                        ),
+                        border: Border.all(color: context.hairline, width: 1.5),
                       ),
                       child: Text(
                         tr('btd_rating_pts', {'n': opp.rating}),
@@ -1104,30 +1051,16 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                   style: TextStyle(color: context.mutedText, fontSize: 12),
                 ),
                 const SizedBox(height: 14),
-                const SizedBox(
-                  width: 28,
-                  height: 28,
-                  child: CircularProgressIndicator(strokeWidth: 3),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  tr('btd_finding'),
-                  style: TextStyle(
-                    color: context.mutedText,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                  ),
-                ),
+                AppLoader(size: 28, stroke: 2.5, caption: tr('btd_finding')),
               ],
             ),
           ),
           const Spacer(),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(tr('btd_cancel')),
-            ),
+          EngramButton(
+            variant: EngramButtonVariant.secondary,
+            height: 52,
+            onPressed: () => Navigator.of(context).pop(),
+            label: tr('btd_cancel'),
           ),
         ],
       ),
@@ -1167,10 +1100,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
           const SizedBox(height: 16),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: _DuelHype(
-              foeName: _foeLabel,
-              kindLabel: _kindLabel,
-            ),
+            child: _DuelHype(foeName: _foeLabel, kindLabel: _kindLabel),
           ),
         ],
       ),
@@ -1203,7 +1133,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
   /// open-book matching.
   Widget _encodeView() {
     if (_tasks.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppSkeletonList();
     }
     final task = _tasks[_questionIndex];
     return ListView(
@@ -1213,10 +1143,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
         _ticker(),
         const SizedBox(height: 10),
         Text(
-          tr('btd_q_memorize', {
-            'q': _questionIndex + 1,
-            'n': _questionCount,
-          }),
+          tr('btd_q_memorize', {'q': _questionIndex + 1, 'n': _questionCount}),
           style: TextStyle(
             color: context.mutedText,
             fontWeight: FontWeight.w800,
@@ -1300,7 +1227,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
   /// format. At reveal the same screen locks and gains corrective feedback.
   Widget _recallView(bool reveal) {
     if (_tasks.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppSkeletonList();
     }
     final task = _tasks[_questionIndex];
     final kind = _responseKindFor(task);
@@ -1690,7 +1617,9 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: (entry.isFoe ? orange : teal).withValues(alpha: 0.16),
+                      color: (entry.isFoe ? orange : teal).withValues(
+                        alpha: 0.16,
+                      ),
                     ),
                     child: Text(
                       entry.bot.name.characters.first,
@@ -1893,10 +1822,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                     decoration: BoxDecoration(
                       color: context.cardBg,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: context.hairline,
-                        width: 1.5,
-                      ),
+                      border: Border.all(color: context.hairline, width: 1.5),
                     ),
                     child: Column(
                       children: [
@@ -1943,20 +1869,16 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
         ),
         const SizedBox(height: 8),
         if (!widget.spectate)
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () => Navigator.of(context).pop('new'),
-              child: Text(tr('btd_new_opp')),
-            ),
+          EngramButton(
+            variant: EngramButtonVariant.secondary,
+            height: 52,
+            onPressed: () => Navigator.of(context).pop('new'),
+            label: tr('btd_new_opp'),
           ),
         if (!widget.spectate) const SizedBox(height: 8),
-        SizedBox(
-          width: double.infinity,
-          child: TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(tr('btd_exit')),
-          ),
+        EngramTextButton(
+          label: tr('btd_exit'),
+          onPressed: () => Navigator.of(context).pop(),
         ),
       ],
     );
@@ -2027,7 +1949,11 @@ class _DuelHypeState extends State<_DuelHype> {
 class _RoundComment extends StatefulWidget {
   final String paradigm;
   final bool correct;
-  const _RoundComment({super.key, required this.paradigm, required this.correct});
+  const _RoundComment({
+    super.key,
+    required this.paradigm,
+    required this.correct,
+  });
 
   @override
   State<_RoundComment> createState() => _RoundCommentState();
@@ -2246,9 +2172,7 @@ class _BattleCellPickerState extends State<_BattleCellPicker> {
                               child: Container(
                                 width: 52,
                                 height: 52,
-                                margin: EdgeInsets.only(
-                                  left: col == 0 ? 0 : 8,
-                                ),
+                                margin: EdgeInsets.only(left: col == 0 ? 0 : 8),
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
                                   color: on ? teal : context.softBg,
@@ -2288,7 +2212,9 @@ class _BattleCellPickerState extends State<_BattleCellPicker> {
         const SizedBox(height: 8),
         GestureDetector(
           key: const ValueKey('duel-cells-done'),
-          onTap: widget.submitted ? null : () => widget.onDone(_selected.toList()),
+          onTap: widget.submitted
+              ? null
+              : () => widget.onDone(_selected.toList()),
           child: Container(
             constraints: const BoxConstraints(minHeight: 48),
             alignment: Alignment.center,

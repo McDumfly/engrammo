@@ -4,7 +4,7 @@ import 'package:hugeicons/hugeicons.dart';
 import '../l10n/app_localizations.dart';
 import '../services/app_feedback.dart';
 import '../services/auth_service.dart';
-import '../theme/app_colors.dart' show error;
+import '../theme/app_colors.dart' show error, muted;
 import '../theme/app_theme.dart';
 import '../widgets/app_buttons.dart';
 import '../widgets/app_kit.dart';
@@ -222,23 +222,16 @@ class _AuthScreenState extends State<AuthScreen> {
                     ),
                     if (!_register) ...[
                       const SizedBox(height: 4),
-                      TextButton(
+                      EngramTextButton(
+                        label: tr('auth_forgot_password'),
+                        color: muted,
                         onPressed: authService.busy ? null : _reset,
-                        child: Text(
-                          tr('auth_forgot_password'),
-                          style: TextStyle(
-                            color: context.mutedText,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
                       ),
                     ],
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Expanded(
-                          child: Divider(color: context.hairline, thickness: 2),
-                        ),
+                        const Expanded(child: AppDivider(thickness: 2)),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Text(
@@ -249,9 +242,7 @@ class _AuthScreenState extends State<AuthScreen> {
                             ),
                           ),
                         ),
-                        Expanded(
-                          child: Divider(color: context.hairline, thickness: 2),
-                        ),
+                        const Expanded(child: AppDivider(thickness: 2)),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -262,7 +253,9 @@ class _AuthScreenState extends State<AuthScreen> {
                       onPressed: authService.busy ? null : _google,
                     ),
                     const SizedBox(height: 8),
-                    TextButton(
+                    EngramTextButton(
+                      label: tr('auth_guest_button'),
+                      color: muted,
                       onPressed: authService.busy
                           ? null
                           : () async {
@@ -272,13 +265,6 @@ class _AuthScreenState extends State<AuthScreen> {
                                 Navigator.of(context).pop();
                               }
                             },
-                      child: Text(
-                        tr('auth_guest_button'),
-                        style: TextStyle(
-                          color: context.mutedText,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
                     ),
                   ],
                 ),
@@ -309,48 +295,23 @@ class _Field extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.softBg,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: context.hairline, width: 2),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: controller,
-              obscureText: obscure,
-              keyboardType: keyboard,
-              enabled: enabled,
-              autocorrect: false,
-              enableSuggestions: false,
-              style: TextStyle(color: context.inkText, fontSize: 15),
-              decoration: InputDecoration(
-                hintText: hint,
-                hintStyle: TextStyle(color: context.mutedText, fontSize: 14),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 14,
-                ),
-              ),
+    return AppTextField(
+      controller: controller,
+      obscureText: obscure,
+      keyboardType: keyboard,
+      enabled: enabled,
+      autocorrect: false,
+      enableSuggestions: false,
+      hint: hint,
+      suffix: onToggleObscure == null
+          ? null
+          : AppIconButton(
+              onTap: onToggleObscure,
+              icon: obscure
+                  ? HugeIcons.strokeRoundedEye
+                  : HugeIcons.strokeRoundedEyeOff,
+              color: context.mutedText,
             ),
-          ),
-          if (onToggleObscure != null)
-            IconButton(
-              onPressed: onToggleObscure,
-              icon: HugeIcon(
-                icon: obscure
-                    ? HugeIcons.strokeRoundedEye
-                    : HugeIcons.strokeRoundedEyeOff,
-                color: context.mutedText,
-                size: 20,
-                strokeWidth: 2,
-              ),
-            ),
-        ],
-      ),
     );
   }
 }

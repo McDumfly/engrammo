@@ -10,8 +10,9 @@ import '../models/claims_policy.dart'
 import '../theme/app_theme.dart';
 import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
+import '../widgets/app_kit.dart';
 import '../widgets/google_g_logo.dart';
-import '../theme/app_colors.dart' show coral, error, ink, success, teal, blue;
+import '../theme/app_colors.dart' show coral, error, ink;
 import '../services/app_feedback.dart';
 import '../services/app_settings.dart';
 import '../services/auth_service.dart';
@@ -72,12 +73,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _profileSaved = false;
       _profileError = false;
     });
-  }
-
-  Color? get _profileBorder {
-    if (_profileSaved) return success;
-    if (_profileError) return coral;
-    return null;
   }
 
   Future<void> _loadApiKeyStatus() async {
@@ -278,7 +273,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _openEmailEditor() {
+  Future<void> _openEmailEditor() async {
     if (!authService.isPermanentAccount) {
       setState(
         () => _profileNote = authService.signedIn
@@ -290,28 +285,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final ctrl = TextEditingController(text: authService.email);
     var note = '';
     var busy = false;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Theme.of(context).cardColor,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetCtx) {
-        final sheetNav = Navigator.of(sheetCtx);
-        return StatefulBuilder(
-          builder: (sheetCtx, setSheet) => Padding(
-            padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-              top: 12,
-              bottom: MediaQuery.of(sheetCtx).viewInsets.bottom + 24,
-            ),
-            child: Column(
+    try {
+      await showAppSheet(
+        context,
+        builder: (sheetCtx) {
+          final sheetNav = Navigator.of(sheetCtx);
+          return StatefulBuilder(
+            builder: (sheetCtx, setSheet) => Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _Grabber(),
                 const SizedBox(height: 12),
                 Text(
                   tr('settings_change_email'),
@@ -380,16 +363,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           }
                         },
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 24),
               ],
             ),
-          ),
-        );
-      },
-    );
+          );
+        },
+      );
+    } finally {
+      ctrl.dispose();
+    }
   }
 
-  void _openPasswordEditor() {
+  Future<void> _openPasswordEditor() async {
     if (!authService.isPermanentAccount) {
       setState(
         () => _profileNote = authService.signedIn
@@ -401,28 +386,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final fresh = TextEditingController();
     var note = '';
     var busy = false;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Theme.of(context).cardColor,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetCtx) {
-        final sheetNav = Navigator.of(sheetCtx);
-        return StatefulBuilder(
-          builder: (sheetCtx, setSheet) => Padding(
-            padding: EdgeInsets.only(
-              left: 20,
-              right: 20,
-              top: 12,
-              bottom: MediaQuery.of(sheetCtx).viewInsets.bottom + 24,
-            ),
-            child: Column(
+    try {
+      await showAppSheet(
+        context,
+        builder: (sheetCtx) {
+          final sheetNav = Navigator.of(sheetCtx);
+          return StatefulBuilder(
+            builder: (sheetCtx, setSheet) => Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _Grabber(),
                 const SizedBox(height: 12),
                 Text(
                   tr('settings_change_password'),
@@ -493,59 +466,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           }
                         },
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 24),
               ],
             ),
-          ),
-        );
-      },
-    );
+          );
+        },
+      );
+    } finally {
+      fresh.dispose();
+    }
   }
 
   Future<void> _confirmDelete() async {
     AppFeedback.medium();
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dlgCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: BorderSide(color: context.hairline, width: 2),
-        ),
-        title: Text(
-          tr('settings_delete_title'),
-          style: TextStyle(
-            color: Theme.of(dlgCtx).colorScheme.onSurface,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        content: Text(
-          tr('settings_delete_body'),
-          style: TextStyle(
-            color: Theme.of(dlgCtx).colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              AppFeedback.light();
-              Navigator.of(dlgCtx).pop(false);
-            },
-            child: Text(tr('settings_keep')),
-          ),
-          TextButton(
-            onPressed: () {
-              AppFeedback.light();
-              Navigator.of(dlgCtx).pop(true);
-            },
-            style: TextButton.styleFrom(foregroundColor: context.dangerText),
-            child: Text(
-              tr('common_delete'),
-              style: const TextStyle(fontWeight: FontWeight.w900),
-            ),
-          ),
-        ],
-      ),
+    final confirmed = await showAppDialog<bool>(
+      context,
+      title: tr('settings_delete_title'),
+      body: tr('settings_delete_body'),
+      icon: HugeIcons.strokeRoundedDelete02,
+      iconColor: coral,
+      destructive: true,
+      primary: AppDialogAction(tr('common_delete'), value: true),
+      secondary: AppDialogAction(tr('settings_keep'), value: false),
     );
     if (confirmed != true || !mounted) return;
     try {
@@ -590,7 +532,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               controller: _nameCtrl,
                               hint: tr('settings_your_name'),
                               enabled: !_profileSaving,
-                              borderColor: _profileBorder,
                             ),
                             const SizedBox(height: 12),
                             _FieldLabel(label: tr('settings_username')),
@@ -600,7 +541,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               hint: tr('profile_username_hint'),
                               prefix: '@',
                               enabled: !_profileSaving,
-                              borderColor: _profileBorder,
                               inputFormatters: [
                                 FilteringTextInputFormatter.allow(
                                   RegExp(r'[a-zA-Z0-9_. ]'),
@@ -661,10 +601,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   );
                                 },
                               ),
-                              Divider(
-                                color: context.hairline,
-                                height: 20,
-                                thickness: 1.5,
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 8),
+                                child: AppDivider(thickness: 1.5),
                               ),
                               _AccountRow(
                                 icon: HugeIcons.strokeRoundedKey01,
@@ -715,10 +654,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               value: appSettings.darkMode,
                               onChanged: (v) => appSettings.setDarkMode(v),
                             ),
-                            Divider(
-                              color: context.hairline,
-                              height: 20,
-                              thickness: 1.5,
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8),
+                              child: AppDivider(thickness: 1.5),
                             ),
                             _SwitchRow(
                               icon: HugeIcons.strokeRoundedVibrate,
@@ -726,10 +664,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               value: appSettings.haptics,
                               onChanged: (v) => appSettings.setHaptics(v),
                             ),
-                            Divider(
-                              color: context.hairline,
-                              height: 20,
-                              thickness: 1.5,
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8),
+                              child: AppDivider(thickness: 1.5),
                             ),
                             _LanguageRow(
                               current: appSettings.languageCode,
@@ -823,7 +760,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               const SizedBox(height: 4),
                               Align(
                                 alignment: Alignment.centerLeft,
-                                child: TextButton(
+                                child: EngramTextButton(
+                                  label: tr('kreeds_discover'),
                                   onPressed: () {
                                     AppFeedback.light();
                                     Navigator.of(context).push(
@@ -833,7 +771,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       ),
                                     );
                                   },
-                                  child: Text(tr('kreeds_discover')),
                                 ),
                               ),
                             ],
@@ -1050,7 +987,6 @@ class _Field extends StatelessWidget {
   final String? prefix;
   final bool obscure;
   final bool enabled;
-  final Color? borderColor;
   final List<TextInputFormatter>? inputFormatters;
   const _Field({
     required this.controller,
@@ -1058,51 +994,27 @@ class _Field extends StatelessWidget {
     this.prefix,
     this.obscure = false,
     this.enabled = true,
-    this.borderColor,
     this.inputFormatters,
   });
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
+    return AppTextField(
       controller: controller,
+      hint: hint,
       obscureText: obscure,
       enabled: enabled,
       inputFormatters: inputFormatters,
-      style: TextStyle(
-        color: context.inkText,
-        fontWeight: FontWeight.w700,
-        fontSize: 15,
-      ),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(
-          color: context.mutedText,
-          fontWeight: FontWeight.w600,
-        ),
-        prefixText: prefix,
-        prefixStyle: TextStyle(
-          color: context.mutedText,
-          fontWeight: FontWeight.w800,
-        ),
-        filled: true,
-        fillColor: context.softBg,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 14,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: borderColor ?? context.hairline,
-            width: 2,
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: borderColor ?? blue, width: 2),
-        ),
-      ),
+      prefix: prefix == null
+          ? null
+          : Text(
+              prefix!,
+              style: TextStyle(
+                color: context.mutedText,
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+              ),
+            ),
     );
   }
 }
@@ -1264,9 +1176,8 @@ class _SwitchRow extends StatelessWidget {
             ),
           ),
         ),
-        Switch.adaptive(
+        AppSwitch(
           value: value,
-          activeThumbColor: teal,
           onChanged: (nv) {
             onChanged(nv);
           },
@@ -1302,42 +1213,18 @@ class _LanguageRow extends StatelessWidget {
             ),
           ),
         ),
-        SegmentedButton<String>(
-          segments: [
-            ButtonSegment<String>(
-              value: 'en',
-              label: Text(tr('settings_english')),
-            ),
-            ButtonSegment<String>(
-              value: 'hu',
-              label: Text(tr('settings_hungarian')),
-            ),
-          ],
-          selected: {current},
-          onSelectionChanged: (selection) {
-            AppFeedback.light();
-            onChanged(selection.first);
-          },
+        SizedBox(
+          width: 200,
+          child: AppSegmented<String>(
+            options: [
+              ('en', tr('settings_english')),
+              ('hu', tr('settings_hungarian')),
+            ],
+            value: current,
+            onChanged: onChanged,
+          ),
         ),
       ],
-    );
-  }
-}
-
-class _Grabber extends StatelessWidget {
-  const _Grabber();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        width: 44,
-        height: 5,
-        decoration: BoxDecoration(
-          color: context.hairline,
-          borderRadius: BorderRadius.circular(99),
-        ),
-      ),
     );
   }
 }

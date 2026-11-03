@@ -5,13 +5,13 @@ import '../l10n/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
+import '../widgets/app_kit.dart';
 import '../services/app_feedback.dart';
 import '../models/battle_invites.dart';
 import '../services/bot_arena_store.dart';
 import '../services/memory_store.dart';
 import 'battle_duel_page.dart';
-import '../theme/app_colors.dart'
-    show blue, blueDark, orange, success, teal;
+import '../theme/app_colors.dart' show blue, blueDark, orange, success, teal;
 
 class FriendProfilePage extends StatelessWidget {
   final BattleFriend friend;
@@ -32,20 +32,9 @@ class FriendProfilePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+      appBar: AppTopBar(
+        title: friend.name,
         leading: const EngramBackButton(),
-        title: Text(
-          friend.name,
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.w900,
-            fontSize: 20,
-          ),
-        ),
-        centerTitle: true,
         actions: const [
           AiHelpButton(topic: AiHelpTopics.battle),
           SizedBox(width: 12),
@@ -57,12 +46,8 @@ class FriendProfilePage extends StatelessWidget {
           return ListenableBuilder(
             listenable: botArena,
             builder: (context, _) {
-              final live = botId == null
-                  ? null
-                  : botArena.botById(botId!);
-              final shown = live == null
-                  ? friend
-                  : botArena.botToFriend(live);
+              final live = botId == null ? null : botArena.botById(botId!);
+              final shown = live == null ? friend : botArena.botToFriend(live);
               final invited = battleInvites.isInvited(shown.name);
               final added = live != null && botArena.isFriend(live.id);
               return ListView(
@@ -71,10 +56,7 @@ class FriendProfilePage extends StatelessWidget {
                   _HeroCard(friend: shown),
                   if (live != null) ...[
                     const SizedBox(height: 8),
-                    _BotTierLine(
-                      tier: live.tierLabel,
-                      rating: live.rating,
-                    ),
+                    _BotTierLine(tier: live.tierLabel, rating: live.rating),
                   ],
                   const SizedBox(height: 12),
                   _StatsRow(friend: shown),
@@ -105,7 +87,8 @@ class FriendProfilePage extends StatelessWidget {
                     const SizedBox(height: 12),
                     SizedBox(
                       width: double.infinity,
-                      child: ElevatedButton(
+                      child: EngramButton(
+                        height: 52,
                         onPressed: () async {
                           AppFeedback.medium();
                           final kind = await MemoryStore.resolveBattleKind(6);
@@ -119,13 +102,15 @@ class FriendProfilePage extends StatelessWidget {
                             ),
                           );
                         },
-                        child: Text(tr('friend_now')),
+                        label: tr('friend_now'),
                       ),
                     ),
                     const SizedBox(height: 8),
                     SizedBox(
                       width: double.infinity,
-                      child: OutlinedButton(
+                      child: EngramButton(
+                        variant: EngramButtonVariant.secondary,
+                        height: 52,
                         onPressed: () {
                           if (added) {
                             AppFeedback.light();
@@ -135,9 +120,7 @@ class FriendProfilePage extends StatelessWidget {
                             botArena.addFriend(live.id);
                           }
                         },
-                        child: Text(
-                          added ? tr('friend_remove') : tr('friend_add'),
-                        ),
+                        label: added ? tr('friend_remove') : tr('friend_add'),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -229,9 +212,7 @@ class _HeroCard extends StatelessWidget {
             child: Text(
               friend.online ? tr('friend_online') : tr('friend_offline'),
               style: TextStyle(
-                color: friend.online
-                    ? success
-                    : context.mutedText,
+                color: friend.online ? success : context.mutedText,
                 fontWeight: FontWeight.w800,
                 fontSize: 12,
               ),
@@ -371,11 +352,7 @@ class _CompareRow extends StatelessWidget {
   final String label;
   final String me;
   final String foe;
-  const _CompareRow({
-    required this.label,
-    required this.me,
-    required this.foe,
-  });
+  const _CompareRow({required this.label, required this.me, required this.foe});
 
   @override
   Widget build(BuildContext context) {

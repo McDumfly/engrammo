@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/ai_help_button.dart';
 import '../widgets/ai_image.dart';
 import '../widgets/app_buttons.dart';
+import '../widgets/app_kit.dart';
 import '../widgets/session_coach_card.dart';
 import '../l10n/app_localizations.dart';
 import '../models/meta_task.dart';
@@ -759,13 +760,7 @@ class _BenchmarkHubPageState extends State<BenchmarkHubPage> {
             const SizedBox(height: 12),
             SessionCoachCard(onGoHome: widget.onGoHome),
             const SizedBox(height: 12),
-            if (!BenchmarkStore.loaded)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: CircularProgressIndicator(),
-                ),
-              ),
+            if (!BenchmarkStore.loaded) const AppSkeletonList(),
             for (final g in _games) ...[
               _BenchmarkCard(
                 def: g,
@@ -1005,30 +1000,21 @@ Widget _gameScaffold({
   bool aiLoading = false,
   DateTime? timerSince,
 }) {
-  final scheme = Theme.of(context).colorScheme;
   return Scaffold(
     backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-    appBar: AppBar(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      elevation: 0,
-      scrolledUnderElevation: 0,
+    appBar: AppTopBar(
+      title: title,
       leading: const EngramBackButton(),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: scheme.onSurface,
-          fontWeight: FontWeight.bold,
-          fontSize: 17,
-        ),
-      ),
+      // 360px-es keskeny kijelzőn is be kell férnie: a műveletek
+      // közötti térközök minimálisak.
       actions: [
         if (timerSince != null)
           Padding(
-            padding: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.only(right: 4),
             child: Center(child: _LiveTimerChip(since: timerSince)),
           ),
         Padding(
-          padding: const EdgeInsets.only(right: 8),
+          padding: const EdgeInsets.only(right: 4),
           child: Center(
             child: Text(
               counter,
@@ -1041,7 +1027,7 @@ Widget _gameScaffold({
           ),
         ),
         const Padding(
-          padding: EdgeInsets.only(right: 12),
+          padding: EdgeInsets.only(right: 4),
           child: Center(child: AiHelpButton(topic: AiHelpTopics.benchmark)),
         ),
       ],
@@ -1447,12 +1433,7 @@ class _SequenceGamePageState extends State<SequenceGamePage> {
               },
             ),
             const SizedBox(height: 12),
-            LinearProgressIndicator(
-              value: _busy ? 0 : _input / _seq.length,
-              minHeight: 8,
-              backgroundColor: context.hairline,
-              valueColor: const AlwaysStoppedAnimation(blue),
-            ),
+            AppProgressBar(value: _busy ? 0 : _input / _seq.length, height: 8),
           ],
         ],
       ),
@@ -2530,14 +2511,10 @@ class _VisualGamePageState extends State<VisualGamePage> {
                   _AiVerdict(gameId: 'visual', score: _level - 1),
                 ] else if (_aiLoading) ...[
                   const SizedBox(height: 40),
-                  const Center(child: CircularProgressIndicator()),
-                  const SizedBox(height: 12),
-                  Text(
-                    _level % 3 == 0
+                  AppLoader(
+                    caption: _level % 3 == 0
                         ? tr('ai_picture_loading')
                         : tr('common_loading'),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: context.mutedText, fontSize: 14),
                   ),
                 ] else if (ai != null) ...[
                   if (_show) ...[
@@ -3133,28 +3110,11 @@ class _SpatialGamePageState extends State<SpatialGamePage> {
           style: TextStyle(color: context.mutedText, fontSize: 14, height: 1.5),
         ),
         const SizedBox(height: 12),
-        TextField(
+        AppTextField(
           controller: _palaceCtrl,
           textCapitalization: TextCapitalization.sentences,
           onSubmitted: (_) => _start(),
-          decoration: InputDecoration(
-            hintText: tr('bench_spatial_setup_hint'),
-            filled: true,
-            fillColor: context.cardBg,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: context.hairline, width: 2),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: context.hairline, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 14,
-            ),
-          ),
-          style: TextStyle(color: context.inkText, fontSize: 16),
+          hint: tr('bench_spatial_setup_hint'),
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -3165,9 +3125,9 @@ class _SpatialGamePageState extends State<SpatialGamePage> {
               'bench_spatial_chip_work',
               'bench_spatial_chip_school',
             ])
-              ActionChip(
-                label: Text(tr(key)),
-                onPressed: () => setState(() => _palaceCtrl.text = tr(key)),
+              AppChip(
+                label: tr(key),
+                onTap: () => setState(() => _palaceCtrl.text = tr(key)),
               ),
           ],
         ),
@@ -3184,28 +3144,14 @@ class _SpatialGamePageState extends State<SpatialGamePage> {
         for (var i = 0; i < _stationCtrls.length; i++)
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
-            child: TextField(
+            child: AppTextField(
               controller: _stationCtrls[i],
               textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(
-                hintText: tr('bench_spatial_station_hint', {'n': i + 1}),
-                prefixText: '${i + 1}. ',
-                filled: true,
-                fillColor: context.cardBg,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: context.hairline, width: 2),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: context.hairline, width: 2),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 14,
-                ),
+              hint: tr('bench_spatial_station_hint', {'n': i + 1}),
+              prefix: Text(
+                '${i + 1}. ',
+                style: TextStyle(color: context.inkText, fontSize: 16),
               ),
-              style: TextStyle(color: context.inkText, fontSize: 16),
             ),
           ),
         const SizedBox(height: 8),
@@ -3433,13 +3379,7 @@ class _PalaceWalkGameState extends State<_PalaceWalkGame> {
           _AiVerdict(gameId: 'spatial', score: _count - 1),
         ] else if (_loading || task == null) ...[
           const SizedBox(height: 40),
-          const Center(child: CircularProgressIndicator()),
-          const SizedBox(height: 12),
-          Text(
-            tr('common_loading'),
-            textAlign: TextAlign.center,
-            style: TextStyle(color: context.mutedText, fontSize: 14),
-          ),
+          AppLoader(caption: tr('common_loading')),
         ] else if (_show) ...[
           Text(
             tr('bench_spatial_palace_line', {'palace': widget.palace}),
@@ -3929,14 +3869,10 @@ class SamMaskGameBodyState extends State<SamMaskGameBody> {
                   children: [
                     SizedBox(
                       width: 220,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(99),
-                        child: LinearProgressIndicator(
-                          value: _progress <= 0 ? null : _progress,
-                          minHeight: 10,
-                          backgroundColor: context.washBg,
-                          valueColor: AlwaysStoppedAnimation<Color>(teal),
-                        ),
+                      child: AppProgressBar(
+                        value: _progress <= 0 ? null : _progress,
+                        height: 10,
+                        color: teal,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -4023,40 +3959,17 @@ class SamMaskGameBodyState extends State<SamMaskGameBody> {
               Row(
                 children: [
                   Expanded(
-                    child: TextField(
+                    child: AppTextField(
                       controller: _guessCtrl,
                       autofocus: true,
                       textInputAction: TextInputAction.done,
                       textCapitalization: TextCapitalization.sentences,
                       onSubmitted: (_) => _guess(),
-                      decoration: InputDecoration(
-                        hintText: !_hasPicture
-                            ? tr('bench_mask_guess_hint_words')
-                            : _cue >= 0
-                            ? tr('bench_mask_cue_hint', {'n': _cue + 1})
-                            : tr('bench_mask_guess_hint'),
-                        filled: true,
-                        fillColor: context.cardBg,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(
-                            color: context.hairline,
-                            width: 2,
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(
-                            color: context.hairline,
-                            width: 2,
-                          ),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 14,
-                        ),
-                      ),
-                      style: TextStyle(color: context.inkText, fontSize: 16),
+                      hint: !_hasPicture
+                          ? tr('bench_mask_guess_hint_words')
+                          : _cue >= 0
+                          ? tr('bench_mask_cue_hint', {'n': _cue + 1})
+                          : tr('bench_mask_guess_hint'),
                     ),
                   ),
                   const SizedBox(width: 8),

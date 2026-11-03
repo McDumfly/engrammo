@@ -1870,6 +1870,8 @@ const Map<String, String> huStrings = {
   'room_review_btn': 'Ismétlés',
   'room_new_btn': 'Új palota',
   'room_delete': 'Törlöd ezt a palotát?',
+  'room_delete_title': 'Törlöd ezt a palotát?',
+  'room_delete_body': 'A fotó és a felidézési előzmények is törlődnek.',
   'room_correct_typo': 'Helyes! Figyelj a helyesírásra: {item}',
   'room_accepted': 'Elfogadva — a pontos elem: {item}',
   'room_almost': 'Majdnem! Ez volt: {item}',

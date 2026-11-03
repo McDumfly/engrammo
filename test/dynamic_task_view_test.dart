@@ -1,4 +1,5 @@
 import 'package:engrammo/models/dynamic_task.dart';
+import 'package:engrammo/widgets/app_kit.dart';
 import 'package:engrammo/widgets/dynamic_task_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -65,15 +66,9 @@ void main() {
     ) async {
       await _open(tester, _task());
       expect(find.text('My test task · 0/5 done'), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('dynamic-progress')),
-        findsOneWidget,
-      );
+      expect(find.byKey(const ValueKey('dynamic-progress')), findsOneWidget);
       for (final id in ['b0', 'b1', 'b2', 'b3', 'b4']) {
-        expect(
-          find.byKey(ValueKey('dynamic-block-$id')),
-          findsOneWidget,
-        );
+        expect(find.byKey(ValueKey('dynamic-block-$id')), findsOneWidget);
       }
       expect(find.byKey(const ValueKey('dynamic-finish')), findsNothing);
     });
@@ -117,7 +112,7 @@ void main() {
       Future<void> tapChip(String label) async {
         final chip = find.ancestor(
           of: find.text(label),
-          matching: find.byType(ActionChip),
+          matching: find.byType(AppChip),
         );
         await _tapVisible(tester, chip.first);
       }
@@ -144,10 +139,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await _tapVisible(
-        tester,
-        find.byKey(const ValueKey('dynamic-gotit-b0')),
-      );
+      await _tapVisible(tester, find.byKey(const ValueKey('dynamic-gotit-b0')));
       await _tapVisible(
         tester,
         find.byKey(const ValueKey('dynamic-option-b1-0')),
@@ -175,7 +167,7 @@ void main() {
       Future<void> tapChip(String label) async {
         final chip = find.ancestor(
           of: find.text(label),
-          matching: find.byType(ActionChip),
+          matching: find.byType(AppChip),
         );
         await _tapVisible(tester, chip.first);
       }
@@ -188,10 +180,7 @@ void main() {
         find.byKey(const ValueKey('dynamic-order-check-b4')),
       );
       expect(find.text('My test task · 5/5 done'), findsOneWidget);
-      await _tapVisible(
-        tester,
-        find.byKey(const ValueKey('dynamic-finish')),
-      );
+      await _tapVisible(tester, find.byKey(const ValueKey('dynamic-finish')));
       expect(got, isNotNull);
       expect(got!.complete, isTrue);
       expect(got!.keyed, 3);

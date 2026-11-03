@@ -417,7 +417,7 @@ class EngramBackButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // All variants now render the kit back button; the old boxed size,
-    // IconButton and tooltip are gone.
+    // button widget and hover hint are gone.
     return AppBackButton(
       icon: icon,
       onTap: onPressed,

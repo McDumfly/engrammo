@@ -34,6 +34,7 @@ import '../theme/app_colors.dart' show blue, coral, teal;
 import '../theme/app_theme.dart';
 import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
+import '../widgets/app_kit.dart';
 import '../widgets/dynamic_task_view.dart';
 import '../widgets/recall_inputs.dart';
 import '../widgets/sam_overlay.dart';
@@ -119,10 +120,7 @@ int lessonLagFor(int rounds, int chapter) {
 int lessonLagForLesson(int chapter, int section, int lesson) {
   if (chapter < 0 || section < 0 || lesson < 0) return 0;
   if (chapterDepth(chapter) == 0 && section == 0) return 0;
-  return lessonLagFor(
-    lessonRoundsFor(chapter, section, lesson),
-    chapter,
-  );
+  return lessonLagFor(lessonRoundsFor(chapter, section, lesson), chapter);
 }
 
 String _crossKindFor(String base) {
@@ -341,7 +339,13 @@ List<MetaTask> loadLocalLessonTasks({
     for (var r = 0; r < rounds; r++)
       localValidatedTask(
         MetaTaskRequest(
-          kind: lessonRoundKindFor(chapter, lesson, r, rounds, section: section),
+          kind: lessonRoundKindFor(
+            chapter,
+            lesson,
+            r,
+            rounds,
+            section: section,
+          ),
           difficulty:
               (lessonRoundDifficultyFor(chapter, section, lesson, r, rounds) +
                       boost)
@@ -541,15 +545,13 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       final goals = await MemoryStore.loadUserGoals();
       if (!mounted) return;
       setState(() => _userGoals = goals);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> _openGoalsManager() async {
     AppFeedback.light();
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const MyGoalsPage()),
-    );
+    await Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const MyGoalsPage()));
     if (mounted) _loadUserGoals();
   }
 
@@ -627,8 +629,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       if (saved.isNotEmpty && mounted) {
         setState(() => _ownMaterialCtrl.text = saved);
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> _runOwnTeach() async {
@@ -691,10 +692,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       );
     } else {
       unawaited(
-        MemoryStore.saveOwnMaterial(
-          _effectiveTargetId,
-          _ownMaterialCtrl.text,
-        ),
+        MemoryStore.saveOwnMaterial(_effectiveTargetId, _ownMaterialCtrl.text),
       );
     }
     final built = await MetaAIService.buildDynamicTask(
@@ -707,7 +705,8 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
         forgotNote: _ownForgotCtrl.text,
         difficulty: goal?.analysis?.difficulty ?? 1,
         locale: AppLocalizations.localeCode,
-        seed: 'own:${widget.chapterIndex}:${DateTime.now().millisecondsSinceEpoch}',
+        seed:
+            'own:${widget.chapterIndex}:${DateTime.now().millisecondsSinceEpoch}',
         wantsImage: widget.chapterIndex == 2,
       ),
     );
@@ -746,11 +745,10 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
             ),
           ),
           const SizedBox(height: 6),
-          LinearProgressIndicator(
+          AppProgressBar(
             key: const ValueKey('lesson-session-progress'),
             value: _answeredCount / n,
-            minHeight: 8,
-            borderRadius: BorderRadius.circular(8),
+            height: 8,
           ),
         ],
       ),
@@ -871,10 +869,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
           difficulty: difficulty,
           seed: seed,
           scene: widget.chapterIndex == 2
-              ? spatialSceneForLesson(
-                  widget.sectionIndex,
-                  widget.lessonIndex,
-                )
+              ? spatialSceneForLesson(widget.sectionIndex, widget.lessonIndex)
               : '',
           locale: AppLocalizations.localeCode,
         );
@@ -1077,8 +1072,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       lesson: widget.lessonIndex,
       stars: stars,
     );
-    final sessionMinutes =
-        (totalElapsed.inSeconds / 60).ceil().clamp(1, 240);
+    final sessionMinutes = (totalElapsed.inSeconds / 60).ceil().clamp(1, 240);
     await MemoryStore.recordLessonSession(
       track: trackOfChapter(widget.chapterIndex),
       chapter: widget.chapterIndex,
@@ -1101,10 +1095,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
         widget.sectionIndex,
         widget.lessonIndex,
       );
-      final nextDepth = depthForNextSession(
-        reps: reps[key] ?? 0,
-        stars: stars,
-      );
+      final nextDepth = depthForNextSession(reps: reps[key] ?? 0, stars: stars);
       nextGap = reviewGapDays[nextDepth.clamp(0, reviewGapDays.length - 1)];
     } catch (_) {
       nextGap = null;
@@ -1182,38 +1173,13 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       (_phase == _Phase.stimulus || _phase == _Phase.question);
 
   Future<bool> _confirmExit() async {
-    final leave = await showDialog<bool>(
-      context: context,
-      builder: (dlgCtx) => AlertDialog(
-        key: const ValueKey('lesson-exit-dialog'),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          tr('lp_exit_title'),
-          style: TextStyle(color: context.inkText, fontWeight: FontWeight.w800),
-        ),
-        content: Text(
-          tr('lp_exit_body'),
-          style: TextStyle(color: context.mutedText),
-        ),
-        actions: [
-          TextButton(
-            key: const ValueKey('lesson-exit-stay'),
-            onPressed: () {
-              AppFeedback.light();
-              Navigator.of(dlgCtx).pop(false);
-            },
-            child: Text(tr('lp_exit_stay')),
-          ),
-          FilledButton(
-            key: const ValueKey('lesson-exit-leave'),
-            onPressed: () {
-              AppFeedback.light();
-              Navigator.of(dlgCtx).pop(true);
-            },
-            child: Text(tr('lp_exit_leave')),
-          ),
-        ],
-      ),
+    final leave = await showAppDialog<bool>(
+      context,
+      title: tr('lp_exit_title'),
+      body: tr('lp_exit_body'),
+      destructive: true,
+      primary: AppDialogAction(tr('lp_exit_leave'), value: true),
+      secondary: AppDialogAction(tr('lp_exit_stay'), value: false),
     );
     return leave == true;
   }
@@ -1239,24 +1205,11 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       },
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        appBar: AppBar(
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          leading: EngramBackButton(onPressed: _onBackPressed),
-          title: Text(
-            _appBarTitle(
-              chapterRealmIn(
-                AppLocalizations.localeCode,
-                widget.chapterIndex,
-              ),
-            ),
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface,
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
+        appBar: AppTopBar(
+          title: _appBarTitle(
+            chapterRealmIn(AppLocalizations.localeCode, widget.chapterIndex),
           ),
+          leading: EngramBackButton(onPressed: _onBackPressed),
           actions: [
             AiHelpButton(
               topic: AiHelpTopics.lesson,
@@ -1424,14 +1377,15 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
   }
 
   Widget _detailsExpander(CoachContent coach, bool foundation) {
-    return Material(
-      color: context.cardBg,
-      shape: RoundedRectangleBorder(
+    return Container(
+      decoration: BoxDecoration(
+        color: context.cardBg,
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: context.faintBorder),
+        border: Border.all(color: context.faintBorder),
       ),
       clipBehavior: Clip.antiAlias,
-      child: ExpansionTile(
+      padding: const EdgeInsets.fromLTRB(14, 4, 14, 14),
+      child: AppDisclosure(
         key: const ValueKey('lesson-details'),
         title: Text(
           tr('lp_details_title'),
@@ -1441,9 +1395,6 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
             fontSize: 14,
           ),
         ),
-        iconColor: context.mutedText,
-        collapsedIconColor: context.mutedText,
-        childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
         children: [
           Align(
             alignment: Alignment.centerLeft,
@@ -1533,10 +1484,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
           ),
           const SizedBox(height: 12),
           _transferTargetsCard(),
-          if (foundation) ...[
-            const SizedBox(height: 12),
-            _workedExampleCard(),
-          ],
+          if (foundation) ...[const SizedBox(height: 12), _workedExampleCard()],
         ],
       ),
     );
@@ -1666,10 +1614,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
                       ? tr('lp_session_plain', {'n': _rounds})
                       : _lag == 1
                       ? tr('lp_session_lag_one', {'n': _rounds})
-                      : tr('lp_session_lag_many', {
-                          'n': _rounds,
-                          'lag': _lag,
-                        }),
+                      : tr('lp_session_lag_many', {'n': _rounds, 'lag': _lag}),
                   style: TextStyle(
                     color: context.mutedText,
                     fontWeight: FontWeight.w600,
@@ -1684,10 +1629,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
           const SizedBox(height: 12),
           _aiStatusCard(),
         ],
-        if (foundation) ...[
-          const SizedBox(height: 12),
-          _workedExampleCard(),
-        ],
+        if (foundation) ...[const SizedBox(height: 12), _workedExampleCard()],
         if (lagIntro) ...[const SizedBox(height: 12), _lagIntroCard()],
         const SizedBox(height: 12),
         _transferTargetsCard(),
@@ -2054,10 +1996,9 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
               ),
             ),
             const SizedBox(height: 12),
-            LinearProgressIndicator(
+            AppProgressBar(
               value: _upgradeTotal > 0 ? _upgradeProgress : null,
-              minHeight: 8,
-              borderRadius: BorderRadius.circular(8),
+              height: 8,
             ),
           ],
         ),
@@ -2074,10 +2015,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            tr('lp_upgrade', {
-              'done': _upgradeDone,
-              'total': _upgradeTotal,
-            }),
+            tr('lp_upgrade', {'done': _upgradeDone, 'total': _upgradeTotal}),
             textAlign: TextAlign.center,
             style: TextStyle(
               color: context.mutedText,
@@ -2086,10 +2024,9 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
             ),
           ),
           const SizedBox(height: 6),
-          LinearProgressIndicator(
+          AppProgressBar(
             value: _upgradeTotal > 0 ? _upgradeProgress : null,
-            minHeight: 6,
-            borderRadius: BorderRadius.circular(6),
+            height: 6,
           ),
         ],
       ),
@@ -2386,10 +2323,8 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
   }
 
   Widget _gridStimulus(MetaTask task) {
-    final lit = {
-      for (final raw in task.items)
-        int.tryParse(raw.trim()) ?? -1,
-    }..remove(-1);
+    final lit = {for (final raw in task.items) int.tryParse(raw.trim()) ?? -1}
+      ..remove(-1);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -2448,8 +2383,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
           difficulty: roundDiff,
           paradigm: task.paradigm,
         );
-    final answerKey =
-        task.correct >= 0 && task.correct < task.options.length
+    final answerKey = task.correct >= 0 && task.correct < task.options.length
         ? task.options[task.correct]
         : '';
     return SingleChildScrollView(
@@ -2614,10 +2548,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
                     Padding(
                       padding: const EdgeInsets.only(top: 2),
                       child: Text(
-                        tr('lp_correct_count', {
-                          'c': _correctCount,
-                          'n': n,
-                        }),
+                        tr('lp_correct_count', {'c': _correctCount, 'n': n}),
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: context.mutedText,
@@ -2768,6 +2699,107 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
     );
   }
 
+  String _targetLabel(List<TransferTarget> targets) {
+    for (final t in targets) {
+      if (t.id == _effectiveTargetId) {
+        return t.labelIn(AppLocalizations.localeCode);
+      }
+    }
+    for (final g in _userGoals) {
+      if (g.id == _effectiveTargetId) {
+        return tr('lp_my_goal', {'title': g.title});
+      }
+    }
+    return '';
+  }
+
+  void _openTargetPicker(List<TransferTarget> targets) {
+    showAppSheet(
+      context,
+      builder: (sheetContext) {
+        final sheetNav = Navigator.of(sheetContext);
+        void pick(String id) {
+          sheetNav.pop();
+          if (id == _effectiveTargetId) return;
+          setState(() {
+            _ownTargetId = id;
+            _ownPrefilled = false;
+            _ownTeacherText = '';
+            _ownDiagnoseText = '';
+            _ownDynamic = null;
+          });
+          _prefillOwnMaterial();
+        }
+
+        Widget option({required String id, required String label}) {
+          final selected = id == _effectiveTargetId;
+          return Tappable(
+            onTap: () => pick(id),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        color: selected
+                            ? context.accentText(blue)
+                            : context.inkText,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (selected)
+                    HugeIcon(
+                      icon: HugeIcons.strokeRoundedTick02,
+                      color: context.accentText(blue),
+                      size: 20,
+                      strokeWidth: 2.2,
+                    ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 12),
+            Text(
+              tr('lp_yours_title'),
+              style: TextStyle(
+                color: context.mutedText,
+                fontWeight: FontWeight.w900,
+                fontSize: 11,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 8),
+            ListView(
+              shrinkWrap: true,
+              children: [
+                for (final t in targets)
+                  option(
+                    id: t.id,
+                    label: t.labelIn(AppLocalizations.localeCode),
+                  ),
+                for (final g in _userGoals)
+                  option(id: g.id, label: tr('lp_my_goal', {'title': g.title})),
+              ],
+            ),
+            const SizedBox(height: 24),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _makeItYoursCard() {
     final targets = _ownTargets;
     final busy = _ownBusy != null || _ownBuilding;
@@ -2801,44 +2833,35 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
             ),
           ),
           const SizedBox(height: 10),
-          DropdownButton<String>(
+          Tappable(
             key: const ValueKey('own-target-picker'),
-            value: _effectiveTargetId,
-            isExpanded: true,
-            icon: HugeIcon(
-              icon: HugeIcons.strokeRoundedArrowDown01,
-              color: context.mutedText,
-              size: 20,
-              strokeWidth: 2,
-            ),
-            items: [
-              for (final t in targets)
-                DropdownMenuItem(
-                  value: t.id,
-                  child: Text(t.labelIn(AppLocalizations.localeCode)),
-                ),
-              for (final g in _userGoals)
-                DropdownMenuItem(
-                  value: g.id,
-                  child: Text(
-                    tr('lp_my_goal', {'title': g.title}),
-                    overflow: TextOverflow.ellipsis,
+            onTap: busy ? null : () => _openTargetPicker(targets),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: context.softBg,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: context.hairline, width: 2),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _targetLabel(targets),
+                      style: TextStyle(color: context.inkText, fontSize: 14),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-            ],
-            onChanged: busy
-                ? null
-                : (v) {
-                    if (v == null) return;
-                    setState(() {
-                      _ownTargetId = v;
-                      _ownPrefilled = false;
-                      _ownTeacherText = '';
-                      _ownDiagnoseText = '';
-                      _ownDynamic = null;
-                    });
-                    _prefillOwnMaterial();
-                  },
+                  HugeIcon(
+                    icon: HugeIcons.strokeRoundedArrowDown01,
+                    color: context.mutedText,
+                    size: 20,
+                    strokeWidth: 2,
+                  ),
+                ],
+              ),
+            ),
           ),
           Align(
             alignment: Alignment.centerRight,
@@ -2852,9 +2875,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
                       ? tr('lp_new_goal')
                       : tr('lp_manage_goals'),
                   style: TextStyle(
-                    color: busy
-                        ? context.mutedText
-                        : blue,
+                    color: busy ? context.mutedText : blue,
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
                   ),
@@ -2863,7 +2884,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
             ),
           ),
           const SizedBox(height: 8),
-          TextField(
+          AppTextField(
             key: const ValueKey('own-material-input'),
             controller: _ownMaterialCtrl,
             maxLines: 3,
@@ -2871,21 +2892,11 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
             autocorrect: false,
             enableSuggestions: false,
             textCapitalization: TextCapitalization.none,
-            decoration: InputDecoration(
-              labelText: tr('myg_label_title'),
-              hintText: tr('lp_hint_material'),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 10,
-              ),
-            ),
-            style: TextStyle(color: context.inkText, fontSize: 14),
+            label: tr('myg_label_title'),
+            hint: tr('lp_hint_material'),
           ),
           const SizedBox(height: 8),
-          TextField(
+          AppTextField(
             key: const ValueKey('own-forgot-input'),
             controller: _ownForgotCtrl,
             maxLines: 2,
@@ -2893,51 +2904,41 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
             autocorrect: false,
             enableSuggestions: false,
             textCapitalization: TextCapitalization.none,
-            decoration: InputDecoration(
-              labelText: tr('lp_label_forgot'),
-              hintText: tr('lp_hint_forgot'),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 10,
-              ),
-            ),
-            style: TextStyle(color: context.inkText, fontSize: 14),
+            label: tr('lp_label_forgot'),
+            hint: tr('lp_hint_forgot'),
           ),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              OutlinedButton(
+              EngramButton(
                 key: const ValueKey('own-teach-button'),
+                variant: EngramButtonVariant.secondary,
+                height: 52,
                 onPressed: busy ? null : _runOwnTeach,
-                child: Text(tr('myg_teach_btn')),
+                label: tr('myg_teach_btn'),
               ),
-              OutlinedButton(
+              EngramButton(
                 key: const ValueKey('own-diagnose-button'),
-                onPressed:
-                    busy || _ownForgotCtrl.text.trim().isEmpty
+                variant: EngramButtonVariant.secondary,
+                height: 52,
+                onPressed: busy || _ownForgotCtrl.text.trim().isEmpty
                     ? null
                     : _runOwnDiagnose,
-                child: Text(tr('myg_diag_btn')),
+                label: tr('myg_diag_btn'),
               ),
-              FilledButton(
+              EngramButton(
                 key: const ValueKey('own-build-button'),
+                height: 52,
                 onPressed: busy ? null : _runOwnBuild,
-                child: Text(tr('myg_build_btn')),
+                label: tr('myg_build_btn'),
               ),
             ],
           ),
           if (busy) ...[
             const SizedBox(height: 10),
-            LinearProgressIndicator(
-              key: const ValueKey('own-ai-progress'),
-              minHeight: 6,
-              borderRadius: BorderRadius.circular(6),
-            ),
+            AppProgressBar(key: const ValueKey('own-ai-progress'), height: 6),
             const SizedBox(height: 4),
             Text(
               _ownBuilding ? tr('myg_build_busy') : tr('lp_thinking'),

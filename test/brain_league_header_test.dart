@@ -1,4 +1,5 @@
 import 'package:engrammo/screens/brain_league.dart';
+import 'package:engrammo/widgets/app_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -26,10 +27,10 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    final appBar = tester.widget<AppBar>(find.byType(AppBar).first);
+    final topBar = tester.widget<AppTopBar>(find.byType(AppTopBar).first);
     final bottomHeight =
-        (appBar.bottom as PreferredSizeWidget).preferredSize.height;
-    final size = tester.getSize(find.byType(AppBar).first);
+        (topBar.bottom as PreferredSizeWidget).preferredSize.height;
+    final size = tester.getSize(find.byType(AppTopBar).first);
     expect(size.height, kToolbarHeight + bottomHeight);
   });
 }

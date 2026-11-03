@@ -22,6 +22,7 @@ import 'theme/app_colors.dart';
 import 'theme/app_scroll_behavior.dart';
 import 'theme/app_theme.dart';
 import 'theme/app_tokens.dart';
+import 'widgets/app_kit.dart';
 import 'widgets/connectivity_gate.dart';
 import 'screens/auth_screen.dart';
 import 'screens/learning_path.dart';
@@ -310,7 +311,9 @@ class _StartRouterState extends State<_StartRouter> {
     final Widget child;
     if (!_ready) {
       stateKey = 'loading';
-      child = const Scaffold(body: Center(child: CircularProgressIndicator()));
+      child = Scaffold(
+        body: Center(child: AppLoader(caption: tr('common_loading'))),
+      );
     } else if (_needsSetup) {
       stateKey = 'setup';
       child = ProfileSetupScreen(

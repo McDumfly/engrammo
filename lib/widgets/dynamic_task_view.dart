@@ -6,6 +6,7 @@ import '../models/dynamic_task.dart';
 import '../theme/app_colors.dart' show coral, teal;
 import '../theme/app_theme.dart';
 import 'app_buttons.dart';
+import 'app_kit.dart';
 import 'sam_overlay.dart';
 
 class DynamicTaskView extends StatefulWidget {
@@ -183,20 +184,15 @@ class _DynamicTaskViewState extends State<DynamicTaskView> {
           ],
         ),
         const SizedBox(height: 6),
-        LinearProgressIndicator(
+        AppProgressBar(
           key: const ValueKey('dynamic-progress'),
           value: _total == 0 ? 0 : _answered / _total,
-          minHeight: 8,
-          borderRadius: BorderRadius.circular(8),
+          height: 8,
         ),
         const SizedBox(height: 12),
         Text(
           widget.task.instructions,
-          style: TextStyle(
-            color: context.inkText,
-            fontSize: 14,
-            height: 1.45,
-          ),
+          style: TextStyle(color: context.inkText, fontSize: 14, height: 1.45),
         ),
         const SizedBox(height: 12),
         for (final b in widget.task.blocks) _blockCard(b),
@@ -308,10 +304,12 @@ class _DynamicTaskViewState extends State<DynamicTaskView> {
     if (_done.contains(b.id)) return const SizedBox.shrink();
     return Align(
       alignment: Alignment.centerLeft,
-      child: OutlinedButton(
+      child: EngramButton(
         key: ValueKey('dynamic-gotit-${b.id}'),
+        variant: EngramButtonVariant.secondary,
+        height: 52,
         onPressed: () => _markDone(b),
-        child: Text(tr('dtask_got_it')),
+        label: tr('dtask_got_it'),
       ),
     );
   }
@@ -381,7 +379,7 @@ class _DynamicTaskViewState extends State<DynamicTaskView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextField(
+        AppTextField(
           key: ValueKey('dynamic-input-${b.id}'),
           controller: controller,
           enabled: !done,
@@ -391,37 +389,26 @@ class _DynamicTaskViewState extends State<DynamicTaskView> {
           autocorrect: false,
           enableSuggestions: false,
           textCapitalization: TextCapitalization.none,
-          decoration: InputDecoration(
-            hintText: b.hint.isEmpty ? tr('dtask_type_hint') : b.hint,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 10,
-            ),
-          ),
-          style: TextStyle(color: context.inkText, fontSize: 15),
+          hint: b.hint.isEmpty ? tr('dtask_type_hint') : b.hint,
         ),
         const SizedBox(height: 8),
         if (!done)
           Align(
             alignment: Alignment.centerLeft,
-            child: OutlinedButton(
+            child: EngramButton(
               key: ValueKey('dynamic-submit-${b.id}'),
+              variant: EngramButtonVariant.secondary,
+              height: 52,
               onPressed: () {
                 final text = controller.text.trim();
                 if (text.isEmpty) return;
                 if (keyed) {
-                  _markDone(
-                    b,
-                    correct: dynamicTextCorrect(b.answer, text),
-                  );
+                  _markDone(b, correct: dynamicTextCorrect(b.answer, text));
                 } else {
                   _markDone(b);
                 }
               },
-              child: Text(tr('dtask_check')),
+              label: tr('dtask_check'),
             ),
           ),
         if (done)
@@ -469,15 +456,13 @@ class _DynamicTaskViewState extends State<DynamicTaskView> {
         for (var i = 0; i < b.options.length; i++)
           GestureDetector(
             key: ValueKey('dynamic-checklist-${b.id}-$i'),
-            onTap: _done.contains(b.id)
-                ? null
-                : () => toggle(i, null),
+            onTap: _done.contains(b.id) ? null : () => toggle(i, null),
             behavior: HitTestBehavior.opaque,
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(
                 children: [
-                  Checkbox(
+                  AppCheckbox(
                     value: i < checks.length && checks[i],
                     onChanged: _done.contains(b.id)
                         ? null
@@ -509,11 +494,11 @@ class _DynamicTaskViewState extends State<DynamicTaskView> {
           runSpacing: 6,
           children: [
             for (var s = 0; s < shown.length; s++)
-              ActionChip(
+              AppChip(
                 key: ValueKey('dynamic-order-pick-${b.id}-$s'),
-                label: Text(b.options[shown[s]]),
-                onPressed:
-                    done || picks.contains(shown[s])
+                label: b.options[shown[s]],
+                selected: picks.contains(shown[s]),
+                onTap: done || picks.contains(shown[s])
                     ? null
                     : () => setState(() => _orderPicks[b.id]!.add(shown[s])),
               ),
@@ -532,26 +517,34 @@ class _DynamicTaskViewState extends State<DynamicTaskView> {
         if (!done)
           Row(
             children: [
-              OutlinedButton(
-                key: ValueKey('dynamic-order-clear-${b.id}'),
-                onPressed: picks.isEmpty
-                    ? null
-                    : () => setState(() => _orderPicks[b.id]!.clear()),
-                child: Text(tr('dtask_clear')),
+              Expanded(
+                child: EngramButton(
+                  key: ValueKey('dynamic-order-clear-${b.id}'),
+                  variant: EngramButtonVariant.secondary,
+                  height: 52,
+                  onPressed: picks.isEmpty
+                      ? null
+                      : () => setState(() => _orderPicks[b.id]!.clear()),
+                  label: tr('dtask_clear'),
+                ),
               ),
               const SizedBox(width: 8),
-              OutlinedButton(
-                key: ValueKey('dynamic-order-check-${b.id}'),
-                onPressed: picks.length == b.options.length
-                    ? () {
-                        var exact = true;
-                        for (var i = 0; i < picks.length; i++) {
-                          if (picks[i] != i) exact = false;
+              Expanded(
+                child: EngramButton(
+                  key: ValueKey('dynamic-order-check-${b.id}'),
+                  variant: EngramButtonVariant.secondary,
+                  height: 52,
+                  onPressed: picks.length == b.options.length
+                      ? () {
+                          var exact = true;
+                          for (var i = 0; i < picks.length; i++) {
+                            if (picks[i] != i) exact = false;
+                          }
+                          _markDone(b, correct: exact);
                         }
-                        _markDone(b, correct: exact);
-                      }
-                    : null,
-                child: Text(tr('dtask_check_order')),
+                      : null,
+                  label: tr('dtask_check_order'),
+                ),
               ),
             ],
           ),
@@ -559,13 +552,9 @@ class _DynamicTaskViewState extends State<DynamicTaskView> {
           Text(
             _correct[b.id] == true
                 ? tr('dtask_order_ok')
-                : tr('dtask_order_wrong', {
-                    'order': b.options.join(' → '),
-                  }),
+                : tr('dtask_order_wrong', {'order': b.options.join(' → ')}),
             style: TextStyle(
-              color: _correct[b.id] == true
-                  ? context.mutedText
-                  : coral,
+              color: _correct[b.id] == true ? context.mutedText : coral,
               fontSize: 13,
             ),
           ),

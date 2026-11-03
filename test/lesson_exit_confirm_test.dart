@@ -1,3 +1,4 @@
+import 'package:engrammo/l10n/app_localizations.dart';
 import 'package:engrammo/screens/lesson_player.dart';
 import 'package:engrammo/widgets/app_buttons.dart';
 import 'package:flutter/material.dart';
@@ -54,7 +55,7 @@ void main() {
     await tester.tap(find.byType(EngramBackButton));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('lesson-exit-dialog')), findsNothing);
+    expect(find.text(tr('lp_exit_title')), findsNothing);
     expect(find.byKey(const ValueKey('open-lesson')), findsOneWidget);
   });
 
@@ -65,16 +66,16 @@ void main() {
 
     await tester.tap(find.byType(EngramBackButton));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('lesson-exit-dialog')), findsOneWidget);
+    expect(find.text(tr('lp_exit_title')), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('lesson-exit-stay')));
+    await tester.tap(find.text(tr('lp_exit_stay')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('lesson-exit-dialog')), findsNothing);
+    expect(find.text(tr('lp_exit_title')), findsNothing);
     expect(find.byKey(const ValueKey('lesson-memorized')), findsOneWidget);
 
     await tester.tap(find.byType(EngramBackButton));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('lesson-exit-leave')));
+    await tester.tap(find.text(tr('lp_exit_leave')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('open-lesson')), findsOneWidget);
   });

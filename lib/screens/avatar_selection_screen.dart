@@ -8,6 +8,7 @@ import 'package:hugeicons/hugeicons.dart';
 import '../l10n/app_localizations.dart';
 import '../l10n/avatar_hu.dart';
 import '../widgets/app_buttons.dart';
+import '../widgets/app_kit.dart';
 import '../theme/app_colors.dart' show ink, muted, blue, blueDark, blueShadow;
 import '../models/avatar_traits.dart';
 import '../services/dicebear_generator.dart';
@@ -553,13 +554,10 @@ class _Stage extends StatelessWidget {
                                     } else {
                                       return const Padding(
                                         padding: EdgeInsets.only(bottom: 100),
-                                        child: SizedBox(
-                                          width: 36,
-                                          height: 36,
-                                          child: CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 3,
-                                          ),
+                                        child: AppLoader(
+                                          size: 36,
+                                          stroke: 3,
+                                          color: Colors.white,
                                         ),
                                       );
                                     }
@@ -997,14 +995,7 @@ class _OptionTile extends StatelessWidget {
                       }
                       if (svg == null) {
                         return const Center(
-                          child: SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: blue,
-                            ),
-                          ),
+                          child: AppLoader(size: 18, stroke: 2, color: blue),
                         );
                       }
                       return Padding(
@@ -1149,11 +1140,7 @@ class _ForgeLoader extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
-              width: 40,
-              height: 40,
-              child: CircularProgressIndicator(color: blue),
-            ),
+            const AppSkeletonList(),
             SizedBox(height: 16),
             Text(
               tr('avatar_building'),

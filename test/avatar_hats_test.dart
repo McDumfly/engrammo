@@ -1,4 +1,5 @@
 import 'package:engrammo/models/avatar_traits.dart';
+import 'package:engrammo/widgets/app_kit.dart';
 import 'package:engrammo/screens/avatar_selection_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -29,7 +30,10 @@ void main() {
         () => Future<void>.delayed(const Duration(milliseconds: 50)),
       );
       await tester.pump(const Duration(milliseconds: 50));
-      if (find.byType(CircularProgressIndicator).evaluate().isEmpty) break;
+      if (find.byType(AppLoader).evaluate().isEmpty &&
+        find.byType(AppSkeleton).evaluate().isEmpty) {
+      break;
+    }
     }
     await tester.pumpAndSettle();
   }

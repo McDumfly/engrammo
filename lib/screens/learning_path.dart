@@ -24,6 +24,7 @@ import '../models/marathon.dart'
         trackProgramLineIn;
 import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
+import '../widgets/app_kit.dart';
 import '../widgets/honesty_sheet.dart';
 import '../widgets/missions_sheet.dart';
 import '../services/app_feedback.dart';
@@ -227,20 +228,15 @@ bool showSpacedGateIfLocked(
     depth: nextDepth,
     now: now,
   );
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(
-        reviewLockedMessageIn(
-          AppLocalizations.localeCode,
-          depth: nextDepth,
-          daysLeft: daysLeft,
-        ),
-      ),
-      action: SnackBarAction(
-        label: tr('lpt_up_now'),
-        onPressed: onWarp,
-      ),
+  showAppToast(
+    context,
+    reviewLockedMessageIn(
+      AppLocalizations.localeCode,
+      depth: nextDepth,
+      daysLeft: daysLeft,
     ),
+    actionLabel: tr('lpt_up_now'),
+    onAction: onWarp,
   );
   return true;
 }
@@ -331,8 +327,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
     var goalsCount = 0;
     try {
       goalsCount = (await MemoryStore.loadUserGoals()).length;
-    } catch (_) {
-    }
+    } catch (_) {}
     StreakState? streakState;
     try {
       streakState = await MemoryStore.loadStreakState();
@@ -403,8 +398,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
       final goals = await MemoryStore.loadUserGoals();
       if (!mounted) return;
       setState(() => _goalsCount = goals.length);
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> _loadStreak() async {
@@ -451,18 +445,9 @@ class _LearningPathPageState extends State<LearningPathPage> {
   }
 
   void _openRestoreDialog(RestorePlan plan) {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => StreakRestoreDialog(
-        plan: plan,
-        engrams: _engrams,
-        onRestore: () {
-          Navigator.pop(ctx);
-          _restoreStreak(plan);
-        },
-        onLater: () => Navigator.pop(ctx),
-      ),
-    );
+    showStreakRestoreDialog(context, plan, _engrams).then((restored) {
+      if (restored == true && mounted) _restoreStreak(plan);
+    });
   }
 
   Future<void> _restoreStreak(RestorePlan plan) async {
@@ -579,19 +564,10 @@ class _LearningPathPageState extends State<LearningPathPage> {
               key: const ValueKey('back-to-now-fab'),
               right: 16,
               bottom: 110,
-              child: FloatingActionButton.small(
-                heroTag: 'back-to-now',
-                backgroundColor: context.cardBg,
-                shape: StadiumBorder(
-                  side: BorderSide(color: context.washBorder),
-                ),
-                onPressed: _warpToNow,
-                child: const HugeIcon(
-                  icon: HugeIcons.strokeRoundedArrowUp01,
-                  color: blue,
-                  size: 22,
-                  strokeWidth: 2.2,
-                ),
+              child: AppIconButton(
+                icon: HugeIcons.strokeRoundedArrowUp01,
+                color: blue,
+                onTap: _warpToNow,
               ),
             ),
           // Kulcs kell: a feltételes testvérek miatt e nélkül a navbar
@@ -751,12 +727,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
           _stationTodo(
             offset: offset,
             number: station,
-            title: lessonTitleIn(
-              AppLocalizations.localeCode,
-              chapterIdx,
-              s,
-              l,
-            ),
+            title: lessonTitleIn(AppLocalizations.localeCode, chapterIdx, s, l),
             onTap: () => _openLesson(chapterIdx, s, l),
             badgeKey: ValueKey('path-lesson-$chapterIdx-$s-$l'),
           ),
@@ -883,9 +854,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
                   Text(
                     tr('lpt_part_title', {'i': index + 1}),
                     style: TextStyle(
-                      color: locked
-                          ? sub
-                          : (context.isDark ? blue : blueDark),
+                      color: locked ? sub : (context.isDark ? blue : blueDark),
                       fontWeight: FontWeight.bold,
                       fontSize: 11,
                       letterSpacing: 1.2,
@@ -982,8 +951,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
         ),
       ),
     );
-    final pillShadow =
-        dimmed ? _dim(context.faintBorder) : context.faintBorder;
+    final pillShadow = dimmed ? _dim(context.faintBorder) : context.faintBorder;
     final labelPill = ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 200),
       child: Container(
@@ -1313,9 +1281,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
   Future<void> _openLesson(int chapter, int section, int lesson) async {
     final loc = trackPositionOfChapter(chapter);
     void lockedNote() {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(tr('lpt_locked_note'))));
+      showAppToast(context, tr('lpt_locked_note'));
     }
 
     if (_chapterLocked(_progress, chaptersForTrack(loc.track), loc.pos)) {
@@ -1381,8 +1347,10 @@ class _LearningPathPageState extends State<LearningPathPage> {
           _claimedChests = {..._claimedChests, chestId};
           _engrams += reward;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(tr('lpt_chest_claimed', {'n': reward}))),
+        showAppToast(
+          context,
+          tr('lpt_chest_claimed', {'n': reward}),
+          kind: ToastKind.success,
         );
       } else {
         setState(() => _claimedChests = {..._claimedChests, chestId});
@@ -1500,10 +1468,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
           strokeWidth: 2.2,
         ),
         const SizedBox(width: 6),
-        Text(
-          tr('lpt_locked_note'),
-          style: TextStyle(color: sub, fontSize: 13),
-        ),
+        Text(tr('lpt_locked_note'), style: TextStyle(color: sub, fontSize: 13)),
       ],
     );
   }
@@ -1721,10 +1686,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      chapterRealmIn(
-                        AppLocalizations.localeCode,
-                        chapterIdx,
-                      ),
+                      chapterRealmIn(AppLocalizations.localeCode, chapterIdx),
                       style: TextStyle(
                         color: locked
                             ? _dim(context.inkText, 0.6)
@@ -1818,10 +1780,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
           Text(
             complete
                 ? tr('lpt_foundation_body', {
-                    'track': trackName(
-                      _memory,
-                      AppLocalizations.localeCode,
-                    ),
+                    'track': trackName(_memory, AppLocalizations.localeCode),
                   })
                 : tr('lpt_foundation_keep'),
             textAlign: TextAlign.center,
@@ -2365,8 +2324,7 @@ class _ChapterListPageState extends State<_ChapterListPage> {
                                                         Text(
                                                           tr('lpt_part_name', {
                                                             'i': p + 1,
-                                                            'name':
-                                                                sectionNameIn(
+                                                            'name': sectionNameIn(
                                                               AppLocalizations
                                                                   .localeCode,
                                                               i,
@@ -2383,8 +2341,7 @@ class _ChapterListPageState extends State<_ChapterListPage> {
                                                         ),
                                                         Text(
                                                           tr('lpt_part_tech', {
-                                                            'tech':
-                                                                sectionTechniqueIn(
+                                                            'tech': sectionTechniqueIn(
                                                               AppLocalizations
                                                                   .localeCode,
                                                               i,
@@ -2518,26 +2475,22 @@ class _ChapterListPageState extends State<_ChapterListPage> {
             ),
           ),
           const SizedBox(width: 8),
-          Tooltip(
-            message: tr('lpt_missions_tip'),
-            child: InkWell(
-              key: ValueKey('missions-$track'),
-              borderRadius: BorderRadius.circular(12),
-              onTap: () => showMissionsSheet(context, track),
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: spec.tint.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                alignment: Alignment.center,
-                child: HugeIcon(
-                  icon: HugeIcons.strokeRoundedFlag01,
-                  color: spec.tint,
-                  size: 20,
-                  strokeWidth: 2.0,
-                ),
+          Tappable(
+            key: ValueKey('missions-$track'),
+            onTap: () => showMissionsSheet(context, track),
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: spec.tint.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              alignment: Alignment.center,
+              child: HugeIcon(
+                icon: HugeIcons.strokeRoundedFlag01,
+                color: spec.tint,
+                size: 20,
+                strokeWidth: 2.0,
               ),
             ),
           ),
@@ -2604,8 +2557,7 @@ class _PartDetailPageState extends State<_PartDetailPage> {
         _reps = reps;
         _doneDates = doneDates;
       });
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   int _depthFor(int lessonIdx) {
@@ -2686,10 +2638,7 @@ class _PartDetailPageState extends State<_PartDetailPage> {
       lessonIdx,
     );
     final stars = _starsFor(lessonIdx);
-    final nextDepth = depthForNextSession(
-      reps: _reps[key] ?? 0,
-      stars: stars,
-    );
+    final nextDepth = depthForNextSession(reps: _reps[key] ?? 0, stars: stars);
     final lastDone = _doneDates[key];
     final now = DateTime.now();
     if (showSpacedGateIfLocked(
@@ -2753,9 +2702,7 @@ class _PartDetailPageState extends State<_PartDetailPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          tr('lpt_part_title', {
-                            'i': widget.partIndex + 1,
-                          }),
+                          tr('lpt_part_title', {'i': widget.partIndex + 1}),
                           style: TextStyle(
                             color: Theme.of(context).colorScheme.onSurface,
                             fontWeight: FontWeight.bold,
@@ -2938,10 +2885,7 @@ class _PartDetailPageState extends State<_PartDetailPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  tr('lpt_step_of', {
-                                    'i': i + 1,
-                                    'n': total,
-                                  }),
+                                  tr('lpt_step_of', {'i': i + 1, 'n': total}),
                                   style: TextStyle(
                                     color: context.mutedText,
                                     fontSize: 11,
@@ -2982,9 +2926,7 @@ class _PartDetailPageState extends State<_PartDetailPage> {
                                       'status': _reviewStatus(i),
                                     }),
                                     style: TextStyle(
-                                      color: context.isDark
-                                          ? blue
-                                          : blueDark,
+                                      color: context.isDark ? blue : blueDark,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                     ),

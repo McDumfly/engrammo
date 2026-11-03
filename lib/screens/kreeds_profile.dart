@@ -10,6 +10,7 @@ import 'package:hugeicons/hugeicons.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
+import '../widgets/app_kit.dart';
 import 'auth_screen.dart';
 import 'avatar_selection_screen.dart';
 import '../models/avatar_traits.dart';
@@ -290,8 +291,10 @@ class _KreedsProfilePageState extends State<KreedsProfilePage> {
     AppFeedback.light();
     final handle = username.isEmpty ? tr('kreeds_new_handle') : username;
     Clipboard.setData(ClipboardData(text: '@$handle'));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(tr('kreeds_copied', {'handle': handle}))),
+    showAppToast(
+      context,
+      tr('kreeds_copied', {'handle': handle}),
+      kind: ToastKind.success,
     );
   }
 
@@ -1228,32 +1231,13 @@ class _MemoryIdentityCard extends StatelessWidget {
                           key: const ValueKey('memory-level-info'),
                           onTap: () {
                             AppFeedback.light();
-                            showDialog<void>(
-                              context: context,
-                              builder: (dlgCtx) => AlertDialog(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                title: Text(
-                                  tr('kreeds_level_how'),
-                                  style: TextStyle(
-                                    color: context.inkText,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                                content: Text(
-                                  '$levelExplainer\n\n$levelFootnote',
-                                  style: TextStyle(
-                                    color: context.mutedText,
-                                    height: 1.4,
-                                  ),
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.of(dlgCtx).pop(),
-                                    child: Text(tr('common_got_it')),
-                                  ),
-                                ],
+                            showAppDialog<void>(
+                              context,
+                              title: tr('kreeds_level_how'),
+                              body: '$levelExplainer\n\n$levelFootnote',
+                              primary: AppDialogAction(
+                                tr('common_got_it'),
+                                value: null,
                               ),
                             );
                           },
@@ -1869,19 +1853,9 @@ class _AllBadgesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+      appBar: AppTopBar(
+        title: tr('kreeds_badges'),
         leading: const EngramBackButton(),
-        title: Text(
-          tr('kreeds_badges'),
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.w900,
-            fontSize: 20,
-          ),
-        ),
         actions: const [
           AiHelpButton(topic: AiHelpTopics.general),
           SizedBox(width: 12),
@@ -1975,12 +1949,7 @@ class _BadgeDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: const EngramBackButton(),
-      ),
+      appBar: const AppTopBar(leading: EngramBackButton()),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),

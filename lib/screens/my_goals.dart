@@ -11,48 +11,24 @@ import '../models/validated_tasks.dart' show specForId;
 import '../services/app_feedback.dart';
 import '../services/memory_store.dart';
 import '../services/meta_ai_service.dart';
-import '../theme/app_colors.dart' show blue, coral, error, teal;
+import '../theme/app_colors.dart' show blue, coral, teal;
 import '../theme/app_theme.dart';
 import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
+import '../widgets/app_kit.dart';
 import '../widgets/dynamic_task_view.dart';
 
 /// Közös törlés-megerősítő a cél-listához és a cél-részletezőhöz.
 Future<bool?> confirmGoalDelete(BuildContext context, String title) {
-  return showDialog<bool>(
-    context: context,
-    builder: (dlgCtx) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Text(
-        tr('myg_delete_title'),
-        style: TextStyle(
-          color: context.inkText,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-      content: Text(
-        tr('myg_delete_body', {'title': title}),
-        style: TextStyle(color: context.mutedText),
-      ),
-      actions: [
-        EngramMiniButton(
-          label: tr('myg_keep'),
-          background: context.mutedText,
-          onTap: () {
-            AppFeedback.light();
-            Navigator.of(dlgCtx).pop(false);
-          },
-        ),
-        EngramMiniButton(
-          label: tr('myg_delete'),
-          background: error,
-          onTap: () {
-            AppFeedback.light();
-            Navigator.of(dlgCtx).pop(true);
-          },
-        ),
-      ],
-    ),
+  return showAppDialog<bool>(
+    context,
+    title: tr('myg_delete_title'),
+    body: tr('myg_delete_body', {'title': title}),
+    icon: HugeIcons.strokeRoundedDelete02,
+    iconColor: coral,
+    destructive: true,
+    primary: AppDialogAction(tr('myg_delete'), value: true),
+    secondary: AppDialogAction(tr('myg_keep'), value: false),
   );
 }
 
@@ -110,17 +86,16 @@ class _MyGoalsPageState extends State<MyGoalsPage> {
   }
 
   Future<void> _openNew() async {
-    final created = await Navigator.of(context).push<UserGoal>(
-      MaterialPageRoute(builder: (_) => const NewGoalPage()),
-    );
+    final created = await Navigator.of(context)
+        .push<UserGoal>(MaterialPageRoute(builder: (_) => const NewGoalPage()));
     if (created != null && mounted) _load();
   }
 
   Future<void> _openGoal(UserGoal goal) async {
     AppFeedback.light();
-    await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => GoalDetailPage(goalId: goal.id)),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => GoalDetailPage(goalId: goal.id)));
     if (mounted) _load();
   }
 
@@ -136,28 +111,16 @@ class _MyGoalsPageState extends State<MyGoalsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: EngramBackButton(
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          tr('myg_title'),
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
+      appBar: AppTopBar(
+        title: tr('myg_title'),
+        leading: EngramBackButton(onPressed: () => Navigator.of(context).pop()),
         actions: const [
           AiHelpButton(topic: AiHelpTopics.goals),
           SizedBox(width: 12),
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const AppSkeletonList()
           : ListView(
               key: const ValueKey('goals-list'),
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -182,7 +145,9 @@ class _MyGoalsPageState extends State<MyGoalsPage> {
                   onPressed: _openNew,
                 ),
                 const SizedBox(height: 12),
-                if (_goals.isEmpty) _emptyCard() else ...[
+                if (_goals.isEmpty)
+                  _emptyCard()
+                else ...[
                   for (final goal in _goals) ...[
                     _goalCard(goal),
                     const SizedBox(height: 10),
@@ -226,11 +191,7 @@ class _MyGoalsPageState extends State<MyGoalsPage> {
           const SizedBox(height: 8),
           Text(
             tr('myg_examples_body'),
-            style: TextStyle(
-              color: context.inkText,
-              fontSize: 13,
-              height: 1.6,
-            ),
+            style: TextStyle(color: context.inkText, fontSize: 13, height: 1.6),
           ),
         ],
       ),
@@ -426,21 +387,9 @@ class _NewGoalPageState extends State<NewGoalPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: EngramBackButton(
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          tr('myg_new_title'),
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
+      appBar: AppTopBar(
+        title: tr('myg_new_title'),
+        leading: EngramBackButton(onPressed: () => Navigator.of(context).pop()),
         actions: const [
           AiHelpButton(topic: AiHelpTopics.goals),
           SizedBox(width: 12),
@@ -458,75 +407,46 @@ class _NewGoalPageState extends State<NewGoalPage> {
             ),
           ),
           const SizedBox(height: 12),
-          TextField(
+          AppTextField(
             key: const ValueKey('goal-title-input'),
             controller: _titleCtrl,
             onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(
-              labelText: tr('myg_label_title'),
-              hintText: tr('myg_hint_title'),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 10,
-              ),
-            ),
-            style: TextStyle(color: context.inkText, fontSize: 14),
+            label: tr('myg_label_title'),
+            hint: tr('myg_hint_title'),
           ),
           const SizedBox(height: 10),
-          TextField(
+          AppTextField(
             key: const ValueKey('goal-details-input'),
             controller: _detailsCtrl,
             maxLines: 2,
             minLines: 1,
-            decoration: InputDecoration(
-              labelText: tr('myg_label_details'),
-              hintText: tr('myg_hint_details'),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 10,
-              ),
-            ),
-            style: TextStyle(color: context.inkText, fontSize: 14),
+            label: tr('myg_label_details'),
+            hint: tr('myg_hint_details'),
           ),
           const SizedBox(height: 10),
-          TextField(
+          AppTextField(
             key: const ValueKey('goal-material-input'),
             controller: _materialCtrl,
             maxLines: 4,
             minLines: 2,
-            decoration: InputDecoration(
-              labelText: tr('myg_label_material'),
-              hintText: tr('myg_hint_material'),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 10,
-              ),
-            ),
-            style: TextStyle(color: context.inkText, fontSize: 14),
+            label: tr('myg_label_material'),
+            hint: tr('myg_hint_material'),
           ),
           const SizedBox(height: 12),
-          OutlinedButton(
+          EngramButton(
             key: const ValueKey('goal-analyze-button'),
+            variant: EngramButtonVariant.secondary,
+            height: 52,
             onPressed: _titleCtrl.text.trim().isEmpty || _analyzing
                 ? null
                 : _analyze,
-            child: Text(tr('myg_analyze')),
+            label: tr('myg_analyze'),
           ),
           if (_analyzing) ...[
             const SizedBox(height: 10),
-            LinearProgressIndicator(
+            AppProgressBar(
               key: const ValueKey('goal-analyze-progress'),
-              minHeight: 6,
-              borderRadius: BorderRadius.circular(6),
+              height: 6,
             ),
             const SizedBox(height: 4),
             Text(
@@ -698,8 +618,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
   void _onMaterialChanged() {
     // Csak a piszkos-állapot váltásakor építünk újra, nem minden
     // billentyűleütésre (a mentés gomb engedélyezése a tét).
-    final dirty =
-        _materialCtrl.text.trim() != (_goal?.material.trim() ?? '');
+    final dirty = _materialCtrl.text.trim() != (_goal?.material.trim() ?? '');
     if (dirty != _materialDirty && mounted) {
       setState(() => _materialDirty = dirty);
     }
@@ -710,9 +629,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
     final planDone = await MemoryStore.loadGoalPlanDone(widget.goalId);
     if (!mounted) return;
     if (goal == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(tr('myg_gone'))));
+      showAppToast(context, tr('myg_gone'), kind: ToastKind.error);
       Navigator.of(context).pop();
       return;
     }
@@ -817,9 +734,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
 
   Future<void> _runDiagnose() async {
     final goal = _goal;
-    if (goal == null ||
-        _busy != null ||
-        _forgotCtrl.text.trim().isEmpty) {
+    if (goal == null || _busy != null || _forgotCtrl.text.trim().isEmpty) {
       return;
     }
     setState(() {
@@ -899,7 +814,8 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
       MetaTaskRequest(
         kind: kind,
         difficulty: _analysis.difficulty,
-        seed: 'goal:${goal.id}:drill:$_drillRound:'
+        seed:
+            'goal:${goal.id}:drill:$_drillRound:'
             '${DateTime.now().millisecondsSinceEpoch}',
         locale: AppLocalizations.localeCode,
       ),
@@ -942,21 +858,9 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
     final goal = _goal;
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: EngramBackButton(
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          goal?.title ?? tr('myg_goal_fallback'),
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
+      appBar: AppTopBar(
+        title: goal?.title ?? tr('myg_goal_fallback'),
+        leading: EngramBackButton(onPressed: () => Navigator.of(context).pop()),
         actions: [
           AiHelpButton(
             topic: AiHelpTopics.goals,
@@ -966,7 +870,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
         ],
       ),
       body: _loading || goal == null
-          ? const Center(child: CircularProgressIndicator())
+          ? const AppSkeletonList()
           : ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
@@ -984,10 +888,10 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
                 const SizedBox(height: 12),
                 _drillCard(),
                 const SizedBox(height: 16),
-                TextButton(
+                EngramTextButton(
                   key: const ValueKey('goal-delete-button'),
+                  label: tr('myg_delete_this'),
                   onPressed: _busy == null ? _delete : null,
-                  child: Text(tr('myg_delete_this')),
                 ),
               ],
             ),
@@ -1080,9 +984,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
                     Text(
                       tr('myg_reanalyze'),
                       style: TextStyle(
-                        color: _busy == null
-                            ? blue
-                            : context.mutedText,
+                        color: _busy == null ? blue : context.mutedText,
                         fontWeight: FontWeight.w700,
                         fontSize: 12,
                       ),
@@ -1094,10 +996,9 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
           ),
           if (_busy == 'reanalyze') ...[
             const SizedBox(height: 8),
-            LinearProgressIndicator(
+            AppProgressBar(
               key: const ValueKey('goal-reanalyze-progress'),
-              minHeight: 6,
-              borderRadius: BorderRadius.circular(6),
+              height: 6,
             ),
           ],
         ],
@@ -1144,12 +1045,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
         children: [
           Row(
             children: [
-              HugeIcon(
-                icon: icon,
-                color: blue,
-                size: 20,
-                strokeWidth: 2.2,
-              ),
+              HugeIcon(icon: icon, color: blue, size: 20, strokeWidth: 2.2),
               const SizedBox(width: 8),
               Text(
                 title,
@@ -1183,11 +1079,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 10),
-        LinearProgressIndicator(
-          key: ValueKey(keyName),
-          minHeight: 6,
-          borderRadius: BorderRadius.circular(6),
-        ),
+        AppProgressBar(key: ValueKey(keyName), height: 6),
         const SizedBox(height: 4),
         Text(
           label,
@@ -1231,9 +1123,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
                       : context.washBg,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: _planDone.contains(i)
-                        ? teal
-                        : context.faintBorder,
+                    color: _planDone.contains(i) ? teal : context.faintBorder,
                   ),
                 ),
                 child: Row(
@@ -1242,9 +1132,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
                       icon: _planDone.contains(i)
                           ? HugeIcons.strokeRoundedCheckmarkCircle02
                           : HugeIcons.strokeRoundedCircle,
-                      color: _planDone.contains(i)
-                          ? teal
-                          : context.mutedText,
+                      color: _planDone.contains(i) ? teal : context.mutedText,
                       size: 20,
                       strokeWidth: 2.2,
                     ),
@@ -1276,32 +1164,22 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
       title: tr('myg_material_title'),
       blurb: tr('myg_material_blurb'),
       children: [
-        TextField(
+        AppTextField(
           key: const ValueKey('goal-detail-material-input'),
           controller: _materialCtrl,
           maxLines: 4,
           minLines: 2,
-          decoration: InputDecoration(
-            hintText: tr('myg_hint_material'),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 10,
-            ),
-          ),
-          style: TextStyle(color: context.inkText, fontSize: 14),
+          hint: tr('myg_hint_material'),
         ),
         const SizedBox(height: 8),
-        OutlinedButton(
+        EngramButton(
           key: const ValueKey('goal-material-save'),
+          variant: EngramButtonVariant.secondary,
+          height: 52,
           onPressed: dirty && !_savingMaterial && _busy == null
               ? _saveMaterial
               : null,
-          child: Text(
-            _savingMaterial ? tr('myg_saving') : tr('myg_save_material'),
-          ),
+          label: _savingMaterial ? tr('myg_saving') : tr('myg_save_material'),
         ),
       ],
     );
@@ -1314,15 +1192,15 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
       title: tr('myg_teach_title'),
       blurb: tr('myg_teach_blurb'),
       children: [
-        OutlinedButton(
+        EngramButton(
           key: const ValueKey('goal-teach-button'),
+          variant: EngramButtonVariant.secondary,
+          height: 52,
           onPressed: _busy == null ? _runTeach : null,
-          child: Text(tr('myg_teach_btn')),
+          label: tr('myg_teach_btn'),
         ),
-        if (_busy == 'teach') _aiProgress(
-          'goal-teach-progress',
-          tr('myg_teach_busy'),
-        ),
+        if (_busy == 'teach')
+          _aiProgress('goal-teach-progress', tr('myg_teach_busy')),
         if (_teacherText.isNotEmpty) ...[
           const SizedBox(height: 10),
           Text(
@@ -1348,38 +1226,27 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
       title: tr('myg_diag_title'),
       blurb: tr('myg_diag_blurb'),
       children: [
-        TextField(
+        AppTextField(
           key: const ValueKey('goal-forgot-input'),
           controller: _forgotCtrl,
           maxLines: 2,
           minLines: 1,
           onChanged: (_) => setState(() {}),
-          decoration: InputDecoration(
-            labelText: tr('myg_diag_label'),
-            hintText: tr('myg_diag_hint'),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 10,
-            ),
-          ),
-          style: TextStyle(color: context.inkText, fontSize: 14),
+          label: tr('myg_diag_label'),
+          hint: tr('myg_diag_hint'),
         ),
         const SizedBox(height: 8),
-        OutlinedButton(
+        EngramButton(
           key: const ValueKey('goal-diagnose-button'),
-          onPressed:
-              _busy == null && _forgotCtrl.text.trim().isNotEmpty
+          variant: EngramButtonVariant.secondary,
+          height: 52,
+          onPressed: _busy == null && _forgotCtrl.text.trim().isNotEmpty
               ? _runDiagnose
               : null,
-          child: Text(tr('myg_diag_btn')),
+          label: tr('myg_diag_btn'),
         ),
-        if (_busy == 'diagnose') _aiProgress(
-          'goal-diagnose-progress',
-          tr('myg_diag_busy'),
-        ),
+        if (_busy == 'diagnose')
+          _aiProgress('goal-diagnose-progress', tr('myg_diag_busy')),
         if (_diagnoseText.isNotEmpty) ...[
           const SizedBox(height: 10),
           Text(
@@ -1405,15 +1272,14 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
       title: tr('myg_build_title'),
       blurb: tr('myg_build_blurb'),
       children: [
-        FilledButton(
+        EngramButton(
           key: const ValueKey('goal-build-button'),
+          height: 52,
           onPressed: _busy == null ? _runBuild : null,
-          child: Text(tr('myg_build_btn')),
+          label: tr('myg_build_btn'),
         ),
-        if (_busy == 'build') _aiProgress(
-          'goal-build-progress',
-          tr('myg_build_busy'),
-        ),
+        if (_busy == 'build')
+          _aiProgress('goal-build-progress', tr('myg_build_busy')),
         if (_dynamic != null) ...[
           const SizedBox(height: 12),
           DynamicTaskView(
@@ -1434,15 +1300,15 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
       blurb: tr('myg_drill_blurb'),
       children: [
         if (_drill == null && _busy != 'drill')
-          OutlinedButton(
+          EngramButton(
             key: const ValueKey('goal-drill-button'),
+            variant: EngramButtonVariant.secondary,
+            height: 52,
             onPressed: _busy == null ? _runDrill : null,
-            child: Text(tr('myg_drill_btn')),
+            label: tr('myg_drill_btn'),
           ),
-        if (_busy == 'drill') _aiProgress(
-          'goal-drill-progress',
-          tr('myg_drill_busy'),
-        ),
+        if (_busy == 'drill')
+          _aiProgress('goal-drill-progress', tr('myg_drill_busy')),
         if (_drill != null) _drillBody(_drill!),
       ],
     );
@@ -1505,11 +1371,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
         const SizedBox(height: 10),
         Text(
           drill.question,
-          style: TextStyle(
-            color: context.inkText,
-            fontSize: 14,
-            height: 1.4,
-          ),
+          style: TextStyle(color: context.inkText, fontSize: 14, height: 1.4),
         ),
         const SizedBox(height: 8),
         for (var i = 0; i < drill.options.length; i++)
@@ -1569,10 +1431,12 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
             ),
           ],
           const SizedBox(height: 8),
-          OutlinedButton(
+          EngramButton(
             key: const ValueKey('goal-drill-next'),
+            variant: EngramButtonVariant.secondary,
+            height: 52,
             onPressed: _busy == null ? _nextDrill : null,
-            child: Text(tr('myg_drill_next')),
+            label: tr('myg_drill_next'),
           ),
         ],
         const SizedBox(height: 4),

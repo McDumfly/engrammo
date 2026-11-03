@@ -13,6 +13,7 @@ import '../services/profile_setup.dart';
 import '../theme/app_colors.dart' show error, success;
 import '../theme/app_theme.dart';
 import '../widgets/app_buttons.dart';
+import '../widgets/app_kit.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
   final VoidCallback onDone;
@@ -63,8 +64,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     _debounce?.cancel();
     final uid = authService.user?.uid ?? '';
     final name = ProfileSetupRules.normalizeUsername(_usernameCtrl.text);
-    if (uid.isEmpty ||
-        ProfileSetupRules.validateUsername(name) != null) {
+    if (uid.isEmpty || ProfileSetupRules.validateUsername(name) != null) {
       if (mounted) setState(() => _available = null);
       return;
     }
@@ -72,8 +72,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     _debounce = Timer(const Duration(milliseconds: 500), () async {
       final free = await CloudSync.isUsernameAvailable(name, uid);
       if (!mounted) return;
-      if (ProfileSetupRules.normalizeUsername(_usernameCtrl.text) !=
-          name) {
+      if (ProfileSetupRules.normalizeUsername(_usernameCtrl.text) != name) {
         return;
       }
       setState(() {
@@ -115,10 +114,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       ).timeout(const Duration(seconds: 10));
       final previous = await MemoryStore.loadProfile();
       if (previous.username.isNotEmpty && previous.username != username) {
-        await CloudSync.releaseUsername(
-          uid: uid,
-          username: previous.username,
-        );
+        await CloudSync.releaseUsername(uid: uid, username: previous.username);
       }
       await MemoryStore.saveProfileWithoutNotify(
         displayName: name,
@@ -131,8 +127,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       await CloudSync.pushFromLocal(uid);
       try {
         await authService.updateDisplayName(name);
-      } catch (_) {
-      }
+      } catch (_) {}
       AppFeedback.medium();
       if (!mounted) return;
       widget.onDone();
@@ -190,10 +185,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                       decoration: BoxDecoration(
                         color: context.cardBg,
                         shape: BoxShape.circle,
-                        border: Border.all(
-                          color: context.hairline,
-                          width: 2,
-                        ),
+                        border: Border.all(color: context.hairline, width: 2),
                       ),
                       alignment: Alignment.center,
                       child: HugeIcon(
@@ -265,14 +257,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                     ),
                     // Menekülőút tartós felhő-hiba esetére: a képernyő
                     // egyébként nem bezárható (PopScope canPop:false).
-                    TextButton(
+                    EngramTextButton(
+                      label: tr('settings_sign_out'),
                       onPressed: _busy
                           ? null
                           : () {
                               AppFeedback.light();
                               authService.signOut();
                             },
-                      child: Text(tr('settings_sign_out')),
                     ),
                   ],
                 ),
@@ -288,11 +280,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     if (_checking) {
       return const Padding(
         padding: EdgeInsets.only(right: 12),
-        child: SizedBox(
-          width: 18,
-          height: 18,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
+        child: AppLoader(size: 18, stroke: 2),
       );
     }
     if (_available == true) {
@@ -356,48 +344,24 @@ class _Field extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.softBg,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: context.hairline, width: 2),
-      ),
-      child: Row(
-        children: [
-          if (prefix != null)
-            Padding(
-              padding: const EdgeInsets.only(left: 14),
-              child: Text(
-                prefix!,
-                style: TextStyle(
-                  color: context.mutedText,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15,
-                ),
+    return AppTextField(
+      controller: controller,
+      enabled: enabled,
+      autocorrect: false,
+      enableSuggestions: false,
+      inputFormatters: inputFormatters,
+      hint: hint,
+      prefix: prefix == null
+          ? null
+          : Text(
+              prefix!,
+              style: TextStyle(
+                color: context.mutedText,
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
               ),
             ),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              enabled: enabled,
-              autocorrect: false,
-              enableSuggestions: false,
-              inputFormatters: inputFormatters,
-              style: TextStyle(color: context.inkText, fontSize: 15),
-              decoration: InputDecoration(
-                hintText: hint,
-                hintStyle: TextStyle(color: context.mutedText, fontSize: 14),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: prefix != null ? 4 : 14,
-                  vertical: 14,
-                ),
-              ),
-            ),
-          ),
-          ?suffix,
-        ],
-      ),
+      suffix: suffix,
     );
   }
 }

@@ -9,6 +9,7 @@ import 'package:hugeicons/hugeicons.dart';
 import '../l10n/app_localizations.dart';
 import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
+import '../widgets/app_kit.dart';
 import '../services/app_feedback.dart';
 import '../models/assessment.dart'
     show
@@ -37,11 +38,7 @@ import '../models/norms.dart'
         minReliabilityN,
         splitHalfReliability;
 import '../models/recall_scoring.dart'
-    show
-        RecallScore,
-        scoreDigitSpan,
-        scoreOrderedCells,
-        scoreStoryRecall;
+    show RecallScore, scoreDigitSpan, scoreOrderedCells, scoreStoryRecall;
 import '../models/study_recommendation.dart'
     show StudyRecommendation, heuristicStudyRecommendation;
 import '../services/memory_store.dart';
@@ -186,13 +183,9 @@ Widget _chipRow(BuildContext context, {required List<int> chipIndexes}) {
           Container(
             width: chipIndexes.length > 3 ? 40 : 52,
             height: chipIndexes.length > 3 ? 40 : 52,
-            margin: EdgeInsets.only(
-              right: k + 1 < chipIndexes.length ? 12 : 0,
-            ),
+            margin: EdgeInsets.only(right: k + 1 < chipIndexes.length ? 12 : 0),
             decoration: BoxDecoration(
-              color: Color(
-                assessmentColorChips[chipIndexes[k]].argb,
-              ),
+              color: Color(assessmentColorChips[chipIndexes[k]].argb),
               shape: BoxShape.circle,
             ),
           ),
@@ -274,10 +267,14 @@ List<_Task> _buildTasks(BuildContext context, {int form = 0}) {
   final hardRev = backHardReversed(f);
   final backEasyExp = easyRev ? backEasy[f].reversed.toList() : backEasy[f];
   final backHardExp = hardRev ? backHard[f].reversed.toList() : backHard[f];
-  final catEasyOpts =
-      _shuffledOptions([catEasy.correct, ...catEasy.lures], 10 + f);
-  final catHardOpts =
-      _shuffledOptions([catHard.correct, ...catHard.lures], 20 + f);
+  final catEasyOpts = _shuffledOptions([
+    catEasy.correct,
+    ...catEasy.lures,
+  ], 10 + f);
+  final catHardOpts = _shuffledOptions([
+    catHard.correct,
+    ...catHard.lures,
+  ], 20 + f);
   return [
     _Task(
       kind: 0,
@@ -541,19 +538,9 @@ class MemoryAssessmentIntroPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+      appBar: AppTopBar(
+        title: tr('mprof_before'),
         leading: const EngramBackButton(),
-        title: Text(
-          tr('mprof_before'),
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.bold,
-            fontSize: 17,
-          ),
-        ),
         actions: [
           AiHelpButton(
             topic: AiHelpTopics.assessment,
@@ -625,9 +612,7 @@ class MemoryAssessmentIntroPage extends StatelessWidget {
             onPressed: () {
               AppFeedback.medium();
               Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                  builder: (_) => const MemoryAssessmentPage(),
-                ),
+                MaterialPageRoute(builder: (_) => const MemoryAssessmentPage()),
               );
             },
           ),
@@ -681,6 +666,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
     _taskCacheForm = _form;
     return fresh;
   }
+
   int _step = 0;
   bool _revealed = false;
   final List<int> _scores = List.filled(6, 0);
@@ -854,11 +840,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
     if (_answered) return;
     final task = _tasks[_step];
     final good = option == task.correct;
-    _registerResult(
-      task: task,
-      proportion: good ? 1 : 0,
-      exact: good,
-    );
+    _registerResult(task: task, proportion: good ? 1 : 0, exact: good);
     setState(() => _picked = option);
   }
 
@@ -892,41 +874,13 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
   }
 
   Future<bool> _confirmExit() async {
-    final leave = await showDialog<bool>(
-      context: context,
-      builder: (dlgCtx) => AlertDialog(
-        key: const ValueKey('assessment-exit-dialog'),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          tr('assess_leave'),
-          style: TextStyle(
-            color: context.inkText,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        content: Text(
-          tr('mprof_leave_body'),
-          style: TextStyle(color: context.mutedText),
-        ),
-        actions: [
-          TextButton(
-            key: const ValueKey('assessment-exit-stay'),
-            onPressed: () {
-              AppFeedback.light();
-              Navigator.of(dlgCtx).pop(false);
-            },
-            child: Text(tr('assess_keep')),
-          ),
-          FilledButton(
-            key: const ValueKey('assessment-exit-leave'),
-            onPressed: () {
-              AppFeedback.light();
-              Navigator.of(dlgCtx).pop(true);
-            },
-            child: Text(tr('assess_leave_btn')),
-          ),
-        ],
-      ),
+    final leave = await showAppDialog<bool>(
+      context,
+      title: tr('assess_leave'),
+      body: tr('mprof_leave_body'),
+      destructive: true,
+      primary: AppDialogAction(tr('assess_leave_btn'), value: true),
+      secondary: AppDialogAction(tr('assess_keep'), value: false),
     );
     return leave == true;
   }
@@ -948,386 +902,179 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
         if (leave && context.mounted) Navigator.of(context).pop();
       },
       child: Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: EngramBackButton(onPressed: _onBackPressed),
-        title: Text(
-          tr('mprof_title', {'n': _step + 1, 'total': _tasks.length}),
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.bold,
-            fontSize: 17,
-          ),
-        ),
-        actions: [
-          AiHelpButton(
-            topic: AiHelpTopics.assessment,
-            helpContext: tr('mprof_task_help'),
-          ),
-          const SizedBox(width: 12),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(6),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(99),
-              child: LinearProgressIndicator(
+        appBar: AppTopBar(
+          title: tr('mprof_title', {'n': _step + 1, 'total': _tasks.length}),
+          leading: EngramBackButton(onPressed: _onBackPressed),
+          actions: [
+            AiHelpButton(
+              topic: AiHelpTopics.assessment,
+              helpContext: tr('mprof_task_help'),
+            ),
+            const SizedBox(width: 12),
+          ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(12),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+              child: AppProgressBar(
                 value: (_step + 1) / _tasks.length,
-                minHeight: 6,
-                backgroundColor: context.hairline,
-                valueColor: const AlwaysStoppedAnimation(blue),
+                height: 6,
               ),
             ),
           ),
         ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: kind.tint.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(12),
+        body: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: kind.tint.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  alignment: Alignment.center,
+                  child: HugeIcon(
+                    icon: kind.icon,
+                    color: kind.tint,
+                    size: 24,
+                    strokeWidth: 2.0,
+                  ),
                 ),
-                alignment: Alignment.center,
-                child: HugeIcon(
-                  icon: kind.icon,
-                  color: kind.tint,
-                  size: 24,
-                  strokeWidth: 2.0,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      kind.displayName,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        kind.displayName,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
-                    ),
-                    Text(
-                      kind.displayModule,
-                      style: TextStyle(color: context.mutedText, fontSize: 13),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: orange.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(99),
-                  border: Border.all(color: orange, width: 1.5),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    HugeIcon(
-                      icon: engram.icon,
-                      color: engram.color,
-                      size: 16,
-                      strokeWidth: 2.4,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      tr('streak_balance', {'n': _xp}),
-                      style: TextStyle(
-                        color: context.inkText,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                      Text(
+                        kind.displayModule,
+                        style: TextStyle(
+                          color: context.mutedText,
+                          fontSize: 13,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              if (_combo >= 2)
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 10,
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: blue.withValues(alpha: 0.12),
+                    color: orange.withValues(alpha: 0.16),
                     borderRadius: BorderRadius.circular(99),
-                    border: Border.all(color: blue, width: 1.5),
+                    border: Border.all(color: orange, width: 1.5),
                   ),
-                  child: Text(
-                    tr('mprof_combo', {'n': _combo}),
-                    style: TextStyle(
-                      color: blueDark,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                )
-              else
-                Text(
-                  tr('mprof_earn'),
-                  style: TextStyle(color: context.mutedText, fontSize: 12),
-                ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (!_revealed) ...[
-            Text(
-              task.stimulusTitle,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
-            ),
-            const SizedBox(height: 12),
-            task.stimulus,
-            if (task.paradigm.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                '${task.paradigm} · ${task.source}',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: context.mutedText,
-                  fontStyle: FontStyle.italic,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-            if (task.kind == 0) ...[
-              const SizedBox(height: 8),
-              Text(
-                tr('mprof_sense', {'n': _senseLeft}),
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: coral,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-            ],
-            const SizedBox(height: 16),
-            EngramPress3D(
-              onTap: _reveal,
-              shadowColor: blueDark,
-              depth: 4,
-              borderRadius: BorderRadius.circular(14),
-              haptic: false,
-              semanticLabel: tr('mprof_continue'),
-              top: Container(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                decoration: BoxDecoration(
-                  color: blue,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  tr('mprof_continue'),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    letterSpacing: 1,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              tr('mprof_prompt_gone'),
-              textAlign: TextAlign.center,
-              style: TextStyle(color: context.mutedText, fontSize: 13),
-            ),
-          ] else ...[
-            Text(
-              task.question,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
-            ),
-            const SizedBox(height: 12),
-            if (task.questionStimulus != null) ...[
-              task.questionStimulus!,
-              const SizedBox(height: 12),
-            ],
-            if (task.mode == _ResponseMode.choice)
-              for (var i = 0; i < task.options.length; i++)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: GestureDetector(
-                    onTap: () => _answer(i),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 13,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      HugeIcon(
+                        icon: engram.icon,
+                        color: engram.color,
+                        size: 16,
+                        strokeWidth: 2.4,
                       ),
-                      decoration: BoxDecoration(
-                        color: _picked == null
-                            ? context.cardBg
-                            : i == task.correct
-                            ? teal.withValues(alpha: 0.14)
-                            : (i == _picked
-                                  ? coral.withValues(alpha: 0.12)
-                                  : context.cardBg),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: _picked != null && i == task.correct
-                              ? teal
-                              : _picked != null && i == _picked
-                              ? coral
-                              : context.hairline,
-                          width: 2,
+                      const SizedBox(width: 4),
+                      Text(
+                        tr('streak_balance', {'n': _xp}),
+                        style: TextStyle(
+                          color: context.inkText,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
                         ),
                       ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              task.options[i],
-                              style: TextStyle(
-                                color: context.inkText,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15,
-                              ),
-                            ),
-                          ),
-                          if (_picked != null && i == task.correct)
-                            const HugeIcon(
-                              icon: HugeIcons.strokeRoundedCheckmarkCircle02,
-                              color: teal,
-                              size: 22,
-                              strokeWidth: 2.2,
-                            ),
-                          if (_picked != null &&
-                              i == _picked &&
-                              _picked != task.correct)
-                            const HugeIcon(
-                              icon: HugeIcons.strokeRoundedCancelCircle,
-                              color: coral,
-                              size: 22,
-                              strokeWidth: 2.2,
-                            ),
-                        ],
-                      ),
-                    ),
+                    ],
                   ),
                 ),
-            if (task.mode == _ResponseMode.recall)
-              RecallTextField(
-                key: ValueKey('recall-$_step'),
-                hint: task.recallHint,
-                keyboard: task.multiline
-                    ? TextInputType.multiline
-                    : TextInputType.text,
-                submitted: _recall != null,
-                detail: _recall?.detail ?? '',
-                exact: _recall?.exact ?? false,
-                answerKey: task.answerKey,
-                onSubmit: _submitRecall,
+                const SizedBox(width: 8),
+                if (_combo >= 2)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: blue.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(99),
+                      border: Border.all(color: blue, width: 1.5),
+                    ),
+                    child: Text(
+                      tr('mprof_combo', {'n': _combo}),
+                      style: TextStyle(
+                        color: blueDark,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  )
+                else
+                  Text(
+                    tr('mprof_earn'),
+                    style: TextStyle(color: context.mutedText, fontSize: 12),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (!_revealed) ...[
+              Text(
+                task.stimulusTitle,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
               ),
-            if (task.mode == _ResponseMode.corsi) ...[
-              CorsiTapGrid(
-                key: ValueKey('corsi-$_step'),
-                submitted: _recall != null,
-                onDone: _answerCorsi,
-              ),
-              if (_recall != null) ...[
+              const SizedBox(height: 12),
+              task.stimulus,
+              if (task.paradigm.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Text(
-                  _recall!.detail,
+                  '${task.paradigm} · ${task.source}',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: context.inkText,
+                    color: context.mutedText,
+                    fontStyle: FontStyle.italic,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+              if (task.kind == 0) ...[
+                const SizedBox(height: 8),
+                Text(
+                  tr('mprof_sense', {'n': _senseLeft}),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: coral,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
                 ),
               ],
-            ],
-            if (_answered)
-              Container(
-                margin: const EdgeInsets.only(top: 4),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: _lastGood
-                      ? orange.withValues(alpha: 0.16)
-                      : context.cardBg,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: _lastGood ? orange : context.hairline,
-                    width: 2,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    HugeIcon(
-                      icon: _lastGood
-                          ? engram.icon
-                          : HugeIcons.strokeRoundedRefresh,
-                      color: _lastGood ? engram.color : context.mutedText,
-                      size: 20,
-                      strokeWidth: 2.2,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _lastGood
-                            ? (_combo >= 3
-                                  ? tr('mprof_sealed', {
-                                      'combo': _combo,
-                                      'gain': _lastGain,
-                                    })
-                                  : tr('mprof_nice', {'gain': _lastGain}))
-                            : _lastGain > 0
-                            ? tr('mprof_partial', {'gain': _lastGain})
-                            : tr('mprof_next_double'),
-                        style: TextStyle(
-                          color: context.inkText,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            if (_answered) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               EngramPress3D(
-                key: const ValueKey('assessment-continue'),
-                onTap: () {
-                  AppFeedback.medium();
-                  unawaited(_nextStep());
-                },
+                onTap: _reveal,
                 shadowColor: blueDark,
                 depth: 4,
                 borderRadius: BorderRadius.circular(14),
                 haptic: false,
-                semanticLabel: tr('mprof_continue_btn'),
+                semanticLabel: tr('mprof_continue'),
                 top: Container(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   decoration: BoxDecoration(
@@ -1336,7 +1083,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    tr('mprof_continue_btn'),
+                    tr('mprof_continue'),
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -1346,10 +1093,205 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                   ),
                 ),
               ),
+              const SizedBox(height: 8),
+              Text(
+                tr('mprof_prompt_gone'),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: context.mutedText, fontSize: 13),
+              ),
+            ] else ...[
+              Text(
+                task.question,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (task.questionStimulus != null) ...[
+                task.questionStimulus!,
+                const SizedBox(height: 12),
+              ],
+              if (task.mode == _ResponseMode.choice)
+                for (var i = 0; i < task.options.length; i++)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: GestureDetector(
+                      onTap: () => _answer(i),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 13,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _picked == null
+                              ? context.cardBg
+                              : i == task.correct
+                              ? teal.withValues(alpha: 0.14)
+                              : (i == _picked
+                                    ? coral.withValues(alpha: 0.12)
+                                    : context.cardBg),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: _picked != null && i == task.correct
+                                ? teal
+                                : _picked != null && i == _picked
+                                ? coral
+                                : context.hairline,
+                            width: 2,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                task.options[i],
+                                style: TextStyle(
+                                  color: context.inkText,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                            if (_picked != null && i == task.correct)
+                              const HugeIcon(
+                                icon: HugeIcons.strokeRoundedCheckmarkCircle02,
+                                color: teal,
+                                size: 22,
+                                strokeWidth: 2.2,
+                              ),
+                            if (_picked != null &&
+                                i == _picked &&
+                                _picked != task.correct)
+                              const HugeIcon(
+                                icon: HugeIcons.strokeRoundedCancelCircle,
+                                color: coral,
+                                size: 22,
+                                strokeWidth: 2.2,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              if (task.mode == _ResponseMode.recall)
+                RecallTextField(
+                  key: ValueKey('recall-$_step'),
+                  hint: task.recallHint,
+                  keyboard: task.multiline
+                      ? TextInputType.multiline
+                      : TextInputType.text,
+                  submitted: _recall != null,
+                  detail: _recall?.detail ?? '',
+                  exact: _recall?.exact ?? false,
+                  answerKey: task.answerKey,
+                  onSubmit: _submitRecall,
+                ),
+              if (task.mode == _ResponseMode.corsi) ...[
+                CorsiTapGrid(
+                  key: ValueKey('corsi-$_step'),
+                  submitted: _recall != null,
+                  onDone: _answerCorsi,
+                ),
+                if (_recall != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _recall!.detail,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: context.inkText,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ],
+              if (_answered)
+                Container(
+                  margin: const EdgeInsets.only(top: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _lastGood
+                        ? orange.withValues(alpha: 0.16)
+                        : context.cardBg,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: _lastGood ? orange : context.hairline,
+                      width: 2,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      HugeIcon(
+                        icon: _lastGood
+                            ? engram.icon
+                            : HugeIcons.strokeRoundedRefresh,
+                        color: _lastGood ? engram.color : context.mutedText,
+                        size: 20,
+                        strokeWidth: 2.2,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _lastGood
+                              ? (_combo >= 3
+                                    ? tr('mprof_sealed', {
+                                        'combo': _combo,
+                                        'gain': _lastGain,
+                                      })
+                                    : tr('mprof_nice', {'gain': _lastGain}))
+                              : _lastGain > 0
+                              ? tr('mprof_partial', {'gain': _lastGain})
+                              : tr('mprof_next_double'),
+                          style: TextStyle(
+                            color: context.inkText,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              if (_answered) ...[
+                const SizedBox(height: 12),
+                EngramPress3D(
+                  key: const ValueKey('assessment-continue'),
+                  onTap: () {
+                    AppFeedback.medium();
+                    unawaited(_nextStep());
+                  },
+                  shadowColor: blueDark,
+                  depth: 4,
+                  borderRadius: BorderRadius.circular(14),
+                  haptic: false,
+                  semanticLabel: tr('mprof_continue_btn'),
+                  top: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: blue,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      tr('mprof_continue_btn'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ],
-        ],
-      ),
+        ),
       ),
     );
   }
@@ -1386,17 +1328,14 @@ class MemoryResultPage extends StatelessWidget {
     );
     final best = result.kind;
     final v = verdict;
-    final tiedNames = [
-      for (final i in result.tied) memoryKinds[i].displayName,
-    ].join(', ');
+    final tiedNames = [for (final i in result.tied) memoryKinds[i].displayName]
+        .join(', ');
     final rec =
         recommendation ??
         heuristicStudyRecommendation(
           scores: scores,
           hardHits: hardHits.length == scores.length ? hardHits : null,
-          latenciesMs: latenciesMs.length == scores.length
-              ? latenciesMs
-              : null,
+          latenciesMs: latenciesMs.length == scores.length ? latenciesMs : null,
           interviewKind: verdict?.kind,
         );
     var weakest = -1;
@@ -1407,19 +1346,9 @@ class MemoryResultPage extends StatelessWidget {
     final showWeakest = !scoresAreBlank(scores) && weakest >= 0;
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+      appBar: AppTopBar(
+        title: tr('mprof_result'),
         leading: const EngramBackButton(),
-        title: Text(
-          tr('mprof_result'),
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.bold,
-            fontSize: 17,
-          ),
-        ),
         actions: [
           AiHelpButton(
             topic: AiHelpTopics.assessment,
@@ -1693,8 +1622,7 @@ class MemoryResultPage extends StatelessWidget {
                       alignment: Alignment.center,
                       child: Text(
                         tr('mprof_start_track', {
-                          'name': memoryKinds[rec.track]
-                              .displayName
+                          'name': memoryKinds[rec.track].displayName
                               .toUpperCase(),
                         }),
                         style: const TextStyle(
@@ -1876,14 +1804,12 @@ class _CalibrationCardState extends State<_CalibrationCard> {
         String line1 = n <= 0
             ? tr('mprof_calibrating')
             : (n == 1
-                ? tr('mprof_calibrated_one')
-                : tr('mprof_calibrated_many', {'n': n}));
+                  ? tr('mprof_calibrated_one')
+                  : tr('mprof_calibrated_many', {'n': n}));
         String? line2;
         if (n >= minNormN && norms.length == 6) {
           final appAvg =
-              norms.values.map((v) => v.mean).reduce((a, b) => a + b) /
-              6 *
-              100;
+              norms.values.map((v) => v.mean).reduce((a, b) => a + b) / 6 * 100;
           line2 = tr('mprof_avg', {
             'mine': myAvg.round(),
             'app': appAvg.round(),
@@ -2014,11 +1940,11 @@ class _ScoreRow extends StatelessWidget {
                     tween: Tween(begin: 0, end: score / 100),
                     duration: const Duration(milliseconds: 800),
                     builder: (context, value, _) {
-                      return LinearProgressIndicator(
+                      return AppProgressBar(
                         value: value,
-                        minHeight: 10,
-                        backgroundColor: context.faintBg,
-                        valueColor: AlwaysStoppedAnimation(kind.tint),
+                        height: 10,
+                        color: kind.tint,
+                        track: context.faintBg,
                       );
                     },
                   ),

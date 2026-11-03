@@ -15,6 +15,7 @@ import '../theme/app_theme.dart';
 import '../widgets/ai_image.dart';
 import '../widgets/app_buttons.dart'
     show EngramBackButton, EngramButton, EngramButtonVariant;
+import '../widgets/app_kit.dart';
 import 'benchmark.dart' show BenchmarkStore, MaskedPicture;
 
 class RoomPalacePage extends StatefulWidget {
@@ -141,7 +142,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
   }
 
   void _snack(String text) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+    showAppToast(context, text);
   }
 
   Future<void> _pick(ImageSource source) async {
@@ -496,21 +497,15 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
   }
 
   Future<void> _confirmDelete(RoomPalace p) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        content: Text(tr('room_delete')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(tr('common_cancel')),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(tr('common_delete')),
-          ),
-        ],
-      ),
+    final ok = await showAppDialog<bool>(
+      context,
+      title: tr('room_delete_title'),
+      body: tr('room_delete_body'),
+      icon: HugeIcons.strokeRoundedDelete02,
+      iconColor: coral,
+      destructive: true,
+      primary: AppDialogAction(tr('common_delete'), value: true),
+      secondary: AppDialogAction(tr('common_cancel'), value: false),
     );
     if (ok != true || !mounted) return;
     final token = _token;
@@ -524,22 +519,11 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
+      appBar: AppTopBar(
+        title: tr('room_title'),
         leading: const EngramBackButton(),
-        title: Text(
-          tr('room_title'),
-          style: TextStyle(
-            color: scheme.onSurface,
-            fontWeight: FontWeight.bold,
-            fontSize: 17,
-          ),
-        ),
       ),
       body: SafeArea(top: false, child: _body()),
     );
@@ -547,7 +531,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
 
   Widget _body() {
     if (!_ready) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppSkeletonList();
     }
     return switch (_step) {
       _Step.list => _listStep(),
@@ -737,7 +721,8 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
                     ],
                   ),
                 ),
-                TextButton(
+                EngramTextButton(
+                  label: tr('room_review_btn'),
                   onPressed: () {
                     AppFeedback.light();
                     setState(() {
@@ -756,7 +741,6 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
                       _step = _Step.recall;
                     });
                   },
-                  child: Text(tr('room_review_btn')),
                 ),
               ],
             ),
@@ -827,7 +811,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         ),
       ),
       const SizedBox(height: 16),
-      LinearProgressIndicator(value: _progress),
+      AppProgressBar(value: _progress),
       const SizedBox(height: 8),
       Center(
         child: Text(
@@ -869,23 +853,20 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
           ),
         ),
       const SizedBox(height: 12),
-      TextField(
+      AppTextField(
         controller: _itemsCtrl,
         minLines: 4,
         maxLines: 8,
         maxLength: 600,
-        decoration: InputDecoration(
-          hintText: tr('room_items_hint', {'count': _stations.length}),
-          border: const OutlineInputBorder(),
-        ),
+        hint: tr('room_items_hint', {'count': _stations.length}),
       ),
       Align(
         alignment: Alignment.centerLeft,
-        child: TextButton(
+        child: EngramTextButton(
+          label: tr('room_items_sample'),
           onPressed: () {
             setState(() => _itemsCtrl.text = tr('room_sample_items'));
           },
-          child: Text(tr('room_items_sample')),
         ),
       ),
       const SizedBox(height: 4),
@@ -986,11 +967,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
+                  const AppLoader(size: 16, stroke: 2),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -1004,9 +981,9 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
               const SizedBox(height: 4),
               Align(
                 alignment: Alignment.centerLeft,
-                child: TextButton(
+                child: EngramTextButton(
+                  label: tr('room_dream_retry'),
                   onPressed: () => _retryDream(i),
-                  child: Text(tr('room_dream_retry')),
                 ),
               ),
             ],
@@ -1075,11 +1052,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
           ),
         ),
         const SizedBox(height: 8),
-        TextField(
-          controller: _guessCtrl,
-          onSubmitted: (_) => _check(),
-          decoration: const InputDecoration(border: OutlineInputBorder()),
-        ),
+        AppTextField(controller: _guessCtrl, onSubmitted: (_) => _check()),
         const SizedBox(height: 8),
         if (_feedback.isNotEmpty)
           Padding(

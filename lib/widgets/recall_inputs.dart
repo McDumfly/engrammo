@@ -8,6 +8,7 @@ import '../l10n/app_localizations.dart';
 import '../theme/app_colors.dart' show blueDark, blueShadow, teal, tealDark;
 import '../theme/app_theme.dart';
 import 'app_buttons.dart';
+import 'app_kit.dart';
 
 class RecallTextField extends StatefulWidget {
   final String hint;
@@ -52,7 +53,7 @@ class _RecallTextFieldState extends State<RecallTextField> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextField(
+        AppTextField(
           key: const ValueKey('recall-input'),
           controller: _controller,
           enabled: !widget.submitted,
@@ -64,36 +65,7 @@ class _RecallTextFieldState extends State<RecallTextField> {
           onSubmitted: (_) => _submit(),
           maxLines: widget.keyboard == TextInputType.multiline ? 4 : 1,
           minLines: 1,
-          style: TextStyle(
-            color: context.inkText,
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
-          decoration: InputDecoration(
-            hintText: widget.hint,
-            hintStyle: TextStyle(color: context.mutedText, fontSize: 14),
-            filled: true,
-            fillColor: context.cardBg,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 13,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: context.hairline, width: 2),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: context.hairline, width: 2),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(
-                color: blueDark,
-                width: 2,
-              ),
-            ),
-          ),
+          hint: widget.hint,
         ),
         const SizedBox(height: 8),
         if (!widget.submitted)
@@ -135,9 +107,7 @@ class _RecallTextFieldState extends State<RecallTextField> {
                   : context.cardBg,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: widget.exact
-                    ? teal
-                    : context.hairline,
+                color: widget.exact ? teal : context.hairline,
                 width: 2,
               ),
             ),
@@ -307,9 +277,7 @@ class _CorsiSequenceStimulusState extends State<CorsiSequenceStimulus> {
                                 key: ValueKey('corsi-stimulus-cell-$cell'),
                                 width: 52,
                                 height: 52,
-                                margin: EdgeInsets.only(
-                                  left: col == 0 ? 0 : 8,
-                                ),
+                                margin: EdgeInsets.only(left: col == 0 ? 0 : 8),
                                 decoration: BoxDecoration(
                                   color: lit ? tealDark : context.hairline,
                                   borderRadius: BorderRadius.circular(12),
@@ -355,11 +323,11 @@ class _CorsiSequenceStimulusState extends State<CorsiSequenceStimulus> {
                     alignment: Alignment.center,
                     child: ExcludeSemantics(
                       child: Text(
-                        _paused ? tr('recall_resume_btn') : tr('recall_pause_btn'),
+                        _paused
+                            ? tr('recall_resume_btn')
+                            : tr('recall_pause_btn'),
                         style: TextStyle(
-                          color: _playing
-                              ? context.inkText
-                              : context.mutedText,
+                          color: _playing ? context.inkText : context.mutedText,
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
                           letterSpacing: 1,
@@ -389,9 +357,7 @@ class _CorsiSequenceStimulusState extends State<CorsiSequenceStimulus> {
                     alignment: Alignment.center,
                     child: ExcludeSemantics(
                       child: Text(
-                        tr('recall_speed_btn', {
-                          'v': _speedNames[_speedIndex],
-                        }),
+                        tr('recall_speed_btn', {'v': _speedNames[_speedIndex]}),
                         style: TextStyle(
                           color: context.inkText,
                           fontWeight: FontWeight.bold,
@@ -416,9 +382,7 @@ class _CorsiSequenceStimulusState extends State<CorsiSequenceStimulus> {
                   child: Container(
                     constraints: const BoxConstraints(minHeight: 48),
                     decoration: BoxDecoration(
-                      color: _replayUsed
-                          ? context.hairline
-                          : context.cardBg,
+                      color: _replayUsed ? context.hairline : context.cardBg,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: context.hairline, width: 2),
                     ),
@@ -450,11 +414,7 @@ class _CorsiSequenceStimulusState extends State<CorsiSequenceStimulus> {
 class CorsiTapGrid extends StatefulWidget {
   final bool submitted;
   final ValueChanged<List<int>> onDone;
-  const CorsiTapGrid({
-    super.key,
-    required this.onDone,
-    this.submitted = false,
-  });
+  const CorsiTapGrid({super.key, required this.onDone, this.submitted = false});
 
   @override
   State<CorsiTapGrid> createState() => _CorsiTapGridState();
@@ -498,9 +458,7 @@ class _CorsiTapGridState extends State<CorsiTapGrid> {
                               label: tr('recall_cell', {
                                 'cell': cell + 1,
                                 'state': order >= 0
-                                    ? tr('recall_selected', {
-                                        'pos': order + 1,
-                                      })
+                                    ? tr('recall_selected', {'pos': order + 1})
                                     : tr('recall_unselected'),
                               }),
                               child: GestureDetector(
@@ -589,10 +547,8 @@ class _CorsiTapGridState extends State<CorsiTapGrid> {
                         label: tr('recall_submit'),
                         child: Container(
                           key: const ValueKey('corsi-done'),
-                          constraints:
-                              const BoxConstraints(minHeight: 48),
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 12),
+                          constraints: const BoxConstraints(minHeight: 48),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: BoxDecoration(
                             color: context.hairline,
                             borderRadius: BorderRadius.circular(14),
@@ -613,24 +569,18 @@ class _CorsiTapGridState extends State<CorsiTapGrid> {
                       )
                     : EngramPress3D(
                         key: const ValueKey('corsi-done'),
-                        onTap: () =>
-                            widget.onDone(List.of(_taps)),
+                        onTap: () => widget.onDone(List.of(_taps)),
                         shadowColor: blueShadow,
                         depth: 4,
                         borderRadius: BorderRadius.circular(14),
                         haptic: false,
                         semanticLabel: tr('recall_submit'),
                         top: Container(
-                          constraints:
-                              const BoxConstraints(minHeight: 48),
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 12,
-                          ),
+                          constraints: const BoxConstraints(minHeight: 48),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
                           decoration: const BoxDecoration(
                             color: blueDark,
-                            borderRadius: BorderRadius.all(
-                              Radius.circular(14),
-                            ),
+                            borderRadius: BorderRadius.all(Radius.circular(14)),
                           ),
                           alignment: Alignment.center,
                           child: ExcludeSemantics(

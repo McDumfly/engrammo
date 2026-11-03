@@ -13,6 +13,7 @@ import '../services/meta_ai_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
+import '../widgets/app_kit.dart';
 import 'learning_path.dart';
 import 'memory_profile.dart';
 
@@ -68,43 +69,12 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
   ];
 
   Future<bool> _askCloudConsent() async {
-    final allow = await showDialog<bool>(
-      context: context,
-      builder: (dlgCtx) => AlertDialog(
-        key: const ValueKey('interview-consent-dialog'),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        title: Text(
-          aiCloudConsentTitle,
-          style: TextStyle(
-            color: context.inkText,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        content: Text(
-          aiCloudConsentBody,
-          style: TextStyle(color: context.mutedText, height: 1.4),
-        ),
-        actions: [
-          TextButton(
-            key: const ValueKey('interview-consent-offline'),
-            onPressed: () {
-              AppFeedback.light();
-              Navigator.of(dlgCtx).pop(false);
-            },
-            child: Text(tr('assess_offline')),
-          ),
-          FilledButton(
-            key: const ValueKey('interview-consent-allow'),
-            onPressed: () {
-              AppFeedback.light();
-              Navigator.of(dlgCtx).pop(true);
-            },
-            child: Text(tr('assess_allow')),
-          ),
-        ],
-      ),
+    final allow = await showAppDialog<bool>(
+      context,
+      title: aiCloudConsentTitle,
+      body: aiCloudConsentBody,
+      primary: AppDialogAction(tr('assess_allow'), value: true),
+      secondary: AppDialogAction(tr('assess_offline'), value: false),
     );
     return allow == true;
   }
@@ -172,9 +142,7 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
     // Nem sima push: a felmérési verem helyére kerül az új tanulási út,
     // különben minden újramérés egy újabb duplikált gyökéroldalt halmozna.
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (_) => LearningPathPage(initialTrack: track),
-      ),
+      MaterialPageRoute(builder: (_) => LearningPathPage(initialTrack: track)),
       (route) => route.isFirst,
     );
   }
@@ -196,41 +164,13 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
   }
 
   Future<bool> _confirmExit() async {
-    final leave = await showDialog<bool>(
-      context: context,
-      builder: (dlgCtx) => AlertDialog(
-        key: const ValueKey('interview-exit-dialog'),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          tr('assess_leave'),
-          style: TextStyle(
-            color: context.inkText,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        content: Text(
-          tr('assess_leave_body'),
-          style: TextStyle(color: context.mutedText),
-        ),
-        actions: [
-          TextButton(
-            key: const ValueKey('interview-exit-stay'),
-            onPressed: () {
-              AppFeedback.light();
-              Navigator.of(dlgCtx).pop(false);
-            },
-            child: Text(tr('assess_keep')),
-          ),
-          FilledButton(
-            key: const ValueKey('interview-exit-leave'),
-            onPressed: () {
-              AppFeedback.light();
-              Navigator.of(dlgCtx).pop(true);
-            },
-            child: Text(tr('assess_leave_btn')),
-          ),
-        ],
-      ),
+    final leave = await showAppDialog<bool>(
+      context,
+      title: tr('assess_leave'),
+      body: tr('assess_leave_body'),
+      destructive: true,
+      primary: AppDialogAction(tr('assess_leave_btn'), value: true),
+      secondary: AppDialogAction(tr('assess_keep'), value: false),
     );
     return leave == true;
   }
@@ -251,269 +191,205 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
         if (leave && context.mounted) Navigator.of(context).pop();
       },
       child: Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: EngramBackButton(onPressed: _onBackPressed),
-        title: Text(
-          tr('assess_title', {
+        appBar: AppTopBar(
+          title: tr('assess_title', {
             'n': _step + 1,
             'total': interviewQuestions.length,
           }),
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.bold,
-            fontSize: 17,
-          ),
-        ),
-        actions: [
-          AiHelpButton(
-            topic: AiHelpTopics.assessment,
-            helpContext: tr('assess_help_context'),
-          ),
-          TextButton(
-            onPressed: _skip,
-            child: Text(
-              tr('onboarding_skip'),
-              style: TextStyle(
-                color: context.mutedText,
-                fontWeight: FontWeight.bold,
-              ),
+          leading: EngramBackButton(onPressed: _onBackPressed),
+          actions: [
+            AiHelpButton(
+              topic: AiHelpTopics.assessment,
+              helpContext: tr('assess_help_context'),
             ),
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(6),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(99),
-              child: LinearProgressIndicator(
+            EngramTextButton(
+              label: tr('onboarding_skip'),
+              color: muted,
+              onPressed: _skip,
+            ),
+          ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(12),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+              child: AppProgressBar(
                 value: _step / interviewQuestions.length,
-                minHeight: 6,
-                backgroundColor: context.hairline,
-                valueColor: const AlwaysStoppedAnimation(blue),
+                height: 6,
               ),
             ),
           ),
         ),
-      ),
-      body: _analyzing
-          ? Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const CircularProgressIndicator(color: blue),
-                  const SizedBox(height: 16),
-                  Text(
-                    tr('assess_analyzing'),
-                    style: TextStyle(
-                      color: context.inkText,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    tr('assess_analyzing_sub'),
-                    style: TextStyle(color: context.mutedText, fontSize: 13),
-                  ),
-                ],
-              ),
-            )
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: blue.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                  child: Text(
-                    tr(q.hintKey),
-                    style: const TextStyle(
-                      color: blueDark,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  tr(q.promptKey),
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                    height: 1.35,
-                  ),
-                ),
-                if (q.constructKey.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    '${tr(q.constructKey)} · ${tr(q.sourceKey)}',
-                    style: TextStyle(
-                      color: context.mutedText,
-                      fontStyle: FontStyle.italic,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 16),
-                for (var i = 0; i < q.options.length; i++)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: GestureDetector(
-                      onTap: () {
-                        AppFeedback.light();
-                        setState(() => _picked[_step] = i);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 13,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _picked[_step] == i
-                              ? blue.withValues(alpha: 0.12)
-                              : context.cardBg,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: _picked[_step] == i
-                                ? blue
-                                : context.hairline,
-                            width: 2,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                tr(q.options[i].labelKey),
-                                style: TextStyle(
-                                  color: context.inkText,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 15,
-                                ),
-                              ),
-                            ),
-                            if (_picked[_step] == i)
-                              const HugeIcon(
-                                icon:
-                                    HugeIcons.strokeRoundedCheckmarkCircle02,
-                                color: blue,
-                                size: 22,
-                                strokeWidth: 2.2,
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 8),
-                Text(
-                  tr('assess_own_words'),
-                  style: TextStyle(
-                    color: context.mutedText,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _customs[_step],
-                  maxLines: 3,
-                  minLines: 1,
-                  autocorrect: false,
-                  enableSuggestions: false,
-                  textCapitalization: TextCapitalization.none,
-                  style: TextStyle(color: context.inkText, fontSize: 15),
-                  decoration: InputDecoration(
-                    hintText: tr('assess_example'),
-                    hintStyle: TextStyle(color: context.mutedText),
-                    filled: true,
-                    fillColor: context.cardBg,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(
-                        color: context.hairline,
-                        width: 2,
-                      ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(
-                        color: context.hairline,
-                        width: 2,
-                      ),
-                    ),
-                    focusedBorder: const OutlineInputBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(14)),
-                      borderSide: BorderSide(color: blue, width: 2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Row(
+        body: _analyzing
+            ? Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (_step > 0)
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            AppFeedback.light();
-                            setState(() => _step--);
-                          },
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            side: BorderSide(
-                              color: context.hairline,
-                              width: 2,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          child: Text(
-                            tr('assess_back'),
-                            style: TextStyle(
-                              color: context.inkText,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1,
-                            ),
-                          ),
-                        ),
+                    const AppLoader(size: 32, color: blue),
+                    const SizedBox(height: 16),
+                    Text(
+                      tr('assess_analyzing'),
+                      style: TextStyle(
+                        color: context.inkText,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
-                    if (_step > 0) const SizedBox(width: 8),
-                    Expanded(
-                      flex: 2,
-                      child: EngramButton(
-                        label: _step + 1 < interviewQuestions.length
-                            ? tr('common_next')
-                            : tr('assess_analyze'),
-                        onPressed: () {
-                          AppFeedback.medium();
-                          if (_step + 1 < interviewQuestions.length) {
-                            setState(() => _step++);
-                          } else {
-                            _analyze();
-                          }
-                        },
-                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      tr('assess_analyzing_sub'),
+                      style: TextStyle(color: context.mutedText, fontSize: 13),
                     ),
                   ],
                 ),
-              ],
-            ),
+              )
+            : ListView(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: blue.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Text(
+                      tr(q.hintKey),
+                      style: const TextStyle(
+                        color: blueDark,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    tr(q.promptKey),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      height: 1.35,
+                    ),
+                  ),
+                  if (q.constructKey.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      '${tr(q.constructKey)} · ${tr(q.sourceKey)}',
+                      style: TextStyle(
+                        color: context.mutedText,
+                        fontStyle: FontStyle.italic,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  for (var i = 0; i < q.options.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: GestureDetector(
+                        onTap: () {
+                          AppFeedback.light();
+                          setState(() => _picked[_step] = i);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 13,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _picked[_step] == i
+                                ? blue.withValues(alpha: 0.12)
+                                : context.cardBg,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: _picked[_step] == i
+                                  ? blue
+                                  : context.hairline,
+                              width: 2,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  tr(q.options[i].labelKey),
+                                  style: TextStyle(
+                                    color: context.inkText,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ),
+                              if (_picked[_step] == i)
+                                const HugeIcon(
+                                  icon:
+                                      HugeIcons.strokeRoundedCheckmarkCircle02,
+                                  color: blue,
+                                  size: 22,
+                                  strokeWidth: 2.2,
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  Text(
+                    tr('assess_own_words'),
+                    style: TextStyle(
+                      color: context.mutedText,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  AppTextField(
+                    controller: _customs[_step],
+                    maxLines: 3,
+                    minLines: 1,
+                    autocorrect: false,
+                    textCapitalization: TextCapitalization.none,
+                    hint: tr('assess_example'),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      if (_step > 0)
+                        Expanded(
+                          child: EngramButton(
+                            variant: EngramButtonVariant.secondary,
+                            height: 52,
+                            onPressed: () {
+                              AppFeedback.light();
+                              setState(() => _step--);
+                            },
+                            label: tr('assess_back'),
+                          ),
+                        ),
+                      if (_step > 0) const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: EngramButton(
+                          label: _step + 1 < interviewQuestions.length
+                              ? tr('common_next')
+                              : tr('assess_analyze'),
+                          onPressed: () {
+                            AppFeedback.medium();
+                            if (_step + 1 < interviewQuestions.length) {
+                              setState(() => _step++);
+                            } else {
+                              _analyze();
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
       ),
     );
   }

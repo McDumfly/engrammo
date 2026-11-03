@@ -1,4 +1,6 @@
 import 'package:engrammo/screens/settings_screen.dart';
+import 'package:engrammo/services/profile_setup.dart';
+import 'package:engrammo/widgets/app_kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -11,16 +13,10 @@ void main() {
   });
 
   Finder fieldByHint(String hint) => find.byWidgetPredicate(
-    (w) => w is TextField && w.decoration?.hintText == hint,
+    (w) => w is AppTextField && w.hint == hint,
   );
 
-  Color? enabledBorderColor(TextField field) {
-    final border = field.decoration?.enabledBorder;
-    if (border is OutlineInputBorder) return border.borderSide.color;
-    return null;
-  }
-
-  testWidgets('sikeres profilmentés után zöld a név és a username kerete', (
+  testWidgets('sikeres profilmentés után mentés-visszajelzés látszik', (
     tester,
   ) async {
     await tester.pumpWidget(const MaterialApp(home: SettingsScreen()));
@@ -32,14 +28,15 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Saved ✓'), findsOneWidget);
-    const successGreen = Color(0xFF16A34A);
-    final nameField = tester.widget<TextField>(fieldByHint('Your name'));
-    final usernameField = tester.widget<TextField>(fieldByHint('username'));
-    expect(enabledBorderColor(nameField), successGreen);
-    expect(enabledBorderColor(usernameField), successGreen);
+    final nameField = tester.widget<AppTextField>(fieldByHint('Your name'));
+    final usernameField = tester.widget<AppTextField>(
+      fieldByHint('username'),
+    );
+    expect(nameField.errorText, isNull);
+    expect(usernameField.errorText, isNull);
   });
 
-  testWidgets('érvénytelen username-nél nincs zöld keret és nincs mentés', (
+  testWidgets('érvénytelen username-nél hibaüzenet látszik és nincs mentés', (
     tester,
   ) async {
     await tester.pumpWidget(const MaterialApp(home: SettingsScreen()));
@@ -50,8 +47,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Saved ✓'), findsNothing);
-    const successGreen = Color(0xFF16A34A);
-    final usernameField = tester.widget<TextField>(fieldByHint('username'));
-    expect(enabledBorderColor(usernameField), isNot(successGreen));
+    // Empty name fails first, so the name error is shown.
+    final expectedError = ProfileSetupRules.validateDisplayName('');
+    expect(expectedError, isNotNull);
+    expect(find.text(expectedError!), findsOneWidget);
+    final usernameField = tester.widget<AppTextField>(
+      fieldByHint('username'),
+    );
+    expect(usernameField.errorText, isNull);
   });
 }

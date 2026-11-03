@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../services/app_feedback.dart';
 import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
+import '../widgets/app_kit.dart';
 import '../theme/app_colors.dart' show blue, blueDark, trail;
 
 class BenchmarkDetailPage extends StatefulWidget {
@@ -186,29 +187,13 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: HugeIcon(
-            icon: HugeIcons.strokeRoundedArrowLeft01,
-            color: Theme.of(context).colorScheme.onSurface,
-            size: 24,
-            strokeWidth: 2.2,
-          ),
-          onPressed: () {
+      appBar: AppTopBar(
+        title: widget.title,
+        leading: AppBackButton(
+          onTap: () {
             AppFeedback.light();
             Navigator.of(context).pop();
           },
-        ),
-        title: Text(
-          widget.title,
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.bold,
-            fontSize: 17,
-          ),
         ),
         actions: const [
           AiHelpButton(topic: AiHelpTopics.benchmark),

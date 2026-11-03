@@ -7,9 +7,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../l10n/app_localizations.dart';
 import '../services/app_feedback.dart';
 import '../services/meta_ai_service.dart';
-import '../theme/app_colors.dart' show blue;
+import '../theme/app_colors.dart' show blue, blueDark;
 import '../theme/app_theme.dart';
 import 'app_buttons.dart';
+import 'app_kit.dart';
 
 class AiHelpTopics {
   static const String general = 'general';
@@ -126,10 +127,8 @@ Future<void> openAiHelpSheet(
   String topic = AiHelpTopics.general,
   String helpContext = '',
 }) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
+  return showAppSheet<void>(
+    context,
     builder: (_) => _AiHelpSheet(topic: topic, helpContext: helpContext),
   );
 }
@@ -297,202 +296,161 @@ class _AiHelpSheetState extends State<_AiHelpSheet> {
   @override
   Widget build(BuildContext context) {
     final prompts = quickPromptsFor(widget.topic);
-    final bottom = MediaQuery.of(context).viewInsets.bottom;
-    return Padding(
-      padding: EdgeInsets.only(bottom: bottom),
-      child: Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.78,
-        ),
-        decoration: BoxDecoration(
-          color: context.cardBg,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: SafeArea(
-          top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 10),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: context.washBorder,
-                  borderRadius: BorderRadius.circular(99),
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.78,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+            child: Row(
+              children: [
+                const HugeIcon(
+                  icon: HugeIcons.strokeRoundedBubbleChatQuestion,
+                  color: blue,
+                  size: 26,
+                  strokeWidth: 2.2,
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-                child: Row(
-                  children: [
-                    const HugeIcon(
-                      icon: HugeIcons.strokeRoundedBubbleChatQuestion,
-                      color: blue,
-                      size: 26,
-                      strokeWidth: 2.2,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            tr('help_title'),
-                            style: TextStyle(
-                              color: context.inkText,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 17,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            tr('help_subtitle'),
-                            style: TextStyle(
-                              color: context.mutedText,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        tr('help_title'),
+                        style: TextStyle(
+                          color: context.inkText,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 17,
+                        ),
                       ),
-                    ),
-                    if (_msgs.isNotEmpty)
-                      IconButton(
-                        key: const ValueKey('ai-help-clear'),
-                        tooltip: tr('help_clear'),
-                        onPressed: _clearHistory,
-                        icon: HugeIcon(
-                          icon: HugeIcons.strokeRoundedDelete02,
+                      const SizedBox(height: 2),
+                      Text(
+                        tr('help_subtitle'),
+                        style: TextStyle(
                           color: context.mutedText,
-                          size: 24,
-                          strokeWidth: 2,
+                          fontSize: 13,
                         ),
-                      ),
-                    IconButton(
-                      key: const ValueKey('ai-help-close'),
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: HugeIcon(
-                        icon: HugeIcons.strokeRoundedMultiplicationSign,
-                        color: context.mutedText,
-                        size: 24,
-                        strokeWidth: 2.2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Divider(height: 1, thickness: 1, color: context.washBorder),
-              if (_blockReason != null) _offlineBanner(),
-              Flexible(
-                child: ListView(
-                  controller: _scroll,
-                  shrinkWrap: true,
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-                  children: [
-                    if (_msgs.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: Text(
-                          tr('help_empty'),
-                          style: TextStyle(
-                            color: context.mutedText,
-                            fontSize: 14,
-                            height: 1.6,
-                          ),
-                        ),
-                      ),
-                    for (final m in _msgs) _bubble(m),
-                    if (_busy)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8, bottom: 8),
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: context.mutedText,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              tr('help_thinking'),
-                              style: TextStyle(
-                                color: context.mutedText,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              SingleChildScrollView(
-                key: const ValueKey('ai-help-quick-row'),
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-                child: Row(
-                  children: [
-                    for (var i = 0; i < prompts.length; i++) ...[
-                      if (i > 0) const SizedBox(width: 8),
-                      ActionChip(
-                        key: ValueKey('ai-help-quick-$i'),
-                        label: Text(prompts[i]),
-                        onPressed: _busy ? null : () => _send(prompts[i]),
                       ),
                     ],
-                  ],
+                  ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(minHeight: 56),
-                        child: TextField(
-                          key: const ValueKey('ai-help-input'),
-                          controller: _input,
-                          minLines: 1,
-                          maxLines: 3,
-                          textInputAction: TextInputAction.send,
-                          textAlignVertical: TextAlignVertical.center,
-                          onSubmitted: _send,
-                          decoration: InputDecoration(
-                            hintText: tr('help_hint'),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
+                if (_msgs.isNotEmpty)
+                  AppIconButton(
+                    key: const ValueKey('ai-help-clear'),
+                    semanticLabel: tr('help_clear'),
+                    onTap: _clearHistory,
+                    icon: HugeIcons.strokeRoundedDelete02,
+                    color: context.mutedText,
+                  ),
+                AppIconButton(
+                  key: const ValueKey('ai-help-close'),
+                  onTap: () => Navigator.of(context).pop(),
+                  icon: HugeIcons.strokeRoundedMultiplicationSign,
+                  color: context.mutedText,
+                ),
+              ],
+            ),
+          ),
+          const AppDivider(),
+          if (_blockReason != null) _offlineBanner(),
+          Flexible(
+            child: ListView(
+              controller: _scroll,
+              shrinkWrap: true,
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+              children: [
+                if (_msgs.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Text(
+                      tr('help_empty'),
+                      style: TextStyle(
+                        color: context.mutedText,
+                        fontSize: 14,
+                        height: 1.6,
+                      ),
+                    ),
+                  ),
+                for (final m in _msgs) _bubble(m),
+                if (_busy)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8, bottom: 8),
+                    child: Row(
+                      children: [
+                        AppLoader(
+                          size: 16,
+                          stroke: 2,
+                          color: context.mutedText,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          tr('help_thinking'),
+                          style: TextStyle(
+                            color: context.mutedText,
+                            fontSize: 13,
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                    const SizedBox(width: 10),
-                    SizedBox(
-                      width: 96,
-                      height: 56,
-                      child: EngramButton(
-                        key: const ValueKey('ai-help-send'),
-                        label: tr('help_send'),
-                        height: 56,
-                        isLoading: _busy,
-                        onPressed: () => _send(_input.text),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+                  ),
+              ],
+            ),
           ),
-        ),
+          SingleChildScrollView(
+            key: const ValueKey('ai-help-quick-row'),
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+            child: Row(
+              children: [
+                for (var i = 0; i < prompts.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 8),
+                  AppChip(
+                    key: ValueKey('ai-help-quick-$i'),
+                    label: prompts[i],
+                    onTap: _busy ? null : () => _send(prompts[i]),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 56),
+                    child: AppTextField(
+                      key: const ValueKey('ai-help-input'),
+                      controller: _input,
+                      minLines: 1,
+                      maxLines: 3,
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: _send,
+                      hint: tr('help_hint'),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 96,
+                  height: 56,
+                  child: EngramButton(
+                    key: const ValueKey('ai-help-send'),
+                    label: tr('help_send'),
+                    height: 56,
+                    isLoading: _busy,
+                    onPressed: () => _send(_input.text),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -533,10 +491,11 @@ class _AiHelpSheetState extends State<_AiHelpSheet> {
             ),
             if (!noKey) ...[
               const SizedBox(width: 10),
-              FilledButton(
+              EngramMiniButton(
                 key: const ValueKey('ai-help-allow'),
-                onPressed: _allowCloud,
-                child: Text(tr('help_allow')),
+                label: tr('help_allow'),
+                background: blueDark,
+                onTap: _allowCloud,
               ),
             ],
           ],
