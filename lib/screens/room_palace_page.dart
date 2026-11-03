@@ -115,6 +115,11 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
 
   // Recall state.
   int _cue = 0;
+
+  /// Correct-answer ripple: station centre (photo fractions) and a
+  /// generation counter that replays the 500 ms ring. Zero = no ripple.
+  Offset _rippleAt = const Offset(0.5, 0.5);
+  int _rippleKey = 0;
   int _correct = 0;
   Set<int> _revealed = {};
   Set<int> _correctIdx = {};
@@ -243,6 +248,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
 
   void _resetRecall() {
     _cue = 0;
+    _rippleKey = 0;
     _correct = 0;
     _revealed = {};
     _correctIdx = {};
@@ -704,10 +710,30 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     }
   }
 
+  /// Station centre in photo fractions for the spotlight and ripple.
+  /// Falls back to an even spread when boxes are missing.
+  Offset _stationCentre(RoomPalace palace, int i) {
+    final boxes = palace.boxes;
+    if (boxes.length == palace.items.length &&
+        i >= 0 &&
+        i < boxes.length &&
+        boxes[i].length >= 4) {
+      final b = boxes[i];
+      return Offset(
+        (b[0] + b[2] / 2).clamp(0.0, 1.0),
+        (b[1] + b[3] / 2).clamp(0.0, 1.0),
+      );
+    }
+    final n = palace.items.length.clamp(1, 99);
+    return Offset(0.5, (i.clamp(0, n - 1) + 0.5) / n);
+  }
+
   void _markCorrect(int cue, int token, {required String feedback}) {
     final palace = _palace;
     if (palace == null || !mounted || token != _token || cue != _cue) return;
     AppFeedback.select();
+    _rippleAt = _stationCentre(palace, cue);
+    _rippleKey++;
     final correct = _correct + 1;
     final revealed = {..._revealed, cue};
     final last = cue + 1 >= palace.items.length;
@@ -1919,6 +1945,37 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
                 maxSide: side,
               ),
             ),
+            if (!done)
+              Positioned.fill(
+                child: RepaintBoundary(
+                  child: TweenAnimationBuilder<Offset>(
+                    key: ValueKey('spot-$_cue'),
+                    tween: Tween(
+                      begin: _cue > 0
+                          ? _stationCentre(palace, _cue - 1)
+                          : _stationCentre(palace, _cue),
+                      end: _stationCentre(palace, _cue),
+                    ),
+                    duration: const Duration(milliseconds: 450),
+                    curve: Curves.easeInOutCubic,
+                    builder: (context, centre, _) =>
+                        CustomPaint(painter: _SpotlightPainter(centre: centre)),
+                  ),
+                ),
+              ),
+            if (!done && _rippleKey > 0)
+              Positioned.fill(
+                child: RepaintBoundary(
+                  child: TweenAnimationBuilder<double>(
+                    key: ValueKey('ripple-$_rippleKey'),
+                    tween: Tween(begin: 0, end: 1),
+                    duration: const Duration(milliseconds: 500),
+                    builder: (context, t, _) => CustomPaint(
+                      painter: _RipplePainter(centre: _rippleAt, t: t),
+                    ),
+                  ),
+                ),
+              ),
             if (_popDream != null)
               Positioned(
                 right: 12,
@@ -1968,6 +2025,21 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
           ],
         ),
       const SizedBox(height: 12),
+      if (!done)
+        Text(
+          tr('room_walk_n', {
+            'n': '${_cue + 1}',
+            'total': '${palace.items.length}',
+            'name': _cue < palace.stations.length
+                ? palace.stations[_cue]
+                : palace.items[_cue],
+          }),
+          style: TextStyle(
+            color: context.mutedText,
+            fontWeight: FontWeight.w700,
+            fontSize: 13,
+          ),
+        ),
       if (!done)
         Text(
           tr('room_recall_prompt', {'n': _cue + 1}),
@@ -3357,6 +3429,67 @@ class _DreamRevealState extends State<_DreamReveal> {
 /// "What the AI did": one row per model that worked on this palace,
 /// counted from the real MetaAIService call log (never invented).
 /// Models with no live calls say "local fallback" honestly.
+/// Soft spotlight ring that walks the room during recall, plus the
+/// teal answer ripple. Both paint in fractions of the photo, so they
+/// stay exact on any photo size.
+class _SpotlightPainter extends CustomPainter {
+  final Offset centre;
+  const _SpotlightPainter({required this.centre});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = Offset(centre.dx * size.width, centre.dy * size.height);
+    final r = size.width * 0.14;
+    canvas.drawCircle(
+      c,
+      r,
+      Paint()
+        ..color = Colors.white.withValues(alpha: 0.85)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 6
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+    );
+    canvas.drawCircle(
+      c,
+      r,
+      Paint()
+        ..color = teal
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_SpotlightPainter oldDelegate) =>
+      oldDelegate.centre != centre;
+}
+
+/// One-shot teal ripple where a correct answer landed: scale 0.8 → 1.6,
+/// opacity 0.5 → 0 over 500 ms.
+class _RipplePainter extends CustomPainter {
+  final Offset centre;
+  final double t;
+  const _RipplePainter({required this.centre, required this.t});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (t <= 0 || t >= 1) return;
+    final c = Offset(centre.dx * size.width, centre.dy * size.height);
+    canvas.drawCircle(
+      c,
+      size.width * 0.14 * (0.8 + 0.8 * t),
+      Paint()
+        ..color = teal.withValues(alpha: 0.5 * (1 - t))
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_RipplePainter oldDelegate) =>
+      oldDelegate.centre != centre || oldDelegate.t != t;
+}
+
 class _ReceiptCard extends StatelessWidget {
   final List<MetaCallEntry> log;
   final RoomPalace palace;

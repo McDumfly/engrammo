@@ -1914,6 +1914,7 @@ const Map<String, String> enStrings = {
   'room_receipt_outlines': '{n} outlines',
   'room_receipt_scenes': '{n} scenes',
   'room_recall_prompt': 'What did you place at spot {n}?',
+  'room_walk_n': 'Station {n} of {total}: {name}',
   'room_check_btn': 'Check',
   'room_reveal_btn': 'Show me',
   'room_correct': 'Yes — {item}!',

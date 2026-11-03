@@ -1933,6 +1933,7 @@ const Map<String, String> huStrings = {
   'room_badge_live': 'élő',
   'room_badge_local': 'helyi',
   'room_recall_prompt': 'Mit helyeztél a(z) {n}. pontra?',
+  'room_walk_n': '{n}/{total}. állomás: {name}',
   'room_check_btn': 'Ellenőrzés',
   'room_reveal_btn': 'Mutasd',
   'room_correct': 'Igen — {item}!',
