@@ -49,6 +49,16 @@ class ActivePalaceStore {
     }
   }
 
+  /// The saved palace id without resolving it.
+  static Future<String?> loadId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(prefKey);
+    } catch (_) {
+      return null;
+    }
+  }
+
   static Future<void> setId(String id) async {
     last = null;
     try {

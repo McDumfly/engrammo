@@ -119,7 +119,7 @@ const coachContent = <String, CoachContent>{
         'with this same method: put each item in a familiar place, then '
         'walk through and pick them up.',
     steps: [
-      'Pick a route you know cold: your home, front door to bedroom.',
+      'Use your active palace (the room you scanned) or pick a practice palace.',
       'Choose 5 stations in fixed order (door, couch, lamp...).',
       'Place ONE bizarre, moving image per station and walk it twice.',
     ],
@@ -239,8 +239,7 @@ const coachContent = <String, CoachContent>{
         'divers remembered more words underwater when they had learned '
         'them underwater, and a meta-analysis confirms the context '
         'advantage. Cues work when they overlap the encoding context.',
-    source:
-        'Godden & Baddeley (1975); Smith & Vela (2001); Tulving & Thomson (1973)',
+    source: 'Godden & Baddeley (1975); Smith & Vela (2001); Tulving & Thomson (1973)',
   ),
   '4-2': CoachContent(
     title: 'Night Consolidation',

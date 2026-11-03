@@ -19,6 +19,7 @@ void main() {
       'growth_day_v1': ['2026-10-30', '0=5'],
       'goal_plan_done_v1': ['g1=0,2'],
       'ai_help_history_v1_general': '[{"mine":true,"text":"hi"}]',
+      'active_palace_id_v1': 'room:1',
       'settings_dark_mode_v1': true,
     });
 
@@ -37,6 +38,7 @@ void main() {
       'restore_prompt_day_v1',
       'growth_day_v1',
       'goal_plan_done_v1',
+      'active_palace_id_v1',
       'ai_help_history_v1_general',
     ]) {
       expect(prefs.containsKey(key), isFalse, reason: key);

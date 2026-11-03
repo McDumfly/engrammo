@@ -1,4 +1,7 @@
+import 'package:engrammo/models/active_palace.dart';
+import 'package:engrammo/models/fsrs_card.dart';
 import 'package:engrammo/models/meta_task.dart';
+import 'package:engrammo/models/room_palace.dart' show RoomPalace;
 import 'package:engrammo/models/palace_drill.dart';
 import 'package:engrammo/services/meta_ai_service.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,9 +23,10 @@ void main() {
       expect(task.items.toSet().length, 6);
       expect(task.options.length, 4);
       expect(task.options.toSet().length, 4);
-      expect(task.options[task.correct], contains(task.items.firstWhere(
-        (w) => task.options[task.correct] == w,
-      )));
+      expect(
+        task.options[task.correct],
+        contains(task.items.firstWhere((w) => task.options[task.correct] == w)),
+      );
     });
 
     test('nehézséggel nő az állomásszám (4-8)', () {
@@ -95,8 +99,10 @@ void main() {
     });
 
     test('JSON-körút megőrzi az állomásokat és a kép-URL-t', () {
-      final t = localPalaceTask(difficulty: 1, seed: 's')
-          .copyWith(imageUrl: 'https://x/y.png');
+      final t = localPalaceTask(
+        difficulty: 1,
+        seed: 's',
+      ).copyWith(imageUrl: 'https://x/y.png');
       expect(MetaTask.fromJson(t.toJson()), t);
     });
   });
@@ -151,10 +157,7 @@ void main() {
         '"correct":0,"explanation":"Loci."}',
         const MetaTaskRequest(kind: 'spatial'),
       )!;
-      expect(
-        task.stations,
-        ['door', 'couch', 'shelf', 'window'],
-      );
+      expect(task.stations, ['door', 'couch', 'shelf', 'window']);
       expect(task.fallback, isFalse);
       expect(task.paradigm, 'loci-drill');
     });
@@ -183,6 +186,72 @@ void main() {
       expect(number.options.length, 4);
       expect(number.paradigm, 'chunk-span');
       expect(number.source, isNotEmpty);
+    });
+  });
+
+  group('taskOnPalace (fúrás az aktív palotán)', () {
+    MetaTask task() => MetaTask(
+      prompt: 'Walk your home palace — one image per station!',
+      items: const ['w0', 'w1', 'w2', 'w3', 'w4', 'w5'],
+      question: 'What did you place at the w2?',
+      options: const ['w2', 'x', 'y', 'z'],
+      correct: 0,
+      paradigm: 'loci-drill',
+      createdAt: DateTime.utc(2026),
+    );
+
+    const practice = ActivePalace(
+      id: 'route:1',
+      title: 'Old-town street',
+      stations: ['garden gate', 'bus stop', 'bakery window', 'corner fountain'],
+      imageRef: '',
+      boxes: [],
+      masks: [],
+      own: false,
+      sample: false,
+    );
+
+    test('vág és megtartja a jó választ', () {
+      final out = taskOnPalace(task(), practice);
+      expect(out.stations.length, 4);
+      expect(out.items, const ['w0', 'w1', 'w2', 'w3']);
+      expect(out.options[out.correct], 'w2');
+      expect(out.question, contains(out.stations[2]));
+    });
+
+    test('kieső választ az utolsó állomásra mutat', () {
+      final t = task().copyWith(
+        options: const ['a', 'b', 'c', 'w5'],
+        correct: 3,
+      );
+      final out = taskOnPalace(t, practice);
+      expect(out.items.length, 4);
+      expect(out.correct, 3);
+      expect(out.options[3], 'w3');
+      expect(out.question, contains(out.stations[3]));
+    });
+
+    test('saját palota: fotó, nincs samLabels', () {
+      final room = RoomPalace(
+        id: 'room:1',
+        createdAt: DateTime.utc(2026, 11, 1, 12),
+        imageRef: 'data:image/jpeg;base64,AAA',
+        stations: const ['desk', 'lamp', 'sofa', 'rug'],
+        card: FsrsCard(
+          cardId: 'room:1',
+          taskId: 'room_palace',
+          due: DateTime.utc(2026),
+        ),
+      );
+      final own = ActivePalace.fromRoom(room, 'en');
+      final out = taskOnPalace(task(), own);
+      expect(out.imageUrl, room.imageRef);
+      expect(out.samLabels, isEmpty);
+      expect(out.prompt, contains('Your palace:'));
+      expect(out.prompt, contains('Room palace · 2026-11-01'));
+      final route = taskOnPalace(task(), practice);
+      expect(route.prompt, contains('Practice palace:'));
+      expect(route.imageUrl, isEmpty);
     });
   });
 }

@@ -17,6 +17,7 @@ import '../models/meta_image.dart';
 import '../models/room_palace.dart';
 import '../models/sam_mask.dart'
     show SamMaskRun, decodeSamMaskToken, parseSamMaskToken, samMaskRuns;
+import '../services/active_palace_store.dart';
 import '../services/app_feedback.dart';
 import '../services/memory_store.dart';
 import '../services/meta_ai_service.dart';
@@ -84,6 +85,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
   bool _ready = false;
 
   List<RoomPalace> _palaces = [];
+  String? _activeId;
 
   // Scan state.
   String _photo = '';
@@ -193,9 +195,11 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
   Future<void> _loadList() async {
     final token = _token;
     final list = await MemoryStore.loadRoomPalaces();
+    final activeId = await ActivePalaceStore.loadId();
     if (!mounted || token != _token) return;
     setState(() {
       _palaces = list;
+      _activeId = activeId;
       _ready = true;
       _step = list.isEmpty ? _Step.capture : _Step.list;
     });
@@ -519,8 +523,11 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         sample: _sample,
       );
       await MemoryStore.upsertRoomPalace(palace);
+      // A freshly built palace becomes the lesson palace on the spot.
+      await ActivePalaceStore.setId(palace.id);
       if (!mounted || token != _token) return;
       setState(() {
+        _activeId = palace.id;
         _palace = palace;
         _focus = 0;
         _dreams.clear();
@@ -849,9 +856,12 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     if (ok != true || !mounted) return;
     final token = _token;
     await MemoryStore.deleteRoomPalace(p.id);
+    final activeId = await ActivePalaceStore.loadId();
+    if (activeId == p.id) await ActivePalaceStore.clear();
     if (!mounted || token != _token) return;
     setState(() {
       _palaces = _palaces.where((e) => e.id != p.id).toList();
+      if (activeId == p.id) _activeId = null;
       if (_palaces.isEmpty) _step = _Step.capture;
     });
   }
@@ -1225,6 +1235,31 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
             ),
           ),
           Tappable(
+            onTap: () async {
+              Navigator.of(sheetContext).pop();
+              await ActivePalaceStore.setId(p.id);
+              if (!mounted) return;
+              setState(() => _activeId = p.id);
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Row(
+                children: [
+                  HugeIcon(
+                    icon: HugeIcons.strokeRoundedPin,
+                    color: context.inkText,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    tr('palace_use'),
+                    style: AppText.body.copyWith(color: context.inkText),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Tappable(
             onTap: () {
               Navigator.of(sheetContext).pop();
               _confirmDelete(p);
@@ -1312,11 +1347,19 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
                       const SizedBox(height: 4),
                       Align(
                         alignment: Alignment.centerLeft,
-                        child: AppBadge(
-                          label: tr(
-                            p.live ? 'room_badge_live' : 'room_badge_local',
-                          ),
-                          color: p.live ? teal : blue,
+                        child: Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            AppBadge(
+                              label: tr(
+                                p.live ? 'room_badge_live' : 'room_badge_local',
+                              ),
+                              color: p.live ? teal : blue,
+                            ),
+                            if (p.id == _activeId)
+                              AppBadge(label: tr('palace_active')),
+                          ],
                         ),
                       ),
                     ],

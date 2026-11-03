@@ -106,7 +106,7 @@ const coachContentHu = <String, CoachContent>{
         'jegyeznek meg hosszú listákat: tedd minden tételt egy ismerős '
         'helyre, aztán sétálj végig, és szedd össze őket.',
     steps: [
-      'Válassz egy útvonalat, amelyet kívülről ismersz: az otthonod, bejárati ajtótól a hálószobáig.',
+      'Használd az aktív palotádat (a beszkennelt szobát) vagy válassz gyakorló palotát.',
       'Jelölj ki 5 állomást rögzített sorrendben (ajtó, kanapé, lámpa...).',
       'Helyezz állomásonként EGY bizarr, mozgó képet, és sétáld végig kétszer.',
     ],
@@ -230,8 +230,7 @@ const coachContentHu = <String, CoachContent>{
         'több szót jegyeztek meg víz alatt, ha víz alatt is tanulták őket, '
         'és egy metaanalízis megerősíti a kontextus előnyét. A hívószavak '
         'akkor működnek, ha átfednek a bevésési kontextussal.',
-    source:
-        'Godden & Baddeley (1975); Smith & Vela (2001); Tulving & Thomson (1973)',
+    source: 'Godden & Baddeley (1975); Smith & Vela (2001); Tulving & Thomson (1973)',
   ),
   '4-2': CoachContent(
     title: 'Éjszakai konszolidáció',

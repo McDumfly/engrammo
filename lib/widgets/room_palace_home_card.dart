@@ -5,6 +5,7 @@ import 'package:hugeicons/hugeicons.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/room_palace.dart';
+import '../services/active_palace_store.dart';
 import '../screens/room_palace_page.dart' show RoomPalacePage;
 import '../services/app_feedback.dart';
 import '../services/memory_store.dart';
@@ -78,7 +79,8 @@ class _RoomPalaceHomeCardState extends State<RoomPalaceHomeCard>
     super.dispose();
   }
 
-  /// Loads the saved palaces once; the card shows the latest one.
+  /// Loads the saved palaces once; the card shows the active palace,
+  /// falling back to the latest one.
   Future<void> _loadMine() async {
     final list = await MemoryStore.loadRoomPalaces();
     if (!mounted) return;
@@ -86,7 +88,18 @@ class _RoomPalaceHomeCardState extends State<RoomPalaceHomeCard>
     final latest = list.reduce(
       (a, b) => a.createdAt.isAfter(b.createdAt) ? a : b,
     );
-    setState(() => _mine = latest);
+    RoomPalace pick = latest;
+    try {
+      final active = await ActivePalaceStore.load(AppLocalizations.localeCode);
+      if (!mounted) return;
+      if (active != null && active.own) {
+        for (final p in list) {
+          if (p.id == active.id) pick = p;
+        }
+      }
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() => _mine = pick);
   }
 
   /// "today" / "tomorrow" / "in N days" for the palace's due date.
