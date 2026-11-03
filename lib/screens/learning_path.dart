@@ -1,4 +1,5 @@
 import '../theme/app_theme.dart';
+import '../theme/app_tokens.dart';
 
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -281,14 +282,17 @@ class _LearningPathPageState extends State<LearningPathPage> {
       index: _tab,
       children: [
         for (var i = 0; i < pages.length; i++)
-          AnimatedOpacity(
-            opacity: i == _tab ? 1 : 0,
-            duration: const Duration(milliseconds: 180),
-            child: IgnorePointer(
-              ignoring: i != _tab,
-              child: _builtTabs.contains(i)
-                  ? pages[i]
-                  : const SizedBox.shrink(),
+          TickerMode(
+            enabled: i == _tab,
+            child: AnimatedOpacity(
+              opacity: i == _tab ? 1 : 0,
+              duration: const Duration(milliseconds: 180),
+              child: IgnorePointer(
+                ignoring: i != _tab,
+                child: _builtTabs.contains(i)
+                    ? pages[i]
+                    : const SizedBox.shrink(),
+              ),
             ),
           ),
       ],
@@ -566,24 +570,38 @@ class _LearningPathPageState extends State<LearningPathPage> {
               ],
             ),
           ),
-          // A Liga és a Gyakorlás oldalnak saját segítőgombja van, oda nem
-          // teszünk másodikat.
-          if (_tab != 1 && _tab != 3)
+          // A Kezdőlapon nem takarjuk el az útvonalgrafikát, a Ligának és
+          // a Gyakorlás oldalnak pedig saját segítőgombja van.
+          if (_tab != 0 && _tab != 1 && _tab != 3)
             Positioned(
               key: const ValueKey('ai-help-fab'),
               left: 16,
               bottom: 110,
               child: AiHelpButton(topic: _helpTopic),
             ),
-          if (_tab == 0 && _showBackToNow)
+          if (_tab == 0)
             Positioned(
               key: const ValueKey('back-to-now-fab'),
               right: 16,
               bottom: 110,
-              child: AppIconButton(
-                icon: HugeIcons.strokeRoundedArrowUp01,
-                color: blue,
-                onTap: _warpToNow,
+              child: AnimatedScale(
+                scale: _showBackToNow ? 1 : 0.6,
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutBack,
+                child: AnimatedOpacity(
+                  opacity: _showBackToNow ? 1 : 0,
+                  duration: const Duration(milliseconds: 220),
+                  child: IgnorePointer(
+                    ignoring: !_showBackToNow,
+                    child: EngramIconButton(
+                      icon: HugeIcons.strokeRoundedArrowUp01,
+                      size: 48,
+                      background: blueDark,
+                      foreground: Colors.white,
+                      onTap: _warpToNow,
+                    ),
+                  ),
+                ),
               ),
             ),
           // Kulcs kell: a feltételes testvérek miatt e nélkül a navbar
@@ -639,7 +657,12 @@ class _LearningPathPageState extends State<LearningPathPage> {
     final body = <Widget>[];
     var station = 0;
 
-    body.add(const RoomPalaceHomeCard());
+    body.add(
+      const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 20),
+        child: RoomPalaceHomeCard(),
+      ),
+    );
     body.add(const SizedBox(height: 12));
 
     for (var s = 0; s < chapter.sections.length; s++) {
@@ -2503,11 +2526,11 @@ class _ChapterListPageState extends State<_ChapterListPage> {
             key: ValueKey('missions-$track'),
             onTap: () => showMissionsSheet(context, track),
             child: Container(
-              width: 40,
-              height: 40,
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
                 color: spec.tint.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppRadius.m),
               ),
               alignment: Alignment.center,
               child: HugeIcon(

@@ -39,6 +39,7 @@ const Map<String, String> enStrings = {
   'onb_science_link': 'Why it works — the research',
   'room_home_title': 'Room Palace',
   'room_home_sub': 'Photograph your room and learn with it.',
+  'room_home_cta': 'Start',
   'auth_tagline': 'Build a memory palace from your own room.',
   'auth_guest_cta': 'Try it now',
   'auth_guest_hint': 'No account needed.',

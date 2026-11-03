@@ -35,7 +35,8 @@ void main() {
       final light = AppTheme.light();
       expect(light.brightness, Brightness.light);
       expect(light.cardColor, Colors.white);
-      expect(light.scaffoldBackgroundColor, Colors.white);
+      expect(light.scaffoldBackgroundColor, const Color(0xFFF6F9FD));
+      expect(light.canvasColor, const Color(0xFFF6F9FD));
     });
 
     testWidgets('A ThemeCtx sötét módban sötét felületeket ad', (tester) async {

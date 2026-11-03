@@ -16,8 +16,12 @@ import 'app_kit.dart';
 const kRoomModelsCaption = 'SAM 3.1 · Muse Spark · Muse Image';
 
 /// Dark hero card at the top of the Home tab: Room Palace entry.
+/// Also reused as the Practice tab hero (with an explicit [onTap]).
 class RoomPalaceHomeCard extends StatefulWidget {
-  const RoomPalaceHomeCard({super.key});
+  const RoomPalaceHomeCard({super.key, this.onTap});
+
+  /// When null the card navigates to [RoomPalacePage] itself.
+  final VoidCallback? onTap;
 
   @override
   State<RoomPalaceHomeCard> createState() => _RoomPalaceHomeCardState();
@@ -74,93 +78,12 @@ class _RoomPalaceHomeCardState extends State<RoomPalaceHomeCard>
 
   @override
   Widget build(BuildContext context) {
+    // The entrance wraps the whole card (cached as `child`, so it never
+    // rebuilds while fading in); the drift rebuilds ONLY the blob paint.
     return AnimatedBuilder(
-      animation: Listenable.merge([_enter, _drift]),
-      builder: (context, _) {
-        final t = _drift.value * 2 * pi;
-        final offsets = [
-          Offset(0, 6 * sin(t)),
-          Offset(0, 6 * sin(t + 2.09)),
-          Offset(0, 6 * sin(t + 4.19)),
-        ];
-        final card = Tappable(
-          haptic: false,
-          onTap: _open,
-          child: SizedBox(
-            height: 152,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppRadius.l),
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Color(0xFF16233B), Color(0xFF0E3B4A)],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned.fill(
-                    child: CustomPaint(painter: _BlobPainter(offsets: offsets)),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 76, 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Align(
-                          alignment: Alignment.centerLeft,
-                          child: AppBadge(
-                            label: kRoomModelsCaption,
-                            color: teal,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          tr('room_home_title'),
-                          style: AppText.title.copyWith(color: Colors.white),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          tr('room_home_sub'),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppText.caption.copyWith(
-                            color: Colors.white.withValues(alpha: 0.8),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Positioned(
-                    right: 16,
-                    bottom: 16,
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: const HugeIcon(
-                        icon: HugeIcons.strokeRoundedCamera01,
-                        color: Color(0xFF16233B),
-                        size: 22,
-                        strokeWidth: 2.0,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-        if (_settled) return card;
+      animation: _enter,
+      builder: (context, card) {
+        if (_settled) return card!;
         return Opacity(
           opacity: _fade.value,
           child: Transform.translate(
@@ -169,6 +92,129 @@ class _RoomPalaceHomeCardState extends State<RoomPalaceHomeCard>
           ),
         );
       },
+      child: Tappable(
+        haptic: false,
+        onTap: widget.onTap ?? _open,
+        child: SizedBox(
+          height: 152,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.l),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF16233B), Color(0xFF0E3B4A)],
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned.fill(
+                  child: AnimatedBuilder(
+                    animation: _drift,
+                    builder: (context, _) {
+                      final t = _drift.value * 2 * pi;
+                      final offsets = [
+                        Offset(0, 6 * sin(t)),
+                        Offset(0, 6 * sin(t + 2.09)),
+                        Offset(0, 6 * sin(t + 4.19)),
+                      ];
+                      return RepaintBoundary(
+                        child: CustomPaint(
+                          painter: _BlobPainter(offsets: offsets),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(AppRadius.pill),
+                          ),
+                          child: Text(
+                            kRoomModelsCaption,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.micro.copyWith(
+                              color: Colors.white.withValues(alpha: 0.92),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        tr('room_home_title'),
+                        style: AppText.title.copyWith(color: Colors.white),
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              tr('room_home_sub'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppText.caption.copyWith(
+                                color: Colors.white.withValues(alpha: 0.8),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Container(
+                            height: 40,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.pill,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const HugeIcon(
+                                  icon: HugeIcons.strokeRoundedCamera01,
+                                  color: Color(0xFF16233B),
+                                  size: 18,
+                                  strokeWidth: 2.0,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  tr('room_home_cta'),
+                                  style: AppText.body.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF16233B),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

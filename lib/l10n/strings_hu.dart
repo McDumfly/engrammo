@@ -40,6 +40,7 @@ const Map<String, String> huStrings = {
   'onb_science_link': 'Miért működik? — a kutatások',
   'room_home_title': 'Szobapalota',
   'room_home_sub': 'Fotózd le a szobád, és tanulj vele.',
+  'room_home_cta': 'Kezdés',
   'auth_tagline': 'Építs memóriapalotát a saját szobádból.',
   'auth_guest_cta': 'Kipróbálom most',
   'auth_guest_hint': 'Fiók nélkül, azonnal.',

@@ -757,7 +757,10 @@ class _BenchmarkHubPageState extends State<BenchmarkHubPage> {
               style: AppText.caption.copyWith(color: context.mutedText),
             ),
             const SizedBox(height: 16),
-            _RoomPalaceHeroCard(onTap: _openRoomPalace),
+            RoomPalaceHomeCard(
+              key: const ValueKey('room-palace-hero'),
+              onTap: _openRoomPalace,
+            ),
             const SizedBox(height: 12),
             SessionCoachCard(onGoHome: widget.onGoHome),
             const SizedBox(height: 12),
@@ -784,74 +787,6 @@ class _BenchmarkHubPageState extends State<BenchmarkHubPage> {
   }
 }
 
-class _RoomPalaceHeroCard extends StatelessWidget {
-  final Future<void> Function() onTap;
-  const _RoomPalaceHeroCard({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      key: const ValueKey('room-palace-hero'),
-      onTap: () => onTap(),
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: coral.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: coral.withValues(alpha: 0.45), width: 2),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: coral.withValues(alpha: 0.16),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              alignment: Alignment.center,
-              child: HugeIcon(
-                icon: HugeIcons.strokeRoundedCamera01,
-                color: coral,
-                size: 32,
-                strokeWidth: 2.0,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    tr('room_title'),
-                    style: AppText.heading.copyWith(color: context.inkText),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    tr('room_sub'),
-                    style: AppText.caption.copyWith(color: context.mutedText),
-                  ),
-                  const SizedBox(height: 4),
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: AppBadge(label: kRoomModelsCaption, color: coral),
-                  ),
-                ],
-              ),
-            ),
-            HugeIcon(
-              icon: HugeIcons.strokeRoundedArrowRight01,
-              color: context.mutedText,
-              size: 22,
-              strokeWidth: 2.2,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _BenchmarkCard extends StatelessWidget {
   final _GameDef def;
   final VoidCallback onTap;
@@ -860,13 +795,13 @@ class _BenchmarkCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final b = BenchmarkStore.best[def.id];
-    return GestureDetector(
+    return Tappable(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: context.cardBg,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppRadius.l),
           border: Border.all(color: context.hairline, width: 2),
         ),
         child: Row(
@@ -876,7 +811,7 @@ class _BenchmarkCard extends StatelessWidget {
               height: 52,
               decoration: BoxDecoration(
                 color: def.tint.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppRadius.m),
               ),
               alignment: Alignment.center,
               child: HugeIcon(
@@ -902,23 +837,29 @@ class _BenchmarkCard extends StatelessWidget {
                 ],
               ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  b == null
-                      ? '—'
-                      : '$b ${def.bestLabelIn(AppLocalizations.localeCode)}',
-                  style: AppText.body.copyWith(color: context.inkText),
-                ),
-                HugeIcon(
-                  icon: HugeIcons.strokeRoundedArrowRight01,
-                  color: context.mutedText,
-                  size: 20,
-                  strokeWidth: 2.2,
-                ),
-              ],
-            ),
+            if (b == null)
+              HugeIcon(
+                icon: HugeIcons.strokeRoundedArrowRight01,
+                color: context.mutedText,
+                size: 20,
+                strokeWidth: 2.2,
+              )
+            else
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '$b ${def.bestLabelIn(AppLocalizations.localeCode)}',
+                    style: AppText.body.copyWith(color: context.inkText),
+                  ),
+                  HugeIcon(
+                    icon: HugeIcons.strokeRoundedArrowRight01,
+                    color: context.mutedText,
+                    size: 20,
+                    strokeWidth: 2.2,
+                  ),
+                ],
+              ),
           ],
         ),
       ),

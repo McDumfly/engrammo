@@ -154,9 +154,9 @@ class AppTheme {
       colorScheme: scheme,
       primaryColor: blue,
       fontFamily: fontFamily,
-      scaffoldBackgroundColor: Colors.white,
+      scaffoldBackgroundColor: const Color(0xFFF6F9FD),
       cardColor: Colors.white,
-      canvasColor: Colors.white,
+      canvasColor: const Color(0xFFF6F9FD),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
           TargetPlatform.android: CupertinoPageTransitionsBuilder(),

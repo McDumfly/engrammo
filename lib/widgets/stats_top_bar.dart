@@ -123,7 +123,7 @@ class StatsTopBar extends StatelessWidget {
                   Text(
                     '$streak',
                     style: TextStyle(
-                      color: context.inkText,
+                      color: streak == 0 ? context.mutedText : context.inkText,
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
