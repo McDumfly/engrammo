@@ -1827,10 +1827,7 @@ class _AllBadgesPage extends StatelessWidget {
       appBar: AppTopBar(
         title: tr('kreeds_badges'),
         leading: const EngramBackButton(),
-        actions: const [
-          AiHelpButton(topic: AiHelpTopics.general),
-          SizedBox(width: 12),
-        ],
+        actions: const [AiHelpButton(topic: AiHelpTopics.general)],
       ),
       body: GridView.builder(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),

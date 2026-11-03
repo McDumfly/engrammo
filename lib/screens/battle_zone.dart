@@ -54,10 +54,7 @@ class BattleZonePage extends StatelessWidget {
       appBar: AppTopBar(
         title: tr('btz_title'),
         leading: const EngramBackButton(),
-        actions: const [
-          AiHelpButton(topic: AiHelpTopics.battle),
-          SizedBox(width: 12),
-        ],
+        actions: const [AiHelpButton(topic: AiHelpTopics.battle)],
       ),
       body: const BattleZoneView(),
     );

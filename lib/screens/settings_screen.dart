@@ -850,6 +850,7 @@ class _Header extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           EngramBackButton(boxed: true, onPressed: onBack),
           Expanded(
@@ -877,7 +878,10 @@ class _Header extends StatelessWidget {
               ],
             ),
           ),
-          const AiHelpButton(topic: AiHelpTopics.settings),
+          Transform.translate(
+            offset: const Offset(4, 0),
+            child: const AiHelpButton(topic: AiHelpTopics.settings),
+          ),
         ],
       ),
     );

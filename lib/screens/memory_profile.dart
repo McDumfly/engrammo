@@ -547,7 +547,6 @@ class MemoryAssessmentIntroPage extends StatelessWidget {
             topic: AiHelpTopics.assessment,
             helpContext: tr('mprof_intro_help'),
           ),
-          const SizedBox(width: 12),
         ],
       ),
       body: ListView(
@@ -912,7 +911,6 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
               topic: AiHelpTopics.assessment,
               helpContext: tr('mprof_task_help'),
             ),
-            const SizedBox(width: 12),
           ],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(12),
@@ -1355,7 +1353,6 @@ class MemoryResultPage extends StatelessWidget {
             topic: AiHelpTopics.assessment,
             helpContext: tr('mprof_result_help'),
           ),
-          const SizedBox(width: 12),
         ],
       ),
       body: ListView(

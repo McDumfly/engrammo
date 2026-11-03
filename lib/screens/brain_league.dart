@@ -303,6 +303,7 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Expanded(
                             child: Text(
@@ -312,7 +313,12 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
                               ),
                             ),
                           ),
-                          const AiHelpButton(topic: AiHelpTopics.league),
+                          Transform.translate(
+                            offset: const Offset(4, 0),
+                            child: const AiHelpButton(
+                              topic: AiHelpTopics.league,
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -475,6 +481,7 @@ class _FriendsTab extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Expanded(
                     child: Text(
@@ -484,7 +491,10 @@ class _FriendsTab extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const AiHelpButton(topic: AiHelpTopics.league),
+                  Transform.translate(
+                    offset: const Offset(4, 0),
+                    child: const AiHelpButton(topic: AiHelpTopics.league),
+                  ),
                 ],
               ),
             ),

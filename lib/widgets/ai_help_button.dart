@@ -5,7 +5,6 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../l10n/app_localizations.dart';
-import '../services/app_feedback.dart';
 import '../services/meta_ai_service.dart';
 import '../theme/app_colors.dart' show blue, blueDark;
 import '../theme/app_theme.dart';
@@ -89,33 +88,31 @@ class AiHelpButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Tappable(
       key: const ValueKey('ai-help-open'),
+      scale: 0.92,
+      semanticLabel: tr('help_open'),
       onTap: () {
-        AppFeedback.light();
         openAiHelpSheet(context, topic: topic, helpContext: helpContext);
       },
-      child: Container(
+      child: SizedBox(
         width: 44,
         height: 44,
-        decoration: BoxDecoration(
-          color: context.cardBg,
-          shape: BoxShape.circle,
-          border: Border.all(color: context.washBorder, width: 2),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+        child: Center(
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: context.washBg,
+              shape: BoxShape.circle,
             ),
-          ],
-        ),
-        alignment: Alignment.center,
-        child: const HugeIcon(
-          icon: HugeIcons.strokeRoundedBubbleChatQuestion,
-          color: blue,
-          size: 24,
-          strokeWidth: 2.2,
+            child: HugeIcon(
+              icon: HugeIcons.strokeRoundedBubbleChatQuestion,
+              color: context.accentText(blue),
+              size: 20,
+              strokeWidth: 2.0,
+            ),
+          ),
         ),
       ),
     );

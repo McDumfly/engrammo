@@ -753,6 +753,7 @@ class _BenchmarkHubPageState extends State<BenchmarkHubPage> {
           children: [
             const SizedBox(height: 12),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
                   child: Text(
@@ -762,7 +763,10 @@ class _BenchmarkHubPageState extends State<BenchmarkHubPage> {
                     ),
                   ),
                 ),
-                const AiHelpButton(topic: AiHelpTopics.benchmark),
+                Transform.translate(
+                  offset: const Offset(4, 0),
+                  child: const AiHelpButton(topic: AiHelpTopics.benchmark),
+                ),
               ],
             ),
             const SizedBox(height: 4),
@@ -966,7 +970,7 @@ Widget _gameScaffold({
             ),
           ),
         ),
-        const Center(child: AiHelpButton(topic: AiHelpTopics.benchmark)),
+        const AiHelpButton(topic: AiHelpTopics.benchmark),
       ],
     ),
     body: aiModels.isEmpty

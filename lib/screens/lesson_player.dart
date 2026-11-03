@@ -1224,7 +1224,6 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
                   '${chapter.realm}, Part ${widget.sectionIndex + 1}, '
                   'Step ${widget.lessonIndex + 1}: ${_lesson.title}',
             ),
-            const SizedBox(width: 12),
           ],
         ),
         body: switch (_phase) {

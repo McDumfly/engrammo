@@ -36,10 +36,7 @@ class FriendProfilePage extends StatelessWidget {
       appBar: AppTopBar(
         title: friend.name,
         leading: const EngramBackButton(),
-        actions: const [
-          AiHelpButton(topic: AiHelpTopics.battle),
-          SizedBox(width: 12),
-        ],
+        actions: const [AiHelpButton(topic: AiHelpTopics.battle)],
       ),
       body: ListenableBuilder(
         listenable: battleInvites,

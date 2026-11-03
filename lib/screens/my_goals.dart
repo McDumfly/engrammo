@@ -115,10 +115,7 @@ class _MyGoalsPageState extends State<MyGoalsPage> {
       appBar: AppTopBar(
         title: tr('myg_title'),
         leading: EngramBackButton(onPressed: () => Navigator.of(context).pop()),
-        actions: const [
-          AiHelpButton(topic: AiHelpTopics.goals),
-          SizedBox(width: 12),
-        ],
+        actions: const [AiHelpButton(topic: AiHelpTopics.goals)],
       ),
       body: _loading
           ? const AppSkeletonList()
@@ -392,10 +389,7 @@ class _NewGoalPageState extends State<NewGoalPage> {
       appBar: AppTopBar(
         title: tr('myg_new_title'),
         leading: EngramBackButton(onPressed: () => Navigator.of(context).pop()),
-        actions: const [
-          AiHelpButton(topic: AiHelpTopics.goals),
-          SizedBox(width: 12),
-        ],
+        actions: const [AiHelpButton(topic: AiHelpTopics.goals)],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
@@ -868,7 +862,6 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
             topic: AiHelpTopics.goals,
             helpContext: goal == null ? '' : 'Goal: ${goal.title}',
           ),
-          const SizedBox(width: 12),
         ],
       ),
       body: _loading || goal == null

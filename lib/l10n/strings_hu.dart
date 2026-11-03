@@ -250,6 +250,7 @@ const Map<String, String> huStrings = {
   'help_q_station_doit': 'Mit csináljak ezen az állomáson?',
   'help_q_explain': 'Magyarázd el egyszerűen a technikát',
   'help_q_example': 'Adj egy példát',
+  'help_open': 'Kérdezd az AI-t',
   'help_q_late': 'Miért jönnek késve a kérdések?',
   'help_q_level': 'Hogyan emeljem a memóriaszintemet?',
   'help_q_unlock': 'Hogyan nyitom meg a következő állomást?',

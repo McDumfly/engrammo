@@ -243,6 +243,7 @@ const Map<String, String> enStrings = {
   'help_q_station_doit': 'What do I do in this station?',
   'help_q_explain': 'Explain the technique simply',
   'help_q_example': 'Give me an example',
+  'help_open': 'Ask AI for help',
   'help_q_late': 'Why do questions come late?',
   'help_q_level': 'How do I raise my memory level?',
   'help_q_unlock': 'How do I unlock the next station?',

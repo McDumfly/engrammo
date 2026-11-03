@@ -195,10 +195,7 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
             Navigator.of(context).pop();
           },
         ),
-        actions: const [
-          AiHelpButton(topic: AiHelpTopics.benchmark),
-          SizedBox(width: 12),
-        ],
+        actions: const [AiHelpButton(topic: AiHelpTopics.benchmark)],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
