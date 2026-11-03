@@ -1221,9 +1221,10 @@ class MetaAIService {
               'You MUST recommend that index as "track"; use the interview '
               'answers only to explain why in "rationale". '
         : 'The test scores are TIED at the top between indices '
-              '${tiedTop.join(', ')}. You MUST recommend "track" from ONLY '
-              'those tied indices, using the interview answers to break the '
-              'tie. Never pick an index outside the tied set. ';
+              '${tiedTop.join(', ')}. Prefer one of those tied indices, '
+              'using the interview answers to break the tie, but you MAY '
+              'recommend any valid track index 0-5 when the interview '
+              'answers clearly point elsewhere. ';
     return {
       'model': taskModel,
       'temperature': 0.3,
@@ -1305,13 +1306,11 @@ class MetaAIService {
       if (res.statusCode >= 200 && res.statusCode < 300) {
         final data = jsonDecode(res.body);
         if (data is Map<String, dynamic>) {
+          // Any valid track index 0-5 is accepted as the decisive AI pick;
+          // the tied top is only a hint in the prompt, never a filter.
+          // Unparseable or out-of-range output still falls back to local.
           final rec = parseStudyRecommendationContent(_choicesText(data));
-          final outsideTie =
-              rec != null &&
-              tiedTop != null &&
-              tiedTop.isNotEmpty &&
-              !tiedTop.contains(rec.track);
-          if (rec != null && !outsideTie) {
+          if (rec != null) {
             await _log(
               MetaCallEntry(
                 model: taskModel,
@@ -1323,7 +1322,6 @@ class MetaAIService {
             );
             return rec;
           }
-          if (outsideTie) throw StateError('AI study choice outside tied top');
           throw StateError(_emptyChatNote(res, data));
         }
       }

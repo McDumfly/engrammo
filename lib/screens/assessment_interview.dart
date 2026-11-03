@@ -6,7 +6,6 @@ import '../models/claims_policy.dart'
     show aiCloudConsentBody, aiCloudConsentTitle;
 import '../models/interview.dart';
 import '../models/memory_verdict.dart';
-import '../models/study_recommendation.dart';
 import '../services/app_feedback.dart';
 import '../services/memory_store.dart';
 import '../services/meta_ai_service.dart';
@@ -100,28 +99,33 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
                   widget.scores.reduce((a, b) => a > b ? a : b))
                 i,
           ];
-    final results = await Future.wait([
-      MetaAIService.analyzeMemoryType(
-        scores: widget.scores,
-        answers: _answers,
-        hardHits: widget.hardHits,
-        tiedTop: tiedTop,
-      ),
-      MetaAIService.recommendStudyTrack(
-        scores: widget.scores,
-        answers: _answers,
-        hardHits: widget.hardHits,
-        latenciesMs: widget.latenciesMs,
-        tiedTop: tiedTop,
-      ),
-    ]);
-    final verdict = results[0] as MemoryVerdict;
-    final studyChoice = results[1] as StudyRecommendation;
+    // The verdict comes first: the study choice needs its kind, and the
+    // study pick is persisted as the decisive answer.
+    final verdict = await MetaAIService.analyzeMemoryType(
+      scores: widget.scores,
+      answers: _answers,
+      hardHits: widget.hardHits,
+      tiedTop: tiedTop,
+    );
+    final studyChoice = await MetaAIService.recommendStudyTrack(
+      scores: widget.scores,
+      answers: _answers,
+      hardHits: widget.hardHits,
+      latenciesMs: widget.latenciesMs,
+      tiedTop: tiedTop,
+      interviewKind: verdict.kind,
+    );
     await MemoryStore.saveDominantKind(
       verdict.kind,
       rationale: verdict.rationale,
       ai: !verdict.fallback,
     );
+    await MemoryStore.saveStudyChoice(
+      studyChoice.track,
+      rationale: studyChoice.rationale,
+      ai: !studyChoice.fallback,
+    );
+    await MemoryStore.saveActiveTrack(studyChoice.track);
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(

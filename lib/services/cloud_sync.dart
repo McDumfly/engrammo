@@ -63,6 +63,9 @@ class CloudSync {
       final scores = await MemoryStore.loadScores();
       final dominant = await MemoryStore.loadDominantKind();
       final dominantMeta = await MemoryStore.loadDominantMeta();
+      final studyChoice = await MemoryStore.loadStudyChoice();
+      final studyChoiceMeta = await MemoryStore.loadStudyChoiceMeta();
+      final activeTrack = await MemoryStore.loadActiveTrack();
       final kind = await MemoryStore.loadBattleKind();
       final rating = await MemoryStore.loadBattleRating();
       final battleXp = await MemoryStore.loadBattleXp();
@@ -97,6 +100,9 @@ class CloudSync {
         'scores': scores ?? const [],
         'dominantKind': dominant ?? -1,
         'dominantMeta': dominantMeta,
+        'studyChoice': studyChoice ?? -1,
+        'studyChoiceMeta': studyChoiceMeta,
+        'activeTrack': activeTrack ?? -1,
         'battleKind': kind ?? -1,
         'battleRating': rating,
         'battleXp': battleXp,
@@ -119,8 +125,7 @@ class CloudSync {
         'lessonReps': lessonReps,
         'trackMinutes': trackMinutes,
         'lessonDone': {
-          for (final e in lessonDone.entries)
-            e.key: e.value.toIso8601String(),
+          for (final e in lessonDone.entries) e.key: e.value.toIso8601String(),
         },
         'onboardingDone': onboardingDone,
         'botRoster': [for (final b in roster) b.toJson()],
@@ -195,14 +200,32 @@ class CloudSync {
       final dominant = data['dominantKind'];
       if (dominant is int && dominant >= 0) {
         final meta = data['dominantMeta'];
-        final rationale =
-            meta is Map ? (meta['rationale']?.toString() ?? '') : '';
+        final rationale = meta is Map
+            ? (meta['rationale']?.toString() ?? '')
+            : '';
         final ai = meta is Map && meta['source']?.toString() == 'ai';
         await MemoryStore.saveDominantKindWithoutNotify(
           dominant,
           rationale: rationale,
           ai: ai,
         );
+      }
+      final studyChoice = data['studyChoice'];
+      if (studyChoice is int && studyChoice >= 0) {
+        final meta = data['studyChoiceMeta'];
+        final rationale = meta is Map
+            ? (meta['rationale']?.toString() ?? '')
+            : '';
+        final ai = meta is Map && meta['source']?.toString() == 'ai';
+        await MemoryStore.saveStudyChoiceWithoutNotify(
+          studyChoice,
+          rationale: rationale,
+          ai: ai,
+        );
+      }
+      final activeTrack = data['activeTrack'];
+      if (activeTrack is int && activeTrack >= 0) {
+        await MemoryStore.saveActiveTrack(activeTrack);
       }
       final kind = data['battleKind'];
       if (kind is int && kind >= 0) {
@@ -599,9 +622,7 @@ class CloudSync {
           'uid': uid,
           'updatedAt': FieldValue.serverTimestamp(),
         });
-        tx.set(userRef, {
-          'username': name,
-        }, SetOptions(merge: true));
+        tx.set(userRef, {'username': name}, SetOptions(merge: true));
       });
     } on UsernameTakenException {
       rethrow;
@@ -622,14 +643,11 @@ class CloudSync {
       if (!available || uid.isEmpty) return;
       final name = ProfileSetupRules.normalizeUsername(username);
       if (name.isEmpty) return;
-      final ref = FirebaseFirestore.instance
-          .collection('usernames')
-          .doc(name);
+      final ref = FirebaseFirestore.instance.collection('usernames').doc(name);
       final snap = await ref.get();
       if (snap.exists && (snap.data()?['uid'] as String?) == uid) {
         await ref.delete();
       }
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 }

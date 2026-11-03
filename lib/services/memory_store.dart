@@ -90,6 +90,9 @@ class MemoryStore {
   static const _scoresKey = 'memory_scores_v1';
   static const _dominantKindKey = 'dominant_kind_v1';
   static const _dominantMetaKey = 'dominant_meta_v1';
+  static const _studyChoiceKey = 'study_choice_v1';
+  static const _studyChoiceMetaKey = 'study_choice_meta_v1';
+  static const _activeTrackKey = 'active_track_v1';
   static const _battleKindKey = 'battle_memory_kind_v1';
   static const _battleRatingKey = 'battle_rating_v1';
   static const _avatarOptsKey = 'avatar_opts_v1';
@@ -112,6 +115,8 @@ class MemoryStore {
   static ({String displayName, String username, String email})? _profileMemory;
   static List<int>? _scoresMemory;
   static int? _dominantKindMemory;
+  static int? _studyChoiceMemory;
+  static int? _activeTrackMemory;
   static StreakState? _streakMemory;
   static int? _battleRatingMemory;
   static int? _battleXpMemory;
@@ -129,6 +134,13 @@ class MemoryStore {
 
   /// Last dominant memory kind seen in this session, or null when unknown.
   static int? get lastDominantKind => _dominantKindMemory;
+
+  /// Last persisted study-track pick seen in this session, or null when
+  /// unknown. This is the decisive AI (or local) pick, not the score calc.
+  static int? get lastStudyChoice => _studyChoiceMemory;
+
+  /// Last active learning track seen in this session, or null when unknown.
+  static int? get lastActiveTrack => _activeTrackMemory;
 
   /// Last streak state seen in this session, or null when unknown.
   /// Returns a copy; callers may mutate the result freely.
@@ -156,6 +168,8 @@ class MemoryStore {
     _profileMemory = null;
     _scoresMemory = null;
     _dominantKindMemory = null;
+    _studyChoiceMemory = null;
+    _activeTrackMemory = null;
     _streakMemory = null;
     _battleRatingMemory = null;
     _battleXpMemory = null;
@@ -317,6 +331,85 @@ class MemoryStore {
       _dominantKindMemory = kind;
       _announceScores();
     } catch (_) {}
+  }
+
+  /// Persists the decisive study-track pick (the AI pick, or the local
+  /// estimate when the AI call falls back). Battles and the coach keep
+  /// using the dominant kind as "strongest"; this is what to learn first.
+  static Future<void> saveStudyChoice(
+    int track, {
+    String rationale = '',
+    required bool ai,
+  }) async {
+    await saveStudyChoiceWithoutNotify(track, rationale: rationale, ai: ai);
+    _notifyChanged();
+  }
+
+  static Future<void> saveStudyChoiceWithoutNotify(
+    int track, {
+    String rationale = '',
+    required bool ai,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_studyChoiceKey, track);
+      await prefs.setStringList(_studyChoiceMetaKey, [
+        'rationale=${rationale.replaceAll('\n', ' ')}',
+        'source=${ai ? 'ai' : 'local'}',
+        'at=${DateTime.now().toIso8601String()}',
+      ]);
+      _studyChoiceMemory = track;
+      _announceScores();
+    } catch (_) {}
+  }
+
+  static Future<int?> loadStudyChoice() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final track = prefs.getInt(_studyChoiceKey);
+      _studyChoiceMemory = track;
+      return track;
+    } catch (_) {
+      return _studyChoiceMemory;
+    }
+  }
+
+  static Future<Map<String, String>> loadStudyChoiceMeta() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getStringList(_studyChoiceMetaKey);
+      if (raw == null || raw.isEmpty) return {};
+      final map = <String, String>{};
+      for (final e in raw) {
+        final i = e.indexOf('=');
+        if (i <= 0) continue;
+        map[e.substring(0, i)] = e.substring(i + 1);
+      }
+      return map;
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// The track the learner is currently walking, saved on every explicit
+  /// track change so the app can reopen on it.
+  static Future<void> saveActiveTrack(int track) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_activeTrackKey, track);
+      _activeTrackMemory = track;
+    } catch (_) {}
+  }
+
+  static Future<int?> loadActiveTrack() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final track = prefs.getInt(_activeTrackKey);
+      _activeTrackMemory = track;
+      return track;
+    } catch (_) {
+      return _activeTrackMemory;
+    }
   }
 
   static Future<bool> loadOnboardingDone() async {
@@ -1371,6 +1464,9 @@ class MemoryStore {
         _scoresKey,
         _dominantKindKey,
         _dominantMetaKey,
+        _studyChoiceKey,
+        _studyChoiceMetaKey,
+        _activeTrackKey,
         _battleKindKey,
         _battleRatingKey,
         _botRosterKey,

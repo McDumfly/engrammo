@@ -23,7 +23,6 @@ import '../models/assessment.dart'
         ordinal,
         pointsForBudget,
         resolveDominant,
-        scoresAreBlank,
         spatialProbeBudgets;
 import '../models/claims_policy.dart'
     show assessmentDisclaimer, resultDisclaimer;
@@ -1325,10 +1324,7 @@ class MemoryResultPage extends StatelessWidget {
       latenciesMs: latenciesMs.length == scores.length ? latenciesMs : null,
       interviewKind: verdict?.kind,
     );
-    final best = result.kind;
     final v = verdict;
-    final tiedNames = [for (final i in result.tied) memoryKinds[i].displayName]
-        .join(', ');
     final rec =
         recommendation ??
         heuristicStudyRecommendation(
@@ -1337,12 +1333,6 @@ class MemoryResultPage extends StatelessWidget {
           latenciesMs: latenciesMs.length == scores.length ? latenciesMs : null,
           interviewKind: verdict?.kind,
         );
-    var weakest = -1;
-    for (var i = 0; i < scores.length; i++) {
-      if (i == rec.track) continue;
-      if (weakest < 0 || scores[i] < scores[weakest]) weakest = i;
-    }
-    final showWeakest = !scoresAreBlank(scores) && weakest >= 0;
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppTopBar(
@@ -1361,13 +1351,10 @@ class MemoryResultPage extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: best == null ? teal : blue,
+              color: blue,
               borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: best == null ? tealDark : blueDark,
-                  offset: const Offset(0, 4),
-                ),
+              boxShadow: const [
+                BoxShadow(color: blueDark, offset: Offset(0, 4)),
               ],
             ),
             child: Row(
@@ -1381,9 +1368,7 @@ class MemoryResultPage extends StatelessWidget {
                   ),
                   alignment: Alignment.center,
                   child: HugeIcon(
-                    icon: best == null
-                        ? HugeIcons.strokeRoundedBalanceScale
-                        : memoryKinds[best].icon,
+                    icon: memoryKinds[rec.track].icon,
                     color: Colors.white,
                     size: 26,
                     strokeWidth: 2.0,
@@ -1395,10 +1380,12 @@ class MemoryResultPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        best == null
-                            ? tr('mprof_balanced')
-                            : tr('mprof_strongest', {
-                                'name': memoryKinds[best].displayName,
+                        rec.fallback
+                            ? tr('mprof_hero_local', {
+                                'name': memoryKinds[rec.track].displayName,
+                              })
+                            : tr('mprof_hero_ai', {
+                                'name': memoryKinds[rec.track].displayName,
                               }),
                         style: const TextStyle(
                           color: Colors.white,
@@ -1407,9 +1394,9 @@ class MemoryResultPage extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        best == null
-                            ? tr('mprof_tied', {'names': tiedNames})
-                            : memoryKinds[best].displayModule,
+                        rec.rationale,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.85),
                           fontSize: 13,
@@ -1418,15 +1405,27 @@ class MemoryResultPage extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (best != null)
-                  Text(
-                    '${scores[best]}%',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 20,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '${scores[rec.track]}%',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 20,
+                      ),
                     ),
-                  ),
+                    Text(
+                      tr('mprof_test_label'),
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -1461,7 +1460,9 @@ class MemoryResultPage extends StatelessWidget {
               ),
             ),
           ),
-          if (v != null) ...[
+          // A second card only when the verdict disagrees with the pick;
+          // otherwise the hero is the single answer.
+          if (v != null && v.kind != rec.track) ...[
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(14),
@@ -1494,15 +1495,9 @@ class MemoryResultPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          v.fallback
-                              ? tr('mprof_local', {
-                                  'name': memoryKinds[v.kind].displayName,
-                                  'pct': (v.confidence * 100).round(),
-                                })
-                              : tr('mprof_ai_verdict', {
-                                  'name': memoryKinds[v.kind].displayName,
-                                  'pct': (v.confidence * 100).round(),
-                                }),
+                          tr('mprof_verdict_read', {
+                            'name': memoryKinds[v.kind].displayName,
+                          }),
                           style: TextStyle(
                             color: context.inkText,
                             fontWeight: FontWeight.w700,
@@ -1525,116 +1520,38 @@ class MemoryResultPage extends StatelessWidget {
               ),
             ),
           ],
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: teal.withValues(alpha: 0.10),
+          if (onStartTrack != null) ...[
+            const SizedBox(height: 12),
+            EngramPress3D(
+              onTap: () => onStartTrack!(rec.track),
+              shadowColor: tealDark,
+              depth: 4,
               borderRadius: BorderRadius.circular(AppRadius.m),
-              border: Border.all(color: teal, width: 2),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: teal.withValues(alpha: 0.16),
-                        borderRadius: BorderRadius.circular(AppRadius.m),
-                      ),
-                      alignment: Alignment.center,
-                      child: const HugeIcon(
-                        icon: HugeIcons.strokeRoundedAiChat02,
-                        color: teal,
-                        size: 24,
-                        strokeWidth: 2.0,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            rec.fallback
-                                ? tr('mprof_study', {
-                                    'name': memoryKinds[rec.track].displayName,
-                                  })
-                                : tr('mprof_ai_study', {
-                                    'name': memoryKinds[rec.track].displayName,
-                                  }),
-                            style: TextStyle(
-                              color: context.inkText,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 15,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            rec.rationale,
-                            style: TextStyle(
-                              color: context.inkText,
-                              fontSize: 13,
-                              height: 1.4,
-                            ),
-                          ),
-                          if (showWeakest) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              tr('mprof_weakest', {
-                                'name': memoryKinds[weakest].displayName,
-                              }),
-                              style: TextStyle(
-                                color: context.mutedText,
-                                fontSize: 13,
-                                height: 1.4,
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
+              haptic: false,
+              semanticLabel: tr('mprof_start_track', {
+                'name': memoryKinds[rec.track].displayName,
+              }),
+              top: Container(
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                decoration: BoxDecoration(
+                  color: teal,
+                  borderRadius: BorderRadius.circular(AppRadius.m),
                 ),
-                if (onStartTrack != null) ...[
-                  const SizedBox(height: 12),
-                  EngramPress3D(
-                    onTap: () => onStartTrack!(rec.track),
-                    shadowColor: tealDark,
-                    depth: 4,
-                    borderRadius: BorderRadius.circular(AppRadius.m),
-                    haptic: false,
-                    semanticLabel: tr('mprof_start_track', {
-                      'name': memoryKinds[rec.track].displayName,
-                    }),
-                    top: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 13),
-                      decoration: BoxDecoration(
-                        color: teal,
-                        borderRadius: BorderRadius.circular(AppRadius.m),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        tr('mprof_start_track', {
-                          'name': memoryKinds[rec.track].displayName,
-                        }),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                    ),
+                alignment: Alignment.center,
+                child: Text(
+                  tr('mprof_start_track', {
+                    'name': memoryKinds[rec.track].displayName,
+                  }),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    letterSpacing: 1,
                   ),
-                ],
-              ],
+                ),
+              ),
             ),
-          ),
+          ],
           const SizedBox(height: 12),
           _CalibrationCard(scores: scores),
           const SizedBox(height: 12),
@@ -1690,7 +1607,11 @@ class MemoryResultPage extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           for (var i = 0; i < memoryKinds.length; i++) ...[
-            _ScoreRow(kind: memoryKinds[i], score: scores[i]),
+            _ScoreRow(
+              kind: memoryKinds[i],
+              score: scores[i],
+              isPick: i == rec.track,
+            ),
             const SizedBox(height: 10),
           ],
           const SizedBox(height: 8),
@@ -1876,7 +1797,12 @@ class _CalibrationCardState extends State<_CalibrationCard> {
 class _ScoreRow extends StatelessWidget {
   final MemoryKind kind;
   final int score;
-  const _ScoreRow({required this.kind, required this.score});
+  final bool isPick;
+  const _ScoreRow({
+    required this.kind,
+    required this.score,
+    this.isPick = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1921,6 +1847,10 @@ class _ScoreRow extends StatelessWidget {
                         ),
                       ),
                     ),
+                    if (isPick) ...[
+                      AppBadge(label: tr('lpt_ai_pick'), color: teal),
+                      const SizedBox(width: 8),
+                    ],
                     Text(
                       '$score%',
                       style: TextStyle(

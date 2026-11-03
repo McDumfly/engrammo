@@ -48,9 +48,7 @@ void main() {
     });
 
     test('blank scores start at the first track, honestly', () {
-      final r = heuristicStudyRecommendation(
-        scores: const [0, 0, 0, 0, 0, 0],
-      );
+      final r = heuristicStudyRecommendation(scores: const [0, 0, 0, 0, 0, 0]);
       expect(r.track, 0);
       expect(r.rationale, contains('No clear signal'));
       final r2 = heuristicStudyRecommendation(scores: null);
@@ -94,7 +92,7 @@ void main() {
   });
 
   group('MetaAIService.studyRequestBody', () {
-    test('constrains the choice to the tied top', () {
+    test('passes the tied top as a hint, not a constraint', () {
       final body = MetaAIService.studyRequestBody(
         scores: const [100, 100, 60, 0, 0, 0],
         answersText: 'Q: imagery? A: I see faces clearly.',
@@ -107,7 +105,9 @@ void main() {
           .map((m) => (m as Map)['content'].toString())
           .join('\n');
       expect(joined, contains('faces clearly'));
-      expect(joined, contains('ONLY'));
+      expect(joined, contains('Prefer'));
+      expect(joined, contains('0, 1'));
+      expect(joined, isNot(contains('ONLY')));
       expect(joined.toLowerCase(), contains('practice emphasis'));
     });
 
@@ -166,32 +166,35 @@ void main() {
       expect(r.track, 1);
     });
 
-    test('live answer outside the tied top falls back', () async {
-      SharedPreferences.setMockInitialValues({});
-      final client = MockClient((_) async {
-        return http.Response(
-          jsonEncode({
-            'choices': [
-              {
-                'message': {
-                  'content':
-                      '{"track": 5, "rationale": "Start with semantic."}',
+    test(
+      'live answer outside the tied top is accepted as the AI pick',
+      () async {
+        SharedPreferences.setMockInitialValues({});
+        final client = MockClient((_) async {
+          return http.Response(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {
+                    'content':
+                        '{"track": 5, "rationale": "Start with semantic."}',
+                  },
                 },
-              },
-            ],
-          }),
-          200,
+              ],
+            }),
+            200,
+          );
+        });
+        final r = await MetaAIService.recommendStudyTrack(
+          scores: const [100, 100, 60, 0, 0, 0],
+          answers: const [InterviewAnswer(questionId: 'q1-face')],
+          tiedTop: const [0, 1],
+          client: client,
+          apiKeyOverride: 'test-key',
         );
-      });
-      final r = await MetaAIService.recommendStudyTrack(
-        scores: const [100, 100, 60, 0, 0, 0],
-        answers: const [InterviewAnswer(questionId: 'q1-face')],
-        tiedTop: const [0, 1],
-        client: client,
-        apiKeyOverride: 'test-key',
-      );
-      expect(r.fallback, isTrue);
-      expect(r.track, inInclusiveRange(0, 1));
-    });
+        expect(r.fallback, isFalse);
+        expect(r.track, 5);
+      },
+    );
   });
 }

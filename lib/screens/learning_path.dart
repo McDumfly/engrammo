@@ -848,8 +848,19 @@ class _LearningPathPageState extends State<LearningPathPage> {
   }
 
   Future<void> _openTrackPicker() async {
+    final scores = await MemoryStore.loadScores();
+    final studyTrack = await MemoryStore.loadStudyChoice();
+    final studyMeta = await MemoryStore.loadStudyChoiceMeta();
+    if (!mounted) return;
     final picked = await Navigator.of(context).push<int>(
-      MaterialPageRoute(builder: (_) => _TrackPickerPage(selected: _memory)),
+      MaterialPageRoute(
+        builder: (_) => _TrackPickerPage(
+          selected: _memory,
+          scores: scores,
+          studyTrack: studyTrack,
+          studyAi: studyMeta['source'] == 'ai',
+        ),
+      ),
     );
     if (picked != null && picked != _memory) {
       setState(() {
@@ -3069,7 +3080,21 @@ class _PartDetailPageState extends State<_PartDetailPage> {
 
 class _TrackPickerPage extends StatelessWidget {
   final int selected;
-  const _TrackPickerPage({required this.selected});
+
+  /// Last measured test scores per track, or null when never assessed.
+  final List<int>? scores;
+
+  /// The persisted AI/local study pick, or null when never assessed.
+  final int? studyTrack;
+
+  /// Whether the persisted pick came from the AI (vs the local estimate).
+  final bool studyAi;
+  const _TrackPickerPage({
+    required this.selected,
+    this.scores,
+    this.studyTrack,
+    this.studyAi = false,
+  });
 
   Widget _squareIcon({
     required double size,
@@ -3249,10 +3274,17 @@ class _TrackPickerPage extends StatelessWidget {
                   }
                   final track = _tracks[trackIndex];
                   final isSel = trackIndex == selected;
+                  final allScores = scores;
+                  final pct = allScores != null && trackIndex < allScores.length
+                      ? allScores[trackIndex]
+                      : null;
+                  final isRecommended = studyTrack == trackIndex;
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: GestureDetector(
-                      onTap: () {
+                      onTap: () async {
+                        await MemoryStore.saveActiveTrack(trackIndex);
+                        if (!context.mounted) return;
                         Navigator.pop(context, trackIndex);
                       },
                       child: Container(
@@ -3290,16 +3322,33 @@ class _TrackPickerPage extends StatelessWidget {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    trackName(
-                                      trackIndex,
-                                      AppLocalizations.localeCode,
-                                    ),
-                                    style: TextStyle(
-                                      color: context.inkText,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
+                                  Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          trackName(
+                                            trackIndex,
+                                            AppLocalizations.localeCode,
+                                          ),
+                                          style: TextStyle(
+                                            color: context.inkText,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      ),
+                                      if (isRecommended) ...[
+                                        const SizedBox(width: 8),
+                                        AppBadge(
+                                          label: tr(
+                                            studyAi
+                                                ? 'lpt_ai_pick'
+                                                : 'lpt_suggested',
+                                          ),
+                                          color: teal,
+                                        ),
+                                      ],
+                                    ],
                                   ),
                                   Text(
                                     trackTag(
@@ -3311,29 +3360,36 @@ class _TrackPickerPage extends StatelessWidget {
                                       fontSize: 13,
                                     ),
                                   ),
+                                  if (pct != null) ...[
+                                    const SizedBox(height: 8),
+                                    AppProgressBar(
+                                      value: pct.clamp(0, 100) / 100,
+                                      height: 4,
+                                      color: track.tint,
+                                      track: context.faintBg,
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),
-                            Container(
-                              width: 24,
-                              height: 24,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: isSel ? blue : Colors.transparent,
-                                border: Border.all(
-                                  color: isSel ? blue : context.faintBorder,
-                                  width: 2,
-                                ),
-                              ),
-                              child: isSel
-                                  ? const HugeIcon(
-                                      icon: HugeIcons.strokeRoundedTick02,
-                                      color: Colors.white,
-                                      size: 14,
-                                      strokeWidth: 2.2,
-                                    )
-                                  : null,
-                            ),
+                            const SizedBox(width: 8),
+                            pct == null
+                                ? Text(
+                                    tr('lpt_not_tested'),
+                                    style: TextStyle(
+                                      color: context.mutedText,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  )
+                                : Text(
+                                    '$pct%',
+                                    style: TextStyle(
+                                      color: context.mutedText,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                           ],
                         ),
                       ),
