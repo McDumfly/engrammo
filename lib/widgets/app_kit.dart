@@ -1739,6 +1739,52 @@ class EngramTextButton extends StatelessWidget {
   }
 }
 
+/// Quiet text link: no fill and no border, for secondary actions.
+class AppLinkButton extends StatelessWidget {
+  const AppLinkButton({
+    super.key,
+    required this.label,
+    required this.onTap,
+    this.icon,
+  });
+  final String label;
+  final VoidCallback? onTap;
+  final dynamic icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tappable(
+      scale: 0.96,
+      onTap: onTap,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 44),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (icon != null) ...[
+                HugeIcon(icon: icon, color: context.accentText(blue), size: 16),
+                const SizedBox(width: 6),
+              ],
+              Flexible(
+                child: Text(
+                  label,
+                  style: AppText.caption.copyWith(
+                    color: context.accentText(blue),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Branded launch splash: breathing app mark + wordmark.
 class AppSplash extends StatefulWidget {
   const AppSplash({super.key});
@@ -1839,7 +1885,7 @@ class AppBackButton extends StatelessWidget {
 }
 
 /// Centered 56px top bar that replaces AppBar.
-class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
+class AppTopBar extends StatefulWidget implements PreferredSizeWidget {
   const AppTopBar({
     super.key,
     this.title,
@@ -1861,63 +1907,133 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
       Size.fromHeight(56 + (bottom?.preferredSize.height ?? 0));
 
   @override
+  State<AppTopBar> createState() => _AppTopBarState();
+}
+
+class _AppTopBarState extends State<AppTopBar> {
+  ScrollNotificationObserverState? _observer;
+  bool _scrolledUnder = false;
+  bool _frameScheduled = false;
+  bool? _pendingUnder;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _observer?.removeListener(_onScroll);
+    _observer = ScrollNotificationObserver.maybeOf(context);
+    _observer?.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _observer?.removeListener(_onScroll);
+    super.dispose();
+  }
+
+  void _onScroll(ScrollNotification n) {
+    if (n.depth != 0 || n.metrics.axis != Axis.vertical) return;
+    final under = n.metrics.extentBefore > 0.5;
+    if (under == _scrolledUnder) return;
+    // Scroll notifications can arrive mid-layout (a ballistic activity
+    // starts inside performLayout), where setState would throw. Coalesce
+    // to one post-frame apply instead.
+    _pendingUnder = under;
+    if (_frameScheduled) return;
+    _frameScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _frameScheduled = false;
+      final next = _pendingUnder;
+      _pendingUnder = null;
+      if (mounted && next != null && next != _scrolledUnder) {
+        setState(() => _scrolledUnder = next);
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final canPop = Navigator.canPop(context);
     Widget? left;
-    if (leading != null) {
-      left = leading;
-    } else if (showBack && canPop) {
+    if (widget.leading != null) {
+      left = widget.leading;
+    } else if (widget.showBack && canPop) {
       left = const AppBackButton();
     }
-    return ColoredBox(
-      color: backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      decoration: BoxDecoration(
+        color:
+            widget.backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
+        boxShadow: _scrolledUnder
+            ? [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
+      ),
+      // The hairline is a zero-layout overlay: a Border in the decoration
+      // would deflate the content box by 1 px and overflow the 56 pt row.
       child: SafeArea(
         bottom: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        child: Stack(
           children: [
-            SizedBox(
-              height: 56,
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 60,
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 16),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: left ?? const SizedBox.shrink(),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: title == null
-                        ? const SizedBox.shrink()
-                        : Text(
-                            title!,
-                            style: AppText.heading.copyWith(
-                              color: context.inkText,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  height: 56,
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 60,
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 16),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: left ?? const SizedBox.shrink(),
                           ),
-                  ),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(minWidth: 60),
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 16),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: actions,
+                        ),
                       ),
-                    ),
+                      Expanded(
+                        child: widget.title == null
+                            ? const SizedBox.shrink()
+                            : Text(
+                                widget.title!,
+                                style: AppText.heading.copyWith(
+                                  color: context.inkText,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                              ),
+                      ),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(minWidth: 60),
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 16),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: widget.actions,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+                widget.bottom ?? const SizedBox.shrink(),
+              ],
             ),
-            bottom ?? const SizedBox.shrink(),
+            if (_scrolledUnder)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(height: 1, color: context.hairline),
+              ),
           ],
         ),
       ),

@@ -1503,7 +1503,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
             ],
           ),
         ),
-      const SizedBox(height: 12),
+      const SizedBox(height: 20),
       AppTextField(
         controller: _itemsCtrl,
         label: tr('room_items_label'),
@@ -1512,14 +1512,18 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         maxLines: 8,
         maxLength: 600,
       ),
-      EngramButton(
-        label: tr('room_items_sample'),
-        variant: EngramButtonVariant.secondary,
-        height: 52,
-        onPressed: () =>
-            setState(() => _itemsCtrl.text = tr('room_sample_items')),
-      ),
-      const SizedBox(height: 10),
+      if (_itemsCtrl.text.isEmpty)
+        Align(
+          alignment: Alignment.centerLeft,
+          child: AppLinkButton(
+            key: const ValueKey('room-items-sample'),
+            label: tr('room_items_sample'),
+            icon: HugeIcons.strokeRoundedMagicWand01,
+            onTap: () =>
+                setState(() => _itemsCtrl.text = tr('room_sample_items')),
+          ),
+        ),
+      const SizedBox(height: 8),
       EngramButton(
         label: tr('room_encode_btn'),
         isLoading: _building,

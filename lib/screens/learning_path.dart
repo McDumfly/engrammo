@@ -299,6 +299,8 @@ class _LearningPathPageState extends State<LearningPathPage> {
   Set<String> _claimedChests = const {};
   bool _claimingChest = false;
   bool _showBackToNow = false;
+  bool _pathScrolled = false;
+  bool _pathFrameScheduled = false;
   final ScrollController _scroll = ScrollController();
   final GlobalKey _nowKey = GlobalKey();
   bool _stationFirstBuild = true;
@@ -511,6 +513,16 @@ class _LearningPathPageState extends State<LearningPathPage> {
   void _onScroll() {
     final show = _scroll.offset > 500;
     if (show != _showBackToNow) setState(() => _showBackToNow = show);
+    // The controller can notify mid-layout, where setState would throw.
+    // Coalesce the pager hairline to one post-frame apply instead.
+    if (_pathFrameScheduled) return;
+    _pathFrameScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _pathFrameScheduled = false;
+      if (!mounted) return;
+      final under = _scroll.hasClients && _scroll.offset > 0.5;
+      if (under != _pathScrolled) setState(() => _pathScrolled = under);
+    });
   }
 
   @override
@@ -804,7 +816,23 @@ class _LearningPathPageState extends State<LearningPathPage> {
       child: Column(
         children: [
           const SizedBox(height: 12),
-          _chapterPager(order, pos),
+          // The hairline is a zero-layout overlay: a Border in the
+          // decoration would deflate the pager box and overflow it.
+          SizedBox(
+            width: double.infinity,
+            child: Stack(
+              children: [
+                _chapterPager(order, pos),
+                if (_pathScrolled)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: Container(height: 1, color: context.hairline),
+                  ),
+              ],
+            ),
+          ),
           Expanded(
             child: SingleChildScrollView(
               controller: _scroll,

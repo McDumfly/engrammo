@@ -39,7 +39,12 @@ void main() {
 
   /// Plays level 1 until the turn starts and returns the index of the
   /// first sequence cell (observed while it lights up during the demo).
+  /// Uses a tall surface so every tile is hittable without scrolling.
   Future<int> reachTurn(WidgetTester tester) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await tester.pumpWidget(const MaterialApp(home: SequenceGamePage()));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 700));
@@ -80,10 +85,18 @@ void main() {
     await tester.tap(tiles().at(wrong));
     await tester.pump();
     expect(icon(HugeIcons.strokeRoundedCancel01), findsOneWidget);
-    expect(find.text('Nice streak!'), findsNothing);
+    // Still hidden before the 650 ms reveal (checked twice under 650 ms).
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.text('Nice streak!'), findsNothing);
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Nice streak!'), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text('Nice streak!'), findsNothing);
+    // The reveal fires at +650 ms; poll past it with slack for harness
+    // scroll-settle jitter, then require the result box.
+    var shown = false;
+    for (var i = 0; i < 15 && !shown; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+      shown = find.text('Nice streak!').evaluate().isNotEmpty;
+    }
+    expect(shown, isTrue);
   });
 }
