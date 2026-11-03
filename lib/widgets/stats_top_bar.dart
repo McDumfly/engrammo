@@ -120,12 +120,19 @@ class StatsTopBar extends StatelessWidget {
                     strokeWidth: 2.0,
                   ),
                   const SizedBox(width: 6),
-                  Text(
-                    '$streak',
-                    style: TextStyle(
-                      color: streak == 0 ? context.mutedText : context.inkText,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                  TweenAnimationBuilder<double>(
+                    tween: Tween<double>(end: streak.toDouble()),
+                    duration: const Duration(milliseconds: 700),
+                    curve: Curves.easeOutCubic,
+                    builder: (_, v, child) => Text(
+                      '${v.round()}',
+                      style: TextStyle(
+                        color: streak == 0
+                            ? context.mutedText
+                            : context.inkText,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 ],
@@ -155,12 +162,17 @@ class StatsTopBar extends StatelessWidget {
                   strokeWidth: 2.0,
                 ),
                 const SizedBox(width: 6),
-                Text(
-                  '$engrams',
-                  style: TextStyle(
-                    color: context.inkText,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                TweenAnimationBuilder<double>(
+                  tween: Tween<double>(end: engrams.toDouble()),
+                  duration: const Duration(milliseconds: 700),
+                  curve: Curves.easeOutCubic,
+                  builder: (_, v, child) => Text(
+                    '${v.round()}',
+                    style: TextStyle(
+                      color: context.inkText,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ],

@@ -1144,6 +1144,8 @@ const Map<String, String> enStrings = {
   'lp_next': 'Next',
   'lp_stars': '{n}/3 stars',
   'lp_correct_count': '{c}/{n} correct',
+  'lp_streak_pill': '{n}-day streak',
+  'lp_engram_pill': '+{n} engrams',
   'lp_locked_done': 'Locked in. Retrieval is the workout.',
   'lp_continue': 'Continue',
   'lp_yours_title': 'Make it yours',

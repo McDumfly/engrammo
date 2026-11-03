@@ -502,6 +502,8 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
   int _stars = 0;
   bool _saved = false;
   int? _nextGapDays;
+  int _gainEngrams = 0;
+  int _streakNow = 0;
   late final AnimationController _shake = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 320),
@@ -872,6 +874,8 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       _latencies.clear();
       _saved = false;
       _stars = 0;
+      _gainEngrams = 0;
+      _streakNow = 0;
       _recapText = '';
       _missedText = '';
       _missedBusy = false;
@@ -1070,11 +1074,19 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
     } catch (_) {
       nextGap = null;
     }
-    unawaited(MemoryStore.recordStreakDay());
+    var gain = 0, streakNow = 0;
+    try {
+      final before = await MemoryStore.loadStreakState();
+      final after = await MemoryStore.recordStreakDay();
+      gain = after.engrams - before.engrams;
+      streakNow = after.streak;
+    } catch (_) {}
     if (!mounted) return;
     setState(() {
       _saved = true;
       _nextGapDays = nextGap;
+      _gainEngrams = gain;
+      _streakNow = streakNow;
       _phase = _Phase.done;
     });
     _starsIn.forward(from: 0);
@@ -2335,6 +2347,27 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
                           fontWeight: FontWeight.w700,
                           fontSize: 14,
                         ),
+                      ),
+                    ),
+                  if (_streakNow > 0 || _gainEngrams > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          if (_streakNow > 0)
+                            AppBadge(
+                              label: tr('lp_streak_pill', {'n': _streakNow}),
+                              color: coral,
+                            ),
+                          if (_gainEngrams > 0)
+                            AppBadge(
+                              label: tr('lp_engram_pill', {'n': _gainEngrams}),
+                              color: orange,
+                            ),
+                        ],
                       ),
                     ),
                   const SizedBox(height: 4),

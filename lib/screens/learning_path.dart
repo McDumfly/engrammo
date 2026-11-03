@@ -1386,6 +1386,17 @@ class _LearningPathPageState extends State<LearningPathPage> {
     if (done == true && mounted) {
       await _loadProgress();
       await _loadStreak();
+      if (!mounted) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final ctx = _nowKey.currentContext;
+        if (!mounted || ctx == null) return;
+        Scrollable.ensureVisible(
+          ctx,
+          alignment: 0.35,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeOutCubic,
+        );
+      });
     }
   }
 

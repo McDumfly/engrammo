@@ -286,6 +286,7 @@ void main() {
     }
 
     expect(find.byKey(const ValueKey('lesson-continue')), findsOneWidget);
+    expect(find.text('1-day streak'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('lesson-make-it-yours-toggle')),
       findsOneWidget,

@@ -1271,6 +1271,8 @@ const Map<String, String> huStrings = {
   'lp_next': 'Tovább',
   'lp_stars': '{n}/3 csillag',
   'lp_correct_count': '{c}/{n} helyes',
+  'lp_streak_pill': '{n} napos sorozat',
+  'lp_engram_pill': '+{n} engram',
   'lp_locked_done': 'Rögzítve. A felidézés az edzés.',
   'lp_continue': 'Folytatás',
   'lp_yours_title': 'Tedd sajátoddá',
