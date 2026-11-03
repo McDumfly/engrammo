@@ -1991,6 +1991,14 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       });
     }
 
+    void openShare() {
+      AppFeedback.light();
+      showAppSheet(
+        context,
+        builder: (_) => _ShareCard(palace: palace, correct: _correct),
+      );
+    }
+
     return _page([
       Center(
         child: ConstrainedBox(
@@ -2088,6 +2096,12 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
           variant: EngramButtonVariant.secondary,
           onPressed: startAgain,
         ),
+        const SizedBox(height: 8),
+        EngramButton(
+          label: tr('room_share_btn'),
+          variant: EngramButtonVariant.secondary,
+          onPressed: openShare,
+        ),
         Center(
           child: EngramTextButton(
             label: tr('common_done'),
@@ -2102,6 +2116,12 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
           label: tr('room_recall_again'),
           variant: EngramButtonVariant.secondary,
           onPressed: startAgain,
+        ),
+        const SizedBox(height: 8),
+        EngramButton(
+          label: tr('room_share_btn'),
+          variant: EngramButtonVariant.secondary,
+          onPressed: openShare,
         ),
         Center(
           child: EngramTextButton(
@@ -3144,6 +3164,135 @@ class _DreamRevealState extends State<_DreamReveal> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Screenshot-ready share card: the palace photo with the score over it,
+/// the model badges, and clipboard-only sharing. The photo never uploads.
+class _ShareCard extends StatelessWidget {
+  final RoomPalace palace;
+  final int correct;
+  const _ShareCard({required this.palace, required this.correct});
+
+  @override
+  Widget build(BuildContext context) {
+    final total = palace.items.length;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 380),
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.xl),
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: MaskedPicture(
+                        imageUrl: palace.imageRef,
+                        scene: '',
+                        objects: palace.stations,
+                        boxes: palace.boxes.length == palace.stations.length
+                            ? palace.boxes
+                            : const <List<double>>[],
+                        masks: palace.masks.length == palace.stations.length
+                            ? palace.masks
+                            : const <String>[],
+                        revealed: const {},
+                        masked: false,
+                        highlight: true,
+                      ),
+                    ),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(16, 28, 16, 14),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0),
+                              Colors.black.withValues(alpha: 0.72),
+                            ],
+                          ),
+                        ),
+                        child: Text(
+                          tr('room_share_title', {
+                            'correct': '$correct',
+                            'total': '$total',
+                          }),
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.title.copyWith(color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            const AppBadge(label: 'Muse Spark', color: blue),
+            const AppBadge(label: 'SAM 3.1', color: teal),
+            const AppBadge(label: 'Muse Image', color: orange),
+            Text(
+              'Engrammo',
+              style: AppText.micro.copyWith(color: context.mutedText),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        EngramButton(
+          label: tr('room_share_copy'),
+          variant: EngramButtonVariant.secondary,
+          onPressed: () async {
+            await Clipboard.setData(
+              ClipboardData(
+                text: tr('room_share_text', {
+                  'correct': '$correct',
+                  'total': '$total',
+                }),
+              ),
+            );
+            AppFeedback.light();
+            if (context.mounted) {
+              showAppToast(
+                context,
+                tr('common_copied'),
+                kind: ToastKind.success,
+              );
+            }
+          },
+        ),
+        Center(
+          child: EngramTextButton(
+            label: tr('common_close'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          tr('room_share_private'),
+          textAlign: TextAlign.center,
+          style: AppText.micro.copyWith(color: context.mutedText),
+        ),
+      ],
     );
   }
 }

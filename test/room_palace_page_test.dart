@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:engrammo/models/fsrs_card.dart';
 import 'package:engrammo/models/room_palace.dart';
 import 'package:engrammo/screens/benchmark.dart' show MaskedPicture;
@@ -8,6 +6,7 @@ import 'package:engrammo/services/memory_store.dart';
 import 'package:engrammo/services/meta_ai_service.dart';
 import 'package:engrammo/services/room_photo.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -182,6 +181,76 @@ void main() {
       field.controller!.selection,
       const TextSelection(baseOffset: 0, extentOffset: 7),
     );
+  });
+
+  testWidgets('share card copies text and keeps the photo on device', (
+    tester,
+  ) async {
+    Map<String, dynamic>? clipboard;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+          if (call.method == 'Clipboard.setData') {
+            clipboard = Map<String, dynamic>.from(call.arguments as Map);
+          }
+          return null;
+        });
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, null),
+    );
+    final photo = squareJpegDataUrl(
+      Uint8List.fromList(img.encodePng(img.Image(width: 10, height: 10))),
+    );
+    await MemoryStore.upsertRoomPalace(
+      RoomPalace(
+        id: 'room:share',
+        createdAt: DateTime.utc(2026, 11, 1),
+        imageRef: photo,
+        stations: const ['desk', 'lamp'],
+        items: const ['apple', 'hammer'],
+        links: const ['first link', 'second link'],
+        card: FsrsCard(
+          cardId: 'room:share',
+          taskId: 'room_palace',
+          due: DateTime.now(),
+        ),
+      ),
+    );
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+    await tester.pumpWidget(
+      const MaterialApp(home: RoomPalacePage(reviewId: 'room:share')),
+    );
+    await tester.pumpAndSettle();
+
+    Future<void> answer(String word) async {
+      await tester.enterText(find.byType(TextField), word);
+      await tester.pump();
+      await tester.tap(find.text('Check'));
+      await tester.pumpAndSettle();
+    }
+
+    await answer('apple');
+    await answer('hammer');
+
+    await tester.tap(find.text('Share my result'));
+    await tester.pumpAndSettle();
+
+    // Screenshot-ready card: photo score, model badges, clipboard only.
+    expect(find.text('2/2 recalled from my own room'), findsOneWidget);
+    expect(find.text('Muse Spark'), findsOneWidget);
+    expect(find.text('SAM 3.1'), findsOneWidget);
+    expect(find.text('Muse Image'), findsOneWidget);
+    expect(find.text('Engrammo'), findsOneWidget);
+    expect(find.text('Your photo never leaves this device.'), findsOneWidget);
+    await tester.tap(find.text('Copy text'));
+    await tester.pumpAndSettle();
+    expect(
+      (clipboard?['text'] as String?) ?? '',
+      contains('I recalled 2/2 items by walking my own room.'),
+    );
+    expect(find.text('Copied'), findsOneWidget);
   });
 
   testWidgets('baseline probe compares before and after on the result', (
