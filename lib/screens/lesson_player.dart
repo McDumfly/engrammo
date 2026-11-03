@@ -1213,8 +1213,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       widget.sectionIndex,
       widget.lessonIndex,
     );
-    if (intro) return _coachIntroView();
-    return _coachCompactView();
+    return _coachCompactView(intro: intro);
   }
 
   String _sessionInfoText(bool foundation) {
@@ -1353,7 +1352,11 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
     );
   }
 
-  Widget _detailsExpander(CoachContent coach, bool foundation) {
+  Widget _detailsExpander(
+    CoachContent coach,
+    bool foundation, {
+    bool intro = false,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: context.cardBg,
@@ -1373,6 +1376,10 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
           ),
         ),
         children: [
+          if (intro && foundation) ...[
+            _techniqueEssenceCard(coach),
+            const SizedBox(height: 12),
+          ],
           Align(
             alignment: Alignment.centerLeft,
             child: Text(
@@ -1461,13 +1468,16 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
           ),
           const SizedBox(height: 12),
           _transferTargetsCard(),
-          if (foundation) ...[const SizedBox(height: 12), _workedExampleCard()],
+          if (foundation && !intro) ...[
+            const SizedBox(height: 12),
+            _workedExampleCard(),
+          ],
         ],
       ),
     );
   }
 
-  Widget _coachCompactView() {
+  Widget _coachCompactView({bool intro = false}) {
     final coach = coachFor(
       widget.chapterIndex,
       widget.sectionIndex,
@@ -1516,7 +1526,10 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
         ],
         if (lagIntro) ...[const SizedBox(height: 12), _lagIntroCard()],
         const SizedBox(height: 12),
-        _techniqueEssenceCard(coach),
+        if (intro && foundation)
+          _workedExampleCard()
+        else
+          _techniqueEssenceCard(coach),
         const SizedBox(height: 16),
         EngramButton(
           key: const ValueKey('lesson-coach-next'),
@@ -1526,256 +1539,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
         const SizedBox(height: 12),
         _depthChip(),
         const SizedBox(height: 12),
-        _detailsExpander(coach, foundation),
-      ],
-    );
-  }
-
-  Widget _coachIntroView() {
-    final coach = coachFor(
-      widget.chapterIndex,
-      widget.sectionIndex,
-      AppLocalizations.localeCode,
-    );
-    final foundation = isFoundationLesson(
-      widget.chapterIndex,
-      widget.sectionIndex,
-      widget.lessonIndex,
-    );
-    final lagIntro = wantsLagIntroduction(
-      widget.chapterIndex,
-      widget.sectionIndex,
-      _lag,
-    );
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
-      children: [
-        Text(
-          lessonTitleIn(
-            AppLocalizations.localeCode,
-            widget.chapterIndex,
-            widget.sectionIndex,
-            widget.lessonIndex,
-          ),
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.w900,
-            fontSize: 24,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          coach.title,
-          style: TextStyle(
-            color: context.mutedText,
-            fontWeight: FontWeight.w700,
-            fontSize: 14,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          key: const ValueKey('lesson-session-info'),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: context.cardBg,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: context.faintBorder),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  foundation
-                      ? tr('lp_session_foundation', {'n': _rounds})
-                      : _lag <= 0
-                      ? tr('lp_session_plain', {'n': _rounds})
-                      : _lag == 1
-                      ? tr('lp_session_lag_one', {'n': _rounds})
-                      : tr('lp_session_lag_many', {'n': _rounds, 'lag': _lag}),
-                  style: TextStyle(
-                    color: context.mutedText,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        if (widget.chapterIndex == 2) ...[
-          const SizedBox(height: 12),
-          _aiStatusCard(),
-        ],
-        if (foundation) ...[const SizedBox(height: 12), _workedExampleCard()],
-        if (lagIntro) ...[const SizedBox(height: 12), _lagIntroCard()],
-        const SizedBox(height: 12),
-        _transferTargetsCard(),
-        const SizedBox(height: 12),
-        Container(
-          key: const ValueKey('lesson-how-it-works'),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: context.cardBg,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: context.faintBorder),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                tr('lp_how_title'),
-                style: TextStyle(
-                  color: context.mutedText,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 12,
-                  letterSpacing: 1.2,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                tr('lp_how_body', {'n': _rounds}),
-                style: TextStyle(
-                  color: context.inkText,
-                  fontSize: 13,
-                  height: 1.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: context.washBg,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: context.washBorder, width: 2),
-          ),
-          child: Text(
-            coach.intro,
-            style: TextStyle(color: context.inkText, fontSize: 15, height: 1.5),
-          ),
-        ),
-        const SizedBox(height: 12),
-        for (var i = 0; i < coach.steps.length; i++)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: context.cardBg,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: context.washBorder, width: 2),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    '${i + 1}',
-                    style: TextStyle(
-                      color: context.inkText,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      coach.steps[i],
-                      style: TextStyle(
-                        color: context.inkText,
-                        fontSize: 14,
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        const SizedBox(height: 4),
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: context.cardBg,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: context.faintBorder),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                tr('lp_why_title'),
-                style: TextStyle(
-                  color: context.mutedText,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 12,
-                  letterSpacing: 1.2,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                coach.why,
-                style: TextStyle(
-                  color: context.inkText,
-                  fontSize: 13,
-                  height: 1.45,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                coach.source,
-                style: TextStyle(
-                  color: context.mutedText,
-                  fontStyle: FontStyle.italic,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          key: const ValueKey('lesson-depth-chip'),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: context.washBg,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: context.washBorder),
-          ),
-          child: Row(
-            children: [
-              HugeIcon(
-                icon: HugeIcons.strokeRoundedRepeat,
-                color: context.mutedText,
-                size: 16,
-                strokeWidth: 2.0,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  depthChipLabelIn(AppLocalizations.localeCode, _depth),
-                  style: TextStyle(
-                    color: context.mutedText,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-        EngramButton(
-          key: const ValueKey('lesson-coach-next'),
-          label: tr('lp_start'),
-          onPressed: () => _startDrill(),
-        ),
+        _detailsExpander(coach, foundation, intro: intro),
       ],
     );
   }

@@ -29,9 +29,17 @@ void main() {
   });
 
   group('coach nezet', () {
-    testWidgets('elso allomas: hosszu bevezeto latszik', (tester) async {
+    testWidgets('elso allomas: egy rovid kepernyo, reszletek lenyithatok', (
+      tester,
+    ) async {
       SharedPreferences.setMockInitialValues({});
       AppLocalizations.useCode('en');
+      tester.view.physicalSize = const Size(402, 874);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
       await tester.pumpWidget(
         const MaterialApp(
           home: LessonPlayerPage(
@@ -44,14 +52,28 @@ void main() {
       await tester.pumpAndSettle();
 
       final coach = coachFor(0, 0, 'en');
-      // Bevezeto: a technika hosszu szovege egybol latszik.
-      // (Lista-sorrendben keresunk: elobb a how-it-works, aztan az intro.)
+      // Az elso allomason a "Nezd meg eloszor" pelda latszik.
+      expect(
+        find.byKey(const ValueKey('lesson-worked-example')),
+        findsOneWidget,
+      );
+      // A Start gorgetes nelkul kepernyon van 402x874-en.
+      final nextTop = tester.getTopLeft(
+        find.byKey(const ValueKey('lesson-coach-next')),
+      );
+      expect(nextTop.dy, lessThan(874));
+      // A hosszu bevezeto szoveg alapbol NEM latszik.
+      expect(find.text(coach.intro), findsNothing);
+      expect(find.text(coach.why), findsNothing);
+
+      // De a Details mogott minden megvan.
       await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('lesson-how-it-works')),
+        find.byKey(const ValueKey('lesson-details')),
         300,
       );
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('lesson-how-it-works')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('lesson-details')));
+      await tester.pumpAndSettle();
       await tester.scrollUntilVisible(find.text(coach.intro), 300);
       await tester.pumpAndSettle();
       expect(find.text(coach.intro), findsOneWidget);
