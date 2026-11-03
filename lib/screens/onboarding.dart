@@ -295,8 +295,44 @@ class _OnboardingPageState extends State<OnboardingPage> {
     );
   }
 
+  Widget _iconTile(List<List<dynamic>> icon) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        width: 88,
+        height: 88,
+        decoration: BoxDecoration(
+          color: context.washBg,
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+          border: Border.all(color: context.washBorder, width: 2),
+        ),
+        alignment: Alignment.center,
+        child: HugeIcon(icon: icon, color: blue, size: 40, strokeWidth: 2.0),
+      ),
+    );
+  }
+
+  Widget _entranceTile(String keyName, List<List<dynamic>> icon) {
+    return TweenAnimationBuilder<double>(
+      key: ValueKey(keyName),
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 360),
+      curve: Curves.easeOutCubic,
+      builder: (context, t, child) => Opacity(
+        opacity: t,
+        child: Transform.translate(
+          offset: Offset(0, 16 * (1 - t)),
+          child: child,
+        ),
+      ),
+      child: _iconTile(icon),
+    );
+  }
+
   Widget _welcomeCard() {
     return _centered([
+      _entranceTile('onb-tile-welcome', HugeIcons.strokeRoundedBrain01),
+      const SizedBox(height: 20),
       Text(
         tr('onboarding_welcome_title'),
         style: AppText.display.copyWith(
@@ -348,27 +384,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
             child: child,
           ),
         ),
-        child:
-            visual ??
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Container(
-                width: 88,
-                height: 88,
-                decoration: BoxDecoration(
-                  color: context.washBg,
-                  borderRadius: BorderRadius.circular(AppRadius.xl),
-                  border: Border.all(color: context.washBorder, width: 2),
-                ),
-                alignment: Alignment.center,
-                child: HugeIcon(
-                  icon: icon,
-                  color: blue,
-                  size: 40,
-                  strokeWidth: 2.0,
-                ),
-              ),
-            ),
+        child: visual ?? _iconTile(icon),
       ),
       const SizedBox(height: 16),
       Text(
@@ -464,6 +480,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   Widget _ctaCard() {
     return _centered([
+      _entranceTile('onb-tile-cta', HugeIcons.strokeRoundedCheckmarkCircle02),
+      const SizedBox(height: 20),
       Text(
         tr('onboarding_cta_title'),
         style: AppText.display.copyWith(

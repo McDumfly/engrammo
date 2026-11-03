@@ -712,6 +712,29 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     });
   }
 
+  bool get _needsLeaveConfirm =>
+      _step == _Step.items || _step == _Step.encode || _step == _Step.recall;
+
+  Future<bool> _confirmLeave() async {
+    final leave = await showAppDialog<bool>(
+      context,
+      title: tr('room_leave_title'),
+      body: tr('room_leave_body'),
+      primary: AppDialogAction(tr('room_leave_stay'), value: false),
+      secondary: AppDialogAction(tr('room_leave_leave'), value: true),
+    );
+    return leave == true;
+  }
+
+  Future<void> _onBackPressed() async {
+    if (!_needsLeaveConfirm) {
+      if (mounted) Navigator.of(context).pop();
+      return;
+    }
+    final leave = await _confirmLeave();
+    if (leave && mounted) Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final palace = _palace;
@@ -721,15 +744,21 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         palace != null &&
         palace.items.isNotEmpty;
     return PopScope(
-      canPop: _step != _Step.scanning,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) _cancelScan();
+      canPop: !_needsLeaveConfirm && _step != _Step.scanning,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        if (_needsLeaveConfirm) {
+          final leave = await _confirmLeave();
+          if (leave && context.mounted) Navigator.of(context).pop();
+          return;
+        }
+        if (_step == _Step.scanning) _cancelScan();
       },
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppTopBar(
           title: _step == _Step.capture ? null : tr('room_title'),
-          leading: const EngramBackButton(),
+          leading: EngramBackButton(onPressed: _onBackPressed),
         ),
         resizeToAvoidBottomInset: !recallBar,
         body: SafeArea(top: false, child: _body()),
@@ -1208,7 +1237,6 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
 
   Widget _scanningStep() {
     return _page([
-      _header(tr('room_title')),
       _ScanStage(
         photo: _photo,
         stage: _stage,
@@ -1289,16 +1317,14 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         maxLines: 8,
         maxLength: 600,
       ),
-      Align(
-        alignment: Alignment.centerLeft,
-        child: EngramTextButton(
-          label: tr('room_items_sample'),
-          onPressed: () {
-            setState(() => _itemsCtrl.text = tr('room_sample_items'));
-          },
-        ),
+      EngramButton(
+        label: tr('room_items_sample'),
+        variant: EngramButtonVariant.secondary,
+        height: 52,
+        onPressed: () =>
+            setState(() => _itemsCtrl.text = tr('room_sample_items')),
       ),
-      const SizedBox(height: 4),
+      const SizedBox(height: 10),
       EngramButton(
         label: tr('room_encode_btn'),
         isLoading: _building,
@@ -1316,7 +1342,6 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     final palace = _palace;
     if (palace == null) return _page([_header(tr('room_title'))]);
     return _page([
-      _header(tr('room_title')),
       _muted(tr('room_encode_tip')),
       _covers(
         imageUrl: palace.imageRef,
@@ -1491,7 +1516,6 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       MediaQuery.sizeOf(context).height - 380,
     ).clamp(220.0, 380.0).toDouble();
     return _page([
-      _header(tr('room_title')),
       if (_blind && !done)
         Container(
           padding: const EdgeInsets.all(16),
