@@ -1263,6 +1263,7 @@ const Map<String, String> huStrings = {
   'lp_cue_loci': 'Állomásonként egy bizarr, mozgó kép — mindig sétasorrendben. (Maguire et al. 2003)',
   'lp_cue_picture': 'Nevezz meg minden részletet azonnal — a szavak rögzítik a képeket. (Shepard 1967; Standing 1973)',
   'lp_question_count': '{q}. kérdés a(z) {n}-ból — {d}. gyakorlat a(z) {n}-ból',
+  'lp_question_simple': '{q}/{n}. kérdés',
   'lp_retell': 'Meséld el a történetet a saját szavaiddal.',
   'lp_locked_in': 'Rögzítve — jöhet a következő!',
   'lp_good_rep': 'Így is jó ismétlés — a hibák plusz visszajelzés is tanít.',

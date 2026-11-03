@@ -742,78 +742,29 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
   Widget _sessionProgressBar() {
     final n = _tasks.length;
     if (n <= 1) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            tr('lp_progress', {'done': _answeredCount, 'n': n}),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: context.mutedText,
-              fontWeight: FontWeight.w600,
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 6),
-          AppProgressBar(
-            key: const ValueKey('lesson-session-progress'),
-            value: _answeredCount / n,
-            height: 8,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _historyStrip() {
-    final n = _tasks.length;
-    if (n <= 1) return const SizedBox.shrink();
     final current = _step?.task;
-    return Padding(
-      key: const ValueKey('lesson-history-strip'),
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Wrap(
-        spacing: 6,
-        runSpacing: 6,
-        alignment: WrapAlignment.center,
-        children: [
-          for (var i = 0; i < n; i++)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: _results[i] == true
-                    ? teal.withValues(alpha: 0.14)
-                    : _results.containsKey(i)
-                    ? coral.withValues(alpha: 0.12)
-                    : i == current
-                    ? context.washBg
-                    : context.cardBg,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: i == current
+    return Semantics(
+      label: tr('lp_progress', {'done': _answeredCount, 'n': n}),
+      child: Padding(
+        key: const ValueKey('lesson-session-progress'),
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Row(
+          children: [
+            for (var i = 0; i < n; i++) ...[
+              if (i > 0) const SizedBox(width: 6),
+              Expanded(
+                child: AppProgressBar(
+                  height: 8,
+                  value: _results.containsKey(i) ? 1 : 0,
+                  color: _results[i] == false ? coral : teal,
+                  track: i == current && !_results.containsKey(i)
                       ? context.washBorder
-                      : context.faintBorder,
-                  width: 2,
+                      : context.hairline,
                 ),
               ),
-              child: Text(
-                tr('lp_history', {
-                  'i': i + 1,
-                  'kind': drillKindLabelIn(
-                    AppLocalizations.localeCode,
-                    _taskKind(i),
-                  ),
-                }),
-                style: TextStyle(
-                  color: context.inkText,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-        ],
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -1184,15 +1135,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
 
   String _appBarTitle(String realm) {
     final step = widget.lessonIndex + 1;
-    if (_phase == _Phase.coach || _tasks.isEmpty) {
-      return tr('lp_appbar_base', {'realm': realm, 'step': step});
-    }
-    return tr('lp_appbar_done', {
-      'realm': realm,
-      'step': step,
-      'done': _answeredCount,
-      'n': _tasks.length,
-    });
+    return tr('lp_appbar_base', {'realm': realm, 'step': step});
   }
 
   bool get _needsExitConfirm =>
@@ -1236,6 +1179,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
           title: _appBarTitle(
             chapterRealmIn(AppLocalizations.localeCode, widget.chapterIndex),
           ),
+          bottom: _upgradeLine(),
           leading: EngramBackButton(onPressed: _onBackPressed),
           actions: [
             AiHelpButton(
@@ -2019,29 +1963,29 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
     );
   }
 
-  Widget _upgradeBar() {
-    if (!_upgrading) return const SizedBox.shrink();
-    return Padding(
-      key: const ValueKey('lesson-upgrade-progress'),
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            tr('lp_upgrade', {'done': _upgradeDone, 'total': _upgradeTotal}),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: context.mutedText,
-              fontWeight: FontWeight.w600,
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 6),
-          AppProgressBar(
-            value: _upgradeTotal > 0 ? _upgradeProgress : null,
-            height: 6,
-          ),
-        ],
+  PreferredSizeWidget _upgradeLine() {
+    final show =
+        _upgrading && (_phase == _Phase.stimulus || _phase == _Phase.question);
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(4),
+      child: SizedBox(
+        height: 4,
+        child: show
+            ? Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Semantics(
+                  label: tr('lp_upgrade', {
+                    'done': _upgradeDone,
+                    'total': _upgradeTotal,
+                  }),
+                  child: AppProgressBar(
+                    key: const ValueKey('lesson-upgrade-progress'),
+                    value: _upgradeTotal > 0 ? _upgradeProgress : null,
+                    height: 4,
+                  ),
+                ),
+              )
+            : null,
       ),
     );
   }
@@ -2055,9 +1999,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
       children: [
-        _upgradeBar(),
         _sessionProgressBar(),
-        _historyStrip(),
         if (n > 1)
           Text(
             tr('lp_badge_hold', {
@@ -2423,21 +2365,28 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (!done) _upgradeBar(),
           if (!done) _sessionProgressBar(),
-          if (!done) _historyStrip(),
           if (!done && n > 1)
-            Text(
-              tr('lp_question_count', {
-                'q': _answeredCount + 1,
-                'n': n,
-                'd': (_step?.task ?? 0) + 1,
-              }),
-              style: TextStyle(
-                color: context.mutedText,
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
-              ),
+            Builder(
+              builder: (_) {
+                final answeredThis = _picked != null || _recall != null;
+                final q = (answeredThis ? _answeredCount : _answeredCount + 1)
+                    .clamp(1, n);
+                return Text(
+                  _lag > 0
+                      ? tr('lp_question_count', {
+                          'q': q,
+                          'n': n,
+                          'd': (_step?.task ?? 0) + 1,
+                        })
+                      : tr('lp_question_simple', {'q': q, 'n': n}),
+                  style: TextStyle(
+                    color: context.mutedText,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                );
+              },
             ),
           if (!done && n > 1) const SizedBox(height: 4),
           if (!done && _lag > 0 && n > 1)

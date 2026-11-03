@@ -69,10 +69,7 @@ void main() {
     var answered = 0;
     for (var guard = 0; guard < 30; guard++) {
       await tester.pumpAndSettle();
-      if (find
-          .byKey(const ValueKey('lesson-continue'))
-          .evaluate()
-          .isNotEmpty) {
+      if (find.byKey(const ValueKey('lesson-continue')).evaluate().isNotEmpty) {
         break;
       }
       if (find
@@ -126,7 +123,10 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('lesson-coach-next')));
     for (var i = 0; i < 20; i++) {
       await tester.pump(const Duration(milliseconds: 100));
-      if (find.byKey(const ValueKey('lesson-memorized')).evaluate().isNotEmpty) {
+      if (find
+          .byKey(const ValueKey('lesson-memorized'))
+          .evaluate()
+          .isNotEmpty) {
         break;
       }
     }
@@ -162,7 +162,10 @@ void main() {
     try {
       for (var i = 0; i < 20; i++) {
         await tester.pump(const Duration(seconds: 1));
-        if (find.byKey(const ValueKey('lesson-memorized')).evaluate().isNotEmpty) {
+        if (find
+            .byKey(const ValueKey('lesson-memorized'))
+            .evaluate()
+            .isNotEmpty) {
           break;
         }
       }
@@ -197,10 +200,7 @@ void main() {
     var answered = 0;
     for (var guard = 0; guard < 30; guard++) {
       await tester.pumpAndSettle();
-      if (find
-          .byKey(const ValueKey('lesson-continue'))
-          .evaluate()
-          .isNotEmpty) {
+      if (find.byKey(const ValueKey('lesson-continue')).evaluate().isNotEmpty) {
         break;
       }
       if (find
@@ -234,12 +234,62 @@ void main() {
     final progress = await MemoryStore.loadChapterProgress();
     expect(progress[MemoryStore.lessonKey(1, 0, 0)], 1);
   });
+
+  testWidgets('egy szegmenses sáv és pontos kérdésszámláló', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: LessonPlayerPage(
+          chapterIndex: 0,
+          sectionIndex: 0,
+          lessonIndex: 0,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('lesson-coach-next')),
+      300,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('lesson-coach-next')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('lesson-session-progress')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('lesson-history-strip')), findsNothing);
+
+    await tester.ensureVisible(find.byKey(const ValueKey('lesson-memorized')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('lesson-memorized')));
+    await tester.pumpAndSettle();
+    expect(find.text('Question 1 of 2'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('lesson-option-0')));
+    await tester.pumpAndSettle();
+    expect(find.text('Question 1 of 2'), findsOneWidget);
+
+    await tester.ensureVisible(find.byKey(const ValueKey('lesson-next-step')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('lesson-next-step')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const ValueKey('lesson-memorized')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('lesson-memorized')));
+    await tester.pumpAndSettle();
+    expect(find.text('Question 2 of 2'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('lesson-session-progress')),
+      findsOneWidget,
+    );
+  });
 }
 
 class _HangingHttpOverrides extends HttpOverrides {
   @override
-  HttpClient createHttpClient(SecurityContext? context) =>
-      _HangingHttpClient();
+  HttpClient createHttpClient(SecurityContext? context) => _HangingHttpClient();
 }
 
 class _HangingHttpClient implements HttpClient {

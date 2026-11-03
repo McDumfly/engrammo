@@ -1136,6 +1136,7 @@ const Map<String, String> enStrings = {
   'lp_cue_loci': 'One station, one bizarre moving image — always in walking order. (Maguire et al. 2003)',
   'lp_cue_picture': 'Name every detail instantly — words anchor pictures. (Shepard 1967; Standing 1973)',
   'lp_question_count': 'Question {q}/{n} — drill {d}/{n}',
+  'lp_question_simple': 'Question {q} of {n}',
   'lp_retell': 'Retell the story in your own words.',
   'lp_locked_in': 'Locked in — on to the next one!',
   'lp_good_rep': 'Good rep anyway — errors plus feedback still teach.',
