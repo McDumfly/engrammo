@@ -1907,8 +1907,7 @@ const Map<String, String> huStrings = {
   'room_science': 'Helyek módszere egy általad ismert helyen — a legtöbb memóriabajnok ezt használja.',
   'room_take_photo': 'Fotó készítése',
   'room_pick_photo': 'Választás a galériából',
-  'room_privacy':
-      'A fotód csak tárgyfelismerésre megy el. A palotád az eszközön marad.',
+  'room_privacy': 'A fotódat a Meta Muse Spark és SAM 3.1 modellje kapja meg a tereptárgyak felismeréséhez. A palotád csak ezen az eszközön tárolódik.',
   'room_consent_off': 'Az AI-felhőfunkciók ki vannak kapcsolva. A szoba beolvasásához kapcsold be: Beállítások → Meta AI.',
   'room_stage_prepare': 'Fotó előkészítése',
   'room_stage_read': 'Tereptárgyak keresése',

@@ -12,6 +12,7 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/fsrs_card.dart';
@@ -35,6 +36,7 @@ import '../widgets/app_buttons.dart'
     show EngramBackButton, EngramButton, EngramButtonVariant;
 import '../widgets/app_kit.dart';
 import '../widgets/room_preview_art.dart';
+import 'assessment_interview.dart' show askCloudConsent;
 import 'benchmark.dart'
     show BenchmarkStore, MaskedPicture, buildSamOutline, layoutRecallChips;
 
@@ -292,12 +294,36 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     showAppToast(context, text);
   }
 
+  /// One-time photo consent before the FIRST live photo (camera, gallery
+  /// or live sample): the shared cloud-AI dialog with the honest copy.
+  /// A replay never asks. True means "go live".
+  Future<bool> _askPhotoConsentOnce() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool('room_consent_asked_v1') ?? false) return true;
+    } catch (_) {
+      return true;
+    }
+    if (!mounted) return false;
+    final allow = await askCloudConsent(context);
+    if (!mounted) return false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('room_consent_asked_v1', true);
+      // Declining means "stay offline": honor it even though consent
+      // defaults to on.
+      if (!allow) await MetaAIService.setCloudConsent(false);
+    } catch (_) {}
+    return allow;
+  }
+
   Future<void> _pick(ImageSource source) async {
     if (!await MetaAIService.cloudConsent()) {
       if (!mounted) return;
       _snack(tr('room_consent_off'));
       return;
     }
+    if (!await _askPhotoConsentOnce()) return;
     final token = ++_token;
     try {
       final url = await pickRoomPhoto(source);
@@ -389,6 +415,9 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       _snack(tr('room_consent_off'));
       return;
     }
+    // The live sample is a live photo too: ask once, like camera picks.
+    // (The replay branch above returns before any consent check.)
+    if (!await _askPhotoConsentOnce()) return;
     final token = ++_token;
     try {
       final bytes = (await rootBundle.load('assets/demo/sample_room.jpg'))

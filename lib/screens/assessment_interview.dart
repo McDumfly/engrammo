@@ -35,6 +35,20 @@ class AssessmentInterviewPage extends StatefulWidget {
       _AssessmentInterviewPageState();
 }
 
+/// One-time cloud-AI consent dialog, shared by the interview and the
+/// Room Palace photo flow: the title and body come from the honest
+/// `policy_consent_*` copy. Returns true when the player allows.
+Future<bool> askCloudConsent(BuildContext context) async {
+  final allow = await showAppDialog<bool>(
+    context,
+    title: aiCloudConsentTitle,
+    body: aiCloudConsentBody,
+    primary: AppDialogAction(tr('assess_allow'), value: true),
+    secondary: AppDialogAction(tr('assess_offline'), value: false),
+  );
+  return allow == true;
+}
+
 class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
   int _step = 0;
   late final List<int?> _picked;
@@ -68,16 +82,7 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
       ),
   ];
 
-  Future<bool> _askCloudConsent() async {
-    final allow = await showAppDialog<bool>(
-      context,
-      title: aiCloudConsentTitle,
-      body: aiCloudConsentBody,
-      primary: AppDialogAction(tr('assess_allow'), value: true),
-      secondary: AppDialogAction(tr('assess_offline'), value: false),
-    );
-    return allow == true;
-  }
+  Future<bool> _askCloudConsent() => askCloudConsent(context);
 
   Future<void> _analyze() async {
     if (_analyzing) return;

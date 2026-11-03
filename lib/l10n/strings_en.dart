@@ -1886,7 +1886,7 @@ const Map<String, String> enStrings = {
       'The method of loci on a place you know — the technique memorizers use.',
   'room_take_photo': 'Take a photo',
   'room_pick_photo': 'Choose from gallery',
-  'room_privacy': 'Only landmark detection sees your photo. Your palace stays on this device.',
+  'room_privacy': 'Your photo is sent to Meta\'s Muse Spark and SAM 3.1 to find landmarks. Your palace is stored only on this device.',
   'room_consent_off':
       'Turn on AI cloud features in Settings → Meta AI to scan your room.',
   'room_stage_prepare': 'Preparing photo',

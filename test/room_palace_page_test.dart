@@ -2,6 +2,7 @@ import 'package:engrammo/models/fsrs_card.dart';
 import 'package:engrammo/models/room_palace.dart';
 import 'package:engrammo/screens/benchmark.dart' show MaskedPicture;
 import 'package:engrammo/screens/room_palace_page.dart';
+import 'package:engrammo/services/connectivity_service.dart';
 import 'package:engrammo/services/memory_store.dart';
 import 'package:engrammo/services/meta_ai_service.dart';
 import 'package:engrammo/services/room_photo.dart';
@@ -15,7 +16,9 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
+    // Returning user: the one-time photo consent was already asked.
+    // (The first-run ask is covered by its own test below.)
+    SharedPreferences.setMockInitialValues({'room_consent_asked_v1': true});
     MetaAIService.secureStoreForTest = {};
     MetaAIService.consentForTest = null;
   });
@@ -499,6 +502,44 @@ void main() {
     expect(palace.runs, hasLength(2));
     expect(palace.runs.last.kind, 'blind');
     expect(palace.runs.last.correct, 2);
+  });
+
+  testWidgets('first live sample asks for photo consent, decline stays put', (
+    tester,
+  ) async {
+    // Live key + online: the sample would run live, so the one-time
+    // photo consent must come first. A replay would never ask.
+    // First-run user: the consent was never asked.
+    SharedPreferences.setMockInitialValues({});
+    MetaAIService.secureStoreForTest = {'meta_api_key_v1': 'k'};
+    MetaAIService.consentForTest = true;
+    ConnectivityService.testOverride = true;
+    addTearDown(() {
+      ConnectivityService.testOverride = null;
+    });
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+    await tester.pumpWidget(const MaterialApp(home: RoomPalacePage()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('room-try-sample')));
+    await tester.pumpAndSettle();
+
+    // The honest consent dialog explains where the photo goes.
+    expect(find.text('Allow cloud AI analysis'), findsOneWidget);
+    expect(find.textContaining('SAM 3.1'), findsWidgets);
+
+    // Declining stays offline: no scan starts, consent turns off.
+    await tester.ensureVisible(find.text('Stay offline'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Stay offline'));
+    await tester.pumpAndSettle();
+    expect(find.text('Allow cloud AI analysis'), findsNothing);
+    expect(find.text('Try the sample room'), findsOneWidget);
+    // Drop the test override: the decline must have persisted as off.
+    MetaAIService.consentForTest = null;
+    expect(await MetaAIService.cloudConsent(), isFalse);
   });
 
   testWidgets('revealed chip on a 40px cover still renders the full label', (
