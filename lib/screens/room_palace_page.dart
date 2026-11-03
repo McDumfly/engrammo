@@ -2016,6 +2016,16 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       );
     }
 
+    void openReceipt() async {
+      AppFeedback.light();
+      final log = await MetaAIService.loadLog();
+      if (!mounted) return;
+      showAppSheet(
+        context,
+        builder: (_) => _ReceiptCard(log: log, palace: palace),
+      );
+    }
+
     return _page([
       Center(
         child: ConstrainedBox(
@@ -2121,6 +2131,12 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         ),
         Center(
           child: EngramTextButton(
+            label: tr('room_receipt_btn'),
+            onPressed: openReceipt,
+          ),
+        ),
+        Center(
+          child: EngramTextButton(
             label: tr('common_done'),
             onPressed: _doneFromResult,
           ),
@@ -2139,6 +2155,12 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
           label: tr('room_share_btn'),
           variant: EngramButtonVariant.secondary,
           onPressed: openShare,
+        ),
+        Center(
+          child: EngramTextButton(
+            label: tr('room_receipt_btn'),
+            onPressed: openReceipt,
+          ),
         ),
         Center(
           child: EngramTextButton(
@@ -3332,6 +3354,129 @@ class _DreamRevealState extends State<_DreamReveal> {
 
 /// Screenshot-ready share card: the palace photo with the score over it,
 /// the model badges, and clipboard-only sharing. The photo never uploads.
+/// "What the AI did": one row per model that worked on this palace,
+/// counted from the real MetaAIService call log (never invented).
+/// Models with no live calls say "local fallback" honestly.
+class _ReceiptCard extends StatelessWidget {
+  final List<MetaCallEntry> log;
+  final RoomPalace palace;
+  const _ReceiptCard({required this.log, required this.palace});
+
+  /// Entries of one pipeline step ([kind]) logged since the palace scan.
+  List<MetaCallEntry> _since(String kind) => [
+    for (final e in log)
+      if (e.kind == kind && !e.at.isBefore(palace.createdAt)) e,
+  ];
+
+  String _callsLine(List<MetaCallEntry> entries) {
+    final live = entries.where((e) => !e.fallback).length;
+    final fb = entries.where((e) => e.fallback).length;
+    if (live > 0 && fb > 0) {
+      return '${tr('room_receipt_live', {'n': '$live'})} · '
+          '${tr('room_receipt_fb', {'n': '$fb'})}';
+    }
+    if (live > 0) return tr('room_receipt_live', {'n': '$live'});
+    if (fb > 0) return tr('room_receipt_fb', {'n': '$fb'});
+    return tr('room_receipt_local');
+  }
+
+  Widget _row(
+    BuildContext context, {
+    required String model,
+    required Color color,
+    required List<MetaCallEntry> entries,
+    required String produced,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            AppBadge(label: model, color: color),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                _callsLine(entries),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppText.micro.copyWith(color: context.mutedText),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          produced,
+          style: AppText.body.copyWith(
+            color: context.inkText,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final spark = _since('picture-objects');
+    final sam = _since('segment');
+    final image = _since('image');
+    final sparkLive = spark.any((e) => !e.fallback);
+    final samLive = sam.any((e) => !e.fallback);
+    final imageLive = image.any((e) => !e.fallback);
+    final outlines = palace.masks.where((m) => m.isNotEmpty).length;
+    final scenes = palace.dreams.where((d) => d.isNotEmpty).length;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          tr('room_receipt_btn'),
+          textAlign: TextAlign.center,
+          style: AppText.heading.copyWith(color: context.inkText),
+        ),
+        const SizedBox(height: 16),
+        _row(
+          context,
+          model: 'Muse Spark',
+          color: blue,
+          entries: spark,
+          produced: palace.live && sparkLive
+              ? tr('room_receipt_landmarks', {'n': '${palace.stations.length}'})
+              : tr('room_receipt_local'),
+        ),
+        const SizedBox(height: 12),
+        _row(
+          context,
+          model: 'SAM 3.1',
+          color: teal,
+          entries: sam,
+          produced: samLive && outlines > 0
+              ? tr('room_receipt_outlines', {'n': '$outlines'})
+              : tr('room_receipt_local'),
+        ),
+        const SizedBox(height: 12),
+        _row(
+          context,
+          model: 'Muse Image',
+          color: orange,
+          entries: image,
+          produced: imageLive && scenes > 0
+              ? tr('room_receipt_scenes', {'n': '$scenes'})
+              : tr('room_receipt_local'),
+        ),
+        const SizedBox(height: 16),
+        Center(
+          child: EngramTextButton(
+            label: tr('common_close'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _ShareCard extends StatelessWidget {
   final RoomPalace palace;
   final int correct;
