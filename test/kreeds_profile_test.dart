@@ -46,7 +46,7 @@ void main() {
     expect(find.text('1000'), findsOneWidget);
 
     expect(find.text('—'), findsOneWidget);
-    expect(find.text('Awakening Mind I'), findsOneWidget);
+    expect(find.text('league'), findsOneWidget);
     expect(find.text('Infinite Mind'), findsNothing);
     expect(find.text('#7'), findsNothing);
     expect(find.text('Gold'), findsNothing);

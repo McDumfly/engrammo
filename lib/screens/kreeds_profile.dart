@@ -665,78 +665,41 @@ class _FollowStats extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        color: context.cardBg,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: context.hairline, width: 2),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: context.softBg,
-                borderRadius: BorderRadius.circular(AppRadius.l),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    '$following',
-                    style: TextStyle(
-                      color: context.accentText(blue),
-                      fontWeight: FontWeight.w800,
-                      fontSize: 26,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    tr('kreeds_following'),
-                    style: TextStyle(
-                      color: context.mutedText,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          '$following',
+          style: AppText.body.copyWith(
+            color: context.inkText,
+            fontWeight: FontWeight.w800,
           ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF9B7BFF).withValues(alpha: 0.16),
-                borderRadius: BorderRadius.circular(AppRadius.l),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    '$followers',
-                    style: TextStyle(
-                      color: const Color(0xFF9B7BFF),
-                      fontWeight: FontWeight.w800,
-                      fontSize: 26,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    tr('kreeds_followers'),
-                    style: TextStyle(
-                      color: context.mutedText,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          tr('kreeds_following'),
+          style: AppText.body.copyWith(color: context.mutedText),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Text(
+            '·',
+            style: AppText.body.copyWith(color: context.mutedText),
           ),
-        ],
-      ),
+        ),
+        Text(
+          '$followers',
+          style: AppText.body.copyWith(
+            color: context.inkText,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          tr('kreeds_followers'),
+          style: AppText.body.copyWith(color: context.mutedText),
+        ),
+      ],
     );
   }
 }
@@ -1452,7 +1415,7 @@ class _QuickPills extends StatelessWidget {
             icon: HugeIcons.strokeRoundedTrophy,
             color: orange,
             value: leagueRank <= 0 ? '—' : '#$leagueRank',
-            label: leagueName,
+            label: tr('kreeds_league'),
           ),
         ),
       ],
@@ -1559,6 +1522,7 @@ class _WeekCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: List.generate(7, (i) {
                 final done = weekDone[i];
+                final today = i == 6;
                 return Column(
                   children: [
                     Container(
@@ -1570,31 +1534,30 @@ class _WeekCard extends StatelessWidget {
                             : context.inkText.withValues(alpha: 0.07),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: done ? teal : context.hairline,
+                          color: done
+                              ? teal
+                              : (today ? blue : context.hairline),
                           width: 2,
                         ),
                       ),
                       alignment: Alignment.center,
                       child: done
-                          ? HugeIcon(
+                          ? const HugeIcon(
                               icon: HugeIcons.strokeRoundedTick02,
                               color: Colors.white,
                               size: 18,
                               strokeWidth: 2.2,
                             )
-                          : Text(
-                              _days[i],
-                              style: TextStyle(
-                                color: context.mutedText,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 12,
-                              ),
-                            ),
+                          : null,
                     ),
                     const SizedBox(height: 4),
                     Text(
                       _days[i],
-                      style: TextStyle(color: context.mutedText, fontSize: 12),
+                      style: TextStyle(
+                        color: today ? context.inkText : context.mutedText,
+                        fontWeight: today ? FontWeight.w800 : FontWeight.w600,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 );

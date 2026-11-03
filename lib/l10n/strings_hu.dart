@@ -651,6 +651,7 @@ const Map<String, String> huStrings = {
   'kreeds_streak': 'sorozat',
   'kreeds_xp': 'XP',
   'kreeds_battle': 'párbaj',
+  'kreeds_league': 'liga',
   'kreeds_week': 'Heti edzés',
   'kreeds_day_0': 'H',
   'kreeds_day_1': 'K',

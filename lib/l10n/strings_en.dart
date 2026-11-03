@@ -640,6 +640,7 @@ const Map<String, String> enStrings = {
   'kreeds_streak': 'streak',
   'kreeds_xp': 'XP',
   'kreeds_battle': 'battle',
+  'kreeds_league': 'league',
   'kreeds_week': 'Weekly training',
   'kreeds_day_0': 'M',
   'kreeds_day_1': 'T',
