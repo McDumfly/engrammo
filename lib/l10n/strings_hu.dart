@@ -1895,4 +1895,6 @@ const Map<String, String> huStrings = {
   'coach_why_weak': 'A legkevésbé gyakorolt képességed — rövid, célzott körök.',
   'coach_why_goal': 'Előreviszi a saját célodat.',
   'coach_why_fresh': 'Egy új technika egyenletesen viszi előre a fejlődést.',
+  'meta_proof_title': 'Használt Meta-modellek (utolsó 120 hívás)',
+  'meta_proof_counts': '{live} élő · {local} helyi',
 };

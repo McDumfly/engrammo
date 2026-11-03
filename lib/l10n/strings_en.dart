@@ -1873,4 +1873,6 @@ const Map<String, String> enStrings = {
   'coach_why_weak': 'Your least-practiced skill — short, focused reps.',
   'coach_why_goal': 'Moves your personal goal forward.',
   'coach_why_fresh': 'A new technique keeps progress steady.',
+  'meta_proof_title': 'Meta models used (last 120 calls)',
+  'meta_proof_counts': '{live} live · {local} local',
 };

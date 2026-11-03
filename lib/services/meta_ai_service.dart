@@ -191,7 +191,7 @@ class MetaAIService {
     await _secureStorage.delete(key: key);
   }
 
-  static const int logCap = 50;
+  static const int logCap = 120;
 
   static const int httpTimeoutSec = 12;
 
@@ -207,6 +207,15 @@ class MetaAIService {
 
   static List<MetaCallEntry> get lastCalls =>
       List<MetaCallEntry>.unmodifiable(_calls);
+
+  @visibleForTesting
+  static void debugRecord(MetaCallEntry e) => _calls.insert(0, e);
+
+  @visibleForTesting
+  static void debugClearLog() {
+    _calls.clear();
+    _logRestored = true;
+  }
 
   /// Session-level image/segment caches: the same palace prompt or image
   /// must not cost a new Muse Image / SAM call every round. Keyed by
