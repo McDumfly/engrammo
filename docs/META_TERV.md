@@ -17,7 +17,10 @@ Az Engrammo fusson végig versenykompatibilisen:
 2. személyre szabott útvonal (`learning_path.dart`),
 3. tanítható mnemotechnikák — loci, képi társítás, kulcsszó
    (`curriculum.dart`),
-4. FSRS távközött ismétlés,
+4. FSRS-ihlette távközött ismétlés (kézzel hangolt
+   stabilitás/nehézség szabályok, nem illesztett FSRS-súlyok)
+   a Szobapalota-ismétlésekhez; az útvonal-leckék fix
+   ismétlési létrát használnak (1 → 60 nap),
 5. futás közben **legalább egy élő Meta API hívás** (Muse Spark feladat,
    Muse Image minta vagy SAM 3.1 szegmentálás),
 6. offline módban a mai helyi generátorok adják a tartalmat.

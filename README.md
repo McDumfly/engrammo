@@ -1,18 +1,29 @@
 # Engrammo
 
-Research-backed memory training built with Flutter —
-my entry for the **Meta Global AI Developer Hackathon**
-(Indie Dev Track), problem statement: **Build for Your
-World**. Starting assessment per memory type, a
-personalized learning path, teachable mnemonic
-techniques, and spaced repetition — with short daily
-lessons and playful motivation. At runtime it places
-live Meta Model API calls, with an offline fallback.
+A research-based memory-training gym that teaches real mnemonic techniques instead of brain games — my entry for the **Meta Global AI Developer Hackathon** (Indie Dev Track), problem statement: **Build for Your World**.
+
+**60-second tour:**
+
+- **Room Palace** — photograph your own room; Muse Spark names the stations, SAM 3.1 cuts their exact silhouettes as retrieval cues, Muse Image paints each fact onto them.
+- **Session Coach** — a Muse Spark agent that reads your due reviews, weak spots and goals through tools and proposes a plan a deterministic validator accepts or rejects, with a visible trace.
+- **Research-based curriculum** — 6 tracks, 36 chapters, 400+ short lessons on loci, spacing, testing effect and encoding specificity, with a 13-task starting assessment.
 
 > The name comes from `engram`: the physical trace of a memory.
 > It promises no photographic memory — that is a myth. Instead it
 > teaches real techniques: memory palace, association,
 > keyword method.
+
+## Quickstart
+
+```bash
+git clone https://github.com/McDumfly/engrammo && cd engrammo
+sh tool/bootstrap.sh
+flutter run
+```
+
+Without a key everything runs on local fallbacks. With a
+key, either write it into `.env` (`MODEL_API_KEY=`) or
+paste it in-app under Settings → Meta AI.
 
 ## What does the app do?
 
@@ -27,10 +38,11 @@ live Meta Model API calls, with an offline fallback.
    palace, chaining, visual association, keyword method,
    number systems, if-then plans, poem learning, evening
    day-replay.
-4. **Retrieval days later.** A spaced scheduler brings
-   the learned material back (practice rounds unlock
-   from 1 day to 60 days out; per-card FSRS state is
-   tracked alongside), building on sleep consolidation.
+4. **Retrieval days later.** An FSRS-inspired scheduler
+   (hand-tuned stability/difficulty rules, not fitted FSRS
+   weights) schedules Room Palace reviews; path lessons
+   use a fixed review ladder (1 → 60 days), building on
+   sleep consolidation.
 5. **Everyday goals + your own material.** Every lesson names
    what you use it for (exams, names, faces, numbers, years,
    birthdays, deadlines, tasks, poems, phone numbers,
@@ -49,41 +61,52 @@ live Meta Model API calls, with an offline fallback.
    clock and spaced-repetition signals (details:
    `docs/RESEARCH.md` §4).
 
-## Meta AI at runtime
+## How Meta models are used
 
-The app places live Meta Model API calls at runtime
-(base URL `https://api.meta.ai/v1`, overridable via
-`META_API_BASE_URL`):
+All calls go through one service,
+`lib/services/meta_ai_service.dart`, with live Meta Model
+API calls at runtime (base URL `https://api.meta.ai/v1`,
+overridable via `META_API_BASE_URL`):
 
-- **Muse Spark** (`muse-spark-1.3`, with
-  `minimal` effort for fast answers) provides every
-  lesson round's stimulus, every practice game's stimulus,
-  the personalized technique explanation, the forgetting
-  diagnosis, the task built from your own material, plus
-  the post-lesson, post-practice and post-duel recaps
-  and tips — and reads pictures (vision spotting with
-  grounding boxes) into loci stations and spotted details,
-- **Muse Image** (`muse-image-1.0`) provides the palace
-  illustration, the visual scene image, the lesson
-  illustrations, and the endless unique picture-recall
-  rounds in practice,
-- **SAM 3.1** (`sam-3.1`) locates the lead station/object
-  in the generated palace and picture images (one concept
-  per call, geometry only — names come from Spark
-  spotting, per the Media segmentation docs),
-- **Wonder** (`muse-wonder-1.0`) previews the spatial
-  route from a second viewpoint,
-- **Glimmer** and **Spark Open** are open-weight with no
-  Meta Model API endpoint (self-host only), so their
-  slots — the short post-game verdict and the practice
-  tip — are served by built-in templates and honestly
-  logged as local.
+| Model | Where it shows in the demo |
+| --- | --- |
+| Muse Spark (`muse-spark-1.3`) | Lesson/practice stimuli, technique teaching, forgetting diagnosis, personal tasks from own material, post-lesson/duel recaps; vision spotting reads the learner's room photo into stations |
+| Muse Spark — tool calling | Session Coach agent: reads due reviews/weak spots/goals via 3 tools, submits a plan that a deterministic validator accepts or rejects (self-correction loop, visible trace) |
+| Muse Image (`muse-image-1.0`) | Palace illustration, Room Palace dream scenes of the learner's own objects, visual-scene image, lesson art, endless unique picture-recall rounds in practice |
+| SAM 3.1 (`sam-3.1`) | Cuts exact object silhouettes out of the learner's own room photo — the covers ARE the retrieval cues (geometry only; names come from Spark spotting) |
+| Muse Wonder (`muse-wonder-1.0`) | Spatial route preview from a second viewpoint |
 
-With no key or no network the app does not fall over:
-local generators provide the content, and every call
-is logged (model name, time, success/error, whether
-fallback). The call log is also viewable in the UI
-(Settings → Meta AI → recent calls).
+Muse Glimmer and Muse Spark Open are open-weight and not
+used in this build.
+
+If the Meta API is unreachable or no key is set, local
+generators provide the content, and every call is logged
+(model name, time, success/error, whether fallback). The
+call log is also viewable in the UI (Settings → Meta AI
+→ recent calls) with per-model live/local counters. The
+app itself needs an internet connection (connectivity gate
+at startup); bot duels also work offline.
+
+```mermaid
+flowchart LR
+  P[Room photo] --> S1[Muse Spark vision: name objects]
+  S1 --> S2[SAM 3.1: exact silhouettes]
+  S2 --> L[Stations in walk order]
+  U[Your items] --> S3[Muse Spark: vivid links]
+  L --> S3
+  S3 --> I[Muse Image: dream scenes]
+  S3 --> R[Recall under SAM-shaped covers]
+  R --> F[FSRS-inspired next review]
+```
+
+```mermaid
+flowchart LR
+  C[Session Coach] --> T[Tools: due reviews, snapshot, goals]
+  T --> S[Muse Spark: propose plan]
+  S --> V[Deterministic validator: accept or reject]
+  V -->|reject| S
+  V -->|accept| P[Visible plan with trace]
+```
 
 Detailed technical plan in the repo: `docs/META_TERV.md`.
 Research background: `docs/RESEARCH.md` (loci + spaced
@@ -131,9 +154,11 @@ copied code snippets, data, or trademarked visuals.
 - For deadlines: if-then plans (Gollwitzer 1999); for poems:
   piecemeal recall (Rubin 1995); for the day: evening
   replay + sleep (Gais et al. 2006; Wilhelm et al. 2011).
-- Repetition is spaced over days to weeks (expanding
-  schedule; per-card FSRS difficulty/stability/
-  retrievability state is tracked alongside).
+- Repetition is spaced over days to weeks: an
+  FSRS-inspired scheduler (hand-tuned stability/difficulty
+  rules, not fitted FSRS weights) schedules Room Palace
+  reviews; path lessons use a fixed review ladder (1 → 60
+  days).
 
 ## Dueling as timed retrieval
 
@@ -219,7 +244,7 @@ counts toward the league then too. Code:
   Meta AI service, settings.
 - `lib/theme/`, `lib/widgets/`, `lib/utils/` — theme,
   shared buttons, navigation, streak helpers.
-- `test/` — 98 test files (865 tests): models,
+- `test/` — 114 test files (954 tests): models,
   scheduler, Meta-service fallback, auth, sync,
   streak/engram economy, transfer tasks and missions,
   onboarding and screen flows, UI details

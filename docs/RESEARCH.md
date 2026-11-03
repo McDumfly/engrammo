@@ -258,10 +258,12 @@ Code: `lib/models/curriculum.dart` (strategy-named sections),
   rewards+feedback pattern (Vermeir et al. 2020), kept outside timed
   measurement windows (Lumsden et al. 2016). Code:
   `lib/models/battle_rating.dart`, `lib/models/battle_rewards.dart`.
-- The FSRS-lite review scheduler borrows the stability/difficulty
+- The review scheduler is an FSRS-inspired scheduler
+  (hand-tuned stability/difficulty rules, not fitted FSRS weights)
+  that schedules Room Palace reviews; path lessons use a fixed
+  review ladder (1 → 60 days). It borrows the stability/difficulty
   model from FSRS (Ye et al., open-spaced-repetition; SM-2 lineage,
-  Wozniak 1987) on top of the spacing literature above, but its
-  update constants are hand-tuned heuristics, never fitted weights.
+  Wozniak 1987) on top of the spacing literature above.
   Code: `lib/models/fsrs_card.dart`.
 
 ## 6. What we do NOT promise (transfer limits)

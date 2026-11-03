@@ -16,31 +16,41 @@ Engrammo is a memory-training gym: instead of mechanical
 brain games (which do not transfer — Simons et al. 2016),
 it teaches real mnemonic strategies (memory palace,
 spaced repetition, active recall) and ends every lesson
-in the learner's own material. Six Meta models are
-wired into one training loop; everything works offline
-too, with deterministic local generators as fallback.
+in the learner's own material. Four hosted Meta models
+— Muse Spark (text, vision and tool calling), Muse Image,
+SAM 3.1 and Muse Wonder — are chained into one training
+loop. If the Meta API is unreachable or no key is set,
+every AI step falls back to deterministic local generators,
+so no screen ever breaks. The app itself needs an internet
+connection; bot duels also work offline.
 
 ## 2. Meta models in the loop
 
 All calls go through one service,
 `lib/services/meta_ai_service.dart` (model IDs in one
-constants block, lines 97–105; base URL overridable via
-`META_API_BASE_URL`, default `https://api.meta.ai/v1`).
+constants block at the top of `MetaAIService`; base URL
+overridable via `META_API_BASE_URL`, default
+`https://api.meta.ai/v1`).
 Every call is logged with model, kind, and fallback state
 (`MetaCallEntry`), viewable in the app under
-Settings → Meta AI → recent calls.
+Settings → Meta AI → recent calls, with per-model
+live/local counters (`MetaCallLogView`).
 
 | Model | Where it shows in the demo |
 | --- | --- |
-| Muse Spark (`muse-spark-1.3`) | Lesson/practice stimuli, technique teaching, forgetting diagnosis, personal tasks from own material, post-lesson/duel recaps; vision spotting reads pictures into stations |
-| Muse Image (`muse-image-1.0`) | Palace illustration, visual-scene image, lesson art, endless unique picture-recall rounds |
-| SAM 3.1 (`sam-3.1`) | Locates the lead station/object in palace/picture images (geometry; names come from Spark spotting) |
-| Wonder (`muse-wonder-1.0`) | Spatial route preview from a second viewpoint |
-| Glimmer / Spark Open (open-weight, self-host only — no Meta API endpoint) | Short post-game verdict / practice tip from built-in templates, honestly logged as local |
+| Muse Spark (`muse-spark-1.3`) | Lesson/practice stimuli, technique teaching, forgetting diagnosis, personal tasks from own material, post-lesson/duel recaps; vision spotting reads the learner's room photo into stations |
+| Muse Spark — tool calling | Session Coach agent: reads due reviews/weak spots/goals via 3 tools, submits a plan that a deterministic validator accepts or rejects (self-correction loop, visible trace) |
+| Muse Image (`muse-image-1.0`) | Palace illustration, Room Palace dream scenes of the learner's own objects, visual-scene image, lesson art, endless unique picture-recall rounds |
+| SAM 3.1 (`sam-3.1`) | Cuts exact object silhouettes out of the learner's own room photo — the covers ARE the retrieval cues (geometry only; names come from Spark spotting) |
+| Muse Wonder (`muse-wonder-1.0`) | Spatial route preview from a second viewpoint |
+
+Muse Glimmer and Muse Spark Open are open-weight and not
+used in this build.
 
 No key or no network → local generators take over and
-the log marks each call `fallback: true`. The app never
-depends on the network.
+the log marks each call `fallback: true`. The app itself
+needs an internet connection (connectivity gate at
+startup); bot duels also work offline.
 
 ## 3. Judging cross-reference
 
@@ -48,65 +58,62 @@ Stage One (pass/fail): fits **Build for Your World**
 (memory training is a firsthand student/professional
 problem) and uses the Meta Model API throughout (Spark,
 Image, SAM 3.1, Wonder — see the
-table above). Glimmer and Spark Open are open-weight
-with no Meta API endpoint, so their slots run on
-built-in templates and are logged as local.
+table above).
 
 Stage Two (0–10 each, equally weighted):
 
-- **Impact.** Real-world, daily-use training: 6 tracks ×
-  13 lessons × 12 topics of curriculum, 13-task
-  assessment with interview, spaced schedule, goals,
-  duels, leagues. Strategy-first design per the
-  literature (`docs/RESEARCH.md`), not a chatbot and not
-  medical advice (claims guardrail:
+- **Impact.** Room Palace first: photograph your own room
+  and train the method of loci on your own objects — Muse
+  Spark names the stations, SAM 3.1 cuts their exact
+  silhouettes as retrieval cues, Muse Image paints each
+  fact onto them. Around it, a full research-based
+  curriculum: 6 tracks, 36 chapters, 400+ short lessons,
+  13-task assessment with interview, an FSRS-inspired
+  scheduler (hand-tuned stability/difficulty rules, not
+  fitted FSRS weights) that schedules Room Palace reviews
+  while path lessons use a fixed review ladder (1 → 60
+  days), goals, duels, leagues. Strategy-first design per
+  the literature (`docs/RESEARCH.md`), not a chatbot and
+  not medical advice (claims guardrail:
   `lib/models/claims_policy.dart`).
 - **Use of Meta AI Tooling.** 4 hosted models, each doing
-  what only it can (segment, illustrate,
-  preview, spot, teach) — plus this whole repo was
-  built with the Muse Code coding agent. Two more
-  open-weight slots (Glimmer, Spark Open) run local
-  templates, since Meta serves no API endpoint for
-  them.
+  what only it can (plan with tools, segment, illustrate,
+  preview, spot, teach). Built solo with AI coding
+  assistants, including the Muse Code coding agent for
+  the final features (Room Palace, Session Coach).
 - **Technical Depth & Execution.** One state pattern,
   merge-based offline-safe Firestore sync, per-card
-  spaced state, `flutter analyze` clean, 98 test files
-  (852 tests) green, EN↔HU key/placeholder parity
-  tests, consent gates.
+  spaced state, `flutter analyze` clean, 114 test files
+  (954 tests) green, EN↔HU key/placeholder parity
+  tests, consent gates, a live smoke test against the
+  real Meta Model API
+  (`test/live/meta_live_smoke_test.dart`, skipped without
+  a key), and a deterministic Session Coach plan
+  validator with a self-correction loop.
 - **Demo.** Below: a working app, live Meta calls in the
   call log, fallback path shown by pulling the key.
 
-Bonus angles: Best Creative Build (Muse Image + Wonder
-in the palace loop). (No open-weight bonus claim:
-Glimmer and Spark Open have no Meta-hosted endpoint,
-so the app serves those slots from local templates.)
+Bonus angles: Best Creative Build (Muse Image dream scenes
+of the learner's own room objects + Wonder route preview)
+and Best Agentic Use-Case (Session Coach).
 
 ## 4. Demo script (3:00)
 
-Setup: `.env` key in place, `sh tool/run.sh`, guest
-entry, onboarding skipped, one goal pre-created, one
-foundation lesson unlocked. Screen-record the phone.
+Record on a **real phone** (a simulator has no camera),
+English UI, light theme. Burn in captions: judges often
+watch muted. Where AI waits happen, speed them up and show
+a small "2×" label (honest).
 
-- 0:00–0:20 — Hook: "Brain games don't transfer. This
-  teaches you the memory palace, then tests you on YOUR
-  exam material." Show the learning path.
-- 0:20–0:50 — Assessment flash: one palace task + the
-  interview answer; verdict assigns the track.
-- 0:50–1:30 — Lesson: palace image generates (Muse
-  Image), Spark spots the details into stations and SAM
-  locates them (overlay), Spark teaches the technique,
-  Wonder previews the route from a second viewpoint.
-- 1:30–2:00 — Make-it-yours: paste own material → Spark
-  builds a personal task → answer it → forgetting
-  diagnosis.
-- 2:00–2:30 — Practice + duel: tap SEEN/NEW answers
-  in word practice, verdict + tip cards, one duel
-  round vs a bot.
-- 2:30–2:50 — Proof: Settings → Meta AI call log shows
-  live models; remove the key, rerun one task → local
-  fallback, no crash.
-- 2:50–3:00 — Close: "Six tracks, spaced schedule,
-  leagues — built Oct 27 – Nov 4 with Meta's models."
+| Time | Screen | Voice-over / caption |
+|---|---|---|
+| 0:00–0:10 | Phone camera pointed at a real messy desk | "Brain games don't help you remember your life. Memory champions use one trick: the memory palace. Engrammo builds one — from your own room." |
+| 0:10–0:35 | Room Palace → Take photo → "Muse Spark is reading your room…" → **SAM 3.1 silhouettes appear** on lamp, mug, plant, laptop, books, chair | "Muse Spark names the objects. SAM 3.1 cuts out their exact shapes. Six stations, in walking order." |
+| 0:35–1:05 | "Use sample list" (cell biology) → Build → station cards with vivid links → **Muse Image dream scenes** pop in (mitochondria powering the lamp…) | "Muse Spark ties each fact to a real object with a vivid, interacting image. Muse Image paints it." |
+| 1:05–1:35 | "Hide everything" → covers ARE the object silhouettes → type answers; one deliberate wrong answer → "That one lives at station 4" → finish 6/6 → "Next review: Thu" | "Recall is cued by the place — the exact method-of-loci test. The silhouette is the cue. A spaced scheduler sets the next review." |
+| 1:35–2:05 | Practice tab → Today's plan → "Plan my session" → live trace: Read get_due_reviews, Read get_learner_snapshot, **Validator rejected…**, **Plan validated ✓** → tap Start on the palace review | "A Muse Spark agent reads my real data through tools and proposes a plan. A deterministic validator rejects bad plans until it's right. Every step is visible." |
+| 2:05–2:30 | Fast montage (2–3 s each): learning path, a lesson with a palace image + Wonder preview, assessment result, a duel | "Around it: a full research-based curriculum — six memory tracks, 400+ lessons, an assessment, duels." |
+| 2:30–2:45 | Settings → Meta AI → **per-model live counters** (Spark / Image / SAM / Wonder) | "Every call is logged. These are live Meta models — and if the API is down, every step falls back locally." |
+| 2:45–3:00 | Back to the desk photo with covers, logo | "Engrammo. Teach your brain the technique, not the trick. Built Oct 27 – Nov 4 with Muse Spark, Muse Image, SAM 3.1 and Muse Wonder." |
 
 ## 5. Recording checklist
 
@@ -128,5 +135,7 @@ Oct 26: plain `flutter create` scaffold only (initial
 commit). Everything else — app code, docs, tests —
 landed Oct 27 – Nov 4, 2026 in day-stamped build
 commits; verify with `git log --format='%ad %s'
---date=short`. All code, text, and screens are original
-work: no copied snippets, data, or trademarked visuals.
+--date=short`. Nov 3–4: Room Palace, Session Coach agent,
+live smoke test, live-proof panel. All code, text, and
+screens are original work: no copied snippets, data, or
+trademarked visuals.
