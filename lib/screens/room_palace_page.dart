@@ -1621,6 +1621,36 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       const SizedBox(height: 12),
       for (var i = 0; i < palace.items.length; i++) _stationCard(palace, i),
       const SizedBox(height: 8),
+      if (palace.stations.isNotEmpty &&
+          palace.items.length >= palace.stations.length)
+        EngramButton(
+          label: tr('room_tour_btn'),
+          variant: EngramButtonVariant.secondary,
+          onPressed: () {
+            AppFeedback.light();
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => _TourPage(
+                  palace: palace,
+                  dreams: Map<int, String>.from(_dreams),
+                  onDone: () {
+                    Navigator.of(context).pop();
+                    setState(() {
+                      _blind = false;
+                      _resetRecall();
+                      _rescheduled = false;
+                      _nextDue = null;
+                      _step = _Step.recall;
+                    });
+                  },
+                ),
+              ),
+            );
+          },
+        ),
+      if (palace.stations.isNotEmpty &&
+          palace.items.length >= palace.stations.length)
+        const SizedBox(height: 10),
       EngramButton(
         label: tr('room_walk_btn'),
         onPressed: () {
@@ -2799,5 +2829,248 @@ class _ScanBoxPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _ScanBoxPainter old) {
     return old.solid != solid || old.rects.length != rects.length;
+  }
+}
+
+/// Cinematic "walk my palace" tour: the camera moves from station to
+/// station over the palace photo, one 2200 ms segment each. Only the
+/// Transform animates; the photo bitmap sits in a RepaintBoundary and
+/// never rebuilds per frame. Tap anywhere advances; the last station
+/// offers the recall step. No timers: segments hold until tapped, so
+/// tests jump instantly.
+class _TourPage extends StatefulWidget {
+  final RoomPalace palace;
+  final Map<int, String> dreams;
+  final VoidCallback onDone;
+  const _TourPage({
+    required this.palace,
+    required this.dreams,
+    required this.onDone,
+  });
+
+  @override
+  State<_TourPage> createState() => _TourPageState();
+}
+
+class _TourPageState extends State<_TourPage>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _cam;
+  int _i = 0;
+  bool _finished = false;
+
+  int get _n => widget.palace.stations.length;
+
+  @override
+  void initState() {
+    super.initState();
+    _cam = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    );
+    if (isFlutterTest) {
+      _cam.value = 1;
+    } else {
+      _cam.forward(from: 0);
+      AppFeedback.select();
+    }
+  }
+
+  @override
+  void dispose() {
+    _cam.dispose();
+    super.dispose();
+  }
+
+  /// Camera target: the centre of boxes[i] as an Alignment. Without
+  /// aligned boxes the camera stays centred on the photo.
+  Alignment _alignment(int i) {
+    final boxes = widget.palace.boxes;
+    if (boxes.length != _n || i < 0 || i >= _n || boxes[i].length < 4) {
+      return Alignment.center;
+    }
+    final b = boxes[i];
+    final cx = (b[0] + b[2] / 2).clamp(0.0, 1.0);
+    final cy = (b[1] + b[3] / 2).clamp(0.0, 1.0);
+    return Alignment(cx * 2 - 1, cy * 2 - 1);
+  }
+
+  void _next() {
+    if (_finished) return;
+    if (_i + 1 >= _n) {
+      _finished = true;
+      widget.onDone();
+      return;
+    }
+    setState(() => _i++);
+    if (isFlutterTest) {
+      _cam.value = 1;
+    } else {
+      _cam.forward(from: 0);
+      AppFeedback.select();
+    }
+  }
+
+  void _done() {
+    if (_finished) return;
+    _finished = true;
+    widget.onDone();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palace = widget.palace;
+    final last = _i + 1 >= _n;
+    final dream = widget.dreams[_i];
+    final hasDream = dream != null && dream.isNotEmpty;
+    return Scaffold(
+      backgroundColor: const Color(0xFF16233B),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              height: 56,
+              child: Row(
+                children: [
+                  const SizedBox(width: 60),
+                  Expanded(
+                    child: Text(
+                      tr('room_tour_btn'),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.heading.copyWith(color: Colors.white),
+                    ),
+                  ),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(minWidth: 60),
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 16),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          EngramTextButton(
+                            label: tr('common_close'),
+                            color: Colors.white,
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: SafeArea(
+                top: false,
+                child: GestureDetector(
+                  onTap: _next,
+                  behavior: HitTestBehavior.opaque,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: Center(
+                          child: AspectRatio(
+                            aspectRatio: 1,
+                            child: RepaintBoundary(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.xl,
+                                ),
+                                child: AnimatedBuilder(
+                                  animation: _cam,
+                                  builder: (context, child) {
+                                    final t = Curves.easeInOutCubic.transform(
+                                      _cam.value,
+                                    );
+                                    return Transform.scale(
+                                      scale: 1.0 + 1.1 * t,
+                                      alignment: _alignment(_i),
+                                      child: child,
+                                    );
+                                  },
+                                  child: AiImage(
+                                    imageRef: palace.imageRef,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              children: [
+                                if (hasDream)
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(
+                                      AppRadius.m,
+                                    ),
+                                    child: AiImage(
+                                      imageRef: dream,
+                                      width: 96,
+                                      height: 96,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                if (hasDream) const SizedBox(width: 12),
+                                Expanded(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(
+                                        AppRadius.pill,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      tr('room_tour_line', {
+                                        'n': '${_i + 1}',
+                                        'station': palace.stations[_i],
+                                        'item': palace.items[_i],
+                                      }),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppText.body.copyWith(
+                                        color: const Color(0xFF16233B),
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (last) ...[
+                              const SizedBox(height: 12),
+                              EngramButton(
+                                label: tr('room_tour_done'),
+                                onPressed: _done,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

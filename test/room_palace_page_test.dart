@@ -244,6 +244,49 @@ void main() {
     );
   });
 
+  testWidgets('tour walks the palace and ends in recall', (tester) async {
+    MetaAIService.consentForTest = true;
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+    await tester.pumpWidget(const MaterialApp(home: RoomPalacePage()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('room-try-sample')));
+    await tester.runAsync(() => Future.delayed(const Duration(seconds: 5)));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'apple\nhammer\nnail');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('First, test me without the palace'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'apple\nhammer');
+    await tester.pump();
+    await tester.tap(find.text('Check'));
+    await tester.pumpAndSettle();
+
+    // Encode step offers the cinematic tour.
+    expect(find.text('Walk my palace'), findsOneWidget);
+    await tester.tap(find.text('Walk my palace'));
+    await tester.pumpAndSettle();
+
+    // First station pill, then tap through to the last one.
+    expect(find.text('1 · spot 1 → apple'), findsOneWidget);
+    await tester.tap(find.text('1 · spot 1 → apple'));
+    await tester.pumpAndSettle();
+    expect(find.text('2 · spot 2 → hammer'), findsOneWidget);
+    await tester.tap(find.text('2 · spot 2 → hammer'));
+    await tester.pumpAndSettle();
+    expect(find.text('Now recall it'), findsOneWidget);
+    await tester.tap(find.text('Now recall it'));
+    await tester.pumpAndSettle();
+
+    // The tour pops back into the recall step.
+    expect(find.text('Start recall'), findsNothing);
+    expect(find.text('Check'), findsOneWidget);
+  });
+
   testWidgets(
     'MaskedPicture with no objects shows the photo without throwing',
     (tester) async {
