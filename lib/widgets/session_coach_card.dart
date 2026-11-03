@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
@@ -6,7 +8,7 @@ import '../screens/benchmark.dart' show benchGameIcon, openPracticeGame;
 import '../screens/room_palace_page.dart' show RoomPalacePage;
 import '../services/app_feedback.dart';
 import '../services/session_coach.dart';
-import '../theme/app_colors.dart' show blue, orange, success, teal;
+import '../theme/app_colors.dart' show blue, coral, orange, teal;
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
 import 'app_buttons.dart';
@@ -73,6 +75,8 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
       locale: AppLocalizations.localeCode,
       onStep: (st) {
         if (mounted && id == _runId) {
+          // A real validator rejection shudders once, right when it lands.
+          if (st.kind == 'reject') AppFeedback.medium();
           setState(() => _trace = [..._trace, st]);
         }
       },
@@ -195,25 +199,34 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
     final struck = _isStruck(i);
     Widget node;
     if (rejected) {
+      // Three 4 px sideways shakes over 360 ms, then the node rests.
       node = _nodeBox(
-        Container(
-          width: 24,
-          height: 24,
-          decoration: const BoxDecoration(
-            color: orange,
-            shape: BoxShape.circle,
+        TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0, end: 1),
+          duration: const Duration(milliseconds: 360),
+          builder: (context, t, child) => Transform.translate(
+            offset: Offset(4 * sin(t * 6 * pi), 0),
+            child: child,
           ),
-          alignment: Alignment.center,
-          child: const HugeIcon(
-            icon: HugeIcons.strokeRoundedRefresh,
-            color: Colors.white,
-            size: 14,
+          child: Container(
+            width: 24,
+            height: 24,
+            decoration: const BoxDecoration(
+              color: coral,
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: const HugeIcon(
+              icon: HugeIcons.strokeRoundedRefresh,
+              color: Colors.white,
+              size: 14,
+            ),
           ),
         ),
       );
     } else if (st.kind == 'accept') {
       node = _popNode(
-        color: success,
+        color: teal,
         icon: HugeIcons.strokeRoundedCheckmarkCircle02,
       );
     } else if (st.kind == 'fallback') {
