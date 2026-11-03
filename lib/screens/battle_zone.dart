@@ -539,7 +539,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
                         }(),
                         style: TextStyle(
                           color: context.mutedText,
-                          fontSize: 11,
+                          fontSize: 12,
                         ),
                       ),
                     ],
@@ -642,7 +642,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: context.mutedText,
-                                fontSize: 11,
+                                fontSize: 12,
                               ),
                             ),
                             Builder(
@@ -657,7 +657,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
                                         ? context.mutedText
                                         : option.tint,
                                     fontWeight: FontWeight.w700,
-                                    fontSize: 11,
+                                    fontSize: 12,
                                   ),
                                 );
                               },
@@ -1158,7 +1158,7 @@ class _ScoutCardState extends State<_ScoutCard> {
                       style: TextStyle(
                         color: context.mutedText,
                         fontWeight: FontWeight.w900,
-                        fontSize: 11,
+                        fontSize: 12,
                         letterSpacing: 1.2,
                       ),
                     ),
@@ -1259,7 +1259,7 @@ class _ModeCard extends StatelessWidget {
               body,
               style: TextStyle(
                 color: context.mutedText,
-                fontSize: 11,
+                fontSize: 12,
                 height: 1.4,
               ),
             ),
@@ -1298,7 +1298,7 @@ class _StatCard extends StatelessWidget {
           Text(
             label,
             textAlign: TextAlign.center,
-            style: TextStyle(color: context.mutedText, fontSize: 10),
+            style: TextStyle(color: context.mutedText, fontSize: 12),
           ),
         ],
       ),
@@ -1366,7 +1366,7 @@ class _LiveBattleRow extends StatelessWidget {
                   task,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: context.mutedText, fontSize: 11),
+                  style: TextStyle(color: context.mutedText, fontSize: 12),
                 ),
               ],
             ),
@@ -1407,8 +1407,8 @@ class _StepRow extends StatelessWidget {
         children: [
           Text(
             index,
-            style: const TextStyle(
-              color: orange,
+            style: TextStyle(
+              color: context.accentText(orange),
               fontWeight: FontWeight.w900,
               fontSize: 16,
             ),
@@ -1645,7 +1645,7 @@ class _PastMatchRow extends StatelessWidget {
                     }),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: context.mutedText, fontSize: 11),
+                    style: TextStyle(color: context.mutedText, fontSize: 12),
                   ),
                 ],
               ),
@@ -1668,7 +1668,7 @@ class _PastMatchRow extends StatelessWidget {
                   style: TextStyle(
                     color: accent,
                     fontWeight: FontWeight.w800,
-                    fontSize: 11,
+                    fontSize: 12,
                   ),
                 ),
               ],
@@ -1733,8 +1733,8 @@ class _FriendInviteRow extends StatelessWidget {
                     ),
                     child: Text(
                       friend.name.characters.first,
-                      style: const TextStyle(
-                        color: blue,
+                      style: TextStyle(
+                        color: context.accentText(blue),
                         fontWeight: FontWeight.w900,
                         fontSize: 16,
                       ),
@@ -1780,7 +1780,7 @@ class _FriendInviteRow extends StatelessWidget {
                           }),
                           style: TextStyle(
                             color: context.mutedText,
-                            fontSize: 11,
+                            fontSize: 12,
                           ),
                         ),
                       ],

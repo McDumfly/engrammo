@@ -1018,7 +1018,7 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                     child: Text(
                       tr('mprof_combo', {'n': _combo}),
                       style: TextStyle(
-                        color: blueDark,
+                        color: context.accentText(blueDark),
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
                       ),
@@ -1060,8 +1060,8 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                 Text(
                   tr('mprof_sense', {'n': _senseLeft}),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: coral,
+                  style: TextStyle(
+                    color: context.accentText(coral),
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
@@ -1456,8 +1456,8 @@ class MemoryResultPage extends StatelessWidget {
             onTap: () => showHonestySheet(context),
             child: Text(
               tr('onboarding_honesty_link'),
-              style: const TextStyle(
-                color: blue,
+              style: TextStyle(
+                color: context.accentText(blue),
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
               ),
@@ -1754,8 +1754,8 @@ class MemoryResultPage extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(
                     tr('mprof_retake'),
-                    style: const TextStyle(
-                      color: blue,
+                    style: TextStyle(
+                      color: context.accentText(blue),
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1,
                     ),

@@ -75,10 +75,7 @@ class StatsTopBar extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: blue,
                       borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                        color: context.cardBg,
-                        width: 2,
-                      ),
+                      border: Border.all(color: context.cardBg, width: 2),
                     ),
                     alignment: Alignment.center,
                     child: Text(
@@ -86,7 +83,7 @@ class StatsTopBar extends StatelessWidget {
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        fontSize: 11,
+                        fontSize: 12,
                         height: 1.1,
                       ),
                     ),

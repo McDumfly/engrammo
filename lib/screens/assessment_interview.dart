@@ -257,8 +257,8 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
                     ),
                     child: Text(
                       tr(q.hintKey),
-                      style: const TextStyle(
-                        color: blueDark,
+                      style: TextStyle(
+                        color: context.accentText(blueDark),
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
                       ),

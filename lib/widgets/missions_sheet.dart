@@ -135,7 +135,7 @@ class _MissionsSheetState extends State<_MissionsSheet> {
                     const SizedBox(height: 2),
                     Text(
                       mission.source,
-                      style: TextStyle(color: context.mutedText, fontSize: 11),
+                      style: TextStyle(color: context.mutedText, fontSize: 12),
                     ),
                   ],
                 ),

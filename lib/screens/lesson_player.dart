@@ -1290,7 +1290,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
             style: TextStyle(
               color: context.mutedText,
               fontWeight: FontWeight.w900,
-              fontSize: 11,
+              fontSize: 12,
               letterSpacing: 1.2,
             ),
           ),
@@ -1403,7 +1403,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
               style: TextStyle(
                 color: context.mutedText,
                 fontWeight: FontWeight.w900,
-                fontSize: 11,
+                fontSize: 12,
                 letterSpacing: 1.2,
               ),
             ),
@@ -1428,7 +1428,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
               style: TextStyle(
                 color: context.mutedText,
                 fontWeight: FontWeight.w900,
-                fontSize: 11,
+                fontSize: 12,
                 letterSpacing: 1.2,
               ),
             ),
@@ -1453,7 +1453,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
               style: TextStyle(
                 color: context.mutedText,
                 fontWeight: FontWeight.w900,
-                fontSize: 11,
+                fontSize: 12,
                 letterSpacing: 1.2,
               ),
             ),
@@ -1650,7 +1650,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
                 style: TextStyle(
                   color: context.mutedText,
                   fontWeight: FontWeight.w900,
-                  fontSize: 11,
+                  fontSize: 12,
                   letterSpacing: 1.2,
                 ),
               ),
@@ -1737,7 +1737,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
                 style: TextStyle(
                   color: context.mutedText,
                   fontWeight: FontWeight.w900,
-                  fontSize: 11,
+                  fontSize: 12,
                   letterSpacing: 1.2,
                 ),
               ),
@@ -1832,7 +1832,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
             style: TextStyle(
               color: context.mutedText,
               fontWeight: FontWeight.w900,
-              fontSize: 11,
+              fontSize: 12,
               letterSpacing: 1.2,
             ),
           ),
@@ -1890,7 +1890,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
             style: TextStyle(
               color: context.mutedText,
               fontWeight: FontWeight.w900,
-              fontSize: 11,
+              fontSize: 12,
               letterSpacing: 1.2,
             ),
           ),
@@ -1929,7 +1929,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
             style: TextStyle(
               color: context.mutedText,
               fontWeight: FontWeight.w900,
-              fontSize: 11,
+              fontSize: 12,
               letterSpacing: 1.2,
             ),
           ),
@@ -2219,7 +2219,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
                     style: TextStyle(
                       color: context.inkText,
                       fontWeight: FontWeight.bold,
-                      fontSize: 11,
+                      fontSize: 12,
                     ),
                   ),
                 ),
@@ -2632,7 +2632,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
             style: TextStyle(
               color: context.mutedText,
               fontWeight: FontWeight.w900,
-              fontSize: 11,
+              fontSize: 12,
               letterSpacing: 1.2,
             ),
           ),
@@ -2668,7 +2668,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
             style: TextStyle(
               color: context.mutedText,
               fontWeight: FontWeight.w900,
-              fontSize: 11,
+              fontSize: 12,
               letterSpacing: 1.2,
             ),
           ),
@@ -2776,7 +2776,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
               style: TextStyle(
                 color: context.mutedText,
                 fontWeight: FontWeight.w900,
-                fontSize: 11,
+                fontSize: 12,
                 letterSpacing: 1.2,
               ),
             ),
@@ -2819,7 +2819,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
             style: TextStyle(
               color: context.mutedText,
               fontWeight: FontWeight.w900,
-              fontSize: 11,
+              fontSize: 12,
               letterSpacing: 1.2,
             ),
           ),

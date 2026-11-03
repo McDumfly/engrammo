@@ -540,7 +540,7 @@ class _AiHelpSheetState extends State<_AiHelpSheet> {
                   style: TextStyle(
                     color: context.mutedText,
                     fontStyle: FontStyle.italic,
-                    fontSize: 11,
+                    fontSize: 12,
                   ),
                 ),
               ),

@@ -86,7 +86,7 @@ class _LineChartPainter extends CustomPainter {
     final gridPaint = Paint()
       ..color = gridColor
       ..strokeWidth = 1;
-    final labelStyle = TextStyle(color: labelColor, fontSize: 10);
+    final labelStyle = TextStyle(color: labelColor, fontSize: 12);
     for (var g = 0; g <= 3; g++) {
       final y = top + h * g / 3;
       canvas.drawLine(Offset(left, y), Offset(left + w, y), gridPaint);
@@ -140,7 +140,7 @@ class _LineChartPainter extends CustomPainter {
       );
       canvas.drawCircle(p, 3, Paint()..color = lineColor);
     }
-    final xStyle = TextStyle(color: labelColor, fontSize: 10);
+    final xStyle = TextStyle(color: labelColor, fontSize: 12);
     for (final entry in [(0, '#1'), (values.length - 1, '#${values.length}')]) {
       final tp = TextPainter(
         text: TextSpan(text: entry.$2, style: xStyle),
@@ -345,7 +345,7 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
                 style: TextStyle(
                   color: context.mutedText,
                   fontWeight: FontWeight.bold,
-                  fontSize: 10,
+                  fontSize: 12,
                   letterSpacing: 1,
                 ),
               ),
@@ -403,7 +403,7 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
             style: TextStyle(
               color: context.mutedText,
               fontWeight: FontWeight.bold,
-              fontSize: 10,
+              fontSize: 12,
               letterSpacing: 1,
             ),
           ),
@@ -412,12 +412,12 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
             value,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: blueDark,
+              color: context.accentText(blueDark),
               fontWeight: FontWeight.bold,
               fontSize: 15,
             ),
           ),
-          Text(sub, style: TextStyle(color: context.mutedText, fontSize: 11)),
+          Text(sub, style: TextStyle(color: context.mutedText, fontSize: 12)),
         ],
       ),
     );
@@ -482,7 +482,7 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
         style: TextStyle(
           color: context.isDark ? blue : blueDark,
           fontWeight: FontWeight.bold,
-          fontSize: 11,
+          fontSize: 12,
         ),
       ),
     );

@@ -983,8 +983,8 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                   ),
                   child: Text(
                     _foeLabel.characters.first,
-                    style: const TextStyle(
-                      color: blueDark,
+                    style: TextStyle(
+                      color: context.accentText(blueDark),
                       fontWeight: FontWeight.w900,
                       fontSize: 30,
                     ),
@@ -1017,8 +1017,8 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                       ),
                       child: Text(
                         opp.tierLabel,
-                        style: const TextStyle(
-                          color: blueDark,
+                        style: TextStyle(
+                          color: context.accentText(blueDark),
                           fontWeight: FontWeight.w800,
                           fontSize: 12,
                         ),
@@ -1196,8 +1196,8 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                         ),
                         child: Text(
                           item,
-                          style: const TextStyle(
-                            color: blueDark,
+                          style: TextStyle(
+                            color: context.accentText(blueDark),
                             fontWeight: FontWeight.w800,
                             fontSize: 14,
                           ),
@@ -1286,8 +1286,8 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                         ),
                         child: Text(
                           item,
-                          style: const TextStyle(
-                            color: blueDark,
+                          style: TextStyle(
+                            color: context.accentText(blueDark),
                             fontWeight: FontWeight.w800,
                             fontSize: 14,
                           ),
@@ -1368,7 +1368,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
           style: TextStyle(
             color: context.mutedText,
             fontWeight: FontWeight.w900,
-            fontSize: 11,
+            fontSize: 12,
             letterSpacing: 1.2,
           ),
         ),
@@ -1389,8 +1389,8 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                 ),
                 child: Text(
                   label,
-                  style: const TextStyle(
-                    color: teal,
+                  style: TextStyle(
+                    color: context.accentText(teal),
                     fontWeight: FontWeight.w800,
                     fontSize: 12,
                   ),
@@ -1513,7 +1513,7 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
               style: TextStyle(
                 color: context.mutedText,
                 fontStyle: FontStyle.italic,
-                fontSize: 11,
+                fontSize: 12,
               ),
             ),
           ],
@@ -1802,8 +1802,8 @@ class _BattleDuelPageState extends State<BattleDuelPage> {
                       ),
                       child: Text(
                         '+$_xp XP',
-                        style: const TextStyle(
-                          color: blueDark,
+                        style: TextStyle(
+                          color: context.accentText(blueDark),
                           fontWeight: FontWeight.w900,
                           fontSize: 13,
                         ),
@@ -1923,7 +1923,7 @@ class _DuelHypeState extends State<_DuelHype> {
                 style: TextStyle(
                   color: context.mutedText,
                   fontWeight: FontWeight.w900,
-                  fontSize: 11,
+                  fontSize: 12,
                   letterSpacing: 1.2,
                 ),
               ),
@@ -1981,7 +1981,7 @@ class _RoundCommentState extends State<_RoundComment> {
               style: TextStyle(
                 color: context.mutedText,
                 fontWeight: FontWeight.w900,
-                fontSize: 11,
+                fontSize: 12,
                 letterSpacing: 1.2,
               ),
             ),
@@ -2042,7 +2042,7 @@ class _DuelRecapState extends State<_DuelRecap> {
                 style: TextStyle(
                   color: context.mutedText,
                   fontWeight: FontWeight.w900,
-                  fontSize: 11,
+                  fontSize: 12,
                   letterSpacing: 1.2,
                 ),
               ),

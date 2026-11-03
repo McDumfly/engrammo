@@ -168,8 +168,8 @@ class _HeroCard extends StatelessWidget {
                 ),
                 child: Text(
                   friend.name.characters.first,
-                  style: const TextStyle(
-                    color: blueDark,
+                  style: TextStyle(
+                    color: context.accentText(blueDark),
                     fontWeight: FontWeight.w900,
                     fontSize: 40,
                   ),
@@ -282,8 +282,8 @@ class _BotTierLine extends StatelessWidget {
           ),
           child: Text(
             tr('friend_tier', {'tier': tier, 'rating': rating}),
-            style: const TextStyle(
-              color: blueDark,
+            style: TextStyle(
+              color: context.accentText(blueDark),
               fontWeight: FontWeight.w800,
               fontSize: 12,
             ),
@@ -428,7 +428,7 @@ class _StatTile extends StatelessWidget {
               fontSize: 14,
             ),
           ),
-          Text(label, style: TextStyle(color: context.mutedText, fontSize: 11)),
+          Text(label, style: TextStyle(color: context.mutedText, fontSize: 12)),
         ],
       ),
     );

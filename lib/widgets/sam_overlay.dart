@@ -46,10 +46,7 @@ class SamOverlay extends StatelessWidget {
                   width: double.infinity,
                   loading: Text(
                     tr('ai_picture_loading'),
-                    style: TextStyle(
-                      color: context.mutedText,
-                      fontSize: 12,
-                    ),
+                    style: TextStyle(color: context.mutedText, fontSize: 12),
                   ),
                 ),
                 if (chips.isNotEmpty)
@@ -73,9 +70,7 @@ class SamOverlay extends StatelessWidget {
                         spacing: 6,
                         runSpacing: 6,
                         children: [
-                          for (var i = 0;
-                              i < chips.length.clamp(0, 6);
-                              i++)
+                          for (var i = 0; i < chips.length.clamp(0, 6); i++)
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 8,
@@ -95,7 +90,7 @@ class SamOverlay extends StatelessWidget {
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w800,
-                                  fontSize: 11,
+                                  fontSize: 12,
                                 ),
                               ),
                             ),
@@ -113,8 +108,8 @@ class SamOverlay extends StatelessWidget {
                 'n': (samLabels.isNotEmpty ? samLabels : stations).length,
               }),
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: teal,
+              style: TextStyle(
+                color: context.accentText(teal),
                 fontWeight: FontWeight.w800,
                 fontSize: 12,
               ),

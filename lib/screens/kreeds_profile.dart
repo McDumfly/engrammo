@@ -556,8 +556,8 @@ class _Hero extends StatelessWidget {
                         const SizedBox(width: 3),
                         Text(
                           '$streak',
-                          style: const TextStyle(
-                            color: coral,
+                          style: TextStyle(
+                            color: context.accentText(coral),
                             fontWeight: FontWeight.w900,
                             fontSize: 13,
                           ),
@@ -683,7 +683,7 @@ class _FollowStats extends StatelessWidget {
                   Text(
                     '$following',
                     style: TextStyle(
-                      color: blue,
+                      color: context.accentText(blue),
                       fontWeight: FontWeight.w900,
                       fontSize: 26,
                     ),
@@ -1160,7 +1160,7 @@ class _MemoryIdentityCard extends StatelessWidget {
                       style: TextStyle(
                         color: context.mutedText,
                         fontWeight: FontWeight.w900,
-                        fontSize: 11,
+                        fontSize: 12,
                         letterSpacing: 1.1,
                       ),
                     ),
@@ -1255,7 +1255,7 @@ class _MemoryIdentityCard extends StatelessWidget {
                     ),
                     Text(
                       levelFootnote,
-                      style: TextStyle(color: context.mutedText, fontSize: 11),
+                      style: TextStyle(color: context.mutedText, fontSize: 12),
                     ),
                   ],
                 ),
@@ -1277,7 +1277,7 @@ class _MemoryIdentityCard extends StatelessWidget {
                       Text(
                         tr('kreeds_retake'),
                         style: TextStyle(
-                          color: blue,
+                          color: context.accentText(blue),
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
                         ),
@@ -1494,7 +1494,7 @@ class _Pill extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-              style: TextStyle(color: context.mutedText, fontSize: 11),
+              style: TextStyle(color: context.mutedText, fontSize: 12),
             ),
           ),
         ],
@@ -1588,7 +1588,7 @@ class _WeekCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       _days[i],
-                      style: TextStyle(color: context.mutedText, fontSize: 11),
+                      style: TextStyle(color: context.mutedText, fontSize: 12),
                     ),
                   ],
                 );
@@ -2020,7 +2020,7 @@ class _TournamentMedal extends StatelessWidget {
           ),
           Text(
             tr('kreeds_tourney'),
-            style: TextStyle(color: context.mutedText, fontSize: 10),
+            style: TextStyle(color: context.mutedText, fontSize: 12),
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
@@ -2104,7 +2104,7 @@ class _TournamentDisc extends StatelessWidget {
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
-                    fontSize: 11,
+                    fontSize: 12,
                   ),
                 ),
               ),
@@ -2194,7 +2194,7 @@ class _SkillMedal extends StatelessWidget {
             label.replaceAll('\n', ' '),
             style: TextStyle(
               color: earned ? context.inkText : context.mutedText,
-              fontSize: 10,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
             textAlign: TextAlign.center,

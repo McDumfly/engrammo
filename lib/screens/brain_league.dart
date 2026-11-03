@@ -543,7 +543,7 @@ class _FriendsTab extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       battleDateLabelIn(AppLocalizations.localeCode, event.at),
-                      style: TextStyle(color: context.mutedText, fontSize: 11),
+                      style: TextStyle(color: context.mutedText, fontSize: 12),
                     ),
                   ],
                 ),
@@ -614,8 +614,8 @@ class _SeasonCountdownChip extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(
-              color: blueDark,
+            style: TextStyle(
+              color: context.accentText(blueDark),
               fontWeight: FontWeight.w800,
               fontSize: 12,
             ),
@@ -756,7 +756,7 @@ class _TournamentTierCellState extends State<_TournamentTierCell>
               style: TextStyle(
                 color: widget.selected ? context.inkText : context.mutedText,
                 fontWeight: widget.selected ? FontWeight.w900 : FontWeight.w700,
-                fontSize: 11,
+                fontSize: 12,
               ),
             ),
           ],
@@ -801,7 +801,7 @@ class _TierCell extends StatelessWidget {
               style: TextStyle(
                 color: selected ? context.inkText : context.mutedText,
                 fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
-                fontSize: 11,
+                fontSize: 12,
               ),
             ),
           ],
@@ -1036,7 +1036,7 @@ class _ZoneDivider extends StatelessWidget {
               style: TextStyle(
                 color: up ? tealDark : error,
                 fontWeight: FontWeight.w800,
-                fontSize: 11,
+                fontSize: 12,
               ),
             ),
           ),
@@ -1153,7 +1153,7 @@ class _BoardRow extends StatelessWidget {
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w900,
-                            fontSize: 10,
+                            fontSize: 12,
                           ),
                         ),
                       ),
@@ -1171,7 +1171,7 @@ class _BoardRow extends StatelessWidget {
                     const SizedBox(width: 3),
                     Text(
                       tr('blg_streak', {'n': rival.streak}),
-                      style: TextStyle(color: context.mutedText, fontSize: 11),
+                      style: TextStyle(color: context.mutedText, fontSize: 12),
                     ),
                   ],
                 ),
@@ -1183,7 +1183,7 @@ class _BoardRow extends StatelessWidget {
                       style: const TextStyle(
                         color: success,
                         fontWeight: FontWeight.w800,
-                        fontSize: 11,
+                        fontSize: 12,
                       ),
                     ),
                   ),
@@ -1198,8 +1198,8 @@ class _BoardRow extends StatelessWidget {
             ),
             child: Text(
               '${rival.xp} XP',
-              style: const TextStyle(
-                color: blueDark,
+              style: TextStyle(
+                color: context.accentText(blueDark),
                 fontWeight: FontWeight.w900,
                 fontSize: 12,
               ),
@@ -1296,7 +1296,7 @@ class _TournamentCard extends StatelessWidget {
                     style: TextStyle(
                       color: deep,
                       fontWeight: FontWeight.w900,
-                      fontSize: 11,
+                      fontSize: 12,
                     ),
                   ),
                 ),
@@ -1470,7 +1470,7 @@ class _BracketRoundColumn extends StatelessWidget {
               style: const TextStyle(
                 color: gold,
                 fontWeight: FontWeight.w800,
-                fontSize: 11,
+                fontSize: 12,
               ),
             ),
           ),
@@ -1601,7 +1601,7 @@ class _BracketSeed extends StatelessWidget {
               style: const TextStyle(
                 color: gold,
                 fontWeight: FontWeight.w900,
-                fontSize: 10,
+                fontSize: 12,
               ),
             ),
           if (seed != null) const SizedBox(width: 6),
@@ -1624,7 +1624,7 @@ class _BracketSeed extends StatelessWidget {
               style: const TextStyle(
                 color: gold,
                 fontWeight: FontWeight.w800,
-                fontSize: 10,
+                fontSize: 12,
               ),
             ),
         ],

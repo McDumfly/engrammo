@@ -183,11 +183,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       padding: const EdgeInsets.all(6),
                       child: Text(
                         tr('onboarding_skip'),
-                        style: TextStyle(
-                          color: context.mutedText,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
+                        style: AppText.body.copyWith(color: context.mutedText),
                       ),
                     ),
                   ),
@@ -241,10 +237,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
                               padding: const EdgeInsets.all(8),
                               child: Text(
                                 tr('onboarding_skip_for_now'),
-                                style: TextStyle(
+                                style: AppText.body.copyWith(
                                   color: context.mutedText,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
                                 ),
                               ),
                             ),
@@ -269,17 +263,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
       children: [
         Text(
           tr('onboarding_welcome_title'),
-          style: TextStyle(
+          style: AppText.display.copyWith(
             color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.w900,
-            fontSize: 30,
-            height: 1.2,
           ),
         ),
         const SizedBox(height: 12),
         Text(
           tr('onboarding_welcome_body'),
-          style: TextStyle(color: context.inkText, fontSize: 16, height: 1.5),
+          style: AppText.body.copyWith(color: context.inkText),
         ),
         const SizedBox(height: 16),
         Container(
@@ -294,22 +285,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
             children: [
               Text(
                 tr('onboarding_honest_note'),
-                style: TextStyle(
-                  color: context.inkText,
-                  fontSize: 14,
-                  height: 1.5,
-                ),
+                style: AppText.body.copyWith(color: context.inkText),
               ),
               const SizedBox(height: 8),
               GestureDetector(
                 onTap: () => showHonestySheet(context),
                 child: Text(
                   tr('onboarding_honesty_link'),
-                  style: const TextStyle(
-                    color: blue,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
+                  style: AppText.body.copyWith(color: context.accentText(blue)),
                 ),
               ),
             ],
@@ -360,17 +343,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
         const SizedBox(height: 16),
         Text(
           tr(titleKey),
-          style: TextStyle(
+          style: AppText.title.copyWith(
             color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.w900,
-            fontSize: 26,
           ),
         ),
         const SizedBox(height: 10),
-        Text(
-          tr(bodyKey),
-          style: TextStyle(color: context.inkText, fontSize: 16, height: 1.5),
-        ),
+        Text(tr(bodyKey), style: AppText.body.copyWith(color: context.inkText)),
       ],
     );
   }
@@ -415,17 +393,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
       children: [
         Text(
           tr('onboarding_cta_title'),
-          style: TextStyle(
+          style: AppText.display.copyWith(
             color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.w900,
-            fontSize: 28,
-            height: 1.2,
           ),
         ),
         const SizedBox(height: 12),
         Text(
           tr('onboarding_cta_body'),
-          style: TextStyle(color: context.inkText, fontSize: 16, height: 1.5),
+          style: AppText.body.copyWith(color: context.inkText),
         ),
         const SizedBox(height: 12),
         EngramTextButton(

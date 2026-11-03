@@ -735,7 +735,10 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (_feedbackGood && _feedback.isNotEmpty) ...[
-                Text(_feedback, style: AppText.body.copyWith(color: teal)),
+                Text(
+                  _feedback,
+                  style: AppText.body.copyWith(color: context.accentText(teal)),
+                ),
                 const SizedBox(height: 8),
               ],
               if (_popDream != null) ...[

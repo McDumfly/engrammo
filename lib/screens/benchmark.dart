@@ -1,4 +1,5 @@
 import '../theme/app_theme.dart';
+import '../theme/app_tokens.dart';
 
 import 'dart:async';
 import 'dart:math';
@@ -379,7 +380,7 @@ class _AiTipState extends State<_AiTip> {
                       style: TextStyle(
                         color: context.mutedText,
                         fontWeight: FontWeight.w900,
-                        fontSize: 11,
+                        fontSize: 12,
                         letterSpacing: 1.2,
                       ),
                     ),
@@ -389,7 +390,7 @@ class _AiTipState extends State<_AiTip> {
                     style: TextStyle(
                       color: context.mutedText,
                       fontWeight: FontWeight.w700,
-                      fontSize: 10,
+                      fontSize: 12,
                       letterSpacing: 1.0,
                     ),
                   ),
@@ -475,7 +476,7 @@ class _AiModelsStrip extends StatelessWidget {
                   style: TextStyle(
                     color: dot,
                     fontWeight: FontWeight.w900,
-                    fontSize: 10,
+                    fontSize: 12,
                     letterSpacing: 1.0,
                   ),
                 ),
@@ -552,7 +553,7 @@ class _AiVerdictState extends State<_AiVerdict> {
                           style: TextStyle(
                             color: context.mutedText,
                             fontWeight: FontWeight.w900,
-                            fontSize: 11,
+                            fontSize: 12,
                             letterSpacing: 1.2,
                           ),
                         ),
@@ -562,7 +563,7 @@ class _AiVerdictState extends State<_AiVerdict> {
                         style: TextStyle(
                           color: context.mutedText,
                           fontWeight: FontWeight.w700,
-                          fontSize: 10,
+                          fontSize: 12,
                           letterSpacing: 1.0,
                         ),
                       ),
@@ -594,7 +595,7 @@ class _AiVerdictState extends State<_AiVerdict> {
                   _bigButton(
                     context,
                     label: tr('bench_ask_ai'),
-                    color: blue,
+                    color: context.accentText(blue),
                     onTap: () => openAiHelpSheet(
                       context,
                       topic: AiHelpTopics.benchmark,
@@ -742,10 +743,8 @@ class _BenchmarkHubPageState extends State<BenchmarkHubPage> {
                 Expanded(
                   child: Text(
                     tr('bench_hub_title'),
-                    style: TextStyle(
+                    style: AppText.display.copyWith(
                       color: Theme.of(context).colorScheme.onSurface,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 28,
                     ),
                   ),
                 ),
@@ -755,7 +754,7 @@ class _BenchmarkHubPageState extends State<BenchmarkHubPage> {
             const SizedBox(height: 4),
             Text(
               tr('bench_hub_sub'),
-              style: TextStyle(color: context.mutedText, fontSize: 14),
+              style: AppText.caption.copyWith(color: context.mutedText),
             ),
             const SizedBox(height: 16),
             _RoomPalaceHeroCard(onTap: _openRoomPalace),
@@ -776,7 +775,7 @@ class _BenchmarkHubPageState extends State<BenchmarkHubPage> {
             Text(
               tr('bench_hub_tip'),
               textAlign: TextAlign.center,
-              style: TextStyle(color: context.mutedText, fontSize: 13),
+              style: AppText.caption.copyWith(color: context.mutedText),
             ),
           ],
         ),
@@ -825,16 +824,12 @@ class _RoomPalaceHeroCard extends StatelessWidget {
                 children: [
                   Text(
                     tr('room_title'),
-                    style: TextStyle(
-                      color: context.inkText,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 19,
-                    ),
+                    style: AppText.heading.copyWith(color: context.inkText),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     tr('room_sub'),
-                    style: TextStyle(color: context.mutedText, fontSize: 14),
+                    style: AppText.caption.copyWith(color: context.mutedText),
                   ),
                   const SizedBox(height: 4),
                   const AppBadge(label: kRoomModelsCaption, color: coral),
@@ -895,15 +890,11 @@ class _BenchmarkCard extends StatelessWidget {
                 children: [
                   Text(
                     def.titleIn(AppLocalizations.localeCode),
-                    style: TextStyle(
-                      color: context.inkText,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
+                    style: AppText.heading.copyWith(color: context.inkText),
                   ),
                   Text(
                     def.subtitleIn(AppLocalizations.localeCode),
-                    style: TextStyle(color: context.mutedText, fontSize: 13),
+                    style: AppText.caption.copyWith(color: context.mutedText),
                   ),
                 ],
               ),
@@ -915,11 +906,7 @@ class _BenchmarkCard extends StatelessWidget {
                   b == null
                       ? '—'
                       : '$b ${def.bestLabelIn(AppLocalizations.localeCode)}',
-                  style: TextStyle(
-                    color: context.inkText,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
+                  style: AppText.body.copyWith(color: context.inkText),
                 ),
                 HugeIcon(
                   icon: HugeIcons.strokeRoundedArrowRight01,
@@ -1075,7 +1062,7 @@ class _TransferCard extends StatelessWidget {
             style: TextStyle(
               color: context.mutedText,
               fontWeight: FontWeight.w900,
-              fontSize: 11,
+              fontSize: 12,
               letterSpacing: 1.2,
             ),
           ),
@@ -3153,7 +3140,7 @@ class _SpatialGamePageState extends State<SpatialGamePage> {
         _bigButton(
           context,
           label: tr('bench_spatial_setup_start'),
-          color: coral,
+          color: context.accentText(coral),
           onTap: _start,
         ),
       ],
@@ -3899,7 +3886,7 @@ class SamMaskGameBodyState extends State<SamMaskGameBody> {
               style: TextStyle(
                 color: round.live ? teal : context.mutedText,
                 fontWeight: FontWeight.w700,
-                fontSize: 11,
+                fontSize: 12,
                 letterSpacing: 0.6,
               ),
             ),
@@ -3914,8 +3901,8 @@ class SamMaskGameBodyState extends State<SamMaskGameBody> {
                 Text(
                   tr('bench_mask_walk_note'),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: teal,
+                  style: TextStyle(
+                    color: context.accentText(teal),
                     fontWeight: FontWeight.w800,
                     fontSize: 12,
                   ),
@@ -4474,8 +4461,7 @@ class _MaskedPictureState extends State<MaskedPicture>
       }
       _reveals.clear();
     }
-    if (widget.highlight &&
-        widget.objects.length != oldWidget.objects.length) {
+    if (widget.highlight && widget.objects.length != oldWidget.objects.length) {
       _stagger?.dispose();
       _stagger = widget.objects.isEmpty
           ? null
@@ -4747,9 +4733,7 @@ class _MaskedPictureState extends State<MaskedPicture>
                                   alignment: Alignment.bottomCenter,
                                   child: Padding(
                                     padding: const EdgeInsets.all(4),
-                                    child: AppBadge(
-                                      label: widget.objects[i],
-                                    ),
+                                    child: AppBadge(label: widget.objects[i]),
                                   ),
                                 ),
                               ),
@@ -4780,10 +4764,7 @@ class _MaskedPictureState extends State<MaskedPicture>
                                               _staggerT(i),
                                             )) *
                                     (i == widget.cue ? 1.15 : 1.0),
-                                child: _CoverBadge(
-                                  number: i + 1,
-                                  isWalk: true,
-                                ),
+                                child: _CoverBadge(number: i + 1, isWalk: true),
                               ),
                             ),
                         ] else if (widget.showWalk)

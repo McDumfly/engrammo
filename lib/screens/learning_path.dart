@@ -878,7 +878,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
                     style: TextStyle(
                       color: locked ? sub : (context.isDark ? blue : blueDark),
                       fontWeight: FontWeight.bold,
-                      fontSize: 11,
+                      fontSize: 12,
                       letterSpacing: 1.2,
                     ),
                   ),
@@ -1026,7 +1026,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
             style: TextStyle(
               color: dimmed ? _dim(context.mutedText) : context.mutedText,
               fontWeight: FontWeight.w600,
-              fontSize: 11,
+              fontSize: 12,
             ),
           ),
         ],
@@ -1179,8 +1179,8 @@ class _LearningPathPageState extends State<LearningPathPage> {
         badgeKey: badgeKey,
         child: Text(
           '$number',
-          style: const TextStyle(
-            color: blue,
+          style: TextStyle(
+            color: context.accentText(blue),
             fontWeight: FontWeight.bold,
             fontSize: 22,
           ),
@@ -1823,8 +1823,8 @@ class _LearningPathPageState extends State<LearningPathPage> {
                       'i': doneChapters + 1,
                       'n': order.length,
                     }),
-              style: const TextStyle(
-                color: blue,
+              style: TextStyle(
+                color: context.accentText(blue),
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
               ),
@@ -2171,8 +2171,10 @@ class _ChapterListPageState extends State<_ChapterListPage> {
                                                   'i': loc.pos + 1,
                                                   'n': order.length,
                                                 }),
-                                                style: const TextStyle(
-                                                  color: blue,
+                                                style: TextStyle(
+                                                  color: context.accentText(
+                                                    blue,
+                                                  ),
                                                   fontWeight: FontWeight.bold,
                                                   fontSize: 12,
                                                   letterSpacing: 1.4,
@@ -2757,8 +2759,8 @@ class _PartDetailPageState extends State<_PartDetailPage> {
                     ),
                     child: Text(
                       tr('lpt_lessons_n', {'n': total}),
-                      style: const TextStyle(
-                        color: blue,
+                      style: TextStyle(
+                        color: context.accentText(blue),
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -2910,7 +2912,7 @@ class _PartDetailPageState extends State<_PartDetailPage> {
                                   tr('lpt_step_of', {'i': i + 1, 'n': total}),
                                   style: TextStyle(
                                     color: context.mutedText,
-                                    fontSize: 11,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                     letterSpacing: 0.8,
                                   ),
@@ -3120,7 +3122,7 @@ class _TrackPickerPage extends StatelessWidget {
                           child: Text(
                             tr('lpt_honesty'),
                             style: TextStyle(
-                              color: blue,
+                              color: context.accentText(blue),
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
                               height: 1.4,

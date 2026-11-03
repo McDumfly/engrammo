@@ -195,9 +195,8 @@ class _AuthScreenState extends State<AuthScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Text(
                             tr('auth_or'),
-                            style: TextStyle(
+                            style: AppText.caption.copyWith(
                               color: context.mutedText,
-                              fontWeight: FontWeight.w800,
                             ),
                           ),
                         ),
@@ -258,11 +257,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       Text(
                         tr('auth_reset_sent'),
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: context.inkText,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
-                        ),
+                        style: AppText.caption.copyWith(color: context.inkText),
                       ),
                     ],
                     const SizedBox(height: 14),
@@ -292,9 +287,8 @@ class _AuthScreenState extends State<AuthScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Text(
                             tr('auth_or'),
-                            style: TextStyle(
+                            style: AppText.caption.copyWith(
                               color: context.mutedText,
-                              fontWeight: FontWeight.w800,
                             ),
                           ),
                         ),

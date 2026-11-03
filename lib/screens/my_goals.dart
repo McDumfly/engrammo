@@ -298,8 +298,8 @@ class _MyGoalsPageState extends State<MyGoalsPage> {
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          color: blue,
+        style: TextStyle(
+          color: context.accentText(blue),
           fontWeight: FontWeight.w700,
           fontSize: 12,
         ),
@@ -1052,7 +1052,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
                 style: TextStyle(
                   color: context.mutedText,
                   fontWeight: FontWeight.w900,
-                  fontSize: 11,
+                  fontSize: 12,
                   letterSpacing: 1.2,
                 ),
               ),
