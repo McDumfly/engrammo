@@ -10,6 +10,8 @@ const Map<String, String> enStrings = {
   'common_next': 'NEXT',
   'common_loading': 'Loading…',
   'common_save_failed': 'Save failed.',
+  'error_fallback_title': 'Something slipped here',
+  'error_fallback_body': 'Go back and try again.',
   'auth_create_account': 'Create account',
   'auth_welcome_back': 'Welcome back',
   'auth_register_subtitle': 'Your scores, streak and avatar sync to the cloud.',

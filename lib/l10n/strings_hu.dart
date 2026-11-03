@@ -10,6 +10,8 @@ const Map<String, String> huStrings = {
   'common_next': 'TOVÁBB',
   'common_loading': 'Betöltés…',
   'common_save_failed': 'Mentés sikertelen.',
+  'error_fallback_title': 'Itt valami félrecsúszott',
+  'error_fallback_body': 'Lépj vissza, és próbáld újra.',
   'auth_create_account': 'Fiók létrehozása',
   'auth_welcome_back': 'Üdv újra',
   'auth_register_subtitle':

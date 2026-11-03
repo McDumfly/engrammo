@@ -137,9 +137,8 @@ String brainTierName(int index, [String locale = 'en']) =>
 String brainTierTagline(int index, [String locale = 'en']) =>
     trFor(locale, 'blg_tier_${index.clamp(0, brainTiers.length - 1)}_tag');
 
-String get myBrainTierName => botArena.cachedTierName(
-  brainTierName(0, AppLocalizations.localeCode),
-);
+String get myBrainTierName =>
+    botArena.cachedTierName(brainTierName(0, AppLocalizations.localeCode));
 
 int get myLeagueRank => botArena.cachedRank;
 
@@ -149,7 +148,13 @@ class _Rival {
   final int streak;
   final bool isMe;
   final String? botId;
-  const _Rival(this.name, this.xp, this.streak, {this.isMe = false, this.botId});
+  const _Rival(
+    this.name,
+    this.xp,
+    this.streak, {
+    this.isMe = false,
+    this.botId,
+  });
 }
 
 List<_Rival> _leagueRivals() {
@@ -157,7 +162,13 @@ List<_Rival> _leagueRivals() {
   if (season == null) return const [];
   return [
     for (final e in season.sorted)
-      _Rival(e.name, e.xp, e.streak, isMe: e.isMe, botId: e.isBot ? e.id : null),
+      _Rival(
+        e.name,
+        e.xp,
+        e.streak,
+        isMe: e.isMe,
+        botId: e.isBot ? e.id : null,
+      ),
   ];
 }
 
@@ -290,140 +301,137 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
         ),
       ),
       body: TabBarView(
-            controller: _tabs,
-            children: [
-              CustomScrollView(
-                controller: _listScroll,
-                physics: const ClampingScrollPhysics(),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            locked
-                                ? '???'
-                                : (isTournament
-                                      ? tr('blg_tournament')
-                                      : brainTierName(
-                                          _selected,
-                                          AppLocalizations.localeCode,
-                                        )),
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 24,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          if (!locked)
-                            Text(
-                              isTournament
-                                  ? tr('blg_tournament_sub')
-                                  : brainTierTagline(
+        controller: _tabs,
+        children: [
+          CustomScrollView(
+            controller: _listScroll,
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        locked
+                            ? '???'
+                            : (isTournament
+                                  ? tr('blg_tournament')
+                                  : brainTierName(
                                       _selected,
                                       AppLocalizations.localeCode,
-                                    ),
-                              style: TextStyle(
-                                color: context.mutedText,
-                                fontSize: 13,
-                              ),
-                            ),
-                          const SizedBox(height: 8),
-                          _SeasonCountdownChip(
-                            daysLeft: daysLeft,
-                            rank: myLeagueRank,
+                                    )),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 24,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      if (!locked)
+                        Text(
+                          isTournament
+                              ? tr('blg_tournament_sub')
+                              : brainTierTagline(
+                                  _selected,
+                                  AppLocalizations.localeCode,
+                                ),
+                          style: TextStyle(
+                            color: context.mutedText,
+                            fontSize: 13,
                           ),
-                        ],
+                        ),
+                      const SizedBox(height: 8),
+                      _SeasonCountdownChip(
+                        daysLeft: daysLeft,
+                        rank: myLeagueRank,
                       ),
-                    ),
+                    ],
                   ),
-                  SliverToBoxAdapter(
-                    child: SizedBox(
-                      height: 148,
-                      child: PageView.builder(
-                        controller: _tiers,
-                        itemCount: brainTiers.length + 1,
-                        onPageChanged: _select,
-                        itemBuilder: (context, i) {
-                          if (i == brainTiers.length) {
-                            return _TournamentTierCell(
-                              selected: i == _selected,
-                              onTap: () {
-                                _tiers.animateToPage(
-                                  i,
-                                  duration: const Duration(milliseconds: 300),
-                                  curve: Curves.easeOut,
-                                );
-                                _select(i);
-                              },
-                            );
-                          }
-                          return _TierCell(
-                            index: i,
-                            selected: i == _selected,
-                            locked: i > _myTier,
-                            onTap: () {
-                              _tiers.animateToPage(
-                                i,
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeOut,
-                              );
-                              _select(i);
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                  if (locked)
-                    const SliverToBoxAdapter(child: _LockedCard())
-                  else if (isTournament)
-                    SliverToBoxAdapter(
-                      child: _TournamentCard(qualifiers: rivals),
-                    )
-                  else if (!botArena.isLoaded)
-                    const SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.all(32),
-                        child: Center(child: CircularProgressIndicator()),
-                      ),
-                    )
-                  else if (rivals.isEmpty)
-                    const SliverToBoxAdapter(child: _EmptyBoard())
-                  else if (isTop)
-                    SliverList.builder(
-                      itemCount: rivals.length + 1,
-                      itemBuilder: (context, slot) {
-                        if (slot == 20) return const _ZoneDivider(up: false);
-                        final row = slot > 20 ? slot - 1 : slot;
-                        final rival = rivals[row];
-                        final rank = row + 1;
-                        return _leagueRow(rank, rival);
-                      },
-                    )
-                  else
-                    SliverList.builder(
-                      itemCount: rivals.length + 2,
-                      itemBuilder: (context, slot) {
-                        if (slot == 10) return const _ZoneDivider(up: true);
-                        if (slot == 21) return const _ZoneDivider(up: false);
-                        final row = slot > 21
-                            ? slot - 2
-                            : (slot > 10 ? slot - 1 : slot);
-                        final rival = rivals[row];
-                        final rank = row + 1;
-                        return _leagueRow(rank, rival);
-                      },
-                    ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 120)),
-                ],
+                ),
               ),
-              const _FriendsTab(),
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 148,
+                  child: PageView.builder(
+                    controller: _tiers,
+                    itemCount: brainTiers.length + 1,
+                    onPageChanged: _select,
+                    itemBuilder: (context, i) {
+                      if (i == brainTiers.length) {
+                        return _TournamentTierCell(
+                          selected: i == _selected,
+                          onTap: () {
+                            _tiers.animateToPage(
+                              i,
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeOut,
+                            );
+                            _select(i);
+                          },
+                        );
+                      }
+                      return _TierCell(
+                        index: i,
+                        selected: i == _selected,
+                        locked: i > _myTier,
+                        onTap: () {
+                          _tiers.animateToPage(
+                            i,
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeOut,
+                          );
+                          _select(i);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ),
+              if (locked)
+                const SliverToBoxAdapter(child: _LockedCard())
+              else if (isTournament)
+                SliverToBoxAdapter(child: _TournamentCard(qualifiers: rivals))
+              else if (!botArena.isLoaded)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                )
+              else if (rivals.isEmpty)
+                const SliverToBoxAdapter(child: _EmptyBoard())
+              else if (isTop)
+                SliverList.builder(
+                  itemCount: rivals.length + 1,
+                  itemBuilder: (context, slot) {
+                    if (slot == 20) return const _ZoneDivider(up: false);
+                    final row = slot > 20 ? slot - 1 : slot;
+                    final rival = rivals[row];
+                    final rank = row + 1;
+                    return _leagueRow(rank, rival);
+                  },
+                )
+              else
+                SliverList.builder(
+                  itemCount: rivals.length + 2,
+                  itemBuilder: (context, slot) {
+                    if (slot == 10) return const _ZoneDivider(up: true);
+                    if (slot == 21) return const _ZoneDivider(up: false);
+                    final row = slot > 21
+                        ? slot - 2
+                        : (slot > 10 ? slot - 1 : slot);
+                    final rival = rivals[row];
+                    final rank = row + 1;
+                    return _leagueRow(rank, rival);
+                  },
+                ),
+              const SliverToBoxAdapter(child: SizedBox(height: 120)),
             ],
           ),
+          const _FriendsTab(),
+        ],
+      ),
     );
   }
 }
@@ -434,10 +442,8 @@ void _openLeagueBot(BuildContext context, String botId) {
   AppFeedback.light();
   Navigator.of(context).push(
     MaterialPageRoute(
-      builder: (_) => FriendProfilePage(
-        friend: botArena.botToFriend(bot),
-        botId: bot.id,
-      ),
+      builder: (_) =>
+          FriendProfilePage(friend: botArena.botToFriend(bot), botId: bot.id),
     ),
   );
 }
@@ -543,14 +549,8 @@ class _FriendsTab extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      battleDateLabelIn(
-                        AppLocalizations.localeCode,
-                        event.at,
-                      ),
-                      style: TextStyle(
-                        color: context.mutedText,
-                        fontSize: 11,
-                      ),
+                      battleDateLabelIn(AppLocalizations.localeCode, event.at),
+                      style: TextStyle(color: context.mutedText, fontSize: 11),
                     ),
                   ],
                 ),
@@ -708,52 +708,52 @@ class _TournamentTierCellState extends State<_TournamentTierCell>
               width: size + 24,
               height: size + 24,
               child: AnimatedBuilder(
-              animation: _ctrl,
-              child: Container(
-                width: size,
-                height: size,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1B2451), deep],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  border: Border.all(
-                    color: gold,
-                    width: widget.selected ? 3 : 2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: gold.withValues(alpha: 0.4),
-                      blurRadius: widget.selected ? 22 : 14,
-                      spreadRadius: 1,
+                animation: _ctrl,
+                child: Container(
+                  width: size,
+                  height: size,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1B2451), deep],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                  ],
-                ),
-                alignment: Alignment.center,
-                child: const HugeIcon(
-                  icon: HugeIcons.strokeRoundedTrophy,
-                  color: gold,
-                  size: 30,
-                  strokeWidth: 2.2,
-                ),
-              ),
-              builder: (context, child) {
-                return Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    RepaintBoundary(
-                      child: CustomPaint(
-                        size: Size(size + 24, size + 24),
-                        painter: _InfiniteOrbitPainter(progress: _ctrl.value),
+                    border: Border.all(
+                      color: gold,
+                      width: widget.selected ? 3 : 2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: gold.withValues(alpha: 0.4),
+                        blurRadius: widget.selected ? 22 : 14,
+                        spreadRadius: 1,
                       ),
-                    ),
-                    child!,
-                  ],
-                );
-              },
-            ),
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: const HugeIcon(
+                    icon: HugeIcons.strokeRoundedTrophy,
+                    color: gold,
+                    size: 30,
+                    strokeWidth: 2.2,
+                  ),
+                ),
+                builder: (context, child) {
+                  return Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      RepaintBoundary(
+                        child: CustomPaint(
+                          size: Size(size + 24, size + 24),
+                          painter: _InfiniteOrbitPainter(progress: _ctrl.value),
+                        ),
+                      ),
+                      child!,
+                    ],
+                  );
+                },
+              ),
             ),
             const SizedBox(height: 6),
             Text(
@@ -771,7 +771,6 @@ class _TournamentTierCellState extends State<_TournamentTierCell>
       ),
     );
   }
-
 }
 
 class _TierCell extends StatelessWidget {
@@ -861,9 +860,7 @@ class _BrainEmblem extends StatelessWidget {
                   ? meta.color.withValues(alpha: 0.08)
                   : base.withValues(alpha: 0.14),
               border: Border.all(
-                color: locked
-                    ? meta.color.withValues(alpha: 0.45)
-                    : base,
+                color: locked ? meta.color.withValues(alpha: 0.45) : base,
                 width: epic ? 3 : 2,
               ),
               boxShadow: locked
@@ -1189,9 +1186,7 @@ class _BoardRow extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(top: 2),
                     child: Text(
-                      tr('blg_bonus', {
-                        'n': botArena.rewards.totalBonusXp,
-                      }),
+                      tr('blg_bonus', {'n': botArena.rewards.totalBonusXp}),
                       style: const TextStyle(
                         color: success,
                         fontWeight: FontWeight.w800,
@@ -1751,10 +1746,7 @@ class _LockedCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: blueDark,
-                        border: Border.all(
-                          color: context.cardBg,
-                          width: 2.5,
-                        ),
+                        border: Border.all(color: context.cardBg, width: 2.5),
                       ),
                       alignment: Alignment.center,
                       child: const HugeIcon(

@@ -194,9 +194,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final previous = await MemoryStore.loadProfile();
     final previousUsername = previous.username;
     try {
-      if (uid != null &&
-          username.isNotEmpty &&
-          authService.backendAvailable) {
+      if (uid != null && username.isNotEmpty && authService.backendAvailable) {
         if (previous.username != username) {
           await CloudSync.claimUsername(
             uid: uid,
@@ -240,9 +238,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!mounted) return;
       setState(() {
         _profileSaving = false;
-        _profileNote = e is StateError
-            ? e.message
-            : AuthService.messageFor(e);
+        _profileNote = e is StateError ? e.message : AuthService.messageFor(e);
         _profileError = true;
       });
       return;
@@ -358,9 +354,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       : () async {
                           final next = ctrl.text.trim();
                           if (!next.contains('@')) {
-                            setSheet(
-                              () => note = tr('auth_invalid_email'),
-                            );
+                            setSheet(() => note = tr('auth_invalid_email'));
                             return;
                           }
                           setSheet(() {
@@ -474,9 +468,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ? null
                       : () async {
                           if (fresh.text.length < 6) {
-                            setSheet(
-                              () => note = tr('auth_short_password'),
-                            );
+                            setSheet(() => note = tr('auth_short_password'));
                             return;
                           }
                           setSheet(() {
@@ -546,9 +538,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               AppFeedback.light();
               Navigator.of(dlgCtx).pop(true);
             },
-            style: TextButton.styleFrom(
-              foregroundColor: context.dangerText,
-            ),
+            style: TextButton.styleFrom(foregroundColor: context.dangerText),
             child: Text(
               tr('common_delete'),
               style: const TextStyle(fontWeight: FontWeight.w900),
@@ -579,12 +569,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           bottom: false,
           child: Column(
             children: [
-              _Header(
-                onBack: () => Navigator.of(context).pop(),
-              ),
+              _Header(onBack: () => Navigator.of(context).pop()),
               Expanded(
                 child: SingleChildScrollView(
-                  physics: const ClampingScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -597,9 +584,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       _Card(
                         child: Column(
                           children: [
-                            _FieldLabel(
-                              label: tr('settings_display_name'),
-                            ),
+                            _FieldLabel(label: tr('settings_display_name')),
                             const SizedBox(height: 6),
                             _Field(
                               controller: _nameCtrl,
@@ -608,9 +593,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               borderColor: _profileBorder,
                             ),
                             const SizedBox(height: 12),
-                            _FieldLabel(
-                              label: tr('settings_username'),
-                            ),
+                            _FieldLabel(label: tr('settings_username')),
                             const SizedBox(height: 6),
                             _Field(
                               controller: _usernameCtrl,
@@ -631,9 +614,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   ? tr('profile_saving')
                                   : tr('settings_save_profile'),
                               isLoading: _profileSaving,
-                              onPressed: _profileSaving
-                                  ? null
-                                  : _saveProfile,
+                              onPressed: _profileSaving ? null : _saveProfile,
                             ),
                             if (_profileNote != null) ...[
                               const SizedBox(height: 8),
@@ -697,8 +678,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ListenableBuilder(
                         listenable: authService,
                         builder: (context, _) {
-                          if (!authService.signedIn &&
-                              !authService.guestMode) {
+                          if (!authService.signedIn && !authService.guestMode) {
                             return const SizedBox.shrink();
                           }
                           return Column(

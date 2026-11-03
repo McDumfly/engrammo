@@ -10,6 +10,7 @@ const blueShadow = Color(0xFF164E89);
 const teal = Color(0xFF14B8A6);
 const tealDark = Color(0xFF0B7E72);
 const orange = Color(0xFFFF9500);
+const orangeDark = Color(0xFFB35A00);
 const coral = Color(0xFFFF6B6B);
 const coralDark = Color(0xFFC81E1E);
 const sky = Color(0xFF8FCBFF);

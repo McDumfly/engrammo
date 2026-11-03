@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'firebase_options.dart';
+import 'l10n/app_localizations.dart';
 import 'models/battle_invites.dart';
 import 'services/app_settings.dart';
 import 'services/auth_service.dart';
@@ -14,7 +15,13 @@ import 'services/bot_arena_store.dart';
 import 'services/env_loader.dart';
 import 'services/memory_store.dart';
 import 'services/meta_ai_service.dart';
+
+import 'package:hugeicons/hugeicons.dart';
+
+import 'theme/app_colors.dart';
+import 'theme/app_scroll_behavior.dart';
 import 'theme/app_theme.dart';
+import 'theme/app_tokens.dart';
 import 'widgets/connectivity_gate.dart';
 import 'screens/auth_screen.dart';
 import 'screens/learning_path.dart';
@@ -54,15 +61,64 @@ Future<void> main() async {
   );
 }
 
-/// Hibahelyettesítő nézet: piros halálképernyő helyett nyugodt üzenet.
+/// Hibahelyettesítő nézet: piros halálképernyő helyett márkázott panel.
+/// Az ErrorWidget.builder MaterialApp nélkül is futhat, ezért nincs
+/// Theme-függés: a színeket a brightness alapján választjuk, a szöveget
+/// pedig a tr() tiszta map-keresésével (sosem dob).
 class _ErrorFallback extends StatelessWidget {
   const _ErrorFallback();
 
   @override
   Widget build(BuildContext context) {
-    return const Material(
-      child: Center(
-        child: Text('Something went wrong — please restart the app.'),
+    ThemeData theme;
+    try {
+      theme = Theme.of(context);
+    } catch (_) {
+      theme = ThemeData.fallback();
+    }
+    final dark = theme.brightness == Brightness.dark;
+    final card = dark ? AppTheme.darkCard : paper;
+    final inkColor = dark ? AppTheme.darkOnSurface : ink;
+    final mutedColor = dark ? AppTheme.darkOnSurfaceVariant : muted;
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: ColoredBox(
+        color: card,
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: coral.withValues(alpha: 0.12),
+                  ),
+                  child: const HugeIcon(
+                    icon: HugeIcons.strokeRoundedAlert02,
+                    color: coral,
+                    size: 40,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  tr('error_fallback_title'),
+                  style: AppText.heading.copyWith(color: inkColor),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  tr('error_fallback_body'),
+                  style: AppText.caption.copyWith(color: mutedColor),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -70,9 +126,7 @@ class _ErrorFallback extends StatelessWidget {
 
 Future<void> _boot() async {
   // Az app nem forgatható: álló (portrait) nézetre rögzítve.
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-  ]);
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -130,6 +184,19 @@ class MyApp extends StatelessWidget {
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
+            scrollBehavior: const AppScrollBehavior(),
+            builder: (context, child) {
+              final mq = MediaQuery.of(context);
+              return MediaQuery(
+                data: mq.copyWith(
+                  textScaler: mq.textScaler.clamp(
+                    minScaleFactor: 0.9,
+                    maxScaleFactor: 1.2,
+                  ),
+                ),
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
             home: const ConnectivityGate(child: _AuthGate()),
           ),
         );
@@ -146,8 +213,16 @@ class _AuthGate extends StatelessWidget {
     return ListenableBuilder(
       listenable: authService,
       builder: (context, _) {
-        if (authService.showApp) return const _StartRouter();
-        return const AuthScreen();
+        final showingApp = authService.showApp;
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 320),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          child: KeyedSubtree(
+            key: ValueKey(showingApp ? 'app' : 'auth'),
+            child: showingApp ? const _StartRouter() : const AuthScreen(),
+          ),
+        );
       },
     );
   }
@@ -231,25 +306,36 @@ class _StartRouterState extends State<_StartRouter> {
 
   @override
   Widget build(BuildContext context) {
+    final String stateKey;
+    final Widget child;
     if (!_ready) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-    if (_needsSetup) {
-      return ProfileSetupScreen(
+      stateKey = 'loading';
+      child = const Scaffold(body: Center(child: CircularProgressIndicator()));
+    } else if (_needsSetup) {
+      stateKey = 'setup';
+      child = ProfileSetupScreen(
         onDone: () {
           if (!mounted) return;
           setState(() => _needsSetup = false);
         },
       );
-    }
-    if (_needsOnboarding) {
-      return OnboardingPage(
+    } else if (_needsOnboarding) {
+      stateKey = 'onboarding';
+      child = OnboardingPage(
         onDone: () {
           if (!mounted) return;
           setState(() => _needsOnboarding = false);
         },
       );
+    } else {
+      stateKey = 'home';
+      child = const LearningPathPage();
     }
-    return const LearningPathPage();
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 320),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      child: KeyedSubtree(key: ValueKey(stateKey), child: child),
+    );
   }
 }

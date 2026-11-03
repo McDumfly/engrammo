@@ -14,8 +14,7 @@ import 'auth_screen.dart';
 import 'avatar_selection_screen.dart';
 import '../models/avatar_traits.dart';
 import '../models/battle_rating.dart';
-import 'brain_league.dart'
-    show BrainLeaguePage, myBrainTierName, myLeagueRank;
+import 'brain_league.dart' show BrainLeaguePage, myBrainTierName, myLeagueRank;
 import '../services/auth_service.dart';
 import '../services/bot_arena_store.dart';
 import '../services/dicebear_generator.dart';
@@ -25,15 +24,8 @@ import 'settings_screen.dart';
 import '../models/claims_policy.dart' show levelExplainer, levelFootnote;
 import '../models/collectibles.dart' show engram;
 import '../utils/streak_restore.dart';
-import '../theme/app_colors.dart'
-    show
-        ink,
-        blue,
-        teal,
-        orange,
-        coral;
-import 'memory_profile.dart'
-    show memoryKinds, MemoryAssessmentIntroPage;
+import '../theme/app_colors.dart' show ink, blue, teal, orange, coral;
+import 'memory_profile.dart' show memoryKinds, MemoryAssessmentIntroPage;
 
 class KreedsProfilePage extends StatefulWidget {
   const KreedsProfilePage({super.key});
@@ -306,9 +298,7 @@ class _KreedsProfilePageState extends State<KreedsProfilePage> {
   void _addFriend() {
     AppFeedback.light();
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const BrainLeaguePage(initialTab: 1),
-      ),
+      MaterialPageRoute(builder: (_) => const BrainLeaguePage(initialTab: 1)),
     );
   }
 
@@ -319,7 +309,6 @@ class _KreedsProfilePageState extends State<KreedsProfilePage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: CustomScrollView(
-        physics: const ClampingScrollPhysics(),
         slivers: [
           SliverToBoxAdapter(
             child: SafeArea(
@@ -1261,8 +1250,7 @@ class _MemoryIdentityCard extends StatelessWidget {
                                 ),
                                 actions: [
                                   TextButton(
-                                    onPressed: () =>
-                                        Navigator.of(dlgCtx).pop(),
+                                    onPressed: () => Navigator.of(dlgCtx).pop(),
                                     child: Text(tr('common_got_it')),
                                   ),
                                 ],
@@ -1283,10 +1271,7 @@ class _MemoryIdentityCard extends StatelessWidget {
                     ),
                     Text(
                       levelFootnote,
-                      style: TextStyle(
-                        color: context.mutedText,
-                        fontSize: 11,
-                      ),
+                      style: TextStyle(color: context.mutedText, fontSize: 11),
                     ),
                   ],
                 ),
@@ -1831,7 +1816,6 @@ class _MemoryBadgesState extends State<_MemoryBadges> {
             height: 156,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              physics: const ClampingScrollPhysics(),
               itemCount: tournamentTitles.length + badges.length,
               separatorBuilder: (_, _) => const SizedBox(width: 12),
               itemBuilder: (_, i) {

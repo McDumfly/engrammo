@@ -1,7 +1,21 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import 'app_colors.dart'
-    show blueDark, coral, coralDark, ink, line, muted, orange, teal, blue;
+    show
+        blue,
+        blueDark,
+        coral,
+        coralDark,
+        ink,
+        line,
+        muted,
+        orange,
+        orangeDark,
+        success,
+        teal,
+        tealDark;
+import 'app_tokens.dart';
 
 class AppTheme {
   static const OutlinedBorder buttonShape = StadiumBorder();
@@ -22,6 +36,7 @@ class AppTheme {
         ColorScheme.fromSeed(
           seedColor: blue,
           brightness: Brightness.dark,
+          dynamicSchemeVariant: DynamicSchemeVariant.neutral,
           primary: blue,
           secondary: teal,
           tertiary: orange,
@@ -32,6 +47,12 @@ class AppTheme {
           surfaceContainerHigh: darkCard,
           surfaceContainerHighest: darkInput,
           outlineVariant: darkBorder,
+          surfaceTint: Colors.transparent,
+          primaryContainer: darkCard,
+          secondaryContainer: darkInput,
+          surfaceContainer: darkCard,
+          surfaceContainerLow: darkCard,
+          surfaceContainerLowest: darkCard,
         );
 
     const heavy = TextStyle(fontWeight: FontWeight.w900, fontSize: 15);
@@ -45,8 +66,39 @@ class AppTheme {
       scaffoldBackgroundColor: darkScaffold,
       cardColor: darkCard,
       canvasColor: darkScaffold,
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
+        },
+      ),
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: blue,
+        selectionColor: blue.withValues(alpha: 0.25),
+        selectionHandleColor: blue,
+      ),
+      scrollbarTheme: const ScrollbarThemeData(
+        thickness: WidgetStatePropertyAll(0),
+      ),
+      materialTapTargetSize: MaterialTapTargetSize.padded,
+      textTheme: TextTheme(
+        displaySmall: AppText.display.copyWith(color: darkOnSurface),
+        headlineSmall: AppText.title.copyWith(color: darkOnSurface),
+        titleLarge: AppText.title.copyWith(color: darkOnSurface),
+        titleMedium: AppText.heading.copyWith(color: darkOnSurface),
+        bodyLarge: AppText.body.copyWith(color: darkOnSurface),
+        bodyMedium: AppText.body.copyWith(color: darkOnSurface),
+        bodySmall: AppText.caption.copyWith(color: darkOnSurface),
+        labelSmall: AppText.micro.copyWith(color: darkOnSurface),
+      ),
       dividerTheme: const DividerThemeData(color: darkBorder, thickness: 1.5),
-      dialogTheme: const DialogThemeData(backgroundColor: darkCard),
+      dialogTheme: const DialogThemeData(
+        backgroundColor: darkCard,
+        surfaceTintColor: Colors.transparent,
+      ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: darkCard,
         contentTextStyle: const TextStyle(color: darkOnSurface),
@@ -77,8 +129,12 @@ class AppTheme {
         foregroundColor: darkOnSurface,
         elevation: 0,
         scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
       ),
-      bottomSheetTheme: const BottomSheetThemeData(backgroundColor: darkCard),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: darkCard,
+        surfaceTintColor: Colors.transparent,
+      ),
       splashFactory: NoSplash.splashFactory,
       splashColor: Colors.transparent,
       highlightColor: Colors.transparent,
@@ -153,6 +209,7 @@ class AppTheme {
     final scheme =
         ColorScheme.fromSeed(
           seedColor: blue,
+          dynamicSchemeVariant: DynamicSchemeVariant.neutral,
           primary: blue,
           secondary: teal,
           tertiary: orange,
@@ -163,6 +220,12 @@ class AppTheme {
           surfaceContainerHigh: Colors.white,
           surfaceContainerHighest: const Color(0xFFF4F8FE),
           outlineVariant: line,
+          surfaceTint: Colors.transparent,
+          primaryContainer: Colors.white,
+          secondaryContainer: const Color(0xFFF4F8FE),
+          surfaceContainer: Colors.white,
+          surfaceContainerLow: Colors.white,
+          surfaceContainerLowest: Colors.white,
         );
 
     const heavy = TextStyle(fontWeight: FontWeight.w900, fontSize: 15);
@@ -176,8 +239,39 @@ class AppTheme {
       scaffoldBackgroundColor: Colors.white,
       cardColor: Colors.white,
       canvasColor: Colors.white,
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
+        },
+      ),
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: blue,
+        selectionColor: blue.withValues(alpha: 0.25),
+        selectionHandleColor: blue,
+      ),
+      scrollbarTheme: const ScrollbarThemeData(
+        thickness: WidgetStatePropertyAll(0),
+      ),
+      materialTapTargetSize: MaterialTapTargetSize.padded,
+      textTheme: TextTheme(
+        displaySmall: AppText.display.copyWith(color: ink),
+        headlineSmall: AppText.title.copyWith(color: ink),
+        titleLarge: AppText.title.copyWith(color: ink),
+        titleMedium: AppText.heading.copyWith(color: ink),
+        bodyLarge: AppText.body.copyWith(color: ink),
+        bodyMedium: AppText.body.copyWith(color: ink),
+        bodySmall: AppText.caption.copyWith(color: ink),
+        labelSmall: AppText.micro.copyWith(color: ink),
+      ),
       dividerTheme: const DividerThemeData(color: line, thickness: 1.5),
-      dialogTheme: const DialogThemeData(backgroundColor: Colors.white),
+      dialogTheme: const DialogThemeData(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+      ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: Colors.white,
         contentTextStyle: const TextStyle(color: ink),
@@ -205,9 +299,11 @@ class AppTheme {
         foregroundColor: ink,
         elevation: 0,
         scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
       ),
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
       ),
       splashFactory: NoSplash.splashFactory,
       splashColor: Colors.transparent,
@@ -304,4 +400,16 @@ extension ThemeCtx on BuildContext {
   Color get mutedText => Theme.of(this).colorScheme.onSurfaceVariant;
 
   Color get dangerText => isDark ? coral : coralDark;
+
+  /// Accessible text colour: bright brand fills stay bright in dark mode,
+  /// but map to their dark variants on light backgrounds.
+  Color accentText(Color c) {
+    if (isDark) return c;
+    if (c == teal) return tealDark;
+    if (c == orange) return orangeDark;
+    if (c == coral) return coralDark;
+    if (c == blue) return blueDark;
+    if (c == success) return success;
+    return c;
+  }
 }

@@ -309,7 +309,6 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
             ),
             Expanded(
               child: SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
                 padding: const EdgeInsets.only(bottom: 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -344,9 +343,7 @@ class _AvatarSelectionScreenState extends State<AvatarSelectionScreen> {
                       ),
                     _GridTitle(
                       title: sec.colorOnly
-                          ? tr('avatar_tone_title', {
-                              'label': tr(sec.labelKey),
-                            })
+                          ? tr('avatar_tone_title', {'label': tr(sec.labelKey)})
                           : tr('avatar_pick_title', {
                               'label': tr(sec.labelKey).toLowerCase(),
                             }),
@@ -517,79 +514,79 @@ class _Stage extends StatelessWidget {
                       dot: Colors.white.withValues(alpha: 0.35),
                     ),
                     child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 450),
-                    curve: Curves.easeOut,
-                    color: color,
-                    child: Stack(
-                      children: [
-                        Align(
-                          alignment: Alignment.bottomCenter,
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 180),
-                            child: FutureBuilder<String>(
-                              key: ValueKey(optsKey),
-                              future: svgFuture,
-                              builder: (context, snapshot) {
-                                var svg = snapshot.data;
-                                if (snapshot.hasError ||
-                                    (svg != null && svg.isEmpty)) {
-                                  final fb = fallbackSvg;
-                                  if (fb != null && fb.isNotEmpty) {
-                                    svg = fb;
-                                  } else {
-                                    return const Padding(
-                                      padding: EdgeInsets.only(bottom: 24),
-                                      child: HugeIcon(
-                                        icon: HugeIcons.strokeRoundedUserCircle,
-                                        size: 150,
-                                        color: Colors.white,
-                                        strokeWidth: 1.6,
-                                      ),
-                                    );
-                                  }
-                                }
-                                if (svg == null || svg.isEmpty) {
-                                  final fb = fallbackSvg;
-                                  if (fb != null && fb.isNotEmpty) {
-                                    svg = fb;
-                                  } else {
-                                    return const Padding(
-                                      padding: EdgeInsets.only(bottom: 100),
-                                      child: SizedBox(
-                                        width: 36,
-                                        height: 36,
-                                        child: CircularProgressIndicator(
+                      duration: const Duration(milliseconds: 450),
+                      curve: Curves.easeOut,
+                      color: color,
+                      child: Stack(
+                        children: [
+                          Align(
+                            alignment: Alignment.bottomCenter,
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 180),
+                              child: FutureBuilder<String>(
+                                key: ValueKey(optsKey),
+                                future: svgFuture,
+                                builder: (context, snapshot) {
+                                  var svg = snapshot.data;
+                                  if (snapshot.hasError ||
+                                      (svg != null && svg.isEmpty)) {
+                                    final fb = fallbackSvg;
+                                    if (fb != null && fb.isNotEmpty) {
+                                      svg = fb;
+                                    } else {
+                                      return const Padding(
+                                        padding: EdgeInsets.only(bottom: 24),
+                                        child: HugeIcon(
+                                          icon:
+                                              HugeIcons.strokeRoundedUserCircle,
+                                          size: 150,
                                           color: Colors.white,
-                                          strokeWidth: 3,
+                                          strokeWidth: 1.6,
                                         ),
-                                      ),
-                                    );
+                                      );
+                                    }
                                   }
-                                }
-                                final ready = svg;
-                                final cb = onSvg;
-                                if (snapshot.hasData && cb != null) {
-                                  WidgetsBinding.instance.addPostFrameCallback(
-                                    (_) => cb(ready),
+                                  if (svg == null || svg.isEmpty) {
+                                    final fb = fallbackSvg;
+                                    if (fb != null && fb.isNotEmpty) {
+                                      svg = fb;
+                                    } else {
+                                      return const Padding(
+                                        padding: EdgeInsets.only(bottom: 100),
+                                        child: SizedBox(
+                                          width: 36,
+                                          height: 36,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 3,
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                  final ready = svg;
+                                  final cb = onSvg;
+                                  if (snapshot.hasData && cb != null) {
+                                    WidgetsBinding.instance
+                                        .addPostFrameCallback((_) => cb(ready));
+                                  }
+                                  return SvgPicture.string(
+                                    ready,
+                                    width: 250,
+                                    height: 250,
+                                    fit: BoxFit.contain,
                                   );
-                                }
-                                return SvgPicture.string(
-                                  ready,
-                                  width: 250,
-                                  height: 250,
-                                  fit: BoxFit.contain,
-                                );
-                              },
+                                },
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
           ),
         ],
       ),
@@ -627,7 +624,6 @@ class _SectionRail extends StatelessWidget {
       height: 86,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        physics: const ClampingScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 6),
         itemCount: _sections.length,
         separatorBuilder: (_, _) => const SizedBox(width: 10),
@@ -718,7 +714,6 @@ class _ColorStrip extends StatelessWidget {
           height: 56,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            physics: const ClampingScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(20, 2, 20, 8),
             itemCount: values.length,
             separatorBuilder: (_, _) => const SizedBox(width: 10),
@@ -890,10 +885,10 @@ class _OptionGrid extends StatelessWidget {
   });
 
   String _label(TraitOption o) => avatarTraitLabel(
-        traitKey,
-        o.value,
-        o.labelEn.isNotEmpty ? o.labelEn : o.label,
-      );
+    traitKey,
+    o.value,
+    o.labelEn.isNotEmpty ? o.labelEn : o.label,
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -1068,7 +1063,6 @@ class _GraphicStrip extends StatelessWidget {
           height: 52,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            physics: const ClampingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 20),
             itemCount: options.length,
             separatorBuilder: (_, _) => const SizedBox(width: 10),
