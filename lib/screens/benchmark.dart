@@ -678,6 +678,16 @@ final _games = <_GameDef>[
   ),
 ];
 
+/// Icon of the practice game with [id], for rows outside the hub
+/// (the Session Coach plan rows use the same tile icon as the cards).
+/// Falls back to the generic controller when the id is unknown.
+dynamic benchGameIcon(String id) {
+  for (final g in _games) {
+    if (g.id == id) return g.icon;
+  }
+  return HugeIcons.strokeRoundedGameController01;
+}
+
 /// Opens one practice game exactly as the hub card does.
 Future<void> openPracticeGame(BuildContext context, String gameId) async {
   final g = _games.firstWhere(

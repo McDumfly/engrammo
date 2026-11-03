@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../l10n/app_localizations.dart';
-import '../screens/benchmark.dart' show openPracticeGame;
+import '../screens/benchmark.dart' show benchGameIcon, openPracticeGame;
 import '../screens/room_palace_page.dart' show RoomPalacePage;
 import '../services/app_feedback.dart';
 import '../services/session_coach.dart';
@@ -42,6 +42,7 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
   CoachSnapshot? _snapshot;
   List<CoachStep> _trace = const [];
   int _runId = 0;
+  final GlobalKey _goKey = GlobalKey();
 
   static const _emptySnapshot = CoachSnapshot(
     palaces: [],
@@ -85,6 +86,25 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
     if (!mounted || id != _runId) return;
     setState(() {
       _running = false;
+    });
+    // The "Let's go" button can land under the floating bottom nav bar.
+    // Nudge it into view once the result rows are laid out.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || id != _runId) return;
+      final ctx = _goKey.currentContext;
+      if (ctx == null) return;
+      if (Scrollable.maybeOf(ctx) == null) return;
+      final box = ctx.findRenderObject() as RenderBox?;
+      if (box == null || !box.hasSize) return;
+      final bottom = box.localToGlobal(Offset.zero).dy + box.size.height;
+      if (bottom > MediaQuery.sizeOf(context).height - 120) {
+        Scrollable.ensureVisible(
+          ctx,
+          alignment: 0.6,
+          duration: const Duration(milliseconds: 420),
+          curve: Curves.easeOutCubic,
+        );
+      }
     });
   }
 
@@ -329,7 +349,7 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
   Widget _itemRow(CoachItem item, int i) {
     final icon = switch (item.type) {
       CoachItemType.roomReview => HugeIcons.strokeRoundedCamera01,
-      CoachItemType.practiceGame => HugeIcons.strokeRoundedGameController01,
+      CoachItemType.practiceGame => benchGameIcon(item.ref),
       CoachItemType.pathLesson => HugeIcons.strokeRoundedRoute01,
     };
     final text = switch (item.type) {
@@ -530,6 +550,7 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
             ],
             const SizedBox(height: 12),
             EngramButton(
+              key: _goKey,
               label: tr('coach_start'),
               height: 52,
               onPressed: () => _openItem(result.items.first),
