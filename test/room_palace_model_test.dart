@@ -52,7 +52,7 @@ void main() {
   });
 
   test('roomPalaceName uses the lesson titles', () {
-    expect(roomPalaceName(_sample()), 'Room palace · 2026-11-01');
+    expect(roomPalaceName(_sample()), 'Your room palace');
     expect(roomPalaceName(_sample().copyWith(sample: true)), 'Sample room');
     expect(
       roomPalaceName(_sample().copyWith(stations: const ['desk'])),

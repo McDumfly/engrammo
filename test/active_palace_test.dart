@@ -58,14 +58,18 @@ void main() {
       _room('room:1', stations: const ['a', 'b', 'c']),
     );
     expect(p.own, isTrue);
-    expect(p.title, 'Room palace · 2026-11-01');
+    expect(p.title, 'Your room palace');
     // No boxes stored: guard keeps empty lists, never a mismatch.
     expect(p.boxes, isEmpty);
     expect(p.masks, isEmpty);
   });
 
   test('roomPalaceName uses the same titles', () {
-    expect(roomPalaceName(_room('room:1')), 'Room palace · 2026-11-01');
+    expect(roomPalaceName(_room('room:1')), 'Your room palace');
+    expect(
+      roomPalaceName(_room('room:1'), 'en', 2),
+      'Your room palace · Nov 1',
+    );
     expect(roomPalaceName(_room('room:2', sample: true)), 'Sample room');
     expect(roomPalaceName(_room('room:3', stations: const ['a'])), 'a');
   });

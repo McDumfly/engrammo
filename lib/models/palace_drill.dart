@@ -796,11 +796,9 @@ MetaTask taskOnPalace(MetaTask t, ActivePalace p, {String locale = 'en'}) {
     stations: stations,
     items: items,
     question: trFor(locale, 'task_palace_q', {'station': stations[target]}),
-    prompt: trFor(
-      locale,
-      p.own ? 'task_palace_prompt_own' : 'task_palace_prompt_practice',
-      {'palace': p.title},
-    ),
+    prompt: p.own
+        ? trFor(locale, 'task_palace_prompt_own')
+        : trFor(locale, 'task_palace_prompt_practice', {'palace': p.title}),
     options: options,
     correct: correct,
     imageUrl: p.own ? p.imageRef : t.imageUrl,

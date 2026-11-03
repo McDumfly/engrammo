@@ -66,12 +66,14 @@ class CoachSnapshot {
 
   static Future<CoachSnapshot> load([DateTime? now]) async {
     final n = now ?? DateTime.now();
+    final all = await MemoryStore.loadRoomPalaces();
+    final ownCount = all.where((p) => !p.sample).length;
     final palaces = <({String id, String name, int dueInDays})>[];
-    for (final p in await MemoryStore.loadRoomPalaces()) {
+    for (final p in all) {
       final raw = (p.card.due.difference(n).inHours / 24).ceil();
       palaces.add((
         id: p.id,
-        name: roomPalaceName(p),
+        name: roomPalaceName(p, 'en', ownCount),
         dueInDays: raw < 0 ? 0 : raw,
       ));
     }

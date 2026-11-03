@@ -2,7 +2,7 @@ library;
 
 import '../l10n/app_localizations.dart' show trFor;
 import 'palace_drill.dart' show palaceRoutesFor;
-import 'room_palace.dart' show RoomPalace, palaceShortDate;
+import 'room_palace.dart' show RoomPalace, palaceHumanDate;
 
 /// The palace lessons walk: the learner's real room when they built one,
 /// otherwise a named practice route. Honest by construction — the title
@@ -36,14 +36,24 @@ class ActivePalace {
     return i;
   }
 
-  factory ActivePalace.fromRoom(RoomPalace p, [String locale = 'en']) {
+  factory ActivePalace.fromRoom(
+    RoomPalace p, [
+    String locale = 'en',
+    int ownCount = 1,
+  ]) {
+    final String title;
+    if (p.sample) {
+      title = trFor(locale, 'palace_sample_title');
+    } else if (ownCount > 1) {
+      title = trFor(locale, 'palace_own_title_dated', {
+        'date': palaceHumanDate(p.createdAt, locale),
+      });
+    } else {
+      title = trFor(locale, 'palace_own_title');
+    }
     return ActivePalace(
       id: p.id,
-      title: p.sample
-          ? trFor(locale, 'palace_sample_title')
-          : trFor(locale, 'palace_own_title', {
-              'date': palaceShortDate(p.createdAt),
-            }),
+      title: title,
       stations: List<String>.of(p.stations),
       imageRef: p.imageRef,
       boxes: p.boxes.length == p.stations.length

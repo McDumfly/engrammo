@@ -38,6 +38,7 @@ import '../theme/app_colors.dart' show blue, coral, orange, success, teal;
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/ai_help_button.dart';
+import '../widgets/ai_image.dart';
 import '../widgets/app_buttons.dart';
 import '../widgets/app_kit.dart';
 import '../widgets/dynamic_task_view.dart';
@@ -423,8 +424,11 @@ class LessonPlayerPage extends StatefulWidget {
 
 /// AI-státuszkártya gyorsítótárazott lekérdezéssel: a kulcs/hozzájárulás
 /// ellenőrzése oldalanként egyszer fut, nem minden újraépüléskor.
+/// When the learner's own room is active no picture is painted, so the
+/// honest own-palace line replaces the on/off copy.
 class _AiStatusCard extends StatefulWidget {
-  const _AiStatusCard();
+  final bool isOwn;
+  const _AiStatusCard({this.isOwn = false});
 
   @override
   State<_AiStatusCard> createState() => _AiStatusCardState();
@@ -438,6 +442,41 @@ class _AiStatusCardState extends State<_AiStatusCard> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.isOwn) {
+      return Container(
+        key: const ValueKey('lesson-ai-status'),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: teal.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: teal.withValues(alpha: 0.5)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 10,
+              height: 10,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: teal,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                tr('ai_palace_own'),
+                style: TextStyle(
+                  color: context.inkText,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return FutureBuilder<List<bool>>(
       future: _future,
       builder: (context, snap) {
@@ -481,6 +520,29 @@ class _AiStatusCardState extends State<_AiStatusCard> {
       },
     );
   }
+}
+
+/// Dotted connector for the practice-palace thumbnail: the same
+/// learning-path look as the picker strip, shrunk to the 56 pt thumb.
+class _MiniDottedPainter extends CustomPainter {
+  final Color color;
+  const _MiniDottedPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+    const step = 6.0;
+    final y = size.height / 2;
+    for (var x = 2.0; x < size.width - 1; x += step) {
+      canvas.drawLine(Offset(x, y), Offset(x + 2, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_MiniDottedPainter old) => old.color != color;
 }
 
 enum _Phase { coach, loading, stimulus, question, done }
@@ -805,7 +867,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
   /// round will be AI-painted and SAM-segmented, or what to switch on
   /// (cloud consent + API key in Settings) to get the pictures.
   Widget _aiStatusCard() {
-    return const _AiStatusCard();
+    return _AiStatusCard(isOwn: _palace?.own == true);
   }
 
   /// Small caps section label used across the lesson screens.
@@ -1627,10 +1689,29 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
   );
 
   Widget _workedExampleCard() {
-    final example = workedExampleForTrack(
-      trackOfChapter(widget.chapterIndex),
-      AppLocalizations.localeCode,
-    );
+    final track = trackOfChapter(widget.chapterIndex);
+    final locale = AppLocalizations.localeCode;
+    final palace = _palace;
+    final WorkedExample example;
+    if (track == 2 &&
+        palace != null &&
+        palace.own &&
+        palace.stations.length >= 3) {
+      final a = palace.stations[0];
+      final b = palace.stations[1];
+      final c = palace.stations[2];
+      example = WorkedExample(
+        situation: tr('fnd_ex_2_situation'),
+        thinkAloud: [
+          tr('fnd_ex_2_own_think0', {'a': a, 'b': b, 'c': c}),
+          tr('fnd_ex_2_own_think1', {'a': a, 'b': b}),
+          tr('fnd_ex_2_own_think2', {'c': c}),
+        ],
+        payoff: tr('fnd_ex_2_own_payoff'),
+      );
+    } else {
+      example = workedExampleForTrack(track, locale);
+    }
     return Container(
       key: const ValueKey('lesson-worked-example'),
       padding: const EdgeInsets.all(14),
@@ -2021,14 +2102,13 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
   }
 
   /// Which palace this loci round walks, with a way to change it.
+  /// For an own palace only the station count is shown, so the long
+  /// room title can never truncate the prompt line.
   Widget _palaceChip() {
     final palace = _palace;
     if (palace == null) return const SizedBox.shrink();
     final text = palace.own
-        ? tr('palace_chip_own', {
-            'title': palace.title,
-            'n': palace.stations.length,
-          })
+        ? tr('bench_stations_n', {'n': palace.stations.length})
         : tr('palace_practice_title', {'name': palace.title});
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -2049,9 +2129,23 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
   }
 
   /// Coach-view card for spatial lessons: the active palace, a change
-  /// action, and the builder CTA when the learner has no own room yet.
+  /// Coach-view card for spatial lessons: the active palace thumbnail,
+  /// title + station count, a change action, and the builder CTA when
+  /// the learner has no own room yet.
   Widget _palaceCard() {
     final palace = _palace;
+    final String title;
+    final String subtitle;
+    if (palace == null) {
+      title = tr('palace_pick');
+      subtitle = '';
+    } else if (palace.own) {
+      title = palace.title;
+      subtitle = tr('bench_stations_n', {'n': palace.stations.length});
+    } else {
+      title = tr('palace_practice_title', {'name': palace.title});
+      subtitle = tr('bench_stations_n', {'n': palace.stations.length});
+    }
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
@@ -2063,56 +2157,106 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (palace == null)
-            Text(
-              tr('palace_pick'),
-              style: TextStyle(
-                color: context.inkText,
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-              ),
-            )
-          else
-            Text(
-              palace.own
-                  ? tr('palace_chip_own', {
-                      'title': palace.title,
-                      'n': palace.stations.length,
-                    })
-                  : tr('palace_practice_title', {'name': palace.title}),
-              style: TextStyle(
-                color: context.inkText,
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-              ),
-            ),
-          const SizedBox(height: 4),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
+              _palaceThumb(palace),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.body.copyWith(
+                        color: context.inkText,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (subtitle.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.caption.copyWith(
+                          color: context.mutedText,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
               AppLinkButton(
                 label: palace == null ? tr('palace_pick') : tr('palace_change'),
                 onTap: _openPalacePicker,
               ),
-              if (!_hasOwnPalace) ...[
-                const SizedBox(width: 8),
-                Expanded(
-                  child: AppLinkButton(
-                    label: tr('palace_build_own'),
-                    onTap: () async {
-                      AppFeedback.select();
-                      await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const RoomPalacePage(),
-                        ),
-                      );
-                      if (mounted) _loadPalace();
-                    },
-                  ),
-                ),
-              ],
             ],
           ),
+          if (!_hasOwnPalace) ...[
+            const SizedBox(height: 4),
+            AppLinkButton(
+              label: tr('palace_build_own'),
+              onTap: () async {
+                AppFeedback.select();
+                await Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const RoomPalacePage()),
+                );
+                if (mounted) _loadPalace();
+              },
+            ),
+          ],
         ],
+      ),
+    );
+  }
+
+  /// 56 pt rounded thumbnail: the palace photo for an own palace, or the
+  /// dotted route strip for a practice palace (and when none is active).
+  Widget _palaceThumb(ActivePalace? palace) {
+    if (palace != null && palace.own && palace.imageRef.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadius.m),
+        child: AiImage(imageRef: palace.imageRef, width: 56, height: 56),
+      );
+    }
+    return Container(
+      width: 56,
+      height: 56,
+      decoration: BoxDecoration(
+        color: context.washBg,
+        borderRadius: BorderRadius.circular(AppRadius.m),
+        border: Border.all(color: context.hairline, width: 2),
+      ),
+      alignment: Alignment.center,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (var i = 0; i < 3; i++) ...[
+              if (i > 0)
+                Expanded(
+                  child: CustomPaint(
+                    painter: _MiniDottedPainter(color: context.washBorder),
+                    child: const SizedBox(height: 16),
+                  ),
+                ),
+              Container(
+                width: 12,
+                height: 12,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: context.cardBg,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: context.washBorder, width: 2),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }

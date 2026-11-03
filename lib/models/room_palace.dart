@@ -20,6 +20,9 @@ class RoomPalace {
   final List<String> dreams; // persisted dream scenes per station (data URLs)
   final bool
   sample; // true = built on the bundled sample room, not the learner's
+  final bool replay; // true = built from a recorded demo run, honestly labelled
+  final DateTime? recordedAt; // when the recorded run happened
+  final List<Map<String, dynamic>> receipt; // snapshot of the recorded call log
 
   const RoomPalace({
     required this.id,
@@ -34,6 +37,9 @@ class RoomPalace {
     required this.card,
     this.dreams = const [],
     this.sample = false,
+    this.replay = false,
+    this.recordedAt,
+    this.receipt = const [],
   });
 
   RoomPalace copyWith({
@@ -49,6 +55,9 @@ class RoomPalace {
     FsrsCard? card,
     List<String>? dreams,
     bool? sample,
+    bool? replay,
+    DateTime? recordedAt,
+    List<Map<String, dynamic>>? receipt,
   }) {
     return RoomPalace(
       id: id ?? this.id,
@@ -63,6 +72,9 @@ class RoomPalace {
       card: card ?? this.card,
       dreams: dreams ?? this.dreams,
       sample: sample ?? this.sample,
+      replay: replay ?? this.replay,
+      recordedAt: recordedAt ?? this.recordedAt,
+      receipt: receipt ?? this.receipt,
     );
   }
 
@@ -79,6 +91,9 @@ class RoomPalace {
     'card': card.toJson(),
     'dreams': dreams,
     'sample': sample,
+    'replay': replay,
+    'recordedAt': recordedAt?.toIso8601String(),
+    'receipt': receipt,
   };
 
   /// Never throws: missing lists become empty, a bad date becomes epoch,
@@ -129,6 +144,24 @@ class RoomPalace {
             }
           })()
         : FsrsCard(cardId: id, taskId: 'room_palace', due: DateTime.now());
+    List<Map<String, dynamic>> receiptOf(Object? raw) {
+      if (raw is! List) return const [];
+      final out = <Map<String, dynamic>>[];
+      for (final e in raw) {
+        try {
+          if (e is Map<String, dynamic>) {
+            out.add(Map<String, dynamic>.of(e));
+          } else if (e is Map) {
+            out.add({for (final k in e.keys) '$k': e[k]});
+          }
+        } catch (_) {
+          // Skip malformed receipt entries.
+        }
+      }
+      return out;
+    }
+
+    final recordedRaw = json['recordedAt'] as String?;
     return RoomPalace(
       id: id,
       createdAt: createdAt,
@@ -143,6 +176,9 @@ class RoomPalace {
       dreams:
           (json['dreams'] as List?)?.whereType<String>().toList() ?? const [],
       sample: (json['sample'] as bool?) ?? false,
+      replay: (json['replay'] as bool?) ?? false,
+      recordedAt: recordedRaw == null ? null : DateTime.tryParse(recordedRaw),
+      receipt: receiptOf(json['receipt']),
     );
   }
 
@@ -160,7 +196,10 @@ class RoomPalace {
           _strListEq(links, other.links) &&
           live == other.live &&
           card == other.card &&
-          _strListEq(dreams, other.dreams);
+          _strListEq(dreams, other.dreams) &&
+          replay == other.replay &&
+          recordedAt == other.recordedAt &&
+          _receiptEq(receipt, other.receipt);
 
   @override
   int get hashCode => Object.hash(
@@ -175,6 +214,9 @@ class RoomPalace {
     live,
     card,
     Object.hashAll(dreams),
+    replay,
+    recordedAt,
+    Object.hashAll([for (final m in receipt) Object.hashAll(m.entries)]),
   );
 }
 
@@ -182,6 +224,19 @@ bool _strListEq(List<String> a, List<String> b) {
   if (a.length != b.length) return false;
   for (var i = 0; i < a.length; i++) {
     if (a[i] != b[i]) return false;
+  }
+  return true;
+}
+
+bool _receiptEq(List<Map<String, dynamic>> a, List<Map<String, dynamic>> b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    final ma = a[i];
+    final mb = b[i];
+    if (ma.length != mb.length) return false;
+    for (final k in ma.keys) {
+      if ('${ma[k]}' != '${mb[k]}') return false;
+    }
   }
   return true;
 }
@@ -214,6 +269,7 @@ int roomGrade(int correct, int total) {
 }
 
 /// Short numeric date for palace titles, e.g. 2026-11-03.
+/// Kept for backwards compatibility; the UI now shows [palaceHumanDate].
 String palaceShortDate(DateTime at) {
   final y = at.year.toString().padLeft(4, '0');
   final m = at.month.toString().padLeft(2, '0');
@@ -221,15 +277,28 @@ String palaceShortDate(DateTime at) {
   return '$y-$m-$d';
 }
 
-/// Display name: the same titles the lesson picker shows — a dated room
-/// title for built palaces, 'Sample room' for the sample. Palaces too
+/// Short human date for palace titles: EN `Nov 3`, HU `nov. 3.`.
+/// Built from the `month_short_1`…`month_short_12` keys, no new package.
+String palaceHumanDate(DateTime at, [String locale = 'en']) {
+  final m = at.month.clamp(1, 12);
+  final name = trFor(locale, 'month_short_$m');
+  if (locale == 'hu') return '$name ${at.day}.';
+  return '$name ${at.day}';
+}
+
+/// Display name: the same titles the lesson picker shows — `Your room
+/// palace` when there is exactly one own palace, plus a short human date
+/// when there are several. 'Sample room' for the sample. Palaces too
 /// small to walk keep the old station fallback.
-String roomPalaceName(RoomPalace p, [String locale = 'en']) {
+String roomPalaceName(RoomPalace p, [String locale = 'en', int ownCount = 1]) {
   if (p.sample) return trFor(locale, 'palace_sample_title');
   if (p.stations.length >= 3) {
-    return trFor(locale, 'palace_own_title', {
-      'date': palaceShortDate(p.createdAt),
-    });
+    if (ownCount > 1) {
+      return trFor(locale, 'palace_own_title_dated', {
+        'date': palaceHumanDate(p.createdAt, locale),
+      });
+    }
+    return trFor(locale, 'palace_own_title');
   }
   if (p.stations.isEmpty) return p.id;
   return p.stations.take(2).join(' · ');

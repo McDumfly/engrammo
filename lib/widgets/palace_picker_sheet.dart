@@ -130,9 +130,14 @@ class _PalacePickerSheetState extends State<_PalacePickerSheet> {
 
   Widget _roomThumb(RoomPalace room) {
     final selected = _selected == room.id;
+    final ownCount = _rooms.where((r) => !r.sample).length;
     return Tappable(
       haptic: false,
-      semanticLabel: roomPalaceName(room, AppLocalizations.localeCode),
+      semanticLabel: roomPalaceName(
+        room,
+        AppLocalizations.localeCode,
+        ownCount,
+      ),
       onTap: () => _pick(room.id),
       child: SizedBox(
         width: 96,

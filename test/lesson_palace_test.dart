@@ -59,7 +59,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Coach card names the active palace.
-    expect(find.textContaining('Room palace · 2026-11-01'), findsWidgets);
+    expect(find.textContaining('Your room palace'), findsWidgets);
 
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('lesson-coach-next')),
@@ -70,15 +70,10 @@ void main() {
 
     // Drill stimulus: the prompt, the palace chip and the room's stations.
     expect(
-      find.text(
-        'Your palace: Room palace · 2026-11-01. Walk it, one vivid image per station!',
-      ),
+      find.text('Walk your room palace — one vivid image per station!'),
       findsOneWidget,
     );
-    expect(
-      find.text('Your palace: Room palace · 2026-11-01 · 4 stations'),
-      findsOneWidget,
-    );
+    expect(find.text('4 stations'), findsOneWidget);
     expect(find.text('wardrobe'), findsOneWidget);
     expect(find.text('kettle'), findsOneWidget);
   });

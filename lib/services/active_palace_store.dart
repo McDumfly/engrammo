@@ -37,11 +37,12 @@ class ActivePalaceStore {
         last = null;
         return null;
       }
+      final ownCount = usable.where((p) => !p.sample).length;
       final pick = usable.firstWhere(
         (p) => !p.sample,
         orElse: () => usable.first,
       );
-      final palace = ActivePalace.fromRoom(pick, locale);
+      final palace = ActivePalace.fromRoom(pick, locale, ownCount);
       last = palace;
       return palace;
     } catch (_) {
@@ -83,9 +84,12 @@ class ActivePalaceStore {
     }
     if (!id.startsWith('room:')) return null;
     final palaces = await _loadPalaces();
+    final ownCount = palaces
+        .where((p) => !p.sample && p.stations.length >= 3)
+        .length;
     for (final p in palaces) {
       if (p.id == id && p.stations.length >= 3) {
-        return ActivePalace.fromRoom(p, locale);
+        return ActivePalace.fromRoom(p, locale, ownCount);
       }
     }
     return null;

@@ -247,8 +247,10 @@ void main() {
       final out = taskOnPalace(task(), own);
       expect(out.imageUrl, room.imageRef);
       expect(out.samLabels, isEmpty);
-      expect(out.prompt, contains('Your palace:'));
-      expect(out.prompt, contains('Room palace · 2026-11-01'));
+      expect(
+        out.prompt,
+        'Walk your room palace — one vivid image per station!',
+      );
       final route = taskOnPalace(task(), practice);
       expect(route.prompt, contains('Practice palace:'));
       expect(route.imageUrl, isEmpty);
