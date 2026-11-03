@@ -66,36 +66,48 @@ class _ConnectivityGateState extends State<ConnectivityGate>
           duration: const Duration(milliseconds: 220),
           alignment: Alignment.topCenter,
           child: offline
-              ? Container(
-                  height: 36,
-                  width: double.infinity,
-                  color: orange.withValues(alpha: 0.14),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const HugeIcon(
-                        icon: HugeIcons.strokeRoundedWifiDisconnected01,
-                        color: orange,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          tr('offline_banner'),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppText.micro.copyWith(
-                            color: context.accentText(orange),
+              ? Material(
+                  type: MaterialType.transparency,
+                  child: SafeArea(
+                    bottom: false,
+                    child: Container(
+                      height: 36,
+                      width: double.infinity,
+                      color: orange.withValues(alpha: 0.14),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const HugeIcon(
+                            icon: HugeIcons.strokeRoundedWifiDisconnected01,
+                            color: orange,
+                            size: 16,
                           ),
-                        ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              tr('offline_banner'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppText.micro.copyWith(
+                                color: context.accentText(orange),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 )
               : const SizedBox(width: double.infinity),
         ),
-        Expanded(child: widget.child),
+        Expanded(
+          child: MediaQuery.removePadding(
+            context: context,
+            removeTop: offline,
+            child: widget.child,
+          ),
+        ),
       ],
     );
   }

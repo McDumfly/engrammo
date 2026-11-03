@@ -112,7 +112,13 @@ class _RoomPalaceHomeCardState extends State<RoomPalaceHomeCard>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const AppBadge(label: kRoomModelsCaption, color: teal),
+                        const Align(
+                          alignment: Alignment.centerLeft,
+                          child: AppBadge(
+                            label: kRoomModelsCaption,
+                            color: teal,
+                          ),
+                        ),
                         const SizedBox(height: 10),
                         Text(
                           tr('room_home_title'),

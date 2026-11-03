@@ -832,7 +832,10 @@ class _RoomPalaceHeroCard extends StatelessWidget {
                     style: AppText.caption.copyWith(color: context.mutedText),
                   ),
                   const SizedBox(height: 4),
-                  const AppBadge(label: kRoomModelsCaption, color: coral),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: AppBadge(label: kRoomModelsCaption, color: coral),
+                  ),
                 ],
               ),
             ),
@@ -4694,11 +4697,12 @@ class _MaskedPictureState extends State<MaskedPicture>
                     ..._reveals.values,
                   ];
 
+                  final base = RepaintBoundary(child: _base(context, w, h));
                   return AnimatedBuilder(
                     animation: Listenable.merge(anims),
-                    builder: (context, _) => Stack(
+                    builder: (context, child) => Stack(
                       children: [
-                        Positioned.fill(child: _base(context, w, h)),
+                        Positioned.fill(child: child!),
                         if (widget.masked)
                           Positioned.fill(
                             child: CustomPaint(
@@ -4776,6 +4780,7 @@ class _MaskedPictureState extends State<MaskedPicture>
                             ),
                       ],
                     ),
+                    child: base,
                   );
                 },
               ),

@@ -83,6 +83,8 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
   RoomPalace? _palace;
   int _focus = 0;
   final Map<int, String> _dreams = {};
+  final Map<int, String> _storedDreams = {};
+  Future<void> _persistChain = Future.value();
 
   // Recall state.
   int _cue = 0;
@@ -411,6 +413,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         _palace = palace;
         _focus = 0;
         _dreams.clear();
+        _storedDreams.clear();
         _building = false;
         _step = _Step.encode;
       });
@@ -470,25 +473,26 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
   ) async {
     final stored = await _downscaledDream(url);
     if (!mounted || token != _token) return;
+    _storedDreams[i] = stored;
     final count = palace.stations.length;
     final dreams = List<String>.filled(count, '');
     final current = _palace;
-    if (current != null &&
-        current.id == palace.id &&
-        current.dreams.length == count) {
-      for (var k = 0; k < count; k++) {
+    if (current != null && current.id == palace.id) {
+      for (var k = 0; k < count && k < current.dreams.length; k++) {
         dreams[k] = current.dreams[k];
       }
     }
-    _dreams.forEach((k, v) {
+    _storedDreams.forEach((k, v) {
       if (k >= 0 && k < count) dreams[k] = v;
     });
-    dreams[i] = stored;
     final base = (current != null && current.id == palace.id)
         ? current
         : palace;
     final updated = base.copyWith(dreams: dreams);
-    await MemoryStore.upsertRoomPalace(updated);
+    _persistChain = _persistChain.then(
+      (_) => MemoryStore.upsertRoomPalace(updated),
+    );
+    await _persistChain;
     if (!mounted || token != _token) return;
     final latest = _palace;
     if (latest != null && latest.id == palace.id && mounted) {
@@ -600,7 +604,6 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         _cue++;
       }
     });
-    showAppToast(context, tr('room_correct'), kind: ToastKind.success);
     if (_popDream != null) {
       _popTimer = Timer(const Duration(milliseconds: 1600), () {
         if (!mounted) return;
@@ -1587,7 +1590,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
           AppBadge(label: '+$xp XP', color: orange),
           if (_nextDue != null)
             AppBadge(
-              label: tr('room_next_review', {
+              label: tr('room_next_short', {
                 'date': MaterialLocalizations.of(context)
                     .formatShortDate(_nextDue!),
               }),
@@ -1915,6 +1918,28 @@ class _ScanStage extends StatefulWidget {
 
 class _ScanStageState extends State<_ScanStage>
     with SingleTickerProviderStateMixin {
+  static const _grey60 = <double>[
+    0.52756,
+    0.42912,
+    0.04332,
+    0,
+    0,
+    0.12756,
+    0.82912,
+    0.04332,
+    0,
+    0,
+    0.12756,
+    0.42912,
+    0.44332,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+  ];
   late final AnimationController _sweep;
 
   @override
@@ -1960,77 +1985,75 @@ class _ScanStageState extends State<_ScanStage>
               aspectRatio: 1,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(AppRadius.xl),
-                child: AnimatedBuilder(
-                  animation: _sweep,
-                  builder: (context, _) => LayoutBuilder(
-                    builder: (context, constraints) {
-                      final h = constraints.maxHeight;
-                      final sweepT = Curves.easeInOut.transform(_sweep.value);
-                      final y = sweepT * h;
-                      Widget photo = AiImage(
-                        imageRef: widget.photo,
-                        fit: BoxFit.cover,
-                      );
-                      if (scanning) {
-                        photo = ColorFiltered(
-                          colorFilter: const ColorFilter.matrix([
-                            0.52756,
-                            0.42912,
-                            0.04332,
-                            0,
-                            0,
-                            0.12756,
-                            0.82912,
-                            0.04332,
-                            0,
-                            0,
-                            0.12756,
-                            0.42912,
-                            0.44332,
-                            0,
-                            0,
-                            0,
-                            0,
-                            0,
-                            1,
-                            0,
-                          ]),
-                          child: photo,
-                        );
-                      }
-                      return Stack(
-                        children: [
-                          Positioned.fill(child: photo),
-                          if (scanning) ...[
-                            Positioned(
-                              top: y - 40,
-                              left: 0,
-                              right: 0,
-                              child: Container(
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      teal.withValues(alpha: 0),
-                                      teal.withValues(alpha: 0.25),
-                                    ],
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: RepaintBoundary(
+                        child: AiImage(
+                          imageRef: widget.photo,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    Positioned.fill(
+                      child: AnimatedOpacity(
+                        opacity: scanning ? 1 : 0,
+                        duration: const Duration(milliseconds: 260),
+                        child: RepaintBoundary(
+                          child: ColorFiltered(
+                            colorFilter: const ColorFilter.matrix(_grey60),
+                            child: AiImage(
+                              imageRef: widget.photo,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (scanning)
+                      Positioned.fill(
+                        child: AnimatedBuilder(
+                          animation: _sweep,
+                          builder: (context, _) => LayoutBuilder(
+                            builder: (context, constraints) {
+                              final h = constraints.maxHeight;
+                              final sweepT = Curves.easeInOut.transform(
+                                _sweep.value,
+                              );
+                              final y = sweepT * h;
+                              return Stack(
+                                children: [
+                                  Positioned(
+                                    top: y - 40,
+                                    left: 0,
+                                    right: 0,
+                                    child: Container(
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                          colors: [
+                                            teal.withValues(alpha: 0),
+                                            teal.withValues(alpha: 0.25),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              top: y - 1.5,
-                              left: 0,
-                              right: 0,
-                              child: Container(height: 3, color: teal),
-                            ),
-                          ],
-                        ],
-                      );
-                    },
-                  ),
+                                  Positioned(
+                                    top: y - 1.5,
+                                    left: 0,
+                                    right: 0,
+                                    child: Container(height: 3, color: teal),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),

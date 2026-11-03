@@ -984,21 +984,25 @@ class AppBadge extends StatelessWidget {
         color: color.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(AppRadius.pill),
       ),
-      alignment: Alignment.center,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            HugeIcon(icon: icon, color: color, size: 14),
-            const SizedBox(width: 4),
+      child: Center(
+        widthFactor: 1,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              HugeIcon(icon: icon, color: color, size: 14),
+              const SizedBox(width: 4),
+            ],
+            Flexible(
+              child: Text(
+                label,
+                style: AppText.micro.copyWith(color: context.accentText(color)),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
-          Text(
-            label,
-            style: AppText.micro.copyWith(color: context.accentText(color)),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+        ),
       ),
     );
   }

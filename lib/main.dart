@@ -83,40 +83,43 @@ class _ErrorFallback extends StatelessWidget {
     final mutedColor = dark ? AppTheme.darkOnSurfaceVariant : muted;
     return Directionality(
       textDirection: TextDirection.ltr,
-      child: ColoredBox(
-        color: card,
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: coral.withValues(alpha: 0.12),
+      child: Material(
+        type: MaterialType.transparency,
+        child: ColoredBox(
+          color: card,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: coral.withValues(alpha: 0.12),
+                    ),
+                    child: const HugeIcon(
+                      icon: HugeIcons.strokeRoundedAlert02,
+                      color: coral,
+                      size: 40,
+                    ),
                   ),
-                  child: const HugeIcon(
-                    icon: HugeIcons.strokeRoundedAlert02,
-                    color: coral,
-                    size: 40,
+                  const SizedBox(height: 16),
+                  Text(
+                    tr('error_fallback_title'),
+                    style: AppText.heading.copyWith(color: inkColor),
+                    textAlign: TextAlign.center,
                   ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  tr('error_fallback_title'),
-                  style: AppText.heading.copyWith(color: inkColor),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  tr('error_fallback_body'),
-                  style: AppText.caption.copyWith(color: mutedColor),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  Text(
+                    tr('error_fallback_body'),
+                    style: AppText.caption.copyWith(color: mutedColor),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
           ),
         ),

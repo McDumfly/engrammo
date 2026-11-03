@@ -29,7 +29,7 @@ Uint8List? decodeDataImage(String ref) {
 /// `Image.memory`, http(s) refs to `Image.network`, and anything else
 /// (empty, plain IDs, undecodable payloads) renders [fallback] and
 /// reports [onError].
-class AiImage extends StatelessWidget {
+class AiImage extends StatefulWidget {
   final String imageRef;
   final double? height;
   final double? width;
@@ -51,15 +51,43 @@ class AiImage extends StatelessWidget {
     this.onError,
   });
 
+  @override
+  State<AiImage> createState() => _AiImageState();
+}
+
+class _AiImageState extends State<AiImage> {
+  String? _ref;
+  Uint8List? _bytes;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncRef();
+  }
+
+  @override
+  void didUpdateWidget(AiImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.imageRef.trim() != _ref) _syncRef();
+  }
+
+  void _syncRef() {
+    final t = widget.imageRef.trim();
+    _ref = t;
+    _bytes = t.startsWith('data:image') ? decodeDataImage(t) : null;
+  }
+
   void _report() {
-    final cb = onError;
+    final cb = widget.onError;
     if (cb == null) return;
     WidgetsBinding.instance.addPostFrameCallback((_) => cb());
   }
 
   Widget _loadingBox() {
-    final ph = loading ?? AppSkeleton(height: height ?? 160, width: width);
-    final h = height;
+    final ph =
+        widget.loading ??
+        AppSkeleton(height: widget.height ?? 160, width: widget.width);
+    final h = widget.height;
     if (h == null) return Center(child: ph);
     return SizedBox(
       height: h,
@@ -69,9 +97,14 @@ class AiImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ref = imageRef.trim();
+    final ref = widget.imageRef.trim();
+    final height = widget.height;
+    final width = widget.width;
+    final fit = widget.fit;
+    final cacheWidth = widget.cacheWidth;
+    final fallback = widget.fallback;
     if (ref.startsWith('data:image')) {
-      final bytes = decodeDataImage(ref);
+      final bytes = _bytes;
       if (bytes == null) {
         _report();
         return fallback;

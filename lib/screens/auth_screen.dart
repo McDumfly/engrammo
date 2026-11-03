@@ -22,6 +22,7 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _register = false;
   bool _obscure = true;
   bool _resetSent = false;
+  bool _guestBusy = false;
   String? _error;
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
@@ -94,9 +95,14 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _guest() async {
-    if (authService.busy) return;
+    if (authService.busy || _guestBusy) return;
     AppFeedback.light();
-    await authService.continueAsGuest();
+    setState(() => _guestBusy = true);
+    try {
+      await authService.continueAsGuest();
+    } finally {
+      if (mounted) setState(() => _guestBusy = false);
+    }
     if (!mounted) return;
     if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop();
@@ -179,7 +185,10 @@ class _AuthScreenState extends State<AuthScreen> {
                     const SizedBox(height: 32),
                     EngramButton(
                       label: tr('auth_guest_cta'),
-                      onPressed: authService.busy ? null : _guest,
+                      onPressed: (authService.busy || _guestBusy)
+                          ? null
+                          : _guest,
+                      isLoading: _guestBusy,
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -221,7 +230,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       _Field(
                         controller: _nameCtrl,
                         hint: tr('auth_display_name_hint'),
-                        enabled: !authService.busy,
+                        enabled: !(authService.busy || _guestBusy),
                       ),
                       const SizedBox(height: 10),
                     ],
@@ -229,7 +238,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       controller: _emailCtrl,
                       hint: tr('auth_email_hint'),
                       keyboard: TextInputType.emailAddress,
-                      enabled: !authService.busy,
+                      enabled: !(authService.busy || _guestBusy),
                     ),
                     const SizedBox(height: 10),
                     _Field(
@@ -238,7 +247,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       obscure: _obscure,
                       onToggleObscure: () =>
                           setState(() => _obscure = !_obscure),
-                      enabled: !authService.busy,
+                      enabled: !(authService.busy || _guestBusy),
                     ),
                     if (_error != null) ...[
                       const SizedBox(height: 10),
@@ -262,14 +271,16 @@ class _AuthScreenState extends State<AuthScreen> {
                     ],
                     const SizedBox(height: 14),
                     EngramButton(
-                      label: authService.busy
+                      label: (authService.busy && !_guestBusy)
                           ? tr('auth_please_wait')
                           : (_register
                                 ? tr('auth_create_button')
                                 : tr('auth_sign_in_button')),
                       variant: EngramButtonVariant.secondary,
-                      onPressed: authService.busy ? null : () => _submit(),
-                      isLoading: authService.busy,
+                      onPressed: (authService.busy || _guestBusy)
+                          ? null
+                          : () => _submit(),
+                      isLoading: authService.busy && !_guestBusy,
                     ),
                     if (!_register) ...[
                       const SizedBox(height: 4),

@@ -10,6 +10,7 @@ const Map<String, String> huStrings = {
   'common_next': 'TOVÁBB',
   'common_loading': 'Betöltés…',
   'common_save_failed': 'Mentés sikertelen.',
+  'common_done': 'Kész',
   'error_fallback_title': 'Itt valami félrecsúszott',
   'error_fallback_body': 'Lépj vissza, és próbáld újra.',
   'auth_create_account': 'Fiók létrehozása',
@@ -1890,6 +1891,7 @@ const Map<String, String> huStrings = {
   'room_result': '{correct}/{total} felidézve a saját szobádból.',
   'room_next_review':
       'Következő ismétlés: {date}. A térközös felidézés rögzíti.',
+  'room_next_short': 'Következő: {date}',
   'room_saved_title': 'Palotáid',
   'room_due': 'Ismétlés esedékes',
   'room_not_due': 'Következő: {date}',
