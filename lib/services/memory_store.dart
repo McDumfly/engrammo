@@ -1496,6 +1496,9 @@ class MemoryStore {
         _goalPlanDoneKey,
         _fsrsCardsKey,
         _roomPalacesKey,
+        // ActivePalaceStore pref (literal: importing the store here
+        // would be a back-import).
+        'active_palace_id_v1',
         _metaCacheKey,
         _benchmarkKey,
         _battleInvitesKey,

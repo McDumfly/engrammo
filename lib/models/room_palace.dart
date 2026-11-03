@@ -1,3 +1,5 @@
+import '../l10n/app_localizations.dart' show trFor;
+import 'active_palace.dart' show palaceShortDate;
 import 'fsrs_card.dart';
 import 'recall_scoring.dart' show fuzzyWordMatch, normalizeAnswer;
 
@@ -212,8 +214,16 @@ int roomGrade(int correct, int total) {
   return 1;
 }
 
-/// Display name: the first two stations, e.g. "desk · lamp".
-String roomPalaceName(RoomPalace p) {
+/// Display name: the same titles the lesson picker shows — a dated room
+/// title for built palaces, 'Sample room' for the sample. Palaces too
+/// small to walk keep the old station fallback.
+String roomPalaceName(RoomPalace p, [String locale = 'en']) {
+  if (p.sample) return trFor(locale, 'palace_sample_title');
+  if (p.stations.length >= 3) {
+    return trFor(locale, 'palace_own_title', {
+      'date': palaceShortDate(p.createdAt),
+    });
+  }
   if (p.stations.isEmpty) return p.id;
   return p.stations.take(2).join(' · ');
 }
