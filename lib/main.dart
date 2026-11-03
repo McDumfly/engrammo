@@ -245,6 +245,7 @@ class _StartRouterState extends State<_StartRouter> {
   bool _needsSetup = false;
   bool _resolving = false;
   bool _dirty = false;
+  int _initialTrack = 0;
 
   @override
   void initState() {
@@ -291,6 +292,15 @@ class _StartRouterState extends State<_StartRouter> {
       final scores = await MemoryStore.loadScores();
       final done = await MemoryStore.loadOnboardingDone();
       needs = (scores == null || scores.isEmpty) && !done;
+      // Reopen on the learner's active track (active > study pick >
+      // strongest), read once here while the splash is showing.
+      final active = await MemoryStore.loadActiveTrack();
+      final study = active == null ? await MemoryStore.loadStudyChoice() : null;
+      final dominant = active == null && study == null
+          ? await MemoryStore.loadDominantKind()
+          : null;
+      // LearningPathPage clamps to its own track list on init.
+      _initialTrack = active ?? study ?? dominant ?? 0;
     } catch (_) {
       needs = false;
     }
@@ -333,7 +343,7 @@ class _StartRouterState extends State<_StartRouter> {
       );
     } else {
       stateKey = 'home';
-      child = const LearningPathPage();
+      child = LearningPathPage(initialTrack: _initialTrack);
     }
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 320),

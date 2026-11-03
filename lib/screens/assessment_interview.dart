@@ -142,8 +142,10 @@ class _AssessmentInterviewPageState extends State<AssessmentInterviewPage> {
     );
   }
 
-  void _startTrack(int track) {
+  Future<void> _startTrack(int track) async {
     AppFeedback.medium();
+    await MemoryStore.saveActiveTrack(track);
+    if (!mounted) return;
     // Nem sima push: a felmérési verem helyére kerül az új tanulási út,
     // különben minden újramérés egy újabb duplikált gyökéroldalt halmozna.
     Navigator.of(context).pushAndRemoveUntil(

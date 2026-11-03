@@ -317,6 +317,16 @@ class _LearningPathPageState extends State<LearningPathPage> {
     });
   }
 
+  @override
+  void didUpdateWidget(covariant LearningPathPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // The auth gate passes a new initial track on account change.
+    if (widget.initialTrack != oldWidget.initialTrack) {
+      _memory = widget.initialTrack.clamp(0, _tracks.length - 1);
+      _chapterPos = null;
+    }
+  }
+
   Future<void> _loadHome() async {
     Map<String, int> progress = const {};
     Map<String, int> reps = const {};
@@ -863,6 +873,8 @@ class _LearningPathPageState extends State<LearningPathPage> {
       ),
     );
     if (picked != null && picked != _memory) {
+      await MemoryStore.saveActiveTrack(picked);
+      if (!mounted) return;
       setState(() {
         _memory = picked;
         _chapterPos = null;
