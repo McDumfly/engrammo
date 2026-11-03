@@ -543,10 +543,15 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
   String _missedText = '';
   bool _missedBusy = false;
 
+  void _onForgotChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _ownForgotCtrl.addListener(_onForgotChanged);
     _loadUserGoals();
   }
 
@@ -571,6 +576,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
     _sessionClock.stop();
     _questionClock.stop();
     _ownMaterialCtrl.dispose();
+    _ownForgotCtrl.removeListener(_onForgotChanged);
     _ownForgotCtrl.dispose();
     _shake.dispose();
     _starsIn.dispose();
@@ -2406,14 +2412,15 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
                 ),
               ),
             ),
-          Text(
-            recall && task.paradigm == 'story-recall'
-                ? tr('lp_retell')
-                : task.question,
-            style: AppText.title.copyWith(color: context.inkText),
-          ),
-          const SizedBox(height: 12),
-          if (recall)
+          if (!done)
+            Text(
+              recall && task.paradigm == 'story-recall'
+                  ? tr('lp_retell')
+                  : task.question,
+              style: AppText.title.copyWith(color: context.inkText),
+            ),
+          if (!done) const SizedBox(height: 12),
+          if (!done && recall)
             RecallTextField(
               key: const ValueKey('lesson-recall'),
               hint: lessonRecallHint(task.paradigm),
@@ -2426,7 +2433,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
               answerKey: answerKey,
               onSubmit: _submitRecall,
             ),
-          if (!recall)
+          if (!done && !recall)
             for (var i = 0; i < task.options.length; i++)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
@@ -2608,15 +2615,40 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
               const SizedBox(height: 16),
               _aiRecapCard(),
             ],
-            const SizedBox(height: 16),
-            _missedCard(),
-            const SizedBox(height: 16),
-            _makeItYoursCard(),
+            if (_results.values.any((c) => !c)) ...[
+              const SizedBox(height: 16),
+              _missedCard(),
+            ],
             const SizedBox(height: 16),
             EngramButton(
               key: const ValueKey('lesson-continue'),
               label: tr('lp_continue'),
               onPressed: () => Navigator.of(context).pop(true),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              decoration: BoxDecoration(
+                color: context.cardBg,
+                borderRadius: BorderRadius.circular(AppRadius.m),
+                border: Border.all(color: context.faintBorder),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              child: AppDisclosure(
+                key: const ValueKey('lesson-make-it-yours-toggle'),
+                title: Text(
+                  tr('lp_yours_title'),
+                  style: AppText.body.copyWith(
+                    color: context.inkText,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: _makeItYoursCard(),
+                  ),
+                ],
+              ),
             ),
           ],
         ],
@@ -2824,16 +2856,6 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            tr('lp_yours_title'),
-            style: TextStyle(
-              color: context.mutedText,
-              fontWeight: FontWeight.w900,
-              fontSize: 12,
-              letterSpacing: 1.2,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
             tr('lp_yours_blurb'),
             style: TextStyle(
               color: context.inkText,
@@ -2928,15 +2950,14 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
                 onPressed: busy ? null : _runOwnTeach,
                 label: tr('myg_teach_btn'),
               ),
-              EngramButton(
-                key: const ValueKey('own-diagnose-button'),
-                variant: EngramButtonVariant.secondary,
-                height: 52,
-                onPressed: busy || _ownForgotCtrl.text.trim().isEmpty
-                    ? null
-                    : _runOwnDiagnose,
-                label: tr('myg_diag_btn'),
-              ),
+              if (_ownForgotCtrl.text.trim().isNotEmpty)
+                EngramButton(
+                  key: const ValueKey('own-diagnose-button'),
+                  variant: EngramButtonVariant.secondary,
+                  height: 52,
+                  onPressed: busy ? null : _runOwnDiagnose,
+                  label: tr('myg_diag_btn'),
+                ),
               EngramButton(
                 key: const ValueKey('own-build-button'),
                 height: 52,

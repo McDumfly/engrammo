@@ -235,6 +235,75 @@ void main() {
     expect(progress[MemoryStore.lessonKey(1, 0, 0)], 1);
   });
 
+  testWidgets('eredmény: Continue elől, Make it yours csukva', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: LessonPlayerPage(
+          chapterIndex: 0,
+          sectionIndex: 0,
+          lessonIndex: 0,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('lesson-coach-next')),
+      300,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('lesson-coach-next')));
+    await tester.pumpAndSettle();
+
+    var answered = 0;
+    for (var guard = 0; guard < 30; guard++) {
+      await tester.pumpAndSettle();
+      if (find.byKey(const ValueKey('lesson-continue')).evaluate().isNotEmpty) {
+        break;
+      }
+      if (find
+          .byKey(const ValueKey('lesson-next-step'))
+          .evaluate()
+          .isNotEmpty) {
+        await tester.tap(find.byKey(const ValueKey('lesson-next-step')));
+        continue;
+      }
+      if (find
+          .byKey(const ValueKey('lesson-memorized'))
+          .evaluate()
+          .isNotEmpty) {
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('lesson-memorized')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('lesson-memorized')));
+        continue;
+      }
+      final expected = await _expectedRoundTask(0, 0, 0, answered);
+      final right = 'lesson-option-${expected.correct}';
+      await tester.tap(find.byKey(ValueKey(right)));
+      answered++;
+    }
+
+    expect(find.byKey(const ValueKey('lesson-continue')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('lesson-make-it-yours-toggle')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('own-material-input')), findsNothing);
+    expect(find.byKey(const ValueKey('own-forgot-input')), findsNothing);
+    expect(find.byKey(const ValueKey('lesson-missed')), findsNothing);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('lesson-make-it-yours-toggle')),
+      300,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Make it yours'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('own-material-input')), findsOneWidget);
+  });
+
   testWidgets('egy szegmenses sáv és pontos kérdésszámláló', (tester) async {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(
