@@ -964,13 +964,14 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
 
   Future<void> _startDreams(RoomPalace palace, int token) async {
     if (!palace.live) return;
-    for (var i = 0; i < palace.items.length; i += 2) {
+    for (var i = 0; i < palace.items.length; i += 3) {
       if (!mounted || token != _token) return;
-      final pair = <Future<void>>[
+      final trio = <Future<void>>[
         _dreamOne(palace, token, i),
         if (i + 1 < palace.items.length) _dreamOne(palace, token, i + 1),
+        if (i + 2 < palace.items.length) _dreamOne(palace, token, i + 2),
       ];
-      await Future.wait(pair);
+      await Future.wait(trio);
     }
   }
 

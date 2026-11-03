@@ -2446,9 +2446,17 @@ class MetaAIService {
         ? objects.length
         : (objects.length <= 4 ? 2 : 3);
     final rows = (objects.length / cols).ceil();
-    final out = <List<double>>[];
-    final masks = <String>[];
-    for (var i = 0; i < objects.length; i++) {
+    final total = objects.length;
+    final out = List<List<double>>.filled(total, const <double>[]);
+    final masks = List<String>.filled(total, '');
+    // Completed count, not index order: with chunks in flight the calls
+    // finish out of order, and the progress line follows completions.
+    var done = 0;
+    // Per-object error isolation, exactly like the old serial loop: a
+    // failed segment falls back to its box, never to another object's.
+    // The 429 retry already happens one layer down in [_resilientSend]
+    // (once, after 1 s); a second failure lands here as the fallback.
+    Future<void> refineOne(int i) async {
       List<double>? best;
       var mask = '';
       try {
@@ -2475,9 +2483,15 @@ class MetaAIService {
       best ??= positional
           ? fallbackBoxes[i]
           : [(i % cols) / cols, (i ~/ cols) / rows, 1 / cols, 1 / rows];
-      out.add(cleanMaskBox(best));
-      masks.add(mask);
-      onItem?.call(i + 1, objects.length);
+      out[i] = cleanMaskBox(best);
+      masks[i] = mask;
+      done++;
+      onItem?.call(done, total);
+    }
+
+    for (var start = 0; start < total; start += 3) {
+      final end = min(start + 3, total);
+      await Future.wait([for (var i = start; i < end; i++) refineOne(i)]);
     }
     return (boxes: out, masks: masks);
   }
