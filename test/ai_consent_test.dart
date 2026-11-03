@@ -237,6 +237,8 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Analyze me'));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text(tr('assess_offline')));
+      await tester.pumpAndSettle();
       await tester.tap(find.text(tr('assess_offline')));
       await tester.pumpAndSettle();
       expect(await MetaAIService.cloudConsent(), isFalse);

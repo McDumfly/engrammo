@@ -148,7 +148,7 @@ const Map<String, String> enStrings = {
       'Practice metric from app scores — not a clinical measure of memory.',
   'policy_level_explainer': 'Each of the 6 memory types scores 0–100 from the assessment probes (easy up to 40 + hard up to 60; spatial uses 3 probes worth 20 + 30 + 50). Memory level is the 6-score average mapped to 1–11: level = average ÷ 10 + 1, so 0–9 is level 1 and 100 is level 11. Battle Zone shows the same mapping per type. Winning duels and finishing lessons grow those scores, so practice raises the level.',
   'policy_consent_title': 'Allow cloud AI analysis',
-  'policy_consent_body': 'Off by default. When on, your interview answers and scores are sent to the Meta Model API on the Contributor tier (Muse Spark), where sent content may be used for training. When off, everything is evaluated on-device and nothing leaves the phone.',
+  'policy_consent_body': 'On by default. When on, your interview answers, scores and room photos are sent to the Meta Model API on the Contributor tier (Muse Spark, SAM 3.1, Muse Image), where sent content may be used for training. Turn it off and everything is evaluated on-device and nothing leaves the phone.',
   'policy_honesty_1_title': 'What you actually learn',
   'policy_honesty_1_body': 'Practiced encoding strategies: the memory palace, chunking, vivid images, keyword hooks, and spaced retrieval. Each works on the material you train it on — lists, numbers, names, words you practiced — and on closely similar material.',
   'policy_honesty_2_title': 'What practice improves',

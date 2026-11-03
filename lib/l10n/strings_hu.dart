@@ -154,7 +154,7 @@ const Map<String, String> huStrings = {
   'policy_level_footnote': 'Alkalmazásbeli pontszámokból számolt gyakorlási mutató — nem az emlékezet klinikai mérőszáma.',
   'policy_level_explainer': 'A 6 memóriatípus mindegyike 0–100 pontot kap a szűrőpróbákból (könnyű max. 40 + nehéz max. 60; a térinél 3 próba 20 + 30 + 50 értékben). A memóriaszint a 6 pontszám 1–11-re képezett átlaga: szint = átlag ÷ 10 + 1, tehát 0–9 az 1. szint, 100 a 11. szint. Az Aréna típusonként ugyanezt a leképezést mutatja. A párbajgyőzelmek és a befejezett leckék növelik ezeket a pontokat, így a gyakorlás emeli a szintet.',
   'policy_consent_title': 'Felhőalapú MI-elemzés engedélyezése',
-  'policy_consent_body': 'Alapból kikapcsolva. Bekapcsolva az interjúválaszaid és pontszámaid a Meta Model API-hoz kerülnek Contributor szinten (Muse Spark), ahol a beküldött tartalom tanításra is felhasználható. Kikapcsolva minden helyben, az eszközön értékelődik ki, és semmi nem hagyja el a telefont.',
+  'policy_consent_body': 'Alapból bekapcsolva. Bekapcsolva az interjúválaszaid, pontszámaid és szobafotóid a Meta Model API-hoz kerülnek Contributor szinten (Muse Spark, SAM 3.1, Muse Image), ahol a beküldött tartalom tanításra is felhasználható. Kikapcsolva minden helyben, az eszközön értékelődik ki, és semmi nem hagyja el a telefont.',
   'policy_honesty_1_title': 'Amit ténylegesen megtanulsz',
   'policy_honesty_1_body': 'Begyakorolt kódolási stratégiák: memóriapalota, tömbösítés, élénk képek, kulcsszó-kapcsok és elosztott felidézés. Mindegyik a begyakorolt anyagon működik — listák, számok, nevek, begyakorolt szavak — és nagyon hasonló anyagokon.',
   'policy_honesty_2_title': 'Amit a gyakorlás fejleszt',

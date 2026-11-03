@@ -35,7 +35,8 @@ import '../widgets/app_buttons.dart'
     show EngramBackButton, EngramButton, EngramButtonVariant;
 import '../widgets/app_kit.dart';
 import '../widgets/room_preview_art.dart';
-import 'benchmark.dart' show BenchmarkStore, MaskedPicture, buildSamOutline;
+import 'benchmark.dart'
+    show BenchmarkStore, MaskedPicture, buildSamOutline, layoutRecallChips;
 
 /// Station colour cycle, matching the highlight fills.
 Color _stationColor(int i) {
@@ -1870,6 +1871,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         samTotal: _samTotal,
         labels: _scanLabels,
         boxes: _scanBoxes,
+        isReplay: replay != null,
       ),
       if (replay != null)
         Align(
@@ -2899,6 +2901,9 @@ class _ScanStage extends StatefulWidget {
   /// by the round before the SAM loop starts. Empty until they arrive.
   final List<String> labels;
   final List<List<double>> boxes;
+
+  /// A replay takes ~7 s, so the "Usually 30–45 seconds" line would lie.
+  final bool isReplay;
   const _ScanStage({
     required this.photo,
     required this.stage,
@@ -2906,6 +2911,7 @@ class _ScanStage extends StatefulWidget {
     required this.samTotal,
     this.labels = const [],
     this.boxes = const [],
+    this.isReplay = false,
   });
 
   @override
@@ -3068,54 +3074,42 @@ class _ScanStageState extends State<_ScanStage> with TickerProviderStateMixin {
                                     : s;
                                 const chipH = 26.0;
                                 const chipGap = 4.0;
-                                // Scan chips show the bare label (no walk
-                                // number): Spark's order is not the walk
-                                // order.
+                                // Measure with the inherited font (Lexend),
+                                // exactly as the chip's Text will render
+                                // (AppBadge label plus its 20 px padding),
+                                // capped at 40% of the photo like the chip.
+                                final chipStyle = DefaultTextStyle.of(context)
+                                    .style
+                                    .merge(AppText.micro)
+                                    .copyWith(fontWeight: FontWeight.w700);
+                                final scaler = MediaQuery.textScalerOf(context);
                                 final chipW = <double>[
                                   for (var i = 0; i < labels.length; i++)
                                     min(
                                       w * 0.40,
-                                      30 + 7.5 * shortLabel(labels[i]).length,
+                                      (TextPainter(
+                                            text: TextSpan(
+                                              text: shortLabel(labels[i]),
+                                              style: chipStyle,
+                                            ),
+                                            textDirection: TextDirection.ltr,
+                                            textScaler: scaler,
+                                            maxLines: 1,
+                                          )..layout()).width +
+                                          20,
                                     ),
                                 ];
-                                // Simple collision pass (same idea as
-                                // _spreadBadges): a chip overlapping an
-                                // earlier chip moves down by chip height + 4,
-                                // clamped inside the photo.
-                                final chipXY = <Offset>[
-                                  for (var i = 0; i < labels.length; i++)
-                                    Offset(rects[i].left, rects[i].top),
-                                ];
-                                for (var i = 0; i < chipXY.length; i++) {
-                                  var p = Offset(
-                                    chipXY[i].dx.clamp(
-                                      0.0,
-                                      max(0.0, w - chipW[i]),
-                                    ),
-                                    chipXY[i].dy.clamp(
-                                      0.0,
-                                      max(0.0, h - chipH),
-                                    ),
-                                  );
-                                  for (var k = 0; k < i; k++) {
-                                    final q = chipXY[k];
-                                    final overlaps =
-                                        p.dx < q.dx + chipW[k] + chipGap &&
-                                        q.dx < p.dx + chipW[i] + chipGap &&
-                                        p.dy < q.dy + chipH + chipGap &&
-                                        q.dy < p.dy + chipH + chipGap;
-                                    if (overlaps) {
-                                      p = Offset(
-                                        p.dx,
-                                        min(
-                                          max(0.0, h - chipH),
-                                          q.dy + chipH + chipGap,
-                                        ),
-                                      );
-                                    }
-                                  }
-                                  chipXY[i] = p;
-                                }
+                                // Same non-overlapping layout as the recall
+                                // chips: centred under the object, pushed
+                                // below (or above) earlier chips on overlap.
+                                final chipXY = layoutRecallChips(
+                                  rects,
+                                  chipW,
+                                  w,
+                                  h,
+                                  height: chipH,
+                                  gap: chipGap,
+                                );
                                 return Stack(
                                   children: [
                                     Positioned.fill(
@@ -3128,8 +3122,8 @@ class _ScanStageState extends State<_ScanStage> with TickerProviderStateMixin {
                                     ),
                                     for (var i = 0; i < labels.length; i++)
                                       Positioned(
-                                        left: chipXY[i].dx,
-                                        top: chipXY[i].dy,
+                                        left: chipXY[i].left,
+                                        top: chipXY[i].top,
                                         child: Builder(
                                           builder: (context) {
                                             final t = Interval(
@@ -3275,10 +3269,12 @@ class _ScanStageState extends State<_ScanStage> with TickerProviderStateMixin {
                 : const SizedBox.shrink(key: ValueKey('scan-ticker-empty')),
           ),
         ),
-        Text(
-          tr('room_scan_eta'),
-          style: AppText.micro.copyWith(color: context.mutedText),
-        ),
+        // A replay takes ~7 s; the badge above already explains it.
+        if (!widget.isReplay)
+          Text(
+            tr('room_scan_eta'),
+            style: AppText.micro.copyWith(color: context.mutedText),
+          ),
       ],
     );
   }

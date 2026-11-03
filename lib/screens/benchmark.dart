@@ -4132,8 +4132,8 @@ Path? buildSamOutline({
 /// chip sits centred under its object ([anchors] are the object rects),
 /// sized by [widths], and a chip that would cover an earlier one (walk
 /// order) moves just below it, or above it when there is no room below.
-/// Everything stays inside the [w] x [h] picture.
-@visibleForTesting
+/// Everything stays inside the [w] x [h] picture. Shared by the recall
+/// covers and the Room Palace live scan chips.
 List<Rect> layoutRecallChips(
   List<Rect> anchors,
   List<double> widths,
