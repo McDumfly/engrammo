@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
@@ -30,8 +31,9 @@ import '../services/app_feedback.dart';
 import '../services/memory_growth.dart';
 import '../services/memory_store.dart';
 import '../services/meta_ai_service.dart';
-import '../theme/app_colors.dart' show blue, coral, teal;
+import '../theme/app_colors.dart' show blue, coral, orange, success, teal;
 import '../theme/app_theme.dart';
+import '../theme/app_tokens.dart';
 import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
 import '../widgets/app_kit.dart';
@@ -479,7 +481,7 @@ class _AiStatusCardState extends State<_AiStatusCard> {
 enum _Phase { coach, loading, stimulus, question, done }
 
 class _LessonPlayerPageState extends State<LessonPlayerPage>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   _Phase _phase = _Phase.coach;
   bool _upgrading = false;
   double _upgradeProgress = 0;
@@ -500,6 +502,14 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
   int _stars = 0;
   bool _saved = false;
   int? _nextGapDays;
+  late final AnimationController _shake = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 320),
+  );
+  late final AnimationController _starsIn = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  );
 
   int get _depth => widget.practiceDepth.clamp(0, practiceDepths);
   int get _rounds => roundsForDepth(
@@ -562,6 +572,8 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
     _questionClock.stop();
     _ownMaterialCtrl.dispose();
     _ownForgotCtrl.dispose();
+    _shake.dispose();
+    _starsIn.dispose();
     super.dispose();
   }
 
@@ -1017,9 +1029,9 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       _latencies.add(elapsed);
     });
     if (correct) {
-      AppFeedback.medium();
+      AppFeedback.select();
     } else {
-      AppFeedback.heavy();
+      AppFeedback.medium();
     }
     if (_results.length >= _tasks.length) {
       await _finishSession();
@@ -1035,6 +1047,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       return;
     }
     setState(() => _picked = option);
+    if (option != task.correct) _shake.forward(from: 0);
     await _recordAnswer(correct: option == task.correct);
   }
 
@@ -1107,6 +1120,20 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       _nextGapDays = nextGap;
       _phase = _Phase.done;
     });
+    _starsIn.forward(from: 0);
+    final earned = _stars.clamp(0, 3);
+    for (var i = 0; i < earned; i++) {
+      Future.delayed(Duration(milliseconds: 150 * i), () {
+        if (!mounted || _phase != _Phase.done) return;
+        AppFeedback.select();
+      });
+    }
+    if (earned == 3) {
+      Future.delayed(const Duration(milliseconds: 550), () {
+        if (!mounted || _phase != _Phase.done) return;
+        AppFeedback.heavy();
+      });
+    }
     unawaited(_loadRecap());
   }
 
@@ -1978,29 +2005,15 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 48),
-        child: Column(
+        child: AppLoader(
           key: const ValueKey('lesson-loading-progress'),
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              _upgradeTotal > 0
-                  ? tr('lp_loading_n', {
-                      'done': _upgradeDone,
-                      'total': _upgradeTotal,
-                    })
-                  : tr('lp_loading'),
-              style: TextStyle(
-                color: context.mutedText,
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
-              ),
-            ),
-            const SizedBox(height: 12),
-            AppProgressBar(
-              value: _upgradeTotal > 0 ? _upgradeProgress : null,
-              height: 8,
-            ),
-          ],
+          instant: true,
+          caption: _upgradeTotal > 0
+              ? tr('lp_loading_n', {
+                  'done': _upgradeDone,
+                  'total': _upgradeTotal,
+                })
+              : tr('lp_loading'),
         ),
       ),
     );
@@ -2353,6 +2366,25 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
     );
   }
 
+  Widget _starIcon(int index) {
+    final filled = index < _stars.clamp(0, 3);
+    final start = (150 * index) / 900;
+    final end = ((150 * index) + 600) / 900;
+    final curved = CurvedAnimation(
+      parent: _starsIn,
+      curve: Interval(start, end.clamp(0.0, 1.0), curve: Curves.elasticOut),
+    );
+    return ScaleTransition(
+      scale: Tween<double>(begin: 0.4, end: 1.0).animate(curved),
+      child: HugeIcon(
+        icon: HugeIcons.strokeRoundedStar,
+        color: filled ? orange : context.faintBorder,
+        size: 34,
+        strokeWidth: 2.2,
+      ),
+    );
+  }
+
   Widget _questionView() {
     if (_phase == _Phase.done) _prefillOwnMaterial();
     final task = _phase == _Phase.done && _tasks.isNotEmpty
@@ -2429,11 +2461,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
             recall && task.paradigm == 'story-recall'
                 ? tr('lp_retell')
                 : task.question,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface,
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
-            ),
+            style: AppText.title.copyWith(color: context.inkText),
           ),
           const SizedBox(height: 12),
           if (recall)
@@ -2453,60 +2481,82 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
             for (var i = 0; i < task.options.length; i++)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: GestureDetector(
+                child: Tappable(
                   key: ValueKey('lesson-option-$i'),
+                  haptic: false,
                   onTap: () => _answer(i),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 13,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _picked != null && i == task.correct
-                          ? teal.withValues(alpha: 0.14)
-                          : _picked != null && i == _picked
-                          ? coral.withValues(alpha: 0.12)
-                          : context.cardBg,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: _picked != null && i == task.correct
-                            ? teal
-                            : _picked != null && i == _picked
-                            ? coral
-                            : context.hairline,
-                        width: 2,
+                  child: AnimatedBuilder(
+                    animation: _shake,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      curve: Curves.easeOutCubic,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 13,
                       ),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            task.options[i],
-                            style: TextStyle(
-                              color: context.inkText,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15,
+                      decoration: BoxDecoration(
+                        color: _picked != null && i == task.correct
+                            ? success.withValues(alpha: 0.12)
+                            : _picked != null && i == _picked
+                            ? coral.withValues(alpha: 0.12)
+                            : context.cardBg,
+                        borderRadius: BorderRadius.circular(AppRadius.l),
+                        border: Border.all(
+                          color: _picked != null && i == task.correct
+                              ? success
+                              : _picked != null && i == _picked
+                              ? coral
+                              : context.hairline,
+                          width: 2,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              task.options[i],
+                              style: TextStyle(
+                                color: context.inkText,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                              ),
                             ),
                           ),
-                        ),
-                        if (_picked != null && i == task.correct)
-                          const HugeIcon(
-                            icon: HugeIcons.strokeRoundedCheckmarkCircle02,
-                            color: teal,
-                            size: 22,
-                            strokeWidth: 2.2,
-                          ),
-                        if (_picked != null &&
-                            i == _picked &&
-                            _picked != task.correct)
-                          const HugeIcon(
-                            icon: HugeIcons.strokeRoundedCancelCircle,
-                            color: coral,
-                            size: 22,
-                            strokeWidth: 2.2,
-                          ),
-                      ],
+                          if (_picked != null && i == task.correct)
+                            const HugeIcon(
+                              icon: HugeIcons.strokeRoundedCheckmarkCircle02,
+                              color: success,
+                              size: 22,
+                              strokeWidth: 2.2,
+                            ),
+                          if (_picked != null &&
+                              i == _picked &&
+                              _picked != task.correct)
+                            const HugeIcon(
+                              icon: HugeIcons.strokeRoundedCancelCircle,
+                              color: coral,
+                              size: 22,
+                              strokeWidth: 2.2,
+                            ),
+                        ],
+                      ),
                     ),
+                    builder: (context, child) {
+                      final wrong =
+                          _picked != null &&
+                          i == _picked &&
+                          _picked != task.correct;
+                      if (!wrong || _shake.value == 0) return child!;
+                      return Transform.translate(
+                        offset: Offset(
+                          math.sin(_shake.value * math.pi * 4) *
+                              8 *
+                              (1 - _shake.value),
+                          0,
+                        ),
+                        child: child,
+                      );
+                    },
                   ),
                 ),
               ),
@@ -2535,6 +2585,16 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
               ),
               child: Column(
                 children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      for (var i = 0; i < 3; i++) ...[
+                        if (i > 0) const SizedBox(width: 8),
+                        _starIcon(i),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 8),
                   Text(
                     tr('lp_stars', {'n': _stars}),
                     textAlign: TextAlign.center,
