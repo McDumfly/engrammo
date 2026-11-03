@@ -7,6 +7,7 @@ import '../services/auth_service.dart';
 import '../theme/app_colors.dart' show error;
 import '../theme/app_theme.dart';
 import '../widgets/app_buttons.dart';
+import '../widgets/app_kit.dart';
 import '../widgets/google_g_logo.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -149,8 +150,12 @@ class _AuthScreenState extends State<AuthScreen> {
                       style: TextStyle(color: context.mutedText, fontSize: 14),
                     ),
                     const SizedBox(height: 24),
-                    _Segment(
-                      register: _register,
+                    AppSegmented<bool>(
+                      options: [
+                        (false, tr('auth_sign_in_tab')),
+                        (true, tr('auth_register_tab')),
+                      ],
+                      value: _register,
                       onChanged: (v) => setState(() {
                         _register = v;
                         _error = null;
@@ -279,74 +284,6 @@ class _AuthScreenState extends State<AuthScreen> {
                 ),
               ),
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _Segment extends StatelessWidget {
-  final bool register;
-  final ValueChanged<bool> onChanged;
-  const _Segment({required this.register, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: context.cardBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.hairline, width: 2),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _segBtn(
-              context,
-              tr('auth_sign_in_tab'),
-              !register,
-              () => onChanged(false),
-            ),
-          ),
-          Expanded(
-            child: _segBtn(
-              context,
-              tr('auth_register_tab'),
-              register,
-              () => onChanged(true),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _segBtn(
-    BuildContext context,
-    String label,
-    bool active,
-    VoidCallback onTap,
-  ) {
-    return GestureDetector(
-      onTap: () {
-        AppFeedback.light();
-        onTap();
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: active ? context.washBg : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: TextStyle(
-            color: active ? context.inkText : context.mutedText,
-            fontWeight: FontWeight.w900,
-            fontSize: 14,
           ),
         ),
       ),

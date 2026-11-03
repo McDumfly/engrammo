@@ -62,16 +62,9 @@ List<String> quickPromptsFor(String topic) {
         tr('help_q_game_stars'),
       ];
     case AiHelpTopics.league:
-      return [
-        tr('help_q_ranking'),
-        tr('help_q_climb'),
-      ];
+      return [tr('help_q_ranking'), tr('help_q_climb')];
     case AiHelpTopics.settings:
-      return [
-        tr('help_q_key'),
-        tr('help_q_theme'),
-        tr('help_q_signout'),
-      ];
+      return [tr('help_q_key'), tr('help_q_theme'), tr('help_q_signout')];
     case AiHelpTopics.goals:
       return [
         tr('help_q_goals_for'),
@@ -79,11 +72,7 @@ List<String> quickPromptsFor(String topic) {
         tr('help_q_goal_example'),
       ];
     default:
-      return [
-        tr('help_q_doit'),
-        tr('help_q_simple'),
-        tr('help_q_example'),
-      ];
+      return [tr('help_q_doit'), tr('help_q_simple'), tr('help_q_example')];
   }
 }
 
@@ -149,7 +138,11 @@ class _ChatMsg {
   final bool mine;
   final String text;
   final bool offline;
-  const _ChatMsg({required this.mine, required this.text, this.offline = false});
+  const _ChatMsg({
+    required this.mine,
+    required this.text,
+    this.offline = false,
+  });
 }
 
 class _AiHelpSheet extends StatefulWidget {
@@ -210,8 +203,7 @@ class _AiHelpSheetState extends State<_AiHelpSheet> {
         _msgs.addAll(loaded.take(historyCap));
       });
       _jumpToEnd();
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> _saveHistory() async {
@@ -227,8 +219,7 @@ class _AiHelpSheetState extends State<_AiHelpSheet> {
             {'mine': m.mine, 'text': m.text, 'offline': m.offline},
         ]),
       );
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   Future<void> _clearHistory() async {
@@ -236,8 +227,7 @@ class _AiHelpSheetState extends State<_AiHelpSheet> {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_historyKey(widget.topic));
-    } catch (_) {
-    }
+    } catch (_) {}
   }
 
   void _jumpToEnd() {
@@ -298,12 +288,7 @@ class _AiHelpSheetState extends State<_AiHelpSheet> {
     if (!mounted) return;
     setState(() {
       _blockReason = null;
-      _msgs.add(
-        _ChatMsg(
-          mine: false,
-          text: tr('help_cloud_on'),
-        ),
-      );
+      _msgs.add(_ChatMsg(mine: false, text: tr('help_cloud_on')));
     });
     _saveHistory();
     _jumpToEnd();
@@ -396,11 +381,7 @@ class _AiHelpSheetState extends State<_AiHelpSheet> {
                   ],
                 ),
               ),
-              Divider(
-                height: 1,
-                thickness: 1,
-                color: context.washBorder,
-              ),
+              Divider(height: 1, thickness: 1, color: context.washBorder),
               if (_blockReason != null) _offlineBanner(),
               Flexible(
                 child: ListView(
@@ -467,10 +448,9 @@ class _AiHelpSheetState extends State<_AiHelpSheet> {
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Expanded(
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(minHeight: 56),
@@ -498,6 +478,7 @@ class _AiHelpSheetState extends State<_AiHelpSheet> {
                     const SizedBox(width: 10),
                     SizedBox(
                       width: 96,
+                      height: 56,
                       child: EngramButton(
                         key: const ValueKey('ai-help-send'),
                         label: tr('help_send'),
@@ -506,8 +487,7 @@ class _AiHelpSheetState extends State<_AiHelpSheet> {
                         onPressed: () => _send(_input.text),
                       ),
                     ),
-                    ],
-                  ),
+                  ],
                 ),
               ),
             ],
@@ -856,7 +836,11 @@ class _CoachText extends StatelessWidget {
   final String text;
   final TextStyle base;
   final bool mine;
-  const _CoachText({required this.text, required this.base, required this.mine});
+  const _CoachText({
+    required this.text,
+    required this.base,
+    required this.mine,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -5,8 +5,9 @@ import '../services/app_feedback.dart';
 
 import 'package:hugeicons/hugeicons.dart';
 
-import '../theme/app_colors.dart' show blueDark, coralDark;
+import '../theme/app_colors.dart' show blueDark, blueShadow, coralDark;
 import '../theme/app_theme.dart';
+import 'app_kit.dart';
 
 enum EngramButtonVariant { primary, secondary, danger }
 
@@ -69,75 +70,91 @@ class EngramButton extends StatelessWidget {
     final top = _top(context);
     final labelColor = _label(context);
     final minTap = height < 48 ? 48.0 : height;
+    final visual = Container(
+      constraints: BoxConstraints(minHeight: minTap),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: BoxDecoration(
+        color: top,
+        borderRadius: BorderRadius.circular(999),
+        border: variant == EngramButtonVariant.secondary && !_disabled
+            ? Border.all(color: context.hairline, width: 2)
+            : null,
+      ),
+      alignment: Alignment.center,
+      child: isLoading
+          ? AppLoader(size: 22, stroke: 2.5, color: labelColor)
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (leading != null) ...[
+                  leading!,
+                  const SizedBox(width: 8),
+                ] else if (icon != null) ...[
+                  HugeIcon(
+                    icon: icon,
+                    color: labelColor,
+                    size: 22,
+                    strokeWidth: 2.2,
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Flexible(
+                  child: ExcludeSemantics(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        color: labelColor,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 17,
+                        letterSpacing: 0.5,
+                        height: 1.25,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+    );
+    final VoidCallback? tap = tappable
+        ? () {
+            if (haptic) AppFeedback.light();
+            onPressed?.call();
+          }
+        : null;
+    Widget wrapped;
+    if (tap == null) {
+      wrapped = visual;
+    } else if (variant == EngramButtonVariant.secondary) {
+      wrapped = Tappable(
+        scale: 0.97,
+        haptic: false,
+        semanticLabel: semanticsLabel ?? label,
+        onTap: tap,
+        child: visual,
+      );
+    } else {
+      wrapped = EngramPress3D(
+        onTap: tap,
+        top: visual,
+        shadowColor: variant == EngramButtonVariant.danger
+            ? const Color(0xFF8E1414)
+            : blueShadow,
+        depth: 4,
+        borderRadius: BorderRadius.circular(999),
+        haptic: false,
+        semanticLabel: semanticsLabel ?? label,
+      );
+    }
     return Semantics(
       button: true,
       enabled: tappable,
       label: semanticsLabel ?? label,
-      child: GestureDetector(
-        onTap: tappable
-            ? () {
-                if (haptic) AppFeedback.light();
-                onPressed?.call();
-              }
-            : null,
-        child: Container(
-          constraints: BoxConstraints(minHeight: minTap),
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          decoration: BoxDecoration(
-            color: top,
-            borderRadius: BorderRadius.circular(999),
-            border: variant == EngramButtonVariant.secondary && !_disabled
-                ? Border.all(color: context.hairline, width: 2)
-                : null,
-          ),
-          alignment: Alignment.center,
-          child: isLoading
-              ? SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    color: labelColor,
-                  ),
-                )
-              : Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (leading != null) ...[
-                      leading!,
-                      const SizedBox(width: 8),
-                    ] else if (icon != null) ...[
-                      HugeIcon(
-                        icon: icon,
-                        color: labelColor,
-                        size: 22,
-                        strokeWidth: 2.2,
-                      ),
-                      const SizedBox(width: 8),
-                    ],
-                    Flexible(
-                      child: ExcludeSemantics(
-                        child: Text(
-                          label,
-                          style: TextStyle(
-                            color: labelColor,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 17,
-                            letterSpacing: 0.5,
-                            height: 1.25,
-                          ),
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-        ),
-      ),
+      child: wrapped,
     );
   }
 }
@@ -195,8 +212,8 @@ class _EngramPress3DState extends State<EngramPress3D> {
   Duration _scaled(Duration base, int elapsedMs) {
     if (elapsedMs >= base.inMilliseconds) return base;
     if (elapsedMs <= 0) return widget.minDuration;
-    final scaled =
-        (base.inMicroseconds * elapsedMs / base.inMilliseconds).round();
+    final scaled = (base.inMicroseconds * elapsedMs / base.inMilliseconds)
+        .round();
     final clamped = scaled.clamp(
       widget.minDuration.inMicroseconds,
       base.inMicroseconds,
@@ -350,8 +367,10 @@ class EngramMiniButton extends StatelessWidget {
           child: ExcludeSemantics(
             child: Text(
               label,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: background != null
+                    ? Colors.white
+                    : (context.isDark ? Colors.white : context.inkText),
                 fontWeight: FontWeight.w800,
                 fontSize: 12,
               ),
@@ -397,54 +416,14 @@ class EngramBackButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    void tap() {
-      if (haptic) AppFeedback.light();
-      if (onPressed != null) {
-        onPressed!();
-      } else {
-        Navigator.of(context).pop();
-      }
-    }
-
-    final glyph = HugeIcon(
+    // All variants now render the kit back button; the old boxed size,
+    // IconButton and tooltip are gone.
+    return AppBackButton(
       icon: icon,
-      color: context.inkText,
-      size: 30,
-      strokeWidth: 2.5,
-    );
-    final label =
-        semanticLabel ?? tr(closeVariant ? 'common_close' : 'common_back');
-    if (!boxed) {
-      return Semantics(
-        button: true,
-        label: label,
-        onTap: tap,
-        child: ExcludeSemantics(
-          child: IconButton(
-            icon: glyph,
-            onPressed: tap,
-            tooltip: label,
-          ),
-        ),
-      );
-    }
-    return Semantics(
-      button: true,
-      label: label,
-      child: GestureDetector(
-        onTap: tap,
-        child: Container(
-          width: 58,
-          height: 58,
-          decoration: BoxDecoration(
-            color: context.cardBg,
-            shape: BoxShape.circle,
-            border: Border.all(color: context.hairline, width: 2),
-          ),
-          alignment: Alignment.center,
-          child: glyph,
-        ),
-      ),
+      onTap: onPressed,
+      semanticLabel:
+          semanticLabel ?? tr(closeVariant ? 'common_close' : 'common_back'),
+      haptic: haptic,
     );
   }
 }
@@ -513,14 +492,7 @@ class EngramIconButton extends StatelessWidget {
           ),
           alignment: Alignment.center,
           child: isLoading
-              ? SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    color: glyphColor,
-                  ),
-                )
+              ? AppLoader(size: 20, stroke: 2.5, color: glyphColor)
               : HugeIcon(
                   icon: icon,
                   color: glyphColor,
