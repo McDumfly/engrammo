@@ -400,8 +400,8 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Plan my session'));
       await tester.pumpAndSettle();
-      expect(find.text('Planned on device (AI unavailable)'), findsOneWidget);
-      expect(find.text('Start'), findsWidgets);
+      expect(find.text('Local plan'), findsOneWidget);
+      expect(find.text('Let\'s go'), findsWidgets);
     });
   });
 }

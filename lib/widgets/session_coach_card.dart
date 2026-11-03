@@ -6,10 +6,24 @@ import '../screens/benchmark.dart' show openPracticeGame;
 import '../screens/room_palace_page.dart' show RoomPalacePage;
 import '../services/app_feedback.dart';
 import '../services/session_coach.dart';
-import '../theme/app_colors.dart' show orange, teal;
+import '../theme/app_colors.dart' show blue, orange, success, teal;
 import '../theme/app_theme.dart';
+import '../theme/app_tokens.dart';
 import 'app_buttons.dart';
 import 'app_kit.dart';
+
+/// Delay curve for staggered entrances: holds 0 for the first [start]
+/// fraction, then easeOutCubic. Test-safe (no timers).
+class _CoachStagger extends Curve {
+  final double start;
+  const _CoachStagger(this.start);
+
+  @override
+  double transform(double t) {
+    if (t <= start) return 0;
+    return Curves.easeOutCubic.transform((t - start) / (1 - start));
+  }
+}
 
 /// One-tap entry to the Session Coach agent: Muse Spark inspects the real
 /// learner state through read-only tools, a validator checks the plan, and
@@ -96,36 +110,170 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
     }
   }
 
-  Widget _traceLine(CoachStep st) {
+  /// Human label for a trace step: tool names become plain sentences,
+  /// the raw validator reason never appears in the timeline.
+  String _stepLabel(CoachStep st) {
     switch (st.kind) {
-      case 'tool':
-        return Text(
-          tr('coach_trace_tool', {'tool': st.label}),
-          style: TextStyle(color: context.mutedText, fontSize: 13),
-        );
       case 'reject':
-        return Text(
-          tr('coach_trace_rejected', {'reason': st.label}),
-          style: const TextStyle(color: orange, fontSize: 13),
-        );
+        return tr('coach_step_rejected');
       case 'accept':
-        return Text(
-          tr('coach_trace_accepted'),
-          style: const TextStyle(
-            color: teal,
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
-          ),
-        );
+        return tr('coach_trace_accepted');
+      case 'fallback':
+        return tr('coach_step_fallback');
       default:
-        return Text(
-          tr('coach_local'),
-          style: TextStyle(color: context.mutedText, fontSize: 13),
-        );
+        return switch (st.label) {
+          'get_due_reviews' => tr('coach_step_due'),
+          'get_learner_snapshot' => tr('coach_step_snapshot'),
+          'get_goals' => tr('coach_step_goals'),
+          'submit_plan' => tr('coach_step_submit'),
+          _ => tr('coach_step_generic'),
+        };
     }
   }
 
-  Widget _itemRow(CoachItem item) {
+  /// A submit row is struck through when the checker rejected it later.
+  bool _isStruck(int i) {
+    final st = _trace[i];
+    if (st.kind != 'tool' || st.label != 'submit_plan') return false;
+    return _trace.skip(i + 1).any((s) => s.kind == 'reject');
+  }
+
+  Widget _popNode({required Color color, required dynamic icon}) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOutBack,
+      builder: (context, t, _) => Transform.scale(
+        scale: t,
+        child: Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          alignment: Alignment.center,
+          child: HugeIcon(icon: icon, color: Colors.white, size: 14),
+        ),
+      ),
+    );
+  }
+
+  /// One timeline row: node rail on the left, human label on the right.
+  /// New rows slide up 8px and fade in.
+  Widget _timelineRow(int i) {
+    final st = _trace[i];
+    final last = i == _trace.length - 1;
+    final rejected = st.kind == 'reject';
+    final struck = _isStruck(i);
+    Widget node;
+    if (rejected) {
+      node = Container(
+        width: 24,
+        height: 24,
+        decoration: const BoxDecoration(color: orange, shape: BoxShape.circle),
+        alignment: Alignment.center,
+        child: const HugeIcon(
+          icon: HugeIcons.strokeRoundedRefresh,
+          color: Colors.white,
+          size: 14,
+        ),
+      );
+    } else if (st.kind == 'accept') {
+      node = _popNode(
+        color: success,
+        icon: HugeIcons.strokeRoundedCheckmarkCircle02,
+      );
+    } else if (st.kind == 'fallback') {
+      node = Container(
+        width: 24,
+        height: 24,
+        decoration: const BoxDecoration(color: blue, shape: BoxShape.circle),
+        alignment: Alignment.center,
+        child: const HugeIcon(
+          icon: HugeIcons.strokeRoundedInformationCircle,
+          color: Colors.white,
+          size: 14,
+        ),
+      );
+    } else if (last && _running) {
+      node = const AppLoader(size: 18, stroke: 2.5, color: teal);
+    } else {
+      node = _popNode(color: teal, icon: HugeIcons.strokeRoundedTick02);
+    }
+    final style = rejected
+        ? AppText.body.copyWith(color: context.accentText(orange))
+        : struck
+        ? AppText.body.copyWith(
+            color: context.mutedText,
+            decoration: TextDecoration.lineThrough,
+          )
+        : AppText.body.copyWith(
+            color: last && _running ? context.inkText : context.mutedText,
+            fontWeight: last && _running ? FontWeight.w600 : FontWeight.w500,
+          );
+    return TweenAnimationBuilder<double>(
+      key: ValueKey('coach-trace-$i'),
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      builder: (context, t, c) => Opacity(
+        opacity: t,
+        child: Transform.translate(offset: Offset(0, 8 * (1 - t)), child: c),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            children: [
+              node,
+              if (!last)
+                Container(width: 2, height: 14, color: context.hairline),
+            ],
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 220),
+                style: style,
+                child: Text(_stepLabel(st)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// One collapsed detail row: human label, plus the raw validator
+  /// reason for rejections.
+  Widget _detailRow(int i) {
+    final st = _trace[i];
+    final struck = _isStruck(i);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _stepLabel(st),
+            style: AppText.caption.copyWith(
+              color: struck ? context.mutedText : context.inkText,
+              decoration: struck ? TextDecoration.lineThrough : null,
+            ),
+          ),
+          if (st.kind == 'reject') ...[
+            const SizedBox(height: 2),
+            Text(
+              st.label,
+              style: AppText.micro.copyWith(color: context.mutedText),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _itemRow(CoachItem item, int i) {
     final icon = switch (item.type) {
       CoachItemType.roomReview => HugeIcons.strokeRoundedCamera01,
       CoachItemType.practiceGame => HugeIcons.strokeRoundedGameController01,
@@ -147,42 +295,73 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
       CoachWhy.goal => tr('coach_why_goal'),
       CoachWhy.fresh => tr('coach_why_fresh'),
     };
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          HugeIcon(icon: icon, color: teal, size: 26, strokeWidth: 2.0),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  text,
-                  style: TextStyle(
-                    color: context.inkText,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  why,
-                  style: TextStyle(color: context.mutedText, fontSize: 13),
-                ),
-                Text(
-                  tr('coach_minutes', {'min': item.minutes}),
-                  style: TextStyle(color: context.mutedText, fontSize: 12),
-                ),
-              ],
+    final total = 220 + 60 * i;
+    return TweenAnimationBuilder<double>(
+      key: ValueKey('coach-plan-$i'),
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: total),
+      curve: _CoachStagger(60 * i / total),
+      builder: (context, t, c) => Opacity(
+        opacity: t,
+        child: Transform.translate(offset: Offset(0, 12 * (1 - t)), child: c),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: teal.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppRadius.s),
+              ),
+              alignment: Alignment.center,
+              child: HugeIcon(
+                icon: icon,
+                color: teal,
+                size: 22,
+                strokeWidth: 2.0,
+              ),
             ),
-          ),
-          EngramTextButton(
-            label: tr('coach_start'),
-            onPressed: () => _openItem(item),
-          ),
-        ],
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    text,
+                    style: AppText.body.copyWith(
+                      color: context.inkText,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    why,
+                    style: AppText.caption.copyWith(color: context.mutedText),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    tr('coach_minutes', {'min': item.minutes}),
+                    style: AppText.caption.copyWith(color: context.mutedText),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            // EngramButton needs a bounded width: fixed trailing slot.
+            SizedBox(
+              width: 128,
+              child: EngramButton(
+                label: tr('coach_start'),
+                height: 52,
+                onPressed: () => _openItem(item),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -192,11 +371,11 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
     final result = _result;
     return Container(
       key: const ValueKey('session-coach-card'),
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: teal.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: teal.withValues(alpha: 0.40), width: 2),
+        color: context.cardBg,
+        borderRadius: BorderRadius.circular(AppRadius.l),
+        border: Border.all(color: context.hairline, width: 2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,71 +404,61 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
                   children: [
                     Text(
                       tr('coach_title'),
-                      style: TextStyle(
-                        color: context.inkText,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 19,
-                      ),
+                      style: AppText.heading.copyWith(color: context.inkText),
                     ),
                     const SizedBox(height: 2),
                     if (result == null && !_running)
                       Text(
                         tr('coach_sub'),
-                        style: TextStyle(
+                        style: AppText.caption.copyWith(
                           color: context.mutedText,
-                          fontSize: 14,
                         ),
                       ),
                   ],
                 ),
               ),
+              if (result != null) ...[
+                const SizedBox(width: 8),
+                AppBadge(
+                  label: result.live ? 'Muse Spark' : tr('coach_local'),
+                  color: result.live ? teal : blue,
+                ),
+              ],
             ],
           ),
-          if (_running) ...[
-            const SizedBox(height: 12),
-            const AppProgressBar(),
-            const SizedBox(height: 8),
-            for (final st in _trace) _traceLine(st),
-          ] else if (result == null) ...[
-            const SizedBox(height: 12),
-            EngramButton(label: tr('coach_build_btn'), onPressed: _start),
-          ] else ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: (result.live ? teal : orange).withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                result.live ? tr('coach_live') : tr('coach_local'),
-                style: TextStyle(
-                  color: result.live ? teal : orange,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-            const SizedBox(height: 4),
-            for (final item in result.items) _itemRow(item),
-            AppDisclosure(
-              title: Text(
-                tr('coach_trace_title'),
-                style: TextStyle(color: context.mutedText, fontSize: 14),
-              ),
-              children: [
-                for (final st in _trace)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: _traceLine(st),
+          const SizedBox(height: 12),
+          if (_running || result != null)
+            AnimatedSize(
+              duration: const Duration(milliseconds: 260),
+              alignment: Alignment.topCenter,
+              child: _running
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (var i = 0; i < _trace.length; i++) _timelineRow(i),
+                      ],
+                    )
+                  : AppDisclosure(
+                      title: Text(tr('coach_trace_title')),
+                      children: [
+                        for (var i = 0; i < _trace.length; i++)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: _detailRow(i),
+                          ),
+                      ],
                     ),
-                  ),
-              ],
             ),
+          if (!_running && result == null) ...[
+            EngramButton(label: tr('coach_build_btn'), onPressed: _start),
+          ],
+          if (!_running && result != null) ...[
+            const SizedBox(height: 4),
+            for (var i = 0; i < result.items.length; i++)
+              _itemRow(result.items[i], i),
             Center(
               child: EngramTextButton(
+                icon: HugeIcons.strokeRoundedRefresh,
                 label: tr('coach_replan'),
                 onPressed: _start,
               ),
