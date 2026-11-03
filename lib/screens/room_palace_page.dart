@@ -58,7 +58,7 @@ class RoomPalacePage extends StatefulWidget {
   State<RoomPalacePage> createState() => _RoomPalacePageState();
 }
 
-enum _Step { list, capture, scanning, items, encode, recall, result }
+enum _Step { list, capture, scanning, items, baseline, encode, recall, result }
 
 class _RoomPalacePageState extends State<RoomPalacePage> {
   _Step _step = _Step.capture;
@@ -108,9 +108,18 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
   Timer? _popTimer;
   double _popOpacity = 1;
 
+  // Baseline (no-palace) probe state: same list, recalled today.
+  int? _baselineCorrect;
+  List<String> _baselineItems = [];
+  int _baselineLeft = 0;
+  bool _baselineRecall = false;
+  final _baselineCtrl = TextEditingController();
+  Timer? _baselineTimer;
+
   @override
   void initState() {
     super.initState();
+    _itemsCtrl.addListener(_onItemsChanged);
     final reviewId = widget.reviewId;
     if (reviewId != null) {
       _openReview(reviewId);
@@ -119,12 +128,19 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     }
   }
 
+  void _onItemsChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
     _token++;
     _popTimer?.cancel();
+    _baselineTimer?.cancel();
+    _itemsCtrl.removeListener(_onItemsChanged);
     _itemsCtrl.dispose();
     _guessCtrl.dispose();
+    _baselineCtrl.dispose();
     super.dispose();
   }
 
@@ -178,6 +194,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       _ready = true;
       _photo = foundPalace.imageRef;
       _sample = false;
+      _baselineCorrect = null;
       _stations = foundPalace.stations;
       _boxes = foundPalace.boxes;
       _masks = foundPalace.masks;
@@ -235,6 +252,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         _samTotal = 0;
         _scanLabels = [];
         _scanBoxes = [];
+        _baselineCorrect = null;
         _imageFailed = false;
         _step = _Step.scanning;
       });
@@ -276,6 +294,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         _samTotal = 0;
         _scanLabels = [];
         _scanBoxes = [];
+        _baselineCorrect = null;
         _imageFailed = false;
         _step = _Step.scanning;
       });
@@ -292,12 +311,14 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     AppFeedback.light();
     _token++;
     if (!mounted) return;
+    _baselineTimer?.cancel();
     setState(() {
       _stage = 'image';
       _samDone = 0;
       _samTotal = 0;
       _scanLabels = [];
       _scanBoxes = [];
+      _baselineCorrect = null;
       _sample = false;
       _step = _Step.capture;
     });
@@ -779,7 +800,22 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     return leave == true;
   }
 
+  /// Back from the baseline probe loses nothing (the photo and the typed
+  /// items stay), so it returns to the items step without asking.
+  void _backToItems() {
+    _baselineTimer?.cancel();
+    if (!mounted) return;
+    setState(() {
+      _baselineRecall = false;
+      _step = _Step.items;
+    });
+  }
+
   Future<void> _onBackPressed() async {
+    if (_step == _Step.baseline) {
+      _backToItems();
+      return;
+    }
     if (!_needsLeaveConfirm) {
       if (mounted) Navigator.of(context).pop();
       return;
@@ -797,12 +833,19 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         palace != null &&
         palace.items.isNotEmpty;
     return PopScope(
-      canPop: !_needsLeaveConfirm && _step != _Step.scanning,
+      canPop:
+          !_needsLeaveConfirm &&
+          _step != _Step.scanning &&
+          _step != _Step.baseline,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
         if (_needsLeaveConfirm) {
           final leave = await _confirmLeave();
           if (leave && context.mounted) Navigator.of(context).pop();
+          return;
+        }
+        if (_step == _Step.baseline) {
+          _backToItems();
           return;
         }
         if (_step == _Step.scanning) _cancelScan();
@@ -916,6 +959,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
       _Step.capture => _captureStep(),
       _Step.scanning => _scanningStep(),
       _Step.items => _itemsStep(),
+      _Step.baseline => _baselineStep(),
       _Step.encode => _encodeStep(),
       _Step.recall => _recallStep(),
       _Step.result => _resultStep(),
@@ -1405,6 +1449,141 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
                 _buildPalace();
               },
       ),
+      const SizedBox(height: 10),
+      EngramButton(
+        label: tr('room_baseline_btn'),
+        variant: EngramButtonVariant.secondary,
+        onPressed: _baselineReady
+            ? () {
+                AppFeedback.light();
+                _startBaseline();
+              }
+            : null,
+      ),
+    ]);
+  }
+
+  /// The baseline probe needs something to prove: at least 3 typed items.
+  bool get _baselineReady => _parseItems().length >= 3;
+
+  /// Shows the same items for 12 s, then hides them and asks what stuck.
+  /// Scores locally and continues to the normal palace build.
+  void _startBaseline() {
+    final items = _parseItems();
+    if (items.length < 3) return;
+    _baselineTimer?.cancel();
+    setState(() {
+      _baselineItems = items;
+      _baselineCorrect = null;
+      _baselineLeft = 12;
+      _baselineRecall = isFlutterTest;
+      _baselineCtrl.clear();
+      _step = _Step.baseline;
+    });
+    if (isFlutterTest) return;
+    _baselineTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) return;
+      if (_step != _Step.baseline || _baselineRecall) {
+        t.cancel();
+        return;
+      }
+      setState(() {
+        _baselineLeft--;
+        if (_baselineLeft <= 0) {
+          t.cancel();
+          _baselineRecall = true;
+        }
+      });
+    });
+  }
+
+  /// Scores the baseline recall with the local matcher: each typed line
+  /// against each item, every item counted at most once. Then the normal
+  /// build continues with the same items.
+  void _scoreBaseline() {
+    final items = _baselineItems;
+    final lines = _baselineCtrl.text
+        .split('\n')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    var correct = 0;
+    final used = <int>{};
+    for (final line in lines) {
+      for (var i = 0; i < items.length; i++) {
+        if (used.contains(i)) continue;
+        if (localRecallAnswer(items[i], line) != RecallMatch.none) {
+          used.add(i);
+          correct++;
+          break;
+        }
+      }
+    }
+    _baselineTimer?.cancel();
+    setState(() => _baselineCorrect = correct);
+    _buildPalace();
+  }
+
+  Widget _baselineStep() {
+    return _page([
+      _header(tr('room_baseline_title')),
+      if (!_baselineRecall) ...[
+        _muted(tr('room_baseline_memorize', {'n': _baselineLeft})),
+        const SizedBox(height: 4),
+        for (var i = 0; i < _baselineItems.length; i++)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: _stationColor(i),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '${i + 1}',
+                    style: AppText.body.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    _baselineItems[i],
+                    style: AppText.body.copyWith(
+                      color: context.inkText,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        const SizedBox(height: 16),
+        Center(
+          child: AppProgressRing(
+            value: _baselineLeft / 12,
+            child: Text(
+              '$_baselineLeft',
+              style: AppText.title.copyWith(color: context.inkText),
+            ),
+          ),
+        ),
+      ] else ...[
+        AppTextField(
+          controller: _baselineCtrl,
+          label: tr('room_baseline_prompt'),
+          minLines: 4,
+          maxLines: 8,
+        ),
+        const SizedBox(height: 10),
+        EngramButton(label: tr('room_check_btn'), onPressed: _scoreBaseline),
+      ],
     ]);
   }
 
@@ -1752,6 +1931,16 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         ),
       ),
       const SizedBox(height: 16),
+      if (_baselineCorrect != null) ...[
+        Center(
+          child: _BaselineComparison(
+            a: _baselineCorrect!,
+            b: _correct,
+            n: total,
+          ),
+        ),
+        const SizedBox(height: 12),
+      ],
       _ResultCelebration(correct: _correct, total: total, blind: _blind),
       const SizedBox(height: 12),
       Wrap(
@@ -1821,6 +2010,58 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
         ),
       ],
     ]);
+  }
+}
+
+/// Before → after proof: same list, recalled today, once without the
+/// palace and once with it. The "with" number renders in teal. Fires a
+/// heavy haptic once when the palace run beats the baseline.
+class _BaselineComparison extends StatefulWidget {
+  final int a;
+  final int b;
+  final int n;
+  const _BaselineComparison({
+    required this.a,
+    required this.b,
+    required this.n,
+  });
+
+  @override
+  State<_BaselineComparison> createState() => _BaselineComparisonState();
+}
+
+class _BaselineComparisonState extends State<_BaselineComparison> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.b > widget.a) AppFeedback.heavy();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final full = tr('room_baseline_vs', {
+      'a': widget.a,
+      'b': widget.b,
+      'n': widget.n,
+    });
+    final parts = full.split('→');
+    final before = TextStyle(
+      color: context.mutedText,
+      fontWeight: FontWeight.w600,
+      fontSize: 14,
+    );
+    final after = AppText.title.copyWith(color: teal);
+    return Text.rich(
+      TextSpan(
+        children: parts.length > 1
+            ? [
+                TextSpan(text: '${parts[0].trimRight()} → ', style: before),
+                TextSpan(text: parts[1].trim(), style: after),
+              ]
+            : [TextSpan(text: full, style: before)],
+      ),
+      textAlign: TextAlign.center,
+    );
   }
 }
 

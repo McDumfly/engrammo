@@ -141,6 +141,66 @@ void main() {
     expect(find.text('Done'), findsOneWidget);
   });
 
+  testWidgets('baseline probe compares before and after on the result', (
+    tester,
+  ) async {
+    MetaAIService.consentForTest = true;
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+    await tester.pumpWidget(const MaterialApp(home: RoomPalacePage()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('room-try-sample')));
+    await tester.runAsync(() => Future.delayed(const Duration(seconds: 5)));
+    await tester.pumpAndSettle();
+
+    // Offline scan lands on the items step with placeholder spots.
+    expect(find.text('What do you want to remember?'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'apple\nhammer\nnail');
+    await tester.pumpAndSettle();
+
+    final baselineBtn = find.text('First, test me without the palace');
+    expect(baselineBtn, findsOneWidget);
+    await tester.tap(baselineBtn);
+    await tester.pumpAndSettle();
+
+    // Tests jump straight to the recall phase.
+    expect(find.text('Type every item you still remember'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'apple\nhammer');
+    await tester.pump();
+    await tester.tap(find.text('Check'));
+    await tester.pumpAndSettle();
+
+    // The normal build continued with the same items: encode step.
+    expect(find.text('Start recall'), findsOneWidget);
+    await tester.tap(find.text('Start recall'));
+    await tester.pumpAndSettle();
+
+    Future<void> answer(String word) async {
+      await tester.enterText(find.byType(TextField), word);
+      await tester.pump();
+      await tester.tap(find.text('Check'));
+      await tester.pumpAndSettle();
+    }
+
+    await answer('apple');
+    await answer('hammer');
+    await answer('nail');
+
+    // Result shows the before → after proof (2/3 without, 3/3 with).
+    expect(
+      find.byWidgetPredicate(
+        (w) =>
+            w is Text &&
+            (w.data ?? w.textSpan?.toPlainText() ?? '').contains(
+              'Without the palace 2/3 → with it 3/3',
+            ),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets(
     'MaskedPicture with no objects shows the photo without throwing',
     (tester) async {

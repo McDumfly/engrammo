@@ -1861,6 +1861,11 @@ const Map<String, String> enStrings = {
   'room_sample_items': 'mitochondria\nribosome\nnucleus\nGolgi apparatus\nlysosome\ncell membrane',
   'room_items_too_few': 'Add at least 2 items.',
   'room_encode_btn': 'Build my palace',
+  'room_baseline_btn': 'First, test me without the palace',
+  'room_baseline_title': 'First, without the palace',
+  'room_baseline_memorize': 'Memorize the list — {n} s left',
+  'room_baseline_prompt': 'Type every item you still remember',
+  'room_baseline_vs': 'Without the palace {a}/{n}  →  with it {b}/{n}',
   'room_encode_tip':
       'Picture it vividly sitting on the landmark. The weirder, the better.',
   'room_link_fb_0': 'A glowing {item} spins on top of the {station} like a hat, humming softly.',
