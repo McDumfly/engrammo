@@ -63,6 +63,7 @@ const bannedClaimTokens = <String>[
   'transfers best',
   'transfers to noisy real life',
   'multiply follow-through',
+  'rewires',
 ];
 
 class HonestySection {
@@ -77,9 +78,9 @@ const minutesPerLesson = 4;
 String get researchDoseText => tr('policy_research_dose');
 
 String get foundationDoseText => tr('policy_foundation_dose', {
-      'hours': foundationLessonsPerTrack * minutesPerLesson ~/ 60,
-      'dose': researchDoseText,
-    });
+  'hours': foundationLessonsPerTrack * minutesPerLesson ~/ 60,
+  'dose': researchDoseText,
+});
 
 String get honestPromise => tr('policy_honest_promise');
 
@@ -99,27 +100,12 @@ String get aiCloudConsentTitle => tr('policy_consent_title');
 String get aiCloudConsentBody => tr('policy_consent_body');
 
 List<HonestySection> get honestySections => <HonestySection>[
-      HonestySection(
-        tr('policy_honesty_1_title'),
-        tr('policy_honesty_1_body'),
-      ),
-      HonestySection(
-        tr('policy_honesty_2_title'),
-        tr('policy_honesty_2_body'),
-      ),
-      HonestySection(
-        tr('policy_honesty_3_title'),
-        tr('policy_honesty_3_body'),
-      ),
-      HonestySection(
-        tr('policy_honesty_4_title'),
-        tr('policy_honesty_4_body'),
-      ),
-      HonestySection(
-        tr('policy_honesty_5_title'),
-        tr('policy_honesty_5_body'),
-      ),
-    ];
+  HonestySection(tr('policy_honesty_1_title'), tr('policy_honesty_1_body')),
+  HonestySection(tr('policy_honesty_2_title'), tr('policy_honesty_2_body')),
+  HonestySection(tr('policy_honesty_3_title'), tr('policy_honesty_3_body')),
+  HonestySection(tr('policy_honesty_4_title'), tr('policy_honesty_4_body')),
+  HonestySection(tr('policy_honesty_5_title'), tr('policy_honesty_5_body')),
+];
 
 String labFinding(String study, String finding) =>
     tr('policy_lab_finding', {'study': study, 'finding': finding});

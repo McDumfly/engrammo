@@ -125,8 +125,9 @@ const coachContent = <String, CoachContent>{
     ],
     why:
         'The method of loci routes lists through your navigation brain — '
-        'a huge, ancient system. In Dresler et al. (2017), six weeks of '
-        'loci training shifted beginners toward the athlete pattern.',
+        'a huge, ancient system. In a 6-week training study (Dresler et al. '
+        '2017), beginners\' brain-network patterns shifted toward those of '
+        'memory athletes.',
     source: 'Maguire et al. (2003); Dresler et al. (2017, Neuron)',
   ),
   '2-1': CoachContent(

@@ -746,7 +746,7 @@ const Map<String, String> enStrings = {
   'palace_active': 'Active for lessons',
   'palace_use': 'Use in lessons',
   'task_palace_q': 'What did you place at the {station}?',
-  'task_palace_expl': 'Loci: one bizarre, moving image per station, always in walking order. Champions memorize with this exact method — 6 weeks of training rewires beginner brains toward the athlete pattern. (Maguire et al. 2003; Dresler et al. 2017)',
+  'task_palace_expl': 'Loci: one bizarre, moving image per station, always in walking order. Champions memorize with this exact method (Maguire et al. 2003). In a 6-week training study (Dresler et al. 2017), beginners\' brain-network patterns shifted toward those of memory athletes.',
   'task_picture_prompt': 'Study this {scene} — name every detail!',
   'task_picture_q': 'Which of these was in the {scene}?',
   'task_picture_expl': 'Pictures get two memory codes (visual + verbal) instead of one, and distinctive details pop out of memory. Name what you see instantly — words anchor pictures. (Shepard 1967; Standing 1973; Von Restorff 1933)',

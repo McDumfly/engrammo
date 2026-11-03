@@ -757,7 +757,7 @@ const Map<String, String> huStrings = {
   'palace_active': 'Aktív a leckékben',
   'palace_use': 'Használd a leckékben',
   'task_palace_q': 'Mit helyeztél el ide: {station}?',
-  'task_palace_expl': 'Loci: állomásonként egy bizarr, mozgó kép, mindig sétasorrendben. A bajnokok pontosan ezzel a módszerrel memorizálnak — 6 hét edzés a kezdő agyakat az atléta mintázata felé huzalozza át. (Maguire et al. 2003; Dresler et al. 2017)',
+  'task_palace_expl': 'Loci: állomásonként egy bizarr, mozgó kép, mindig sétasorrendben. A bajnokok pontosan ezzel a módszerrel memorizálnak (Maguire et al. 2003). Egy 6 hetes tréningvizsgálatban (Dresler et al. 2017) a kezdők agyhálózati mintázatai a memóriaatlétákéi felé tolódtak el.',
   'task_picture_prompt': 'Tanulmányozd: {scene} — nevezz meg minden részletet!',
   'task_picture_q': 'Melyik volt benne: {scene}?',
   'task_picture_expl': 'A képek egy helyett két memóriakódot kapnak (vizuális + verbális), és a jellegzetes részletek kiugranak az emlékezetből. Nevezd meg azonnal, amit látsz — a szavak lehorgonyozzák a képeket. (Shepard 1967; Standing 1973; Von Restorff 1933)',

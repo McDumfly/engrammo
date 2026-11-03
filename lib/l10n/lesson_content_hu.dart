@@ -112,8 +112,9 @@ const coachContentHu = <String, CoachContent>{
     ],
     why:
         'A loci-módszer a listákat a navigációs agyadon vezeti át — egy '
-        'hatalmas, ősi rendszeren. Dresler et al. (2017) vizsgálatában hat '
-        'hét loci-edzés a kezdőket a sportolói minta felé mozdította.',
+        'hatalmas, ősi rendszeren. Egy 6 hetes tréningvizsgálatban (Dresler '
+        'et al. 2017) a kezdők agyhálózati mintázatai a memóriaatlétákéi '
+        'felé tolódtak el.',
     source: 'Maguire et al. (2003); Dresler et al. (2017, Neuron)',
   ),
   '2-1': CoachContent(
