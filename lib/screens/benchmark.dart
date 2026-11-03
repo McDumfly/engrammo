@@ -4758,27 +4758,44 @@ class _MaskedPictureState extends State<MaskedPicture>
                                   isCue: i == widget.cue,
                                 ),
                               )
-                            else
-                              Positioned.fromRect(
-                                rect: covers[i].rect,
-                                child: Align(
-                                  alignment: Alignment.bottomCenter,
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(4),
-                                    child: ConstrainedBox(
-                                      constraints: BoxConstraints(
-                                        maxWidth: w * 0.42,
-                                      ),
+                            else ...[
+                              Builder(
+                                builder: (context) {
+                                  // The chip floats below the object on its
+                                  // own centred slot: a narrow object rect
+                                  // must never cap the chip width.
+                                  final cw = w * 0.42;
+                                  final rect = covers[i].rect;
+                                  final maxX = max(4.0, w - cw - 4);
+                                  final maxY = max(4.0, h - 30);
+                                  return Positioned(
+                                    left: (rect.center.dx - cw / 2)
+                                        .clamp(4.0, maxX)
+                                        .toDouble(),
+                                    top: (rect.bottom - 30)
+                                        .clamp(4.0, maxY)
+                                        .toDouble(),
+                                    width: cw,
+                                    child: Center(
                                       child: Container(
                                         height: 26,
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 10,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: teal.withValues(alpha: 0.14),
+                                          color: Colors.white.withValues(
+                                            alpha: 0.92,
+                                          ),
                                           borderRadius: BorderRadius.circular(
                                             AppRadius.pill,
                                           ),
+                                          boxShadow: const [
+                                            BoxShadow(
+                                              color: Color(0x33000000),
+                                              blurRadius: 6,
+                                              offset: Offset(0, 1),
+                                            ),
+                                          ],
                                         ),
                                         child: Center(
                                           widthFactor: 1,
@@ -4804,9 +4821,10 @@ class _MaskedPictureState extends State<MaskedPicture>
                                         ),
                                       ),
                                     ),
-                                  ),
-                                ),
+                                  );
+                                },
                               ),
+                            ],
                         if (widget.highlight && !widget.masked) ...[
                           Positioned.fill(
                             child: CustomPaint(

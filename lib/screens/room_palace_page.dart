@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
-import 'dart:ui' show ImageFilter;
+import 'dart:ui' show ImageFilter, MaskFilter;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +15,8 @@ import '../l10n/app_localizations.dart';
 import '../models/fsrs_card.dart';
 import '../models/meta_image.dart';
 import '../models/room_palace.dart';
+import '../models/sam_mask.dart'
+    show SamMaskRun, decodeSamMaskToken, parseSamMaskToken, samMaskRuns;
 import '../services/app_feedback.dart';
 import '../services/memory_store.dart';
 import '../services/meta_ai_service.dart';
@@ -28,12 +30,27 @@ import '../widgets/app_buttons.dart'
     show EngramBackButton, EngramButton, EngramButtonVariant;
 import '../widgets/app_kit.dart';
 import '../widgets/room_preview_art.dart';
-import 'benchmark.dart' show BenchmarkStore, MaskedPicture;
+import 'benchmark.dart' show BenchmarkStore, MaskedPicture, buildSamOutline;
 
 /// Station colour cycle, matching the highlight fills.
 Color _stationColor(int i) {
   const cycle = [teal, blue, orange, coral];
   return cycle[i % cycle.length];
+}
+
+/// Palace list row title: the first two memorised items plus how many
+/// more, e.g. "apple · hammer +3". Without items it falls back to the
+/// station names.
+String _listTitle(RoomPalace p) {
+  final items = p.items;
+  if (items.isEmpty) return roomPalaceName(p);
+  if (items.length == 1) return items[0];
+  if (items.length == 2) return '${items[0]} · ${items[1]}';
+  return tr('room_list_title', {
+    'a': items[0],
+    'b': items[1],
+    'n': '${items.length - 2}',
+  });
 }
 
 /// Stagger curve for [_RoomPalacePageState._enter]: holds 0 for the
@@ -1237,7 +1254,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        roomPalaceName(p),
+                        _listTitle(p),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppText.body.copyWith(
@@ -2495,14 +2512,14 @@ class _ScanStageState extends State<_ScanStage> with TickerProviderStateMixin {
                                     : s;
                                 const chipH = 26.0;
                                 const chipGap = 4.0;
+                                // Scan chips show the bare label (no walk
+                                // number): Spark's order is not the walk
+                                // order.
                                 final chipW = <double>[
                                   for (var i = 0; i < labels.length; i++)
                                     min(
                                       w * 0.40,
-                                      30 +
-                                          7.5 *
-                                              '${i + 1} · ${shortLabel(labels[i])}'
-                                                  .length,
+                                      30 + 7.5 * shortLabel(labels[i]).length,
                                     ),
                                 ];
                                 // Simple collision pass (same idea as
@@ -2573,8 +2590,7 @@ class _ScanStageState extends State<_ScanStage> with TickerProviderStateMixin {
                                                     maxWidth: w * 0.40,
                                                   ),
                                                   child: _ScanChip(
-                                                    text:
-                                                        '${i + 1} · ${shortLabel(labels[i])}',
+                                                    text: shortLabel(labels[i]),
                                                     color: _stationColor(i),
                                                     done: done > i,
                                                   ),
@@ -2888,6 +2904,62 @@ class _ScanBoxPainter extends CustomPainter {
 /// never rebuilds per frame. Tap anywhere advances; the last station
 /// offers the recall step. No timers: segments hold until tapped, so
 /// tests jump instantly.
+/// Decoded SAM mask of one tour station, cached per station index so
+/// the 2200 ms camera animation never decodes base64 per frame.
+class _TourShape {
+  final List<SamMaskRun> runs;
+  final int rasterW;
+  final int rasterH;
+  const _TourShape({
+    required this.runs,
+    required this.rasterW,
+    required this.rasterH,
+  });
+}
+
+/// The current station's SAM outline (or its box when no mask decoded),
+/// drawn in the station colour with a soft glow. Lives inside the same
+/// Transform as the photo, so it zooms with it.
+class _TourStationPainter extends CustomPainter {
+  final Path? outline;
+  final Rect box;
+  final Color color;
+  const _TourStationPainter({
+    required this.outline,
+    required this.box,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final glow = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..maskFilter = const MaskFilter.blur(BlurStyle.outer, 6);
+    final edge = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..strokeJoin = StrokeJoin.round
+      ..strokeCap = StrokeCap.round;
+    if (outline != null) {
+      canvas.drawPath(outline!, glow);
+      canvas.drawPath(outline!, edge);
+    } else {
+      final rr = RRect.fromRectAndRadius(box, Radius.circular(AppRadius.m));
+      canvas.drawRRect(rr, glow);
+      canvas.drawRRect(rr, edge);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_TourStationPainter oldDelegate) =>
+      oldDelegate.outline != outline ||
+      oldDelegate.box != box ||
+      oldDelegate.color != color;
+}
+
 class _TourPage extends StatefulWidget {
   final RoomPalace palace;
   final Map<int, String> dreams;
@@ -2907,6 +2979,15 @@ class _TourPageState extends State<_TourPage>
   late final AnimationController _cam;
   int _i = 0;
   bool _finished = false;
+
+  /// Cached SAM shapes per station index (decoded once, never per frame).
+  final _tourShapes = <int, _TourShape?>{};
+
+  /// Display-space outline path, rebuilt only when the station or the
+  /// photo size changes (not on every animation tick).
+  Path? _tourPath;
+  int _tourPathFor = -1;
+  double _tourPathSize = -1;
 
   int get _n => widget.palace.stations.length;
 
@@ -2942,6 +3023,61 @@ class _TourPageState extends State<_TourPage>
     final cx = (b[0] + b[2] / 2).clamp(0.0, 1.0);
     final cy = (b[1] + b[3] / 2).clamp(0.0, 1.0);
     return Alignment(cx * 2 - 1, cy * 2 - 1);
+  }
+
+  /// Display-space box of station i on a square photo of side [s].
+  /// Boxes are normalised [x, y, w, h]; without one the whole photo
+  /// is the fallback.
+  Rect _tourBox(int i, double s) {
+    final boxes = widget.palace.boxes;
+    if (boxes.length == _n && i >= 0 && i < _n && boxes[i].length >= 4) {
+      final b = boxes[i];
+      return Rect.fromLTWH(b[0] * s, b[1] * s, b[2] * s, b[3] * s);
+    }
+    return Rect.fromLTWH(0, 0, s, s);
+  }
+
+  /// Decoded SAM shape of station i, or null when there is no mask.
+  /// Cached: base64 is decoded once per station, never per frame.
+  _TourShape? _tourShapeFor(int i) {
+    if (_tourShapes.containsKey(i)) return _tourShapes[i];
+    _TourShape? out;
+    final masks = widget.palace.masks;
+    if (i >= 0 && i < masks.length && masks[i].isNotEmpty) {
+      final spec = parseSamMaskToken(masks[i]);
+      final raster = decodeSamMaskToken(masks[i]);
+      if (spec != null && raster != null) {
+        final runs = samMaskRuns(raster, spec.width, spec.height);
+        if (runs.isNotEmpty) {
+          out = _TourShape(
+            runs: runs,
+            rasterW: spec.width,
+            rasterH: spec.height,
+          );
+        }
+      }
+    }
+    if (_tourShapes.length > 32) _tourShapes.clear();
+    _tourShapes[i] = out;
+    return out;
+  }
+
+  /// Display-space SAM outline for the current station on a square
+  /// photo of side [s]; null means the painter falls back to the box.
+  Path? _tourOutline(double s) {
+    if (_tourPathFor == _i && _tourPathSize == s) return _tourPath;
+    _tourPathFor = _i;
+    _tourPathSize = s;
+    final shape = _tourShapeFor(_i);
+    _tourPath = shape == null
+        ? null
+        : buildSamOutline(
+            rect: _tourBox(_i, s),
+            runs: shape.runs,
+            rasterW: shape.rasterW,
+            rasterH: shape.rasterH,
+          );
+    return _tourPath;
   }
 
   void _next() {
@@ -3043,9 +3179,35 @@ class _TourPageState extends State<_TourPage>
                                       child: child,
                                     );
                                   },
-                                  child: AiImage(
-                                    imageRef: palace.imageRef,
-                                    fit: BoxFit.cover,
+                                  child: LayoutBuilder(
+                                    builder: (context, constraints) {
+                                      final s = min(
+                                        constraints.maxWidth,
+                                        constraints.maxHeight.isFinite
+                                            ? constraints.maxHeight
+                                            : constraints.maxWidth,
+                                      );
+                                      return Stack(
+                                        fit: StackFit.expand,
+                                        children: [
+                                          AiImage(
+                                            imageRef: palace.imageRef,
+                                            fit: BoxFit.cover,
+                                          ),
+                                          Positioned.fill(
+                                            child: RepaintBoundary(
+                                              child: CustomPaint(
+                                                painter: _TourStationPainter(
+                                                  outline: _tourOutline(s),
+                                                  box: _tourBox(_i, s),
+                                                  color: _stationColor(_i),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      );
+                                    },
                                   ),
                                 ),
                               ),

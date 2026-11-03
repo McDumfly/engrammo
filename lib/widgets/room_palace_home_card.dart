@@ -100,21 +100,36 @@ class _RoomPalaceHomeCardState extends State<RoomPalaceHomeCard>
     return tr('room_home_in_days', {'d': '$diff'});
   }
 
-  Future<void> _open() async {
+  /// Card body: the palace list (with "New palace").
+  Future<void> _openList() async {
+    AppFeedback.light();
+    if (widget.onTap != null) {
+      widget.onTap!();
+      return;
+    }
+    await Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const RoomPalacePage()));
+    // The due date may have moved while reviewing: reload the card.
+    await _loadMine();
+  }
+
+  /// Review pill: straight into this palace's review.
+  Future<void> _openReview() async {
     AppFeedback.light();
     if (widget.onTap != null) {
       widget.onTap!();
       return;
     }
     final mine = _mine;
+    if (mine == null) {
+      await Navigator.of(context)
+          .push(MaterialPageRoute(builder: (_) => const RoomPalacePage()));
+      await _loadMine();
+      return;
+    }
     await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => mine == null
-            ? const RoomPalacePage()
-            : RoomPalacePage(reviewId: mine.id),
-      ),
+      MaterialPageRoute(builder: (_) => RoomPalacePage(reviewId: mine.id)),
     );
-    // The due date may have moved while reviewing: reload the card.
     await _loadMine();
   }
 
@@ -137,103 +152,109 @@ class _RoomPalaceHomeCardState extends State<RoomPalaceHomeCard>
           ),
         );
       },
-      child: Tappable(
-        haptic: false,
-        onTap: _open,
-        child: SizedBox(
-          height: 152,
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.l),
-            child: Stack(
-              children: [
-                if (mine == null) ...[
-                  Positioned.fill(
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Color(0xFF16233B), Color(0xFF0E3B4A)],
+      child: SizedBox(
+        height: 152,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.l),
+          child: Stack(
+            children: [
+              if (mine == null) ...[
+                Positioned.fill(
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF16233B), Color(0xFF0E3B4A)],
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned.fill(
+                  child: AnimatedBuilder(
+                    animation: _drift,
+                    builder: (context, _) {
+                      final t = _drift.value * 2 * pi;
+                      final offsets = [
+                        Offset(0, 6 * sin(t)),
+                        Offset(0, 6 * sin(t + 2.09)),
+                        Offset(0, 6 * sin(t + 4.19)),
+                      ];
+                      return RepaintBoundary(
+                        child: CustomPaint(
+                          painter: _BlobPainter(offsets: offsets),
                         ),
+                      );
+                    },
+                  ),
+                ),
+              ] else ...[
+                Positioned.fill(
+                  child: RepaintBoundary(
+                    child: AiImage(imageRef: mine.imageRef, fit: BoxFit.cover),
+                  ),
+                ),
+                Positioned.fill(
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0xCC16233B), Color(0x6616233B)],
                       ),
                     ),
                   ),
-                  Positioned.fill(
-                    child: AnimatedBuilder(
-                      animation: _drift,
-                      builder: (context, _) {
-                        final t = _drift.value * 2 * pi;
-                        final offsets = [
-                          Offset(0, 6 * sin(t)),
-                          Offset(0, 6 * sin(t + 2.09)),
-                          Offset(0, 6 * sin(t + 4.19)),
-                        ];
-                        return RepaintBoundary(
-                          child: CustomPaint(
-                            painter: _BlobPainter(offsets: offsets),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ] else ...[
-                  Positioned.fill(
-                    child: RepaintBoundary(
-                      child: AiImage(
-                        imageRef: mine.imageRef,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                  Positioned.fill(
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Color(0xCC16233B), Color(0x6616233B)],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.14),
-                            borderRadius: BorderRadius.circular(AppRadius.pill),
-                          ),
-                          child: Text(
-                            kRoomModelsCaption,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppText.micro.copyWith(
-                              color: Colors.white.withValues(alpha: 0.92),
+                ),
+              ],
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Tappable(
+                        haptic: false,
+                        onTap: _openList,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.14),
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.pill,
+                                  ),
+                                ),
+                                child: Text(
+                                  kRoomModelsCaption,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppText.micro.copyWith(
+                                    color: Colors.white.withValues(alpha: 0.92),
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        tr(mine == null ? 'room_home_title' : 'room_home_mine'),
-                        style: AppText.title.copyWith(color: Colors.white),
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
+                            const SizedBox(height: 6),
+                            Text(
+                              tr(
+                                mine == null
+                                    ? 'room_home_title'
+                                    : 'room_home_mine',
+                              ),
+                              style: AppText.title.copyWith(
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
                               mine == null
                                   ? tr('room_home_sub')
                                   : tr('room_home_due', {
@@ -246,48 +267,50 @@ class _RoomPalaceHomeCardState extends State<RoomPalaceHomeCard>
                                 color: Colors.white.withValues(alpha: 0.8),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Container(
-                            height: 40,
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(
-                                AppRadius.pill,
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Tappable(
+                      haptic: false,
+                      onTap: _openReview,
+                      child: Container(
+                        height: 40,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const HugeIcon(
+                              icon: HugeIcons.strokeRoundedCamera01,
+                              color: Color(0xFF16233B),
+                              size: 18,
+                              strokeWidth: 2.0,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              tr(
+                                mine == null
+                                    ? 'room_home_cta'
+                                    : 'room_home_review',
+                              ),
+                              style: AppText.body.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF16233B),
                               ),
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const HugeIcon(
-                                  icon: HugeIcons.strokeRoundedCamera01,
-                                  color: Color(0xFF16233B),
-                                  size: 18,
-                                  strokeWidth: 2.0,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  tr(
-                                    mine == null
-                                        ? 'room_home_cta'
-                                        : 'room_home_review',
-                                  ),
-                                  style: AppText.body.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    color: const Color(0xFF16233B),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

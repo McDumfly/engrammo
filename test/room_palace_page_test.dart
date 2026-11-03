@@ -381,4 +381,34 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('revealed chip on a 40px cover still renders the full label', (
+    tester,
+  ) async {
+    final photo = squareJpegDataUrl(
+      Uint8List.fromList(img.encodePng(img.Image(width: 10, height: 10))),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MaskedPicture(
+            imageUrl: photo,
+            scene: '',
+            objects: const ['mitochondria'],
+            // ~40 px wide on the 380 pt test picture.
+            boxes: const [
+              [0.0, 0.4, 0.105, 0.2],
+            ],
+            masks: const [],
+            revealed: const {0},
+            masked: true,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    expect(find.text('mitochondria'), findsOneWidget);
+    expect(tester.getSize(find.text('mitochondria')).width, greaterThan(60));
+  });
 }
