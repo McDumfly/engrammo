@@ -2073,6 +2073,18 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
                 _buildPalace();
               },
       ),
+      if (_building) ...[
+        const SizedBox(height: 8),
+        Center(
+          child: Text(
+            tr('room_building_links'),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppText.caption.copyWith(color: context.mutedText),
+          ),
+        ),
+      ],
       const SizedBox(height: 10),
       EngramButton(
         label: tr('room_baseline_btn'),
@@ -2214,8 +2226,33 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
   Widget _encodeStep() {
     final palace = _palace;
     if (palace == null) return _page([_header(tr('room_title'))]);
+    final dreamsArrived = [
+      for (var i = 0; i < palace.items.length; i++)
+        if ((_dreams[i] ?? '').isNotEmpty) i,
+    ].length;
     return _page([
       _muted(tr('room_encode_tip')),
+      if (dreamsArrived < palace.items.length) ...[
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const AppBadge(label: 'Muse Image', color: orange),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                tr('room_dreams_progress', {
+                  'n': '$dreamsArrived',
+                  'total': '${palace.items.length}',
+                }),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppText.caption.copyWith(color: context.mutedText),
+              ),
+            ),
+          ],
+        ),
+      ],
       _covers(
         imageUrl: palace.imageRef,
         objects: palace.stations,

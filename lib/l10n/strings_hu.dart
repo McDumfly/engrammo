@@ -1947,6 +1947,8 @@ const Map<String, String> huStrings = {
       'mitokondrium\nriboszóma\nsejtmag\nGolgi-készülék\nlizoszóma\nsejthártya',
   'room_items_too_few': 'Adj meg legalább 2 elemet.',
   'room_encode_btn': 'Palota építése',
+  'room_building_links': 'A Muse Spark írja az élénk kapcsolatokat…',
+  'room_dreams_progress': 'Muse Image: {n}/{total} jelenet',
   'room_baseline_btn': 'Előbb tesztelj palota nélkül',
   'room_baseline_title': 'Előbb palota nélkül',
   'room_baseline_memorize': 'Jegyezd meg a listát — {n} mp van hátra',

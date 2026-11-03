@@ -542,6 +542,37 @@ void main() {
     expect(await MetaAIService.cloudConsent(), isFalse);
   });
 
+  testWidgets('encode step counts Muse Image scenes until all arrive', (
+    tester,
+  ) async {
+    MetaAIService.consentForTest = true;
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+    await tester.pumpWidget(const MaterialApp(home: RoomPalacePage()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('room-try-sample')));
+    await tester.runAsync(() => Future.delayed(const Duration(seconds: 5)));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'apple\nhammer\nnail');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('First, test me without the palace'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'apple\nhammer');
+    await tester.pump();
+    await tester.tap(find.text('Check'));
+    await tester.pumpAndSettle();
+
+    // Encode step: no scene has arrived in the sandbox, so the
+    // Muse Image counter with its badge stays visible.
+    expect(find.text('Start recall'), findsOneWidget);
+    expect(find.text('Muse Image: 0/3 scenes'), findsOneWidget);
+    expect(find.text('Muse Image'), findsOneWidget);
+  });
+
   testWidgets('revealed chip on a 40px cover still renders the full label', (
     tester,
   ) async {

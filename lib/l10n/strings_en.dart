@@ -1926,6 +1926,8 @@ const Map<String, String> enStrings = {
   'room_sample_items': 'mitochondria\nribosome\nnucleus\nGolgi apparatus\nlysosome\ncell membrane',
   'room_items_too_few': 'Add at least 2 items.',
   'room_encode_btn': 'Build my palace',
+  'room_building_links': 'Muse Spark is writing your vivid links…',
+  'room_dreams_progress': 'Muse Image: {n}/{total} scenes',
   'room_baseline_btn': 'First, test me without the palace',
   'room_baseline_title': 'First, without the palace',
   'room_baseline_memorize': 'Memorize the list — {n} s left',
