@@ -5,6 +5,7 @@ import '../l10n/app_localizations.dart';
 import '../services/app_feedback.dart';
 import '../services/memory_store.dart';
 import '../theme/app_theme.dart';
+import '../theme/app_tokens.dart';
 import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
 import '../widgets/app_kit.dart';
@@ -141,7 +142,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   @override
   Widget build(BuildContext context) {
-    final total = _primers.length + 2;
+    const total = 4;
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -152,9 +153,25 @@ class _OnboardingPageState extends State<OnboardingPage> {
               child: Row(
                 children: [
                   Expanded(
-                    child: AppProgressBar(
-                      value: (_index + 1) / total,
-                      height: 6,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        for (var i = 0; i < total; i++) ...[
+                          if (i > 0) const SizedBox(width: 6),
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 220),
+                            curve: Curves.easeOutCubic,
+                            height: 8,
+                            width: _index == i ? 24 : 8,
+                            decoration: BoxDecoration(
+                              color: _index == i ? blue : context.hairline,
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.pill,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -180,10 +197,24 @@ class _OnboardingPageState extends State<OnboardingPage> {
             Expanded(
               child: PageView(
                 controller: _pages,
-                onPageChanged: (i) => setState(() => _index = i),
+                onPageChanged: (i) {
+                  AppFeedback.select();
+                  setState(() => _index = i);
+                },
                 children: [
                   _welcomeCard(),
-                  for (final p in _primers) _primerCard(p),
+                  _featurePage(
+                    index: 1,
+                    icon: HugeIcons.strokeRoundedCamera01,
+                    titleKey: 'onb_room_title',
+                    bodyKey: 'onb_room_body',
+                  ),
+                  _featurePage(
+                    index: 2,
+                    icon: HugeIcons.strokeRoundedAiBrain01,
+                    titleKey: 'onb_coach_title',
+                    bodyKey: 'onb_coach_body',
+                  ),
                   _ctaCard(),
                 ],
               ),
@@ -288,29 +319,47 @@ class _OnboardingPageState extends State<OnboardingPage> {
     );
   }
 
-  Widget _primerCard(_Primer p) {
+  Widget _featurePage({
+    required int index,
+    required List<List<dynamic>> icon,
+    required String titleKey,
+    required String bodyKey,
+  }) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
       children: [
-        Container(
-          width: 64,
-          height: 64,
-          decoration: BoxDecoration(
-            color: context.washBg,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: context.washBorder, width: 2),
+        TweenAnimationBuilder<double>(
+          key: ValueKey('onb-tile-$index'),
+          tween: Tween(begin: 0, end: 1),
+          duration: const Duration(milliseconds: 360),
+          curve: Curves.easeOutCubic,
+          builder: (context, t, child) => Opacity(
+            opacity: t,
+            child: Transform.translate(
+              offset: Offset(0, 16 * (1 - t)),
+              child: child,
+            ),
           ),
-          alignment: Alignment.center,
-          child: HugeIcon(
-            icon: p.icon,
-            color: blue,
-            size: 30,
-            strokeWidth: 2.0,
+          child: Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: context.washBg,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: context.washBorder, width: 2),
+            ),
+            alignment: Alignment.center,
+            child: HugeIcon(
+              icon: icon,
+              color: blue,
+              size: 30,
+              strokeWidth: 2.0,
+            ),
           ),
         ),
         const SizedBox(height: 16),
         Text(
-          tr(p.titleKey),
+          tr(titleKey),
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurface,
             fontWeight: FontWeight.w900,
@@ -319,19 +368,44 @@ class _OnboardingPageState extends State<OnboardingPage> {
         ),
         const SizedBox(height: 10),
         Text(
-          tr(p.bodyKey),
+          tr(bodyKey),
           style: TextStyle(color: context.inkText, fontSize: 16, height: 1.5),
         ),
-        const SizedBox(height: 16),
-        Text(
-          p.sourceKey == null ? (p.source ?? '') : tr(p.sourceKey!),
-          style: TextStyle(
-            color: context.mutedText,
-            fontStyle: FontStyle.italic,
-            fontSize: 13,
-          ),
-        ),
       ],
+    );
+  }
+
+  Future<void> _openScience() {
+    return showAppSheet<void>(
+      context,
+      builder: (_) => ListView(
+        padding: const EdgeInsets.fromLTRB(4, 12, 4, 24),
+        shrinkWrap: true,
+        children: [
+          for (var i = 0; i < _primers.length; i++) ...[
+            if (i > 0) const SizedBox(height: 16),
+            Text(
+              tr(_primers[i].titleKey),
+              style: AppText.heading.copyWith(color: context.inkText),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              tr(_primers[i].bodyKey),
+              style: AppText.caption.copyWith(color: context.inkText),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _primers[i].sourceKey == null
+                  ? (_primers[i].source ?? '')
+                  : tr(_primers[i].sourceKey!),
+              style: AppText.micro.copyWith(
+                color: context.mutedText,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -352,6 +426,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
         Text(
           tr('onboarding_cta_body'),
           style: TextStyle(color: context.inkText, fontSize: 16, height: 1.5),
+        ),
+        const SizedBox(height: 12),
+        EngramTextButton(
+          label: tr('onb_science_link'),
+          onPressed: _openScience,
         ),
       ],
     );

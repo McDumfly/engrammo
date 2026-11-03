@@ -21,7 +21,7 @@ class ConnectivityService extends ChangeNotifier {
 
   static Future<bool> probeInternet({
     http.Client? client,
-    Duration timeout = const Duration(seconds: 6),
+    Duration timeout = const Duration(seconds: 3),
   }) async {
     final c = client ?? http.Client();
     final owned = client == null;

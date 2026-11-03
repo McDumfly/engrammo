@@ -33,12 +33,9 @@ void main() {
     await tester.pumpWidget(frame(onDone: () {}));
     await tester.pumpAndSettle();
 
-    // 1 üdvözlő + 10 primer + 1 CTA = 12 lap.
-    for (var i = 0; i < 12; i++) {
-      await tester.drag(
-        find.byType(PageView),
-        const Offset(-700, 0),
-      );
+    // Üdvözlő + szoba + edző + CTA = 4 lap.
+    for (var i = 0; i < 4; i++) {
+      await tester.drag(find.byType(PageView), const Offset(-700, 0));
       await tester.pumpAndSettle();
     }
     expect(find.text(tr('onboarding_find_my_type')), findsOneWidget);
@@ -48,12 +45,22 @@ void main() {
     expect(find.byType(MemoryAssessmentIntroPage), findsOneWidget);
   });
 
-  testWidgets('az első primer mítoszromboló (fotografikus, eidetikus, HSAM)',
-      (tester) async {
+  testWidgets('második lap a szoba, mítoszromboló a kutatások lapon', (
+    tester,
+  ) async {
     await tester.pumpWidget(frame(onDone: () {}));
     await tester.pumpAndSettle();
 
     await tester.drag(find.byType(PageView), const Offset(-700, 0));
+    await tester.pumpAndSettle();
+    expect(find.text(tr('onb_room_title')), findsOneWidget);
+
+    // CTA lap: még két lapozás, majd a kutatások lap megnyitása.
+    await tester.drag(find.byType(PageView), const Offset(-700, 0));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(PageView), const Offset(-700, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(tr('onb_science_link')));
     await tester.pumpAndSettle();
 
     expect(find.text(tr('onboarding_myth_title')), findsOneWidget);

@@ -1,3 +1,4 @@
+import 'package:engrammo/l10n/app_localizations.dart';
 import 'package:engrammo/screens/auth_screen.dart';
 import 'package:engrammo/services/auth_service.dart';
 import 'package:engrammo/services/cloud_sync.dart';
@@ -64,14 +65,13 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: AuthScreen()));
     await tester.pumpAndSettle();
 
-    expect(find.text('Welcome back'), findsOneWidget);
+    expect(find.text('Engrammo'), findsOneWidget);
+    expect(find.text(tr('auth_guest_cta')), findsOneWidget);
     expect(find.text('SIGN IN'), findsOneWidget);
     expect(find.text('CONTINUE WITH GOOGLE'), findsOneWidget);
-    expect(find.text('Continue without account'), findsOneWidget);
 
     await tester.tap(find.text('Register'));
     await tester.pumpAndSettle();
-    expect(find.text('Create account'), findsOneWidget);
     expect(find.text('CREATE ACCOUNT'), findsOneWidget);
   });
 }

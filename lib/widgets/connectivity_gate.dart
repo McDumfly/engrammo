@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:hugeicons/hugeicons.dart';
 
 import '../l10n/app_localizations.dart';
 import '../screens/battle_duel_page.dart';
 import '../services/bot_arena_store.dart';
 import '../services/connectivity_service.dart';
 import '../services/memory_store.dart';
+import '../theme/app_colors.dart' show orange;
 import '../theme/app_theme.dart';
+import '../theme/app_tokens.dart';
 import 'app_buttons.dart';
 import 'app_kit.dart';
 
@@ -54,58 +57,46 @@ class _ConnectivityGateState extends State<ConnectivityGate>
 
   @override
   Widget build(BuildContext context) {
-    final online = connectivityService.online;
-    if (online == true) return widget.child;
-    if (online == null) {
-      return Scaffold(
-        body: Center(child: AppLoader(caption: tr('common_loading'))),
-      );
-    }
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  tr('gate_connect_title'),
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: context.inkText,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  tr('gate_connect_body'),
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
-                const SizedBox(height: 28),
-                EngramButton(
-                  label: tr('gate_retry'),
-                  isLoading: connectivityService.checking,
-                  onPressed: () => connectivityService.check(),
-                ),
-                const SizedBox(height: 12),
-                EngramButton(
-                  label: tr('gate_offline_duel'),
-                  variant: EngramButtonVariant.secondary,
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const OfflineBattleEntryPage(),
+    // No gate: the child renders immediately, even offline or while the
+    // probe is still measuring. Offline only shows a slim banner on top.
+    final offline = connectivityService.online == false;
+    return Column(
+      children: [
+        AnimatedSize(
+          duration: const Duration(milliseconds: 220),
+          alignment: Alignment.topCenter,
+          child: offline
+              ? Container(
+                  height: 36,
+                  width: double.infinity,
+                  color: orange.withValues(alpha: 0.14),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const HugeIcon(
+                        icon: HugeIcons.strokeRoundedWifiDisconnected01,
+                        color: orange,
+                        size: 16,
                       ),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          tr('offline_banner'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.micro.copyWith(
+                            color: context.accentText(orange),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : const SizedBox(width: double.infinity),
         ),
-      ),
+        Expanded(child: widget.child),
+      ],
     );
   }
 }

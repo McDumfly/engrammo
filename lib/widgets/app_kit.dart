@@ -1671,6 +1671,70 @@ class EngramTextButton extends StatelessWidget {
   }
 }
 
+/// Branded launch splash: breathing app mark + wordmark.
+class AppSplash extends StatefulWidget {
+  const AppSplash({super.key});
+
+  @override
+  State<AppSplash> createState() => _AppSplashState();
+}
+
+class _AppSplashState extends State<AppSplash>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _breathe;
+
+  @override
+  void initState() {
+    super.initState();
+    // Ticker-driven (not Future.delayed): no pending Timer in tests.
+    _breathe = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _breathe.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedBuilder(
+            animation: _breathe,
+            builder: (context, child) {
+              final t = CurvedAnimation(
+                parent: _breathe,
+                curve: Curves.easeInOut,
+              ).value;
+              return Opacity(
+                opacity: 0.6 + 0.4 * t,
+                child: Transform.scale(scale: 0.92 + 0.08 * t, child: child),
+              );
+            },
+            child: Image.asset(
+              'assets/icon/app_icon_foreground.png',
+              width: 96,
+              color: context.inkText,
+              colorBlendMode: BlendMode.srcIn,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Engrammo',
+            style: AppText.title.copyWith(color: context.inkText),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Round back button; defaults to popping the current route.
 class AppBackButton extends StatelessWidget {
   const AppBackButton({

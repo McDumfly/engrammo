@@ -311,9 +311,7 @@ class _StartRouterState extends State<_StartRouter> {
     final Widget child;
     if (!_ready) {
       stateKey = 'loading';
-      child = Scaffold(
-        body: Center(child: AppLoader(caption: tr('common_loading'))),
-      );
+      child = const Scaffold(body: AppSplash());
     } else if (_needsSetup) {
       stateKey = 'setup';
       child = ProfileSetupScreen(

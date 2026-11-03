@@ -6,6 +6,7 @@ import '../services/app_feedback.dart';
 import '../services/auth_service.dart';
 import '../theme/app_colors.dart' show error, muted;
 import '../theme/app_theme.dart';
+import '../theme/app_tokens.dart';
 import '../widgets/app_buttons.dart';
 import '../widgets/app_kit.dart';
 import '../widgets/google_g_logo.dart';
@@ -36,10 +37,12 @@ class _AuthScreenState extends State<AuthScreen> {
 
   void _fail(Object e) {
     AppFeedback.heavy();
+    final message = AuthService.messageFor(e);
     setState(() {
-      _error = AuthService.messageFor(e);
+      _error = message;
       _resetSent = false;
     });
+    showAppToast(context, message, kind: ToastKind.error);
   }
 
   static final _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
@@ -90,6 +93,16 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
+  Future<void> _guest() async {
+    if (authService.busy) return;
+    AppFeedback.light();
+    await authService.continueAsGuest();
+    if (!mounted) return;
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
+  }
+
   Future<void> _reset() async {
     setState(() {
       _error = null;
@@ -129,27 +142,69 @@ class _AuthScreenState extends State<AuthScreen> {
                         alignment: Alignment.centerLeft,
                         child: EngramBackButton.close(),
                       ),
-                    const SizedBox(height: 12),
-                    Text(
-                      _register
-                          ? tr('auth_create_account')
-                          : tr('auth_welcome_back'),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurface,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 28,
+                    Center(
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0, end: 1),
+                        duration: const Duration(milliseconds: 400),
+                        curve: Curves.easeOutCubic,
+                        builder: (context, t, child) => Opacity(
+                          opacity: t,
+                          child: Transform.scale(
+                            scale: 0.9 + 0.1 * t,
+                            child: child,
+                          ),
+                        ),
+                        child: Image.asset(
+                          'assets/icon/app_icon_foreground.png',
+                          width: 72,
+                          color: context.inkText,
+                          colorBlendMode: BlendMode.srcIn,
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 12),
                     Text(
-                      _register
-                          ? tr('auth_register_subtitle')
-                          : tr('auth_login_subtitle'),
+                      'Engrammo',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: context.mutedText, fontSize: 14),
+                      style: AppText.display.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 4),
+                    Text(
+                      tr('auth_tagline'),
+                      textAlign: TextAlign.center,
+                      style: AppText.body.copyWith(color: context.mutedText),
+                    ),
+                    const SizedBox(height: 32),
+                    EngramButton(
+                      label: tr('auth_guest_cta'),
+                      onPressed: authService.busy ? null : _guest,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      tr('auth_guest_hint'),
+                      textAlign: TextAlign.center,
+                      style: AppText.caption.copyWith(color: context.mutedText),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        const Expanded(child: AppDivider(thickness: 2)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            tr('auth_or'),
+                            style: TextStyle(
+                              color: context.mutedText,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        const Expanded(child: AppDivider(thickness: 2)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
                     AppSegmented<bool>(
                       options: [
                         (false, tr('auth_sign_in_tab')),
@@ -217,6 +272,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           : (_register
                                 ? tr('auth_create_button')
                                 : tr('auth_sign_in_button')),
+                      variant: EngramButtonVariant.secondary,
                       onPressed: authService.busy ? null : () => _submit(),
                       isLoading: authService.busy,
                     ),
@@ -251,20 +307,6 @@ class _AuthScreenState extends State<AuthScreen> {
                       leading: const GoogleGLogo(size: 22),
                       variant: EngramButtonVariant.secondary,
                       onPressed: authService.busy ? null : _google,
-                    ),
-                    const SizedBox(height: 8),
-                    EngramTextButton(
-                      label: tr('auth_guest_button'),
-                      color: muted,
-                      onPressed: authService.busy
-                          ? null
-                          : () async {
-                              await authService.continueAsGuest();
-                              if (!context.mounted) return;
-                              if (Navigator.of(context).canPop()) {
-                                Navigator.of(context).pop();
-                              }
-                            },
                     ),
                   ],
                 ),

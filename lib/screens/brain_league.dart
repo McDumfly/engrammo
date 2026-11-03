@@ -259,7 +259,7 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
       primary: false,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       // A lap primary:false Scaffoldban él (tabként beágyazva): a felső
-      // státusz-térközt kivesszük, mint az eredeti primary:false AppBar.
+      // státusz-térközt kivesszük, mint az eredeti primary:false fejléc.
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(56 + 56),
         child: MediaQuery.removePadding(

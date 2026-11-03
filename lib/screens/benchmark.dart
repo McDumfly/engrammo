@@ -11,6 +11,7 @@ import '../widgets/ai_help_button.dart';
 import '../widgets/ai_image.dart';
 import '../widgets/app_buttons.dart';
 import '../widgets/app_kit.dart';
+import '../widgets/room_palace_home_card.dart';
 import '../widgets/session_coach_card.dart';
 import '../l10n/app_localizations.dart';
 import '../models/meta_task.dart';
@@ -835,14 +836,7 @@ class _RoomPalaceHeroCard extends StatelessWidget {
                     style: TextStyle(color: context.mutedText, fontSize: 14),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    'SAM 3.1 · Muse Spark · Muse Image',
-                    style: TextStyle(
-                      color: coral,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
-                    ),
-                  ),
+                  const AppBadge(label: kRoomModelsCaption, color: coral),
                 ],
               ),
             ),

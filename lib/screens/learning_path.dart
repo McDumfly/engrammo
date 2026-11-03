@@ -27,6 +27,7 @@ import '../widgets/app_buttons.dart';
 import '../widgets/app_kit.dart';
 import '../widgets/honesty_sheet.dart';
 import '../widgets/missions_sheet.dart';
+import '../widgets/room_palace_home_card.dart';
 import '../services/app_feedback.dart';
 import '../theme/app_colors.dart'
     show blue, blueDark, teal, orange, coral, sky, trail;
@@ -267,19 +268,34 @@ class _LearningPathPageState extends State<LearningPathPage> {
 
   /// Tabváltáskor az oldalak állapota (scroll, kiválasztott altab, félbehagyott
   /// játék) megmarad: az IndexedStack nem dobja el a rejtett oldalakat.
+  /// Lusta építés + áttűnés: csak a már megjárt tabok épülnek fel.
   Widget _tabBody() {
+    final pages = <Widget>[
+      _flowView(),
+      const BrainLeaguePage(),
+      const BattleZoneView(),
+      BenchmarkHubPage(onGoHome: () => setState(() => _tab = 0)),
+      const KreedsProfilePage(),
+    ];
     return IndexedStack(
       index: _tab,
       children: [
-        _flowView(),
-        const BrainLeaguePage(),
-        const BattleZoneView(),
-        BenchmarkHubPage(onGoHome: () => setState(() => _tab = 0)),
-        const KreedsProfilePage(),
+        for (var i = 0; i < pages.length; i++)
+          AnimatedOpacity(
+            opacity: i == _tab ? 1 : 0,
+            duration: const Duration(milliseconds: 180),
+            child: IgnorePointer(
+              ignoring: i != _tab,
+              child: _builtTabs.contains(i)
+                  ? pages[i]
+                  : const SizedBox.shrink(),
+            ),
+          ),
       ],
     );
   }
 
+  final Set<int> _builtTabs = {0};
   int _tab = 0;
   int _memory = 0;
   int? _chapterPos;
@@ -579,7 +595,10 @@ class _LearningPathPageState extends State<LearningPathPage> {
             bottom: 0,
             child: SynapseNavBar(
               index: _tab,
-              onSelect: (i) => setState(() => _tab = i),
+              onSelect: (i) => setState(() {
+                _builtTabs.add(i);
+                _tab = i;
+              }),
               tabs: _navTabs,
             ),
           ),
@@ -619,6 +638,9 @@ class _LearningPathPageState extends State<LearningPathPage> {
     const offsets = [0.0, -64.0, 64.0, 0.0];
     final body = <Widget>[];
     var station = 0;
+
+    body.add(const RoomPalaceHomeCard());
+    body.add(const SizedBox(height: 12));
 
     for (var s = 0; s < chapter.sections.length; s++) {
       final section = chapter.sections[s];
