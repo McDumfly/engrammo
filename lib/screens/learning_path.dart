@@ -55,6 +55,7 @@ import 'memory_profile.dart' show MemoryAssessmentIntroPage;
 import 'my_goals.dart' show MyGoalsPage;
 import '../services/memory_store.dart';
 import '../utils/streak_restore.dart';
+import '../utils/test_mode.dart';
 import '../widgets/stats_top_bar.dart';
 import '../widgets/streak_restore_dialog.dart';
 
@@ -300,6 +301,8 @@ class _LearningPathPageState extends State<LearningPathPage> {
   bool _showBackToNow = false;
   final ScrollController _scroll = ScrollController();
   final GlobalKey _nowKey = GlobalKey();
+  bool _stationFirstBuild = true;
+  int _staggerIndex = 0;
 
   @override
   void initState() {
@@ -307,6 +310,9 @@ class _LearningPathPageState extends State<LearningPathPage> {
     _memory = widget.initialTrack.clamp(0, _tracks.length - 1);
     _scroll.addListener(_onScroll);
     _loadHome();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _stationFirstBuild = false;
+    });
   }
 
   Future<void> _loadHome() async {
@@ -633,6 +639,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
     const offsets = [0.0, -64.0, 64.0, 0.0];
     final body = <Widget>[];
     var station = 0;
+    _staggerIndex = 0;
 
     body.add(
       const Padding(
@@ -672,13 +679,15 @@ class _LearningPathPageState extends State<LearningPathPage> {
           body.add(
             Container(
               key: ValueKey('path-lesson-$chapterIdx-$s-$l'),
-              child: _stationLocked(
-                offset: offset,
-                title: lessonTitleIn(
-                  AppLocalizations.localeCode,
-                  chapterIdx,
-                  s,
-                  l,
+              child: _staggerIn(
+                _stationLocked(
+                  offset: offset,
+                  title: lessonTitleIn(
+                    AppLocalizations.localeCode,
+                    chapterIdx,
+                    s,
+                    l,
+                  ),
                 ),
               ),
             ),
@@ -697,20 +706,22 @@ class _LearningPathPageState extends State<LearningPathPage> {
           );
           final weak = stars == 1;
           body.add(
-            _stationDone(
-              offset: offset,
-              title: lessonTitleIn(
-                AppLocalizations.localeCode,
-                chapterIdx,
-                s,
-                l,
+            _staggerIn(
+              _stationDone(
+                offset: offset,
+                title: lessonTitleIn(
+                  AppLocalizations.localeCode,
+                  chapterIdx,
+                  s,
+                  l,
+                ),
+                sub: weak
+                    ? '${tr('lpt_repeat_suggested')} • $doneStatus'
+                    : doneStatus,
+                weak: weak,
+                onTap: () => _openLesson(chapterIdx, s, l),
+                badgeKey: ValueKey('path-lesson-$chapterIdx-$s-$l'),
               ),
-              sub: weak
-                  ? '${tr('lpt_repeat_suggested')} • $doneStatus'
-                  : doneStatus,
-              weak: weak,
-              onTap: () => _openLesson(chapterIdx, s, l),
-              badgeKey: ValueKey('path-lesson-$chapterIdx-$s-$l'),
             ),
           );
           continue;
@@ -727,18 +738,20 @@ class _LearningPathPageState extends State<LearningPathPage> {
           body.add(
             Container(
               key: _nowKey,
-              child: _stationNow(
-                offset: offset,
-                number: station,
-                title: lessonTitleIn(
-                  AppLocalizations.localeCode,
-                  chapterIdx,
-                  s,
-                  l,
+              child: _staggerIn(
+                _stationNow(
+                  offset: offset,
+                  number: station,
+                  title: lessonTitleIn(
+                    AppLocalizations.localeCode,
+                    chapterIdx,
+                    s,
+                    l,
+                  ),
+                  lessonIcon: lesson.icon,
+                  onTap: () => _openLesson(chapterIdx, s, l),
+                  badgeKey: ValueKey('path-lesson-$chapterIdx-$s-$l'),
                 ),
-                lessonIcon: lesson.icon,
-                onTap: () => _openLesson(chapterIdx, s, l),
-                badgeKey: ValueKey('path-lesson-$chapterIdx-$s-$l'),
               ),
             ),
           );
@@ -746,12 +759,19 @@ class _LearningPathPageState extends State<LearningPathPage> {
         }
         station++;
         body.add(
-          _stationTodo(
-            offset: offset,
-            number: station,
-            title: lessonTitleIn(AppLocalizations.localeCode, chapterIdx, s, l),
-            onTap: () => _openLesson(chapterIdx, s, l),
-            badgeKey: ValueKey('path-lesson-$chapterIdx-$s-$l'),
+          _staggerIn(
+            _stationTodo(
+              offset: offset,
+              number: station,
+              title: lessonTitleIn(
+                AppLocalizations.localeCode,
+                chapterIdx,
+                s,
+                l,
+              ),
+              onTap: () => _openLesson(chapterIdx, s, l),
+              badgeKey: ValueKey('path-lesson-$chapterIdx-$s-$l'),
+            ),
           ),
         );
       }
@@ -937,6 +957,14 @@ class _LearningPathPageState extends State<LearningPathPage> {
 
   Color _dim(Color c, [double f = 0.7]) =>
       c.withValues(alpha: (c.a * f).clamp(0.0, 1.0));
+
+  /// First-build-only entrance: stations fade + scale .9 -> 1 with a
+  /// 30 ms stagger. Later rebuilds (progress updates, chapter jumps)
+  /// show the final state immediately.
+  Widget _staggerIn(Widget child) {
+    final index = _staggerIndex++;
+    return _StaggerIn(index: index, animate: _stationFirstBuild, child: child);
+  }
 
   Widget _stationShell({
     required double offset,
@@ -1214,7 +1242,11 @@ class _LearningPathPageState extends State<LearningPathPage> {
         strokeWidth: 2.0,
       ),
     );
-    final centered = Center(child: badge);
+    final badgeWithPulse = Stack(
+      alignment: Alignment.center,
+      children: [const _NowPulseRing(width: 76, height: 84, radius: 24), badge],
+    );
+    final centered = Center(child: badgeWithPulse);
     final shifted = offset == 0
         ? centered
         : Transform.translate(offset: Offset(offset, 0), child: centered);
@@ -3349,4 +3381,141 @@ class _RiverPainter extends CustomPainter {
   @override
   bool shouldRepaint(_RiverPainter old) =>
       old.fromX != fromX || old.toX != toX || old.color != color;
+}
+
+/// First-build entrance for one station node: fade + scale .9 -> 1 with a
+/// 30 ms stagger ([index] steps). Owned controller, so the FX2.7 TickerMode
+/// wrapper mutes it on hidden tabs. When [animate] is false the final state
+/// shows immediately (rebuilds after the first frame).
+class _StaggerIn extends StatefulWidget {
+  final int index;
+  final bool animate;
+  final Widget child;
+  const _StaggerIn({
+    required this.index,
+    required this.animate,
+    required this.child,
+  });
+
+  @override
+  State<_StaggerIn> createState() => _StaggerInState();
+}
+
+class _StaggerInState extends State<_StaggerIn>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 180),
+  );
+  // After the entrance the Opacity layer is dropped so the scroll list
+  // stays free of Opacity widgets (perf invariant, see home_scroll_perf).
+  bool _settled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.animate) {
+      _c.addStatusListener((status) {
+        if (status == AnimationStatus.completed && mounted) {
+          setState(() => _settled = true);
+        }
+      });
+      Future.delayed(Duration(milliseconds: 30 * widget.index), () {
+        if (mounted) _c.forward();
+      });
+    } else {
+      _settled = true;
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_settled) return widget.child;
+    return AnimatedBuilder(
+      animation: _c,
+      child: widget.child,
+      builder: (context, child) {
+        final t = Curves.easeOutCubic.transform(_c.value);
+        return Transform.scale(
+          scale: 0.9 + 0.1 * t,
+          child: Opacity(opacity: t, child: child),
+        );
+      },
+    );
+  }
+}
+
+/// Pulsing ring around the "now" station badge: scale 1 -> 1.18,
+/// alpha .35 -> 0, 1600 ms loop. Owned repeating controller, so the FX2.7
+/// TickerMode wrapper above the tabs pauses it when Home is hidden.
+class _NowPulseRing extends StatefulWidget {
+  final double width;
+  final double height;
+  final double radius;
+  const _NowPulseRing({
+    required this.width,
+    required this.height,
+    required this.radius,
+  });
+
+  @override
+  State<_NowPulseRing> createState() => _NowPulseRingState();
+}
+
+class _NowPulseRingState extends State<_NowPulseRing>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1600),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    // A repeating ticker never lets pumpAndSettle finish, so under
+    // `flutter test` the ring stays at its resting scale (same convention
+    // as the home-card blobs and the scan sweep).
+    if (!isFlutterTest) _pulse.repeat();
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  Widget _ring() {
+    return Container(
+      width: widget.width,
+      height: widget.height,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(widget.radius),
+        border: Border.all(color: blue, width: 3),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // No Opacity layer under test (perf invariant, see home_scroll_perf);
+    // the ring renders statically at its resting scale.
+    if (isFlutterTest) return _ring();
+    return AnimatedBuilder(
+      animation: _pulse,
+      child: _ring(),
+      builder: (context, child) {
+        final t = _pulse.value;
+        return Transform.scale(
+          scale: 1 + 0.18 * t,
+          child: Opacity(opacity: 0.35 * (1 - t), child: child),
+        );
+      },
+    );
+  }
 }
