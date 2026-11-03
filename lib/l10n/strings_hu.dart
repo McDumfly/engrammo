@@ -748,8 +748,14 @@ const Map<String, String> huStrings = {
   'task_day_prompt': 'Játszd vissza ezt a mininapot sorrendben!',
   'task_day_q': '„{event}” után — mi jött ezután?',
   'task_day_expl': 'Játszd vissza a napot előre, eseményről eseményre, lefekvés előtt — a visszajátszás elvárása is a hatás része. (Wilhelm et al. 2011)',
-  'task_palace_prompt':
-      'Sétáld végig {route} palotádat — állomásonként egy képpel!',
+  'task_palace_prompt_own':
+      'A te palotád: {palace}. Sétáld végig, állomásonként egy élénk képpel!',
+  'task_palace_prompt_practice': 'Gyakorló palota: {palace}. Sétáld végig, állomásonként egy élénk képpel!',
+  'palace_chip_own': 'A palotád: {title} · {n} állomás',
+  'palace_change': 'Csere',
+  'palace_pick': 'Válassz palotát',
+  'palace_active': 'Aktív a leckékben',
+  'palace_use': 'Használd a leckékben',
   'task_palace_q': 'Mit helyeztél el ide: {station}?',
   'task_palace_expl': 'Loci: állomásonként egy bizarr, mozgó kép, mindig sétasorrendben. A bajnokok pontosan ezzel a módszerrel memorizálnak — 6 hét edzés a kezdő agyakat az atléta mintázata felé huzalozza át. (Maguire et al. 2003; Dresler et al. 2017)',
   'task_picture_prompt': 'Tanulmányozd: {scene} — nevezz meg minden részletet!',

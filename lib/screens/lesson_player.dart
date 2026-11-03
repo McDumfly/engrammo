@@ -20,13 +20,16 @@ import '../models/marathon.dart'
         roundsForDepth,
         variantSeedFor;
 import '../l10n/app_localizations.dart';
+import '../models/active_palace.dart';
 import '../models/meta_task.dart';
-import '../models/palace_drill.dart' show spatialSceneForLesson;
+import '../models/palace_drill.dart' show spatialSceneForLesson, taskOnPalace;
 import '../models/recall_scoring.dart' show RecallScore, scoreTaskRecall;
 import '../models/transfer_targets.dart';
 import '../models/user_goals.dart';
 import '../models/validated_tasks.dart' show localValidatedTask, specForId;
 import 'my_goals.dart' show MyGoalsPage;
+import 'room_palace_page.dart' show RoomPalacePage;
+import '../services/active_palace_store.dart';
 import '../services/app_feedback.dart';
 import '../services/memory_growth.dart';
 import '../services/memory_store.dart';
@@ -38,8 +41,10 @@ import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
 import '../widgets/app_kit.dart';
 import '../widgets/dynamic_task_view.dart';
+import '../widgets/palace_picker_sheet.dart';
 import '../widgets/recall_inputs.dart';
 import '../widgets/sam_overlay.dart';
+import 'benchmark.dart' show MaskedPicture;
 
 String lessonKindFor(int chapter, int lesson, {int? section}) {
   const base = ['sensory', 'sequence', 'spatial', 'visual', 'verbal', 'verbal'];
@@ -522,6 +527,24 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
     ),
     _depth,
   );
+
+  /// True when any round of this lesson walks a palace.
+  bool get _hasSpatialRound {
+    for (var r = 0; r < _rounds; r++) {
+      if (lessonRoundKindFor(
+            widget.chapterIndex,
+            widget.lessonIndex,
+            r,
+            _rounds,
+            section: widget.sectionIndex,
+          ) ==
+          'spatial') {
+        return true;
+      }
+    }
+    return false;
+  }
+
   int get _lag => lagForDepth(
     lessonLagForLesson(
       widget.chapterIndex,
@@ -541,6 +564,8 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
   bool _ownBuilding = false;
   DynamicTask? _ownDynamic;
   List<UserGoal> _userGoals = const [];
+  ActivePalace? _palace;
+  bool _hasOwnPalace = false;
   String _recapText = '';
   bool _recapLive = false;
   String _missedText = '';
@@ -556,6 +581,41 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
     WidgetsBinding.instance.addObserver(this);
     _ownForgotCtrl.addListener(_onForgotChanged);
     _loadUserGoals();
+    _loadPalace();
+  }
+
+  /// The lesson walks the learner's active palace, not a fake route.
+  Future<void> _loadPalace() async {
+    try {
+      final locale = AppLocalizations.localeCode;
+      final palace = await ActivePalaceStore.load(locale);
+      final rooms = await MemoryStore.loadRoomPalaces();
+      if (!mounted) return;
+      setState(() {
+        _palace = palace;
+        _hasOwnPalace = rooms.any((p) => !p.sample && p.stations.length >= 3);
+      });
+    } catch (_) {}
+  }
+
+  MetaTask _onPalace(MetaTask t) =>
+      (_palace != null && t.paradigm == 'loci-drill')
+      ? taskOnPalace(t, _palace!, locale: AppLocalizations.localeCode)
+      : t;
+
+  /// Opens the picker, then re-seats future loci rounds on the new palace.
+  Future<void> _openPalacePicker() async {
+    AppFeedback.select();
+    await showPalacePicker(context);
+    if (!mounted) return;
+    await _loadPalace();
+    if (!mounted || _tasks.isEmpty) return;
+    setState(() {
+      for (var i = 0; i < _tasks.length; i++) {
+        if (_results.containsKey(i)) continue;
+        _tasks[i] = _onPalace(_tasks[i]);
+      }
+    });
   }
 
   Future<void> _loadUserGoals() async {
@@ -847,26 +907,38 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
           locale: AppLocalizations.localeCode,
         ),
       );
-      if (!withImage || !lessonRoundKindWantsImage(kind)) return task;
+      if (!withImage || !lessonRoundKindWantsImage(kind)) {
+        return _onPalace(task);
+      }
       if (kind == 'spatial') {
-        return await MetaAIService.enrichSpatialTask(
-          task,
-          difficulty: difficulty,
-          seed: seed,
-          scene: widget.chapterIndex == 2
-              ? spatialSceneForLesson(widget.sectionIndex, widget.lessonIndex)
-              : '',
-          locale: AppLocalizations.localeCode,
+        // An own palace needs no new Muse Image/SAM call: the learner's
+        // photo is already the stimulus. Practice routes pin the image
+        // paint to the named route.
+        final palace = _palace;
+        if (palace != null && palace.own) return _onPalace(task);
+        return _onPalace(
+          await MetaAIService.enrichSpatialTask(
+            task,
+            difficulty: difficulty,
+            seed: seed,
+            scene: widget.chapterIndex == 2
+                ? spatialSceneForLesson(widget.sectionIndex, widget.lessonIndex)
+                : '',
+            locale: AppLocalizations.localeCode,
+            routeIndex: palace?.routeIndex,
+          ),
         );
       }
-      return await MetaAIService.enrichVisualTask(task, seed: seed);
+      return _onPalace(await MetaAIService.enrichVisualTask(task, seed: seed));
     } catch (_) {
-      return localValidatedTask(
-        MetaTaskRequest(
-          kind: kind,
-          difficulty: difficulty,
-          seed: seed,
-          locale: AppLocalizations.localeCode,
+      return _onPalace(
+        localValidatedTask(
+          MetaTaskRequest(
+            kind: kind,
+            difficulty: difficulty,
+            seed: seed,
+            locale: AppLocalizations.localeCode,
+          ),
         ),
       );
     }
@@ -880,7 +952,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       depth: _depth,
     );
     setState(() {
-      _tasks = local;
+      _tasks = [for (final t in local) _onPalace(t)];
       _plan = lessonSessionPlan(_rounds, _lag);
       _planPos = 0;
       _picked = null;
@@ -946,20 +1018,24 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       try {
         upgraded = await _loadRoundTask(r, withImage: withImage).timeout(
           const Duration(seconds: 30),
-          onTimeout: () => loadLocalLessonTasks(
+          onTimeout: () => _onPalace(
+            loadLocalLessonTasks(
+              chapter: widget.chapterIndex,
+              section: widget.sectionIndex,
+              lesson: widget.lessonIndex,
+              depth: _depth,
+            )[r],
+          ),
+        );
+      } catch (_) {
+        upgraded = _onPalace(
+          loadLocalLessonTasks(
             chapter: widget.chapterIndex,
             section: widget.sectionIndex,
             lesson: widget.lessonIndex,
             depth: _depth,
           )[r],
         );
-      } catch (_) {
-        upgraded = loadLocalLessonTasks(
-          chapter: widget.chapterIndex,
-          section: widget.sectionIndex,
-          lesson: widget.lessonIndex,
-          depth: _depth,
-        )[r];
       }
       if (!mounted) return;
       done++;
@@ -968,7 +1044,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
         // memorizálás közben nem változhat meg a játékos alatt.
         final current = _step?.task ?? -1;
         if (r < _tasks.length && r > current && !_results.containsKey(r)) {
-          _tasks[r] = upgraded;
+          _tasks[r] = _onPalace(upgraded);
         }
         _upgradeDone = done;
         _upgradeProgress = done / rounds;
@@ -1522,6 +1598,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
           _aiStatusCard(),
         ],
         if (lagIntro) ...[const SizedBox(height: 12), _lagIntroCard()],
+        if (_hasSpatialRound) ...[const SizedBox(height: 12), _palaceCard()],
         const SizedBox(height: 12),
         if (intro && foundation)
           _workedExampleCard()
@@ -1769,6 +1846,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
           ),
         ),
         const SizedBox(height: 12),
+        if (_isLociStimulus) _palaceChip(),
         _stimulusBox(task),
         if (task.paradigm.isNotEmpty) ...[
           const SizedBox(height: 8),
@@ -1893,11 +1971,156 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
   }
 
   Widget _lociStimulus(MetaTask task) {
+    final palace = _palace;
+    if (palace != null && palace.own) {
+      // The learner's own room, with real outlines: no generated image,
+      // no SAM call — the photo they scanned is the stimulus.
+      final n = task.stations.length;
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 380),
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.l),
+                  child: MaskedPicture(
+                    imageUrl: palace.imageRef,
+                    scene: '',
+                    objects: task.stations,
+                    boxes: palace.boxes.length >= n
+                        ? palace.boxes.take(n).toList()
+                        : const [],
+                    masks: palace.masks.length >= n
+                        ? palace.masks.take(n).toList()
+                        : const [],
+                    revealed: const {},
+                    masked: false,
+                    showWalk: true,
+                    highlight: true,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          _techniqueCue(tr('lp_cue_loci')),
+          _lociStationList(task),
+        ],
+      );
+    }
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         _samImage(task),
         _techniqueCue(tr('lp_cue_loci')),
+        _lociStationList(task),
+      ],
+    );
+  }
+
+  /// Which palace this loci round walks, with a way to change it.
+  Widget _palaceChip() {
+    final palace = _palace;
+    if (palace == null) return const SizedBox.shrink();
+    final text = palace.own
+        ? tr('palace_chip_own', {
+            'title': palace.title,
+            'n': palace.stations.length,
+          })
+        : tr('palace_practice_title', {'name': palace.title});
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppText.caption.copyWith(color: context.mutedText),
+            ),
+          ),
+          AppLinkButton(label: tr('palace_change'), onTap: _openPalacePicker),
+        ],
+      ),
+    );
+  }
+
+  /// Coach-view card for spatial lessons: the active palace, a change
+  /// action, and the builder CTA when the learner has no own room yet.
+  Widget _palaceCard() {
+    final palace = _palace;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: context.cardBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.hairline, width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (palace == null)
+            Text(
+              tr('palace_pick'),
+              style: TextStyle(
+                color: context.inkText,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
+            )
+          else
+            Text(
+              palace.own
+                  ? tr('palace_chip_own', {
+                      'title': palace.title,
+                      'n': palace.stations.length,
+                    })
+                  : tr('palace_practice_title', {'name': palace.title}),
+              style: TextStyle(
+                color: context.inkText,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
+            ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              AppLinkButton(
+                label: palace == null ? tr('palace_pick') : tr('palace_change'),
+                onTap: _openPalacePicker,
+              ),
+              if (!_hasOwnPalace) ...[
+                const SizedBox(width: 8),
+                Expanded(
+                  child: AppLinkButton(
+                    label: tr('palace_build_own'),
+                    onTap: () async {
+                      AppFeedback.select();
+                      await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const RoomPalacePage(),
+                        ),
+                      );
+                      if (mounted) _loadPalace();
+                    },
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _lociStationList(MetaTask task) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
         for (var i = 0; i < task.stations.length; i++)
           Padding(
             padding: EdgeInsets.only(top: i == 0 ? 0 : 6),
@@ -1988,11 +2211,11 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
               ),
           ],
         ),
-        if (task.stations.isNotEmpty)
+        if (task.samLabels.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-              tr('ai_picture_sam', {'n': task.stations.length}),
+              tr('ai_picture_sam', {'n': task.samLabels.length}),
               textAlign: TextAlign.center,
               style: TextStyle(color: context.mutedText, fontSize: 12),
             ),

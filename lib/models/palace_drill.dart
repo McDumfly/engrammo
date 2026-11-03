@@ -3,6 +3,7 @@ library;
 import 'dart:math';
 
 import '../l10n/app_localizations.dart';
+import 'active_palace.dart';
 import 'item_banks.dart'
     show extraConcreteNounsFor, extraPictureScenesFor, isHuLocale;
 import 'meta_task.dart';
@@ -321,22 +322,57 @@ int drillItemCount(int difficulty) => 3 + difficulty.clamp(1, 5);
 /// the black masks hide.
 String normalizeRecallAnswer(String s) {
   const accents = {
-    'á': 'a', 'à': 'a', 'â': 'a', 'ä': 'a', 'ã': 'a', 'å': 'a',
-    'é': 'e', 'è': 'e', 'ê': 'e', 'ë': 'e',
-    'í': 'i', 'ì': 'i', 'î': 'i', 'ï': 'i',
-    'ó': 'o', 'ò': 'o', 'ô': 'o', 'ö': 'o', 'ő': 'o', 'õ': 'o', 'ø': 'o',
-    'ú': 'u', 'ù': 'u', 'û': 'u', 'ü': 'u', 'ű': 'u',
-    'ý': 'y', 'ÿ': 'y',
-    'ç': 'c', 'č': 'c', 'ć': 'c',
-    'ñ': 'n', 'ň': 'n',
-    'š': 's', 'ş': 's', 'ß': 'ss',
-    'ž': 'z', 'ź': 'z', 'ż': 'z',
-    'đ': 'd', 'ď': 'd',
-    'ğ': 'g', 'ł': 'l', 'ř': 'r', 'ţ': 't', 'þ': 'th',
+    'á': 'a',
+    'à': 'a',
+    'â': 'a',
+    'ä': 'a',
+    'ã': 'a',
+    'å': 'a',
+    'é': 'e',
+    'è': 'e',
+    'ê': 'e',
+    'ë': 'e',
+    'í': 'i',
+    'ì': 'i',
+    'î': 'i',
+    'ï': 'i',
+    'ó': 'o',
+    'ò': 'o',
+    'ô': 'o',
+    'ö': 'o',
+    'ő': 'o',
+    'õ': 'o',
+    'ø': 'o',
+    'ú': 'u',
+    'ù': 'u',
+    'û': 'u',
+    'ü': 'u',
+    'ű': 'u',
+    'ý': 'y',
+    'ÿ': 'y',
+    'ç': 'c',
+    'č': 'c',
+    'ć': 'c',
+    'ñ': 'n',
+    'ň': 'n',
+    'š': 's',
+    'ş': 's',
+    'ß': 'ss',
+    'ž': 'z',
+    'ź': 'z',
+    'ż': 'z',
+    'đ': 'd',
+    'ď': 'd',
+    'ğ': 'g',
+    'ł': 'l',
+    'ř': 'r',
+    'ţ': 't',
+    'þ': 'th',
   };
   final lower = s.toLowerCase().trim().replaceAll(RegExp(r'\s+'), ' ');
   return String.fromCharCodes([
-    for (final c in lower.runes) ...(accents[String.fromCharCode(c)] ?? String.fromCharCode(c)).runes,
+    for (final c in lower.runes)
+      ...(accents[String.fromCharCode(c)] ?? String.fromCharCode(c)).runes,
   ]);
 }
 
@@ -366,49 +402,147 @@ class MemorableList {
 
 const _memorablePoolsHu = <String, List<String>>{
   'Bevásárlólista': [
-    'tej', 'kenyér', 'tojás', 'vaj', 'alma', 'sajt', 'paradicsom',
-    'liszt', 'cukor', 'kávé', 'tea', 'méz', 'rizs', 'tészta', 'banán',
-    'narancs', 'burgonya', 'hagyma', 'paprika', 'tejföl',
+    'tej',
+    'kenyér',
+    'tojás',
+    'vaj',
+    'alma',
+    'sajt',
+    'paradicsom',
+    'liszt',
+    'cukor',
+    'kávé',
+    'tea',
+    'méz',
+    'rizs',
+    'tészta',
+    'banán',
+    'narancs',
+    'burgonya',
+    'hagyma',
+    'paprika',
+    'tejföl',
   ],
   'Teendők mára': [
-    'csekkbefizetés', 'gyógyszertár', 'kulcsmásolás', 'virágöntözés',
-    'postacsomag', 'fogorvos időpont', 'könyvtári könyv', 'autómosás',
-    'számlaellenőrzés', 'ajándékcsomagolás', 'ablaktisztítás',
+    'csekkbefizetés',
+    'gyógyszertár',
+    'kulcsmásolás',
+    'virágöntözés',
+    'postacsomag',
+    'fogorvos időpont',
+    'könyvtári könyv',
+    'autómosás',
+    'számlaellenőrzés',
+    'ajándékcsomagolás',
+    'ablaktisztítás',
     'cipőjavítás',
   ],
   'Útravaló lista': [
-    'útlevél', 'jegy', 'töltő', 'esernyő', 'napszemüveg', 'kabát',
-    'gyógyszer', 'könyv', 'kulacs', 'térkép', 'papírzsebkendő',
+    'útlevél',
+    'jegy',
+    'töltő',
+    'esernyő',
+    'napszemüveg',
+    'kabát',
+    'gyógyszer',
+    'könyv',
+    'kulacs',
+    'térkép',
+    'papírzsebkendő',
     'szendvics',
   ],
   'Tanulnivaló szavak': [
-    'alma', 'kalapács', 'gyertya', 'híd', 'kert', 'lámpa', 'óceán',
-    'kulcs', 'tigris', 'hegedű', 'vár', 'rakéta', 'tükör',
-    'iránytű', 'sárkány', 'zongora', 'horgony', 'léggömb',
+    'alma',
+    'kalapács',
+    'gyertya',
+    'híd',
+    'kert',
+    'lámpa',
+    'óceán',
+    'kulcs',
+    'tigris',
+    'hegedű',
+    'vár',
+    'rakéta',
+    'tükör',
+    'iránytű',
+    'sárkány',
+    'zongora',
+    'horgony',
+    'léggömb',
   ],
 };
 
 const _memorablePoolsEn = <String, List<String>>{
   'Shopping list': [
-    'milk', 'bread', 'eggs', 'butter', 'apple', 'cheese', 'tomato',
-    'flour', 'sugar', 'coffee', 'tea', 'honey', 'rice', 'pasta',
-    'banana', 'orange', 'potato', 'onion', 'pepper', 'yogurt',
+    'milk',
+    'bread',
+    'eggs',
+    'butter',
+    'apple',
+    'cheese',
+    'tomato',
+    'flour',
+    'sugar',
+    'coffee',
+    'tea',
+    'honey',
+    'rice',
+    'pasta',
+    'banana',
+    'orange',
+    'potato',
+    'onion',
+    'pepper',
+    'yogurt',
   ],
   "Today's errands": [
-    'pay the bill', 'pharmacy', 'copy a key', 'water the plants',
-    'parcel pickup', 'dentist appointment', 'library book', 'car wash',
-    'check the invoice', 'wrap the gift', 'clean the windows',
+    'pay the bill',
+    'pharmacy',
+    'copy a key',
+    'water the plants',
+    'parcel pickup',
+    'dentist appointment',
+    'library book',
+    'car wash',
+    'check the invoice',
+    'wrap the gift',
+    'clean the windows',
     'shoe repair',
   ],
   'Packing list': [
-    'passport', 'ticket', 'charger', 'umbrella', 'sunglasses',
-    'jacket', 'medicine', 'book', 'water bottle', 'map', 'tissues',
+    'passport',
+    'ticket',
+    'charger',
+    'umbrella',
+    'sunglasses',
+    'jacket',
+    'medicine',
+    'book',
+    'water bottle',
+    'map',
+    'tissues',
     'sandwich',
   ],
   'Study words': [
-    'apple', 'hammer', 'candle', 'bridge', 'garden', 'lamp',
-    'ocean', 'key', 'tiger', 'violin', 'castle', 'rocket',
-    'mirror', 'compass', 'dragon', 'piano', 'anchor', 'balloon',
+    'apple',
+    'hammer',
+    'candle',
+    'bridge',
+    'garden',
+    'lamp',
+    'ocean',
+    'key',
+    'tiger',
+    'violin',
+    'castle',
+    'rocket',
+    'mirror',
+    'compass',
+    'dragon',
+    'piano',
+    'anchor',
+    'balloon',
   ],
 };
 
@@ -460,13 +594,28 @@ String routeForSeed(String seed, [String locale = 'en']) {
   return names[_seedHash('route:$seed') % names.length];
 }
 
+/// Display title of practice route [index]: a named palace, never a
+/// different route per round.
+String palaceRouteTitle(int index, [String locale = 'en']) {
+  final i = index.clamp(0, 2);
+  return trFor(locale, 'palace_route_$i');
+}
+
 String sceneForSeed(String seed, [String locale = 'en']) {
   final names = allPictureScenesFor(locale).keys.toList();
   return names[_seedHash('scene:$seed') % names.length];
 }
 
-List<String> localStations(String seed, int count, [String locale = 'en']) {
-  final route = palaceRoutesFor(locale)[routeForSeed(seed, locale)]!;
+List<String> localStations(
+  String seed,
+  int count, [
+  String locale = 'en',
+  int? routeIndex,
+]) {
+  final routes = palaceRoutesFor(locale);
+  final route = routeIndex != null
+      ? routes.values.elementAt(routeIndex.clamp(0, routes.length - 1))
+      : routes[routeForSeed(seed, locale)]!;
   return route.take(count.clamp(1, route.length)).toList();
 }
 
@@ -481,6 +630,7 @@ List<String> stationsFromLabels(
   String seed,
   int count, [
   String locale = 'en',
+  int? routeIndex,
 ]) {
   final n = count.clamp(1, 10);
   final merged = <String>[];
@@ -491,7 +641,7 @@ List<String> stationsFromLabels(
     if (merged.length >= n) break;
   }
   if (merged.length < n) {
-    for (final station in localStations(seed, 10, locale)) {
+    for (final station in localStations(seed, 10, locale, routeIndex)) {
       if (merged.contains(station)) continue;
       merged.add(station);
       if (merged.length >= n) break;
@@ -580,10 +730,17 @@ MetaTask localPalaceTask({
   /// Exact station count override for practice rounds whose length sits
   /// outside the registry 4-8 window (same loci procedure, any length).
   int? count,
+
+  /// Pinned practice route (the lesson's active palace). When set, this
+  /// route is used instead of the seed-derived one.
+  int? routeIndex,
 }) {
   final n = (count ?? drillItemCount(difficulty)).clamp(3, 10);
-  final route = routeForSeed(seed, locale);
-  final stations = localStations(seed, n, locale);
+  final routes = palaceRoutesFor(locale);
+  final route = routeIndex != null
+      ? routes.keys.elementAt(routeIndex.clamp(0, routes.length - 1))
+      : routeForSeed(seed, locale);
+  final stations = localStations(seed, n, locale, routeIndex);
   final words = localDrillWords(seed, n, locale);
   final rnd = Random(_seedHash('target:$seed'));
   final target = rnd.nextInt(n);
@@ -596,7 +753,12 @@ MetaTask localPalaceTask({
   }
   options.shuffle(rnd);
   return MetaTask(
-    prompt: trFor(locale, 'task_palace_prompt', {'route': route}),
+    prompt: trFor(locale, 'task_palace_prompt_practice', {
+      'palace': palaceRouteTitle(
+        routeIndex ?? routes.keys.toList().indexOf(route),
+        locale,
+      ),
+    }),
     items: List<String>.of(words),
     stations: stations,
     question: trFor(locale, 'task_palace_q', {'station': stations[target]}),
@@ -606,6 +768,43 @@ MetaTask localPalaceTask({
     paradigm: 'loci-drill',
     source: 'Maguire et al. 2003; Dresler et al. 2017',
     createdAt: DateTime.now(),
+  );
+}
+
+/// Re-seats a loci drill on the learner's active palace: the stations
+/// come from [p], the items are trimmed to fit, and the correct answer
+/// is kept (re-pointed when it falls outside the trim).
+MetaTask taskOnPalace(MetaTask t, ActivePalace p, {String locale = 'en'}) {
+  final n = min(t.items.length, p.stations.length);
+  if (n <= 0 || t.options.isEmpty) {
+    return t.copyWith(
+      stations: p.stations.take(n).toList(),
+      items: t.items.take(n).toList(),
+      samLabels: const [],
+    );
+  }
+  final items = t.items.take(n).toList();
+  final stations = p.stations.take(n).toList();
+  final options = List<String>.of(t.options);
+  var correct = t.correct.clamp(0, options.length - 1);
+  var target = items.indexOf(options[correct]);
+  if (target < 0 || target >= n) {
+    target = n - 1;
+    options[correct] = items[target];
+  }
+  return t.copyWith(
+    stations: stations,
+    items: items,
+    question: trFor(locale, 'task_palace_q', {'station': stations[target]}),
+    prompt: trFor(
+      locale,
+      p.own ? 'task_palace_prompt_own' : 'task_palace_prompt_practice',
+      {'palace': p.title},
+    ),
+    options: options,
+    correct: correct,
+    imageUrl: p.own ? p.imageRef : t.imageUrl,
+    samLabels: const [],
   );
 }
 

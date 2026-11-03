@@ -1,5 +1,4 @@
 import '../l10n/app_localizations.dart' show trFor;
-import 'active_palace.dart' show palaceShortDate;
 import 'fsrs_card.dart';
 import 'recall_scoring.dart' show fuzzyWordMatch, normalizeAnswer;
 
@@ -212,6 +211,14 @@ int roomGrade(int correct, int total) {
   if (ratio >= 0.8) return 3;
   if (ratio >= 0.5) return 2;
   return 1;
+}
+
+/// Short numeric date for palace titles, e.g. 2026-11-03.
+String palaceShortDate(DateTime at) {
+  final y = at.year.toString().padLeft(4, '0');
+  final m = at.month.toString().padLeft(2, '0');
+  final d = at.day.toString().padLeft(2, '0');
+  return '$y-$m-$d';
 }
 
 /// Display name: the same titles the lesson picker shows — a dated room

@@ -736,7 +736,15 @@ const Map<String, String> enStrings = {
   'task_day_prompt': 'Replay this mini-day in order!',
   'task_day_q': 'After “{event}” — what came next?',
   'task_day_expl': 'Replay the day forward, event by event, before sleep — expecting the replay is part of the effect. (Wilhelm et al. 2011)',
-  'task_palace_prompt': 'Walk your {route} palace — one image per station!',
+  'task_palace_prompt_own':
+      'Your palace: {palace}. Walk it, one vivid image per station!',
+  'task_palace_prompt_practice':
+      'Practice palace: {palace}. Walk it, one vivid image per station!',
+  'palace_chip_own': 'Your palace: {title} · {n} stations',
+  'palace_change': 'Change',
+  'palace_pick': 'Pick your palace',
+  'palace_active': 'Active for lessons',
+  'palace_use': 'Use in lessons',
   'task_palace_q': 'What did you place at the {station}?',
   'task_palace_expl': 'Loci: one bizarre, moving image per station, always in walking order. Champions memorize with this exact method — 6 weeks of training rewires beginner brains toward the athlete pattern. (Maguire et al. 2003; Dresler et al. 2017)',
   'task_picture_prompt': 'Study this {scene} — name every detail!',

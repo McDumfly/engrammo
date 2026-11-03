@@ -2,7 +2,7 @@ library;
 
 import '../l10n/app_localizations.dart' show trFor;
 import 'palace_drill.dart' show palaceRoutesFor;
-import 'room_palace.dart';
+import 'room_palace.dart' show RoomPalace, palaceShortDate;
 
 /// The palace lessons walk: the learner's real room when they built one,
 /// otherwise a named practice route. Honest by construction — the title
@@ -71,12 +71,4 @@ class ActivePalace {
       sample: false,
     );
   }
-}
-
-/// Short numeric date for palace titles, e.g. 2026-11-03.
-String palaceShortDate(DateTime at) {
-  final y = at.year.toString().padLeft(4, '0');
-  final m = at.month.toString().padLeft(2, '0');
-  final d = at.day.toString().padLeft(2, '0');
-  return '$y-$m-$d';
 }

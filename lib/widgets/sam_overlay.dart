@@ -94,6 +94,28 @@ class SamOverlay extends StatelessWidget {
                                 ),
                               ),
                             ),
+                          if (chips.length > 6)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.45),
+                                borderRadius: BorderRadius.circular(99),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                ),
+                              ),
+                              child: Text(
+                                '+${chips.length - 6}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                     ),

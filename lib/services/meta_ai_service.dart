@@ -1910,6 +1910,7 @@ class MetaAIService {
     required String seed,
     String scene = '',
     String locale = 'en',
+    int? routeIndex,
     http.Client? client,
     String? apiKeyOverride,
     String? baseUrlOverride,
@@ -1919,11 +1920,19 @@ class MetaAIService {
     var out = task;
     if (out.stations.length != count) {
       out = out.copyWith(
-        stations: stationsFromLabels(out.stations, seed, count, locale),
+        stations: stationsFromLabels(
+          out.stations,
+          seed,
+          count,
+          locale,
+          routeIndex,
+        ),
       );
     }
     try {
-      final route = routeForSeed(seed, locale);
+      final route = routeIndex != null
+          ? palaceRoutesFor(locale).keys.elementAt(routeIndex.clamp(0, 2))
+          : routeForSeed(seed, locale);
       final img = await generateImage(
         MetaImageRequest(
           prompt: palaceImagePrompt(route, difficulty, locale, scene),
