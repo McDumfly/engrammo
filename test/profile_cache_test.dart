@@ -77,6 +77,11 @@ void main() {
   testWidgets('profilba visszalepve a cachelt adatok azonnal latszanak', (
     tester,
   ) async {
+    // A legerosebb tipus neve a fejlécben 20-as, a fajták rácsában
+    // 13-as: a fejléc-címke a cachelt domináns fajtát igazolja.
+    Finder strongestKind(String name) => find.byWidgetPredicate(
+      (w) => w is Text && w.data == name && w.style?.fontSize == 20,
+    );
     SharedPreferences.setMockInitialValues({
       'profile_display_name_v1': 'Cache Elek',
       'profile_username_v1': 'cache_elek',
@@ -87,7 +92,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Cache Elek'), findsOneWidget);
     expect(find.text('@cache_elek'), findsOneWidget);
-    expect(find.text('Spatial'), findsOneWidget);
+    expect(strongestKind('Spatial'), findsOneWidget);
 
     await tester.pumpWidget(
       const MaterialApp(home: Scaffold(body: Text('masik ful'))),
@@ -106,13 +111,13 @@ void main() {
     // Elso kepkocka: meg a cachelt regi adat latszik, nem ures profil.
     expect(find.text('Cache Elek'), findsOneWidget);
     expect(find.text('@cache_elek'), findsOneWidget);
-    expect(find.text('Spatial'), findsOneWidget);
+    expect(strongestKind('Spatial'), findsOneWidget);
 
     // Hatter-frissites utan az uj adat ervenyesul.
     await tester.pumpAndSettle();
     expect(find.text('Friss Adat'), findsOneWidget);
     expect(find.text('@friss_adat'), findsOneWidget);
-    expect(find.text('Episodic'), findsOneWidget);
+    expect(strongestKind('Episodic'), findsOneWidget);
     expect(find.text('Cache Elek'), findsNothing);
   });
 }
