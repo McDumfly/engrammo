@@ -944,6 +944,7 @@ const Map<String, String> enStrings = {
   'bench_retry_xp': 'Retry (double XP feeling)',
   'bench_seq_watch': 'Watch the sequence… ({n} steps)',
   'bench_seq_turn': 'Your turn! Repeat the sequence.',
+  'bench_seq_tile': 'Row {r}, column {c}',
   'bench_digits_n': '{n} digits',
   'bench_num_done_title': '{n} digits!',
   'bench_num_done_detail':

@@ -968,6 +968,7 @@ const Map<String, String> huStrings = {
   'bench_retry_xp': 'Újra (dupla XP érzés)',
   'bench_seq_watch': 'Figyeld a sorozatot… ({n} lépés)',
   'bench_seq_turn': 'Te jössz! Ismételd meg a sorozatot.',
+  'bench_seq_tile': '{r}. sor, {c}. oszlop',
   'bench_digits_n': '{n} számjegy',
   'bench_num_done_title': '{n} számjegy!',
   'bench_num_done_detail':

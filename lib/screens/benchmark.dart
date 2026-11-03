@@ -1215,6 +1215,9 @@ class _SequenceGamePageState extends State<SequenceGamePage> {
   int _input = 0;
   bool _busy = false;
   bool _over = false;
+  int? _flashIdx;
+  Color? _flashColor;
+  int? _revealIdx;
   int? _aiNext;
   bool _aiNextLive = false;
   bool _roundLive = false;
@@ -1270,6 +1273,14 @@ class _SequenceGamePageState extends State<SequenceGamePage> {
   void _tap(int i) {
     if (_busy || _over) return;
     if (i == _seq[_input]) {
+      AppFeedback.select();
+      setState(() {
+        _flashIdx = i;
+        _flashColor = teal;
+      });
+      Future.delayed(const Duration(milliseconds: 180), () {
+        if (mounted && _flashIdx == i) setState(() => _flashIdx = null);
+      });
       _input++;
       if (_input >= _seq.length) {
         BenchmarkStore.submit(
@@ -1278,16 +1289,31 @@ class _SequenceGamePageState extends State<SequenceGamePage> {
           higherIsBetter: true,
           xpGain: 8 + _level * 2,
         );
-        _nextRound();
+        setState(() => _busy = true);
+        Future.delayed(const Duration(milliseconds: 350), () {
+          if (mounted && !_over) _nextRound();
+        });
       } else {
         setState(() {});
       }
     } else {
+      AppFeedback.heavy();
       final score = _seq.length - 1;
       BenchmarkStore.submit('sequence', score, higherIsBetter: true, xpGain: 5);
       setState(() {
-        _over = true;
-        _endedAt = DateTime.now();
+        _busy = true;
+        _flashIdx = i;
+        _flashColor = coral;
+        _revealIdx = _seq[_input];
+      });
+      Future.delayed(const Duration(milliseconds: 650), () {
+        if (!mounted) return;
+        setState(() {
+          _flashIdx = null;
+          _revealIdx = null;
+          _over = true;
+          _endedAt = DateTime.now();
+        });
       });
     }
   }
@@ -1343,28 +1369,59 @@ class _SequenceGamePageState extends State<SequenceGamePage> {
               itemCount: 9,
               itemBuilder: (_, i) {
                 final lit = _showing == i;
-                return GestureDetector(
-                  onTap: () {
-                    _tap(i);
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    decoration: BoxDecoration(
-                      color: lit ? orange : context.cardBg,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: lit ? orange : context.hairline,
-                        width: 2,
-                      ),
-                      boxShadow: lit
+                final flashing = _flashIdx == i ? _flashColor : null;
+                final reveal = _revealIdx == i;
+                final fill = lit
+                    ? orange
+                    : (flashing ??
+                          (reveal
+                              ? teal.withValues(alpha: 0.3)
+                              : context.cardBg));
+                final edge = lit
+                    ? orange
+                    : (flashing ?? (reveal ? teal : context.hairline));
+                final glow = lit
+                    ? [
+                        BoxShadow(
+                          color: orange.withValues(alpha: 0.5),
+                          blurRadius: 16,
+                        ),
+                      ]
+                    : (flashing != null
                           ? [
                               BoxShadow(
-                                color: orange.withValues(alpha: 0.5),
+                                color: flashing.withValues(alpha: 0.5),
                                 blurRadius: 16,
                               ),
                             ]
-                          : null,
+                          : null);
+                return Tappable(
+                  scale: 0.94,
+                  haptic: false,
+                  semanticLabel: tr('bench_seq_tile', {
+                    'r': i ~/ 3 + 1,
+                    'c': i % 3 + 1,
+                  }),
+                  onTap: () => _tap(i),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    decoration: BoxDecoration(
+                      color: fill,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: edge, width: 2),
+                      boxShadow: glow,
                     ),
+                    child: flashing != null
+                        ? Center(
+                            child: HugeIcon(
+                              icon: flashing == teal
+                                  ? HugeIcons.strokeRoundedTick02
+                                  : HugeIcons.strokeRoundedCancel01,
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                          )
+                        : null,
                   ),
                 );
               },
