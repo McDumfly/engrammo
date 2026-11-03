@@ -108,7 +108,7 @@ class EngramButton extends StatelessWidget {
                         color: labelColor,
                         fontWeight: FontWeight.w900,
                         fontSize: 17,
-                        letterSpacing: 0.5,
+                        letterSpacing: 0,
                         height: 1.25,
                       ),
                       textAlign: TextAlign.center,

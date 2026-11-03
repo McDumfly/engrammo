@@ -209,9 +209,9 @@ void main() {
       );
       await tester.pumpAndSettle();
       for (var i = 1; i < interviewQuestions.length; i++) {
-        await tester.ensureVisible(find.text('NEXT'));
+        await tester.ensureVisible(find.text('Next'));
         await tester.pumpAndSettle();
-        await tester.tap(find.text('NEXT'));
+        await tester.tap(find.text('Next'));
         await tester.pumpAndSettle();
       }
     }

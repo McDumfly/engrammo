@@ -45,6 +45,18 @@ void main() {
     expect(find.byType(MemoryAssessmentIntroPage), findsOneWidget);
   });
 
+  testWidgets('húzásra lapoz a PageView', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(402, 874));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(frame(onDone: () {}));
+    await tester.pumpAndSettle();
+
+    await tester.drag(find.byType(PageView), const Offset(-300, 0));
+    await tester.pumpAndSettle();
+
+    expect(find.text(tr('onb_room_title')), findsOneWidget);
+  });
+
   testWidgets('második lap a szoba, mítoszromboló a kutatások lapon', (
     tester,
   ) async {

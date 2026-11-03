@@ -6,10 +6,10 @@ import '../services/app_feedback.dart';
 import '../services/memory_store.dart';
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
-import '../widgets/ai_help_button.dart';
 import '../widgets/app_buttons.dart';
 import '../widgets/app_kit.dart';
 import '../widgets/honesty_sheet.dart';
+import '../widgets/room_preview_art.dart';
 import 'memory_profile.dart';
 
 class OnboardingPage extends StatefulWidget {
@@ -135,8 +135,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   void _next() {
     _pages.nextPage(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
     );
   }
 
@@ -149,12 +149,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+              child: SizedBox(
+                height: 48,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         for (var i = 0; i < total; i++) ...[
                           if (i > 0) const SizedBox(width: 6),
@@ -173,21 +175,29 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         ],
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  const AiHelpButton(topic: AiHelpTopics.assessment),
-                  const SizedBox(width: 4),
-                  GestureDetector(
-                    onTap: _skip,
-                    child: Padding(
-                      padding: const EdgeInsets.all(6),
-                      child: Text(
-                        tr('onboarding_skip'),
-                        style: AppText.body.copyWith(color: context.mutedText),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Tappable(
+                        onTap: _skip,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            minWidth: 44,
+                            minHeight: 44,
+                          ),
+                          child: Center(
+                            child: Text(
+                              tr('onboarding_skip'),
+                              style: AppText.body.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: context.mutedText,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             Expanded(
@@ -204,45 +214,39 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     icon: HugeIcons.strokeRoundedCamera01,
                     titleKey: 'onb_room_title',
                     bodyKey: 'onb_room_body',
+                    visual: const RoomPreviewArt(),
                   ),
                   _featurePage(
                     index: 2,
                     icon: HugeIcons.strokeRoundedAiBrain01,
                     titleKey: 'onb_coach_title',
                     bodyKey: 'onb_coach_body',
+                    visual: _coachTimelineCard(),
                   ),
                   _ctaCard(),
                 ],
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
               child: _index == total - 1
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         EngramButton(
+                          label: tr('onboarding_start'),
+                          haptic: false,
+                          onPressed: _skip,
+                        ),
+                        const SizedBox(height: 8),
+                        EngramButton(
                           label: _busy
                               ? tr('onboarding_opening')
                               : tr('onboarding_find_my_type'),
+                          variant: EngramButtonVariant.secondary,
                           isLoading: _busy,
                           haptic: false,
                           onPressed: _busy ? null : _startAssessment,
-                        ),
-                        const SizedBox(height: 8),
-                        Center(
-                          child: GestureDetector(
-                            onTap: _skip,
-                            child: Padding(
-                              padding: const EdgeInsets.all(8),
-                              child: Text(
-                                tr('onboarding_skip_for_now'),
-                                style: AppText.body.copyWith(
-                                  color: context.mutedText,
-                                ),
-                              ),
-                            ),
-                          ),
                         ),
                       ],
                     )
@@ -257,49 +261,44 @@ class _OnboardingPageState extends State<OnboardingPage> {
     );
   }
 
-  Widget _welcomeCard() {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-      children: [
-        Text(
-          tr('onboarding_welcome_title'),
-          style: AppText.display.copyWith(
-            color: Theme.of(context).colorScheme.onSurface,
+  /// One page body: vertically centred, scrollable when content is tall.
+  Widget _centered(List<Widget> children) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: children,
+            ),
           ),
         ),
-        const SizedBox(height: 12),
-        Text(
-          tr('onboarding_welcome_body'),
-          style: AppText.body.copyWith(color: context.inkText),
-        ),
-        const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: context.washBg,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: context.washBorder, width: 2),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                tr('onboarding_honest_note'),
-                style: AppText.body.copyWith(color: context.inkText),
-              ),
-              const SizedBox(height: 8),
-              GestureDetector(
-                onTap: () => showHonestySheet(context),
-                child: Text(
-                  tr('onboarding_honesty_link'),
-                  style: AppText.body.copyWith(color: context.accentText(blue)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+      ),
     );
+  }
+
+  Widget _welcomeCard() {
+    return _centered([
+      Text(
+        tr('onboarding_welcome_title'),
+        style: AppText.display.copyWith(
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+      ),
+      const SizedBox(height: 12),
+      Text(
+        tr('onboarding_welcome_body'),
+        style: AppText.body.copyWith(color: context.inkText),
+      ),
+      const SizedBox(height: 8),
+      EngramTextButton(
+        label: tr('onboarding_honesty_link'),
+        onPressed: () => showHonestySheet(context),
+      ),
+    ]);
   }
 
   Widget _featurePage({
@@ -307,48 +306,97 @@ class _OnboardingPageState extends State<OnboardingPage> {
     required List<List<dynamic>> icon,
     required String titleKey,
     required String bodyKey,
+    Widget? visual,
   }) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+    return _centered([
+      TweenAnimationBuilder<double>(
+        key: ValueKey('onb-tile-$index'),
+        tween: Tween(begin: 0, end: 1),
+        duration: const Duration(milliseconds: 360),
+        curve: Curves.easeOutCubic,
+        builder: (context, t, child) => Opacity(
+          opacity: t,
+          child: Transform.translate(
+            offset: Offset(0, 16 * (1 - t)),
+            child: child,
+          ),
+        ),
+        child:
+            visual ??
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                width: 88,
+                height: 88,
+                decoration: BoxDecoration(
+                  color: context.washBg,
+                  borderRadius: BorderRadius.circular(AppRadius.xl),
+                  border: Border.all(color: context.washBorder, width: 2),
+                ),
+                alignment: Alignment.center,
+                child: HugeIcon(
+                  icon: icon,
+                  color: blue,
+                  size: 40,
+                  strokeWidth: 2.0,
+                ),
+              ),
+            ),
+      ),
+      const SizedBox(height: 16),
+      Text(
+        tr(titleKey),
+        style: AppText.title.copyWith(
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+      ),
+      const SizedBox(height: 10),
+      Text(tr(bodyKey), style: AppText.body.copyWith(color: context.inkText)),
+    ]);
+  }
+
+  /// Static Session-Coach-style timeline card for the coach page.
+  Widget _coachTimelineCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.cardBg,
+        borderRadius: BorderRadius.circular(AppRadius.l),
+        border: Border.all(color: context.hairline, width: 2),
+      ),
+      child: Column(
+        children: [
+          _timelineRow('coach_step_due'),
+          const SizedBox(height: 12),
+          _timelineRow('coach_step_snapshot'),
+          const SizedBox(height: 12),
+          _timelineRow('coach_trace_accepted'),
+        ],
+      ),
+    );
+  }
+
+  Widget _timelineRow(String labelKey) {
+    return Row(
       children: [
-        TweenAnimationBuilder<double>(
-          key: ValueKey('onb-tile-$index'),
-          tween: Tween(begin: 0, end: 1),
-          duration: const Duration(milliseconds: 360),
-          curve: Curves.easeOutCubic,
-          builder: (context, t, child) => Opacity(
-            opacity: t,
-            child: Transform.translate(
-              offset: Offset(0, 16 * (1 - t)),
-              child: child,
-            ),
-          ),
-          child: Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: context.washBg,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: context.washBorder, width: 2),
-            ),
-            alignment: Alignment.center,
-            child: HugeIcon(
-              icon: icon,
-              color: blue,
-              size: 30,
-              strokeWidth: 2.0,
-            ),
+        Container(
+          width: 24,
+          height: 24,
+          decoration: const BoxDecoration(color: teal, shape: BoxShape.circle),
+          alignment: Alignment.center,
+          child: const HugeIcon(
+            icon: HugeIcons.strokeRoundedTick02,
+            color: Colors.white,
+            size: 14,
           ),
         ),
-        const SizedBox(height: 16),
-        Text(
-          tr(titleKey),
-          style: AppText.title.copyWith(
-            color: Theme.of(context).colorScheme.onSurface,
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            tr(labelKey),
+            style: AppText.body.copyWith(color: context.inkText),
           ),
         ),
-        const SizedBox(height: 10),
-        Text(tr(bodyKey), style: AppText.body.copyWith(color: context.inkText)),
       ],
     );
   }
@@ -388,26 +436,35 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   Widget _ctaCard() {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-      children: [
-        Text(
-          tr('onboarding_cta_title'),
-          style: AppText.display.copyWith(
-            color: Theme.of(context).colorScheme.onSurface,
+    return _centered([
+      Text(
+        tr('onboarding_cta_title'),
+        style: AppText.display.copyWith(
+          color: Theme.of(context).colorScheme.onSurface,
+        ),
+      ),
+      const SizedBox(height: 12),
+      Text(
+        tr('onboarding_cta_body'),
+        style: AppText.body.copyWith(color: context.inkText),
+      ),
+      const SizedBox(height: 8),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: Tappable(
+          onTap: _openScience,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Text(
+              tr('onb_science_link'),
+              style: AppText.body.copyWith(
+                color: context.accentText(blue),
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ),
-        const SizedBox(height: 12),
-        Text(
-          tr('onboarding_cta_body'),
-          style: AppText.body.copyWith(color: context.inkText),
-        ),
-        const SizedBox(height: 12),
-        EngramTextButton(
-          label: tr('onb_science_link'),
-          onPressed: _openScience,
-        ),
-      ],
-    );
+      ),
+    ]);
   }
 }

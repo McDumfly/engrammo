@@ -2,6 +2,7 @@ import 'package:engrammo/l10n/app_localizations.dart';
 import 'package:engrammo/screens/auth_screen.dart';
 import 'package:engrammo/services/auth_service.dart';
 import 'package:engrammo/services/cloud_sync.dart';
+import 'package:engrammo/widgets/app_buttons.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -67,11 +68,18 @@ void main() {
 
     expect(find.text('Engrammo'), findsOneWidget);
     expect(find.text(tr('auth_guest_cta')), findsOneWidget);
-    expect(find.text('SIGN IN'), findsOneWidget);
-    expect(find.text('CONTINUE WITH GOOGLE'), findsOneWidget);
+    expect(find.text(tr('auth_email_toggle')), findsOneWidget);
 
-    await tester.tap(find.text('Register'));
+    await tester.tap(find.text(tr('auth_email_toggle')));
     await tester.pumpAndSettle();
-    expect(find.text('CREATE ACCOUNT'), findsOneWidget);
+    expect(
+      find.widgetWithText(EngramButton, tr('auth_sign_in_button')),
+      findsOneWidget,
+    );
+    expect(find.text(tr('auth_google_button')), findsOneWidget);
+
+    await tester.tap(find.text(tr('auth_register_tab')));
+    await tester.pumpAndSettle();
+    expect(find.text(tr('auth_create_button')), findsOneWidget);
   });
 }

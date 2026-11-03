@@ -4,7 +4,7 @@ import 'package:hugeicons/hugeicons.dart';
 import '../l10n/app_localizations.dart';
 import '../services/app_feedback.dart';
 import '../services/auth_service.dart';
-import '../theme/app_colors.dart' show error, muted;
+import '../theme/app_colors.dart' show muted;
 import '../theme/app_theme.dart';
 import '../theme/app_tokens.dart';
 import '../widgets/app_buttons.dart';
@@ -23,6 +23,7 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _obscure = true;
   bool _resetSent = false;
   bool _guestBusy = false;
+  bool _showEmail = false;
   String? _error;
   final _nameCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
@@ -42,6 +43,7 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() {
       _error = message;
       _resetSent = false;
+      _showEmail = true;
     });
     showAppToast(context, message, kind: ToastKind.error);
   }
@@ -162,13 +164,15 @@ class _AuthScreenState extends State<AuthScreen> {
                         ),
                         child: Image.asset(
                           'assets/icon/app_icon_foreground.png',
-                          width: 72,
+                          width: 88,
+                          height: 88,
+                          fit: BoxFit.contain,
                           color: context.inkText,
                           colorBlendMode: BlendMode.srcIn,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     Text(
                       'Engrammo',
                       textAlign: TextAlign.center,
@@ -182,7 +186,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       textAlign: TextAlign.center,
                       style: AppText.body.copyWith(color: context.mutedText),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
                     EngramButton(
                       label: tr('auth_guest_cta'),
                       onPressed: (authService.busy || _guestBusy)
@@ -196,7 +200,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       textAlign: TextAlign.center,
                       style: AppText.caption.copyWith(color: context.mutedText),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
                     Row(
                       children: [
                         const Expanded(child: AppDivider(thickness: 2)),
@@ -213,105 +217,96 @@ class _AuthScreenState extends State<AuthScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    AppSegmented<bool>(
-                      options: [
-                        (false, tr('auth_sign_in_tab')),
-                        (true, tr('auth_register_tab')),
-                      ],
-                      value: _register,
-                      onChanged: (v) => setState(() {
-                        _register = v;
-                        _error = null;
-                        _resetSent = false;
-                      }),
-                    ),
-                    const SizedBox(height: 16),
-                    if (_register) ...[
-                      _Field(
-                        controller: _nameCtrl,
-                        hint: tr('auth_display_name_hint'),
-                        enabled: !(authService.busy || _guestBusy),
-                      ),
-                      const SizedBox(height: 10),
-                    ],
-                    _Field(
-                      controller: _emailCtrl,
-                      hint: tr('auth_email_hint'),
-                      keyboard: TextInputType.emailAddress,
-                      enabled: !(authService.busy || _guestBusy),
-                    ),
-                    const SizedBox(height: 10),
-                    _Field(
-                      controller: _passwordCtrl,
-                      hint: tr('auth_password_hint'),
-                      obscure: _obscure,
-                      onToggleObscure: () =>
-                          setState(() => _obscure = !_obscure),
-                      enabled: !(authService.busy || _guestBusy),
-                    ),
-                    if (_error != null) ...[
-                      const SizedBox(height: 10),
-                      Text(
-                        _error!,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: error,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                    if (_resetSent) ...[
-                      const SizedBox(height: 10),
-                      Text(
-                        tr('auth_reset_sent'),
-                        textAlign: TextAlign.center,
-                        style: AppText.caption.copyWith(color: context.inkText),
-                      ),
-                    ],
-                    const SizedBox(height: 14),
-                    EngramButton(
-                      label: (authService.busy && !_guestBusy)
-                          ? tr('auth_please_wait')
-                          : (_register
-                                ? tr('auth_create_button')
-                                : tr('auth_sign_in_button')),
-                      variant: EngramButtonVariant.secondary,
-                      onPressed: (authService.busy || _guestBusy)
-                          ? null
-                          : () => _submit(),
-                      isLoading: authService.busy && !_guestBusy,
-                    ),
-                    if (!_register) ...[
-                      const SizedBox(height: 4),
-                      EngramTextButton(
-                        label: tr('auth_forgot_password'),
-                        color: muted,
-                        onPressed: authService.busy ? null : _reset,
-                      ),
-                    ],
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Expanded(child: AppDivider(thickness: 2)),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            tr('auth_or'),
-                            style: AppText.caption.copyWith(
-                              color: context.mutedText,
-                            ),
-                          ),
-                        ),
-                        const Expanded(child: AppDivider(thickness: 2)),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
                     EngramButton(
                       label: tr('auth_google_button'),
                       leading: const GoogleGLogo(size: 22),
                       variant: EngramButtonVariant.secondary,
                       onPressed: authService.busy ? null : _google,
+                    ),
+                    const SizedBox(height: 8),
+                    EngramTextButton(
+                      label: tr('auth_email_toggle'),
+                      onPressed: () => setState(() => _showEmail = !_showEmail),
+                    ),
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 260),
+                      curve: Curves.easeOutCubic,
+                      child: _showEmail
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                const SizedBox(height: 16),
+                                AppSegmented<bool>(
+                                  options: [
+                                    (false, tr('auth_sign_in_tab')),
+                                    (true, tr('auth_register_tab')),
+                                  ],
+                                  value: _register,
+                                  onChanged: (v) => setState(() {
+                                    _register = v;
+                                    _error = null;
+                                    _resetSent = false;
+                                  }),
+                                ),
+                                const SizedBox(height: 16),
+                                if (_register) ...[
+                                  _Field(
+                                    controller: _nameCtrl,
+                                    hint: tr('auth_display_name_hint'),
+                                    enabled: !(authService.busy || _guestBusy),
+                                  ),
+                                  const SizedBox(height: 10),
+                                ],
+                                _Field(
+                                  controller: _emailCtrl,
+                                  hint: tr('auth_email_hint'),
+                                  keyboard: TextInputType.emailAddress,
+                                  enabled: !(authService.busy || _guestBusy),
+                                  errorText: _error,
+                                ),
+                                const SizedBox(height: 10),
+                                _Field(
+                                  controller: _passwordCtrl,
+                                  hint: tr('auth_password_hint'),
+                                  obscure: _obscure,
+                                  onToggleObscure: () =>
+                                      setState(() => _obscure = !_obscure),
+                                  enabled: !(authService.busy || _guestBusy),
+                                ),
+                                if (_resetSent) ...[
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    tr('auth_reset_sent'),
+                                    textAlign: TextAlign.center,
+                                    style: AppText.caption.copyWith(
+                                      color: context.inkText,
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(height: 14),
+                                EngramButton(
+                                  label: (authService.busy && !_guestBusy)
+                                      ? tr('auth_please_wait')
+                                      : (_register
+                                            ? tr('auth_create_button')
+                                            : tr('auth_sign_in_button')),
+                                  variant: EngramButtonVariant.secondary,
+                                  onPressed: (authService.busy || _guestBusy)
+                                      ? null
+                                      : () => _submit(),
+                                  isLoading: authService.busy && !_guestBusy,
+                                ),
+                                if (!_register) ...[
+                                  const SizedBox(height: 4),
+                                  EngramTextButton(
+                                    label: tr('auth_forgot_password'),
+                                    color: muted,
+                                    onPressed: authService.busy ? null : _reset,
+                                  ),
+                                ],
+                              ],
+                            )
+                          : const SizedBox.shrink(),
                     ),
                   ],
                 ),
@@ -331,6 +326,7 @@ class _Field extends StatelessWidget {
   final VoidCallback? onToggleObscure;
   final TextInputType? keyboard;
   final bool enabled;
+  final String? errorText;
   const _Field({
     required this.controller,
     required this.hint,
@@ -338,6 +334,7 @@ class _Field extends StatelessWidget {
     this.onToggleObscure,
     this.keyboard,
     this.enabled = true,
+    this.errorText,
   });
 
   @override
@@ -350,6 +347,7 @@ class _Field extends StatelessWidget {
       autocorrect: false,
       enableSuggestions: false,
       hint: hint,
+      errorText: errorText,
       suffix: onToggleObscure == null
           ? null
           : AppIconButton(
