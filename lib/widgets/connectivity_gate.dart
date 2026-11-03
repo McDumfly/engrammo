@@ -201,7 +201,7 @@ class _OfflineBattleEntryPageState extends State<OfflineBattleEntryPage> {
                     tr('gate_offline_subtitle'),
                     style: TextStyle(
                       color: context.inkText,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w800,
                       fontSize: 17,
                     ),
                   ),

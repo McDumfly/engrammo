@@ -380,7 +380,7 @@ class _AiTipState extends State<_AiTip> {
                       tr('ai_tip_title'),
                       style: TextStyle(
                         color: context.mutedText,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w800,
                         fontSize: 12,
                         letterSpacing: 1.2,
                       ),
@@ -476,7 +476,7 @@ class _AiModelsStrip extends StatelessWidget {
                       : tr('bench_ai_local'),
                   style: TextStyle(
                     color: dot,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w800,
                     fontSize: 12,
                     letterSpacing: 1.0,
                   ),
@@ -553,7 +553,7 @@ class _AiVerdictState extends State<_AiVerdict> {
                           tr('ai_verdict_title'),
                           style: TextStyle(
                             color: context.mutedText,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w800,
                             fontSize: 12,
                             letterSpacing: 1.2,
                           ),
@@ -1013,7 +1013,7 @@ class _TransferCard extends StatelessWidget {
             tr('bench_transfer_title'),
             style: TextStyle(
               color: context.mutedText,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               fontSize: 12,
               letterSpacing: 1.2,
             ),
@@ -1094,7 +1094,7 @@ Widget _bigButton(
         label,
         style: const TextStyle(
           color: Colors.white,
-          fontWeight: FontWeight.w900,
+          fontWeight: FontWeight.w800,
           fontSize: 17,
           letterSpacing: 0.5,
         ),
@@ -3686,7 +3686,7 @@ class SamMaskGameBodyState extends State<SamMaskGameBody> {
             label,
             style: TextStyle(
               color: enabled ? context.inkText : context.mutedText,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               fontSize: 20,
             ),
           ),
@@ -3712,7 +3712,7 @@ class SamMaskGameBodyState extends State<SamMaskGameBody> {
             tr('bench_mask_count', {'n': _count}),
             style: TextStyle(
               color: context.inkText,
-              fontWeight: FontWeight.w900,
+              fontWeight: FontWeight.w800,
               fontSize: 16,
             ),
           ),
@@ -3814,7 +3814,7 @@ class SamMaskGameBodyState extends State<SamMaskGameBody> {
                       '${(_progress * 100).round()}%',
                       style: TextStyle(
                         color: context.inkText,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w800,
                         fontSize: 16,
                       ),
                     ),
@@ -3878,7 +3878,7 @@ class SamMaskGameBodyState extends State<SamMaskGameBody> {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: context.inkText,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w800,
                   fontSize: 14,
                 ),
               ),
@@ -3922,7 +3922,7 @@ class SamMaskGameBodyState extends State<SamMaskGameBody> {
                         tr('bench_mask_guess_button'),
                         style: const TextStyle(
                           color: Colors.white,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w800,
                           fontSize: 15,
                         ),
                       ),
@@ -4319,7 +4319,7 @@ class _CoverBadge extends StatelessWidget {
         '$number',
         style: const TextStyle(
           color: Colors.white,
-          fontWeight: FontWeight.w900,
+          fontWeight: FontWeight.w800,
           fontSize: 13,
         ),
       ),

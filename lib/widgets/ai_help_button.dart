@@ -322,7 +322,7 @@ class _AiHelpSheetState extends State<_AiHelpSheet> {
                         tr('help_title'),
                         style: TextStyle(
                           color: context.inkText,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w800,
                           fontSize: 17,
                         ),
                       ),

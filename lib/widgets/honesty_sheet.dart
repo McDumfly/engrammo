@@ -54,7 +54,7 @@ class _HonestySheet extends StatelessWidget {
                       tr('honesty_title'),
                       style: TextStyle(
                         color: Theme.of(context).colorScheme.onSurface,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: FontWeight.w800,
                         fontSize: 19,
                         height: 1.25,
                       ),

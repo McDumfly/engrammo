@@ -747,6 +747,19 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
     return const _AiStatusCard();
   }
 
+  /// Small caps section label used across the lesson screens.
+  Widget _eyebrow(String text) {
+    return Text(
+      text,
+      style: TextStyle(
+        color: context.mutedText,
+        fontWeight: FontWeight.w800,
+        fontSize: 12,
+        letterSpacing: 1.2,
+      ),
+    );
+  }
+
   Widget _sessionProgressBar() {
     final n = _tasks.length;
     if (n <= 1) return const SizedBox.shrink();
@@ -1273,15 +1286,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            tr('lp_technique_title'),
-            style: TextStyle(
-              color: context.mutedText,
-              fontWeight: FontWeight.w900,
-              fontSize: 12,
-              letterSpacing: 1.2,
-            ),
-          ),
+          _eyebrow(tr('lp_technique_title')),
           const SizedBox(height: 8),
           for (var i = 0; i < coach.steps.length; i++)
             Padding(
@@ -1394,15 +1399,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
           ],
           Align(
             alignment: Alignment.centerLeft,
-            child: Text(
-              tr('lp_about_title'),
-              style: TextStyle(
-                color: context.mutedText,
-                fontWeight: FontWeight.w900,
-                fontSize: 12,
-                letterSpacing: 1.2,
-              ),
-            ),
+            child: _eyebrow(tr('lp_about_title')),
           ),
           const SizedBox(height: 6),
           Align(
@@ -1419,15 +1416,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
           const SizedBox(height: 14),
           Align(
             alignment: Alignment.centerLeft,
-            child: Text(
-              tr('lp_how_title'),
-              style: TextStyle(
-                color: context.mutedText,
-                fontWeight: FontWeight.w900,
-                fontSize: 12,
-                letterSpacing: 1.2,
-              ),
-            ),
+            child: _eyebrow(tr('lp_how_title')),
           ),
           const SizedBox(height: 6),
           Align(
@@ -1444,15 +1433,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
           const SizedBox(height: 14),
           Align(
             alignment: Alignment.centerLeft,
-            child: Text(
-              tr('lp_why_title'),
-              style: TextStyle(
-                color: context.mutedText,
-                fontWeight: FontWeight.w900,
-                fontSize: 12,
-                letterSpacing: 1.2,
-              ),
-            ),
+            child: _eyebrow(tr('lp_why_title')),
           ),
           const SizedBox(height: 6),
           Align(
@@ -1517,7 +1498,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
           ),
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurface,
-            fontWeight: FontWeight.w900,
+            fontWeight: FontWeight.w800,
             fontSize: 24,
           ),
         ),
@@ -1580,15 +1561,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            tr('lp_watchme'),
-            style: TextStyle(
-              color: context.mutedText,
-              fontWeight: FontWeight.w900,
-              fontSize: 12,
-              letterSpacing: 1.2,
-            ),
-          ),
+          _eyebrow(tr('lp_watchme')),
           const SizedBox(height: 6),
           Text(
             example.situation,
@@ -1638,15 +1611,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            tr('lp_lag_title'),
-            style: TextStyle(
-              color: context.mutedText,
-              fontWeight: FontWeight.w900,
-              fontSize: 12,
-              letterSpacing: 1.2,
-            ),
-          ),
+          _eyebrow(tr('lp_lag_title')),
           const SizedBox(height: 6),
           Text(
             tr('lp_lag_body', {'n': _rounds}),
@@ -1677,15 +1642,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            tr('lp_transfer_title'),
-            style: TextStyle(
-              color: context.mutedText,
-              fontWeight: FontWeight.w900,
-              fontSize: 12,
-              letterSpacing: 1.2,
-            ),
-          ),
+          _eyebrow(tr('lp_transfer_title')),
           const SizedBox(height: 8),
           Wrap(
             spacing: 6,
@@ -2332,7 +2289,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: context.inkText,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w800,
                       fontSize: 18,
                     ),
                   ),
@@ -2465,15 +2422,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            tr('ai_recap_title'),
-            style: TextStyle(
-              color: context.mutedText,
-              fontWeight: FontWeight.w900,
-              fontSize: 12,
-              letterSpacing: 1.2,
-            ),
-          ),
+          _eyebrow(tr('ai_recap_title')),
           const SizedBox(height: 4),
           Text(
             _recapText,
@@ -2501,15 +2450,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            tr('lp_missed_title'),
-            style: TextStyle(
-              color: context.mutedText,
-              fontWeight: FontWeight.w900,
-              fontSize: 12,
-              letterSpacing: 1.2,
-            ),
-          ),
+          _eyebrow(tr('lp_missed_title')),
           const SizedBox(height: 6),
           if (missedCount == 0)
             Text(
@@ -2610,15 +2551,7 @@ class _LessonPlayerPageState extends State<LessonPlayerPage>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 12),
-            Text(
-              tr('lp_yours_title'),
-              style: TextStyle(
-                color: context.mutedText,
-                fontWeight: FontWeight.w900,
-                fontSize: 12,
-                letterSpacing: 1.2,
-              ),
-            ),
+            _eyebrow(tr('lp_yours_title')),
             const SizedBox(height: 8),
             ListView(
               shrinkWrap: true,
