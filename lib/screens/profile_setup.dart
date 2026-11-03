@@ -278,30 +278,37 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
 
   Widget? _availabilitySuffix() {
     if (_checking) {
-      return const Padding(
-        padding: EdgeInsets.only(right: 12),
-        child: AppLoader(size: 18, stroke: 2),
+      return const SizedBox(
+        width: 32,
+        height: 32,
+        child: Center(child: AppLoader(size: 18, stroke: 2)),
       );
     }
     if (_available == true) {
-      return const Padding(
-        padding: EdgeInsets.only(right: 12),
-        child: HugeIcon(
-          icon: HugeIcons.strokeRoundedCheckmarkCircle02,
-          color: success,
-          size: 20,
-          strokeWidth: 2.2,
+      return const SizedBox(
+        width: 32,
+        height: 32,
+        child: Center(
+          child: HugeIcon(
+            icon: HugeIcons.strokeRoundedCheckmarkCircle02,
+            color: success,
+            size: 20,
+            strokeWidth: 2.2,
+          ),
         ),
       );
     }
     if (_available == false) {
-      return const Padding(
-        padding: EdgeInsets.only(right: 12),
-        child: HugeIcon(
-          icon: HugeIcons.strokeRoundedCancelCircle,
-          color: error,
-          size: 20,
-          strokeWidth: 2.2,
+      return const SizedBox(
+        width: 32,
+        height: 32,
+        child: Center(
+          child: HugeIcon(
+            icon: HugeIcons.strokeRoundedCancelCircle,
+            color: error,
+            size: 20,
+            strokeWidth: 2.2,
+          ),
         ),
       );
     }

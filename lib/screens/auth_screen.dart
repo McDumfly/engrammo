@@ -358,6 +358,7 @@ class _Field extends StatelessWidget {
                   ? HugeIcons.strokeRoundedEye
                   : HugeIcons.strokeRoundedEyeOff,
               color: context.mutedText,
+              size: 32,
             ),
     );
   }

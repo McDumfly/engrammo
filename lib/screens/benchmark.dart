@@ -969,7 +969,7 @@ class _LiveTimerChipState extends State<_LiveTimerChip> {
       style: TextStyle(
         color: context.mutedText,
         fontWeight: FontWeight.bold,
-        fontSize: 14,
+        fontSize: 12,
       ),
     );
   }
@@ -990,8 +990,8 @@ Widget _gameScaffold({
     appBar: AppTopBar(
       title: title,
       leading: const EngramBackButton(),
-      // 360px-es keskeny kijelzőn is be kell férnie: a műveletek
-      // közötti térközök minimálisak.
+      // 360px-es keskeny kijelzőn is be kell férnie: a metaadatok
+      // 12-esek, a jobb szélső térközt a sáv saját 16-os margója adja.
       actions: [
         if (timerSince != null)
           Padding(
@@ -1006,15 +1006,12 @@ Widget _gameScaffold({
               style: TextStyle(
                 color: context.mutedText,
                 fontWeight: FontWeight.bold,
-                fontSize: 14,
+                fontSize: 12,
               ),
             ),
           ),
         ),
-        const Padding(
-          padding: EdgeInsets.only(right: 4),
-          child: Center(child: AiHelpButton(topic: AiHelpTopics.benchmark)),
-        ),
+        const Center(child: AiHelpButton(topic: AiHelpTopics.benchmark)),
       ],
     ),
     body: aiModels.isEmpty

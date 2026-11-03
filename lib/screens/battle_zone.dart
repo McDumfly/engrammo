@@ -857,6 +857,7 @@ class _BattleZoneViewState extends State<BattleZoneView> {
                 : AppIconButton(
                     icon: HugeIcons.strokeRoundedCancel01,
                     color: context.mutedText,
+                    size: 32,
                     onTap: () {
                       AppFeedback.light();
                       _friendSearch.clear();

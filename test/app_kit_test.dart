@@ -185,6 +185,28 @@ void main() {
     expect(find.text('kid'), findsOneWidget);
   });
 
+  testWidgets('AppTextField keeps focus when errorText appears', (
+    tester,
+  ) async {
+    final focusNode = FocusNode();
+    addTearDown(focusNode.dispose);
+    Widget build(String? error) => MaterialApp(
+      theme: AppTheme.light(),
+      home: Scaffold(
+        body: AppTextField(focusNode: focusNode, errorText: error),
+      ),
+    );
+    await tester.pumpWidget(build(null));
+    focusNode.requestFocus();
+    await tester.pump();
+    expect(focusNode.hasFocus, isTrue);
+    final before = tester.state(find.byType(EditableText));
+    await tester.pumpWidget(build('bad'));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(focusNode.hasFocus, isTrue);
+    expect(identical(tester.state(find.byType(EditableText)), before), isTrue);
+  });
+
   testWidgets('AppTopBar shows the back button only when it can pop', (
     tester,
   ) async {

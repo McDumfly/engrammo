@@ -83,7 +83,7 @@ class EngramButton extends StatelessWidget {
       ),
       alignment: Alignment.center,
       child: isLoading
-          ? AppLoader(size: 22, stroke: 2.5, color: labelColor)
+          ? AppLoader(size: 22, stroke: 2.5, color: labelColor, instant: true)
           : Row(
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
@@ -128,7 +128,9 @@ class EngramButton extends StatelessWidget {
         : null;
     Widget wrapped;
     if (tap == null) {
-      wrapped = visual;
+      wrapped = variant == EngramButtonVariant.secondary
+          ? visual
+          : Padding(padding: const EdgeInsets.only(bottom: 4), child: visual);
     } else if (variant == EngramButtonVariant.secondary) {
       wrapped = Tappable(
         scale: 0.97,
@@ -492,7 +494,12 @@ class EngramIconButton extends StatelessWidget {
           ),
           alignment: Alignment.center,
           child: isLoading
-              ? AppLoader(size: 20, stroke: 2.5, color: glyphColor)
+              ? AppLoader(
+                  size: 20,
+                  stroke: 2.5,
+                  color: glyphColor,
+                  instant: true,
+                )
               : HugeIcon(
                   icon: icon,
                   color: glyphColor,

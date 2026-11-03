@@ -28,11 +28,13 @@ class AppLoader extends StatefulWidget {
     this.color,
     this.stroke = 3,
     this.caption,
+    this.instant = false,
   });
   final double size;
   final Color? color;
   final double stroke;
   final String? caption;
+  final bool instant;
 
   @override
   State<AppLoader> createState() => _AppLoaderState();
@@ -47,6 +49,7 @@ class _AppLoaderState extends State<AppLoader> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    if (widget.instant) _visible = true;
     _spin = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
@@ -66,7 +69,7 @@ class _AppLoaderState extends State<AppLoader> with TickerProviderStateMixin {
             setState(() => _visible = true);
           }
         });
-    _delay.forward();
+    if (!widget.instant) _delay.forward();
   }
 
   @override
@@ -463,6 +466,7 @@ void showAppToast(
   VoidCallback? onAction,
   Duration duration = const Duration(milliseconds: 2800),
 }) {
+  if (!context.mounted) return;
   try {
     _currentToast?.remove();
   } catch (_) {}
@@ -571,11 +575,7 @@ class _ToastViewState extends State<_ToastView>
       child: SafeArea(
         bottom: false,
         child: Container(
-          margin: EdgeInsets.only(
-            top: MediaQuery.paddingOf(context).top + 8,
-            left: 16,
-            right: 16,
-          ),
+          margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 480),
@@ -717,7 +717,11 @@ Future<T?> showAppDialog<T>(
     barrierDismissible: false,
     barrierLabel: barrierDismissible ? tr('common_close') : null,
     transitionDuration: const Duration(milliseconds: 220),
-    pageBuilder: (dialogContext, _, _) {
+    pageBuilder: (dialogContext, animation, _) {
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+      );
       final theme = Theme.of(dialogContext);
       final dark = theme.brightness == Brightness.dark;
       final card = dark ? AppTheme.darkCard : Colors.white;
@@ -731,82 +735,115 @@ Future<T?> showAppDialog<T>(
           Positioned.fill(
             child: GestureDetector(
               onTap: barrierDismissible ? () => pop(null) : null,
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                child: ColoredBox(color: Colors.black.withValues(alpha: 0.35)),
+              child: AnimatedBuilder(
+                animation: animation,
+                builder: (context, _) {
+                  final v = Curves.easeOut.transform(animation.value);
+                  return BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 6 * v, sigmaY: 6 * v),
+                    child: ColoredBox(
+                      color: Colors.black.withValues(alpha: 0.35 * v),
+                    ),
+                  );
+                },
               ),
             ),
           ),
-          Center(
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 400),
-              margin: const EdgeInsets.all(24),
-              padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
-              decoration: BoxDecoration(
-                color: card,
-                borderRadius: BorderRadius.circular(AppRadius.xl),
-                border: Border.all(color: hairline, width: 2),
-                boxShadow: const [kAppFloatShadow],
-              ),
-              child: Material(
-                type: MaterialType.transparency,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (icon != null) ...[
-                      Container(
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: tint.withValues(alpha: 0.12),
+          FadeTransition(
+            opacity: curved,
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 0.94, end: 1).animate(curved),
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.viewInsetsOf(dialogContext).bottom,
+                ),
+                child: Center(
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 400),
+                    margin: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+                    decoration: BoxDecoration(
+                      color: card,
+                      borderRadius: BorderRadius.circular(AppRadius.xl),
+                      border: Border.all(color: hairline, width: 2),
+                      boxShadow: const [kAppFloatShadow],
+                    ),
+                    child: Material(
+                      type: MaterialType.transparency,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxHeight:
+                              MediaQuery.sizeOf(dialogContext).height * 0.85,
                         ),
-                        alignment: Alignment.center,
-                        child: HugeIcon(icon: icon, color: tint, size: 30),
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (icon != null) ...[
+                                Container(
+                                  width: 64,
+                                  height: 64,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: tint.withValues(alpha: 0.12),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: HugeIcon(
+                                    icon: icon,
+                                    color: tint,
+                                    size: 30,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                              ],
+                              Text(
+                                title,
+                                style: AppText.title.copyWith(color: inkColor),
+                                textAlign: TextAlign.center,
+                              ),
+                              if (body != null) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  body,
+                                  style: AppText.body.copyWith(
+                                    color: mutedColor,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                              if (content != null) ...[
+                                const SizedBox(height: 12),
+                                content,
+                              ],
+                              const SizedBox(height: 24),
+                              EngramButton(
+                                label: primary.label,
+                                variant: destructive
+                                    ? EngramButtonVariant.danger
+                                    : EngramButtonVariant.primary,
+                                height: 54,
+                                onPressed: () {
+                                  if (destructive) AppFeedback.medium();
+                                  primary.onPressed?.call();
+                                  pop(primary.value);
+                                },
+                              ),
+                              if (secondary != null) ...[
+                                const SizedBox(height: 8),
+                                EngramTextButton(
+                                  label: secondary.label,
+                                  onPressed: () {
+                                    secondary.onPressed?.call();
+                                    pop(secondary.value);
+                                  },
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
                       ),
-                      const SizedBox(height: 16),
-                    ],
-                    Text(
-                      title,
-                      style: AppText.title.copyWith(color: inkColor),
-                      textAlign: TextAlign.center,
                     ),
-                    if (body != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        body,
-                        style: AppText.body.copyWith(color: mutedColor),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                    if (content != null) ...[
-                      const SizedBox(height: 12),
-                      content,
-                    ],
-                    const SizedBox(height: 24),
-                    EngramButton(
-                      label: primary.label,
-                      variant: destructive
-                          ? EngramButtonVariant.danger
-                          : EngramButtonVariant.primary,
-                      height: 54,
-                      onPressed: () {
-                        if (destructive) AppFeedback.medium();
-                        primary.onPressed?.call();
-                        pop(primary.value);
-                      },
-                    ),
-                    if (secondary != null) ...[
-                      const SizedBox(height: 8),
-                      EngramTextButton(
-                        label: secondary.label,
-                        onPressed: () {
-                          secondary.onPressed?.call();
-                          pop(secondary.value);
-                        },
-                      ),
-                    ],
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -814,19 +851,7 @@ Future<T?> showAppDialog<T>(
         ],
       );
     },
-    transitionBuilder: (context, animation, _, child) {
-      final curved = CurvedAnimation(
-        parent: animation,
-        curve: Curves.easeOutCubic,
-      );
-      return FadeTransition(
-        opacity: curved,
-        child: ScaleTransition(
-          scale: Tween<double>(begin: 0.94, end: 1).animate(curved),
-          child: child,
-        ),
-      );
-    },
+    transitionBuilder: (context, animation, _, child) => child,
   );
 }
 
@@ -1104,7 +1129,13 @@ class AppSwitch extends StatelessWidget {
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.white,
-                boxShadow: [kAppFloatShadow],
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x1F000000),
+                    blurRadius: 6,
+                    offset: Offset(0, 1),
+                  ),
+                ],
               ),
             ),
           ),
@@ -1158,7 +1189,13 @@ class AppSegmented<T> extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: context.cardBg,
                     borderRadius: BorderRadius.circular(AppRadius.pill),
-                    boxShadow: const [kAppFloatShadow],
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x1F000000),
+                        blurRadius: 6,
+                        offset: Offset(0, 1),
+                      ),
+                    ],
                   ),
                   alignment: Alignment.center,
                   child: Text(
@@ -1167,6 +1204,8 @@ class AppSegmented<T> extends StatelessWidget {
                       color: Colors.transparent,
                       fontWeight: FontWeight.w700,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
@@ -1192,6 +1231,8 @@ class AppSegmented<T> extends StatelessWidget {
                                   : context.mutedText,
                               fontWeight: FontWeight.w700,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ),
@@ -1421,11 +1462,15 @@ class AppTextField extends StatefulWidget {
   State<AppTextField> createState() => _AppTextFieldState();
 }
 
-class _AppTextFieldState extends State<AppTextField> {
+class _AppTextFieldState extends State<AppTextField>
+    with SingleTickerProviderStateMixin {
   TextEditingController? _ownController;
   FocusNode? _ownFocus;
   bool _focused = false;
-  int _shakeKey = 0;
+  late final AnimationController _shake = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 320),
+  );
   int _len = 0;
 
   TextEditingController get _controller => widget.controller ?? _ownController!;
@@ -1485,8 +1530,8 @@ class _AppTextFieldState extends State<AppTextField> {
       if (widget.focusNode == null) _ownFocus = FocusNode();
       _focus.addListener(_onFocus);
     }
-    if (widget.errorText != null && oldWidget.errorText == null) {
-      setState(() => _shakeKey++);
+    if (widget.errorText != null && widget.errorText != oldWidget.errorText) {
+      _shake.forward(from: 0);
     }
   }
 
@@ -1496,6 +1541,7 @@ class _AppTextFieldState extends State<AppTextField> {
     _focus.removeListener(_onFocus);
     _ownController?.dispose();
     _ownFocus?.dispose();
+    _shake.dispose();
     super.dispose();
   }
 
@@ -1518,16 +1564,8 @@ class _AppTextFieldState extends State<AppTextField> {
           ),
           const SizedBox(height: 6),
         ],
-        TweenAnimationBuilder<double>(
-          key: ValueKey(_shakeKey),
-          tween: Tween(begin: 0, end: 1),
-          duration: const Duration(milliseconds: 300),
-          builder: (context, t, child) {
-            final dx = _shakeKey == 0
-                ? 0.0
-                : math.sin(t * math.pi * 2) * 8 * (1 - t);
-            return Transform.translate(offset: Offset(dx, 0), child: child);
-          },
+        AnimatedBuilder(
+          animation: _shake,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
             curve: Curves.easeOutCubic,
@@ -1538,7 +1576,9 @@ class _AppTextFieldState extends State<AppTextField> {
               border: Border.all(color: border, width: 2),
             ),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: widget.maxLines == 1
+                  ? CrossAxisAlignment.center
+                  : CrossAxisAlignment.start,
               children: [
                 if (widget.prefix != null) ...[
                   widget.prefix!,
@@ -1588,6 +1628,13 @@ class _AppTextFieldState extends State<AppTextField> {
                 ],
               ],
             ),
+          ),
+          builder: (context, child) => Transform.translate(
+            offset: Offset(
+              math.sin(_shake.value * math.pi * 4) * 8 * (1 - _shake.value),
+              0,
+            ),
+            child: child,
           ),
         ),
         if (widget.maxLength != null && _len > 0.8 * widget.maxLength!) ...[
@@ -1817,8 +1864,14 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
               child: Row(
                 children: [
                   SizedBox(
-                    width: 56,
-                    child: Center(child: left ?? const SizedBox.shrink()),
+                    width: 60,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 16),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: left ?? const SizedBox.shrink(),
+                      ),
+                    ),
                   ),
                   Expanded(
                     child: title == null
@@ -1834,11 +1887,14 @@ class AppTopBar extends StatelessWidget implements PreferredSizeWidget {
                           ),
                   ),
                   ConstrainedBox(
-                    constraints: const BoxConstraints(minWidth: 56),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: actions,
+                    constraints: const BoxConstraints(minWidth: 60),
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 16),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: actions,
+                      ),
                     ),
                   ),
                 ],
