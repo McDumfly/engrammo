@@ -927,7 +927,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
           leading: EngramBackButton(onPressed: _onBackPressed),
         ),
         resizeToAvoidBottomInset: !recallBar,
-        body: SafeArea(top: false, child: _body()),
+        body: SafeArea(top: false, bottom: false, child: _body()),
         bottomNavigationBar: recallBar ? _recallBar() : null,
       ),
     );
@@ -1039,7 +1039,12 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
 
   Widget _page(List<Widget> children) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+      padding: EdgeInsets.fromLTRB(
+        16,
+        8,
+        16,
+        32 + MediaQuery.paddingOf(context).bottom,
+      ),
       children: [
         for (var i = 0; i < children.length; i++) _enter(i, children[i]),
       ],

@@ -796,8 +796,11 @@ class _LearningPathPageState extends State<LearningPathPage> {
     body.add(_trackEndCard(order));
     body.add(const SizedBox(height: 130));
 
+    // No bottom inset: the path scrolls to the screen edge under the
+    // floating nav bar instead of stopping on a hard line above it.
     return SafeArea(
       top: false,
+      bottom: false,
       child: Column(
         children: [
           const SizedBox(height: 12),

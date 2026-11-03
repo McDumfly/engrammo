@@ -743,8 +743,11 @@ class _BenchmarkHubPageState extends State<BenchmarkHubPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      // Content scrolls to the screen edge under the floating nav bar; the
+      // list's own bottom padding keeps the last card clear of it.
       body: SafeArea(
         top: false,
+        bottom: false,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
           children: [
