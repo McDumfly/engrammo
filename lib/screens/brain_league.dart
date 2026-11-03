@@ -268,13 +268,8 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
           context: context,
           removeTop: true,
           child: AppTopBar(
-            title: tr('blg_title'),
             // Tabként nincs hova visszalépni, push-olt útként viszont kell.
             showBack: Navigator.of(context).canPop(),
-            actions: const [
-              AiHelpButton(topic: AiHelpTopics.league),
-              SizedBox(width: 12),
-            ],
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(56),
               child: SizedBox(
@@ -307,6 +302,20 @@ class _BrainLeaguePageState extends State<BrainLeaguePage>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              tr('blg_title'),
+                              style: AppText.display.copyWith(
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                          ),
+                          const AiHelpButton(topic: AiHelpTopics.league),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
                       Text(
                         locked
                             ? '???'
@@ -463,6 +472,23 @@ class _FriendsTab extends StatelessWidget {
         return ListView(
           padding: const EdgeInsets.fromLTRB(0, 16, 0, 120),
           children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      tr('blg_tab_friends'),
+                      style: AppText.display.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+                  const AiHelpButton(topic: AiHelpTopics.league),
+                ],
+              ),
+            ),
+            const SizedBox(height: 4),
             _FriendsSectionTitle(
               title: tr('blg_suggest_title'),
               subtitle: tr('blg_suggest_sub'),
