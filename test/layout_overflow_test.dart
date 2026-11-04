@@ -31,7 +31,7 @@ import 'package:image/image.dart' as img;
 import 'package:shared_preferences/shared_preferences.dart';
 
 const _sizes = <Size>[Size(375, 667), Size(402, 874)];
-const _scales = <double>[1.0, 1.2];
+const _scales = <double>[1.0, 1.2, 1.4];
 const _locales = <String>['en', 'hu'];
 
 String _combo(Size s, double scale, String locale, String theme) =>

@@ -863,20 +863,26 @@ class _BenchmarkCard extends StatelessWidget {
                 strokeWidth: 2.2,
               )
             else
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '$b ${def.bestLabelIn(AppLocalizations.localeCode)}',
-                    style: AppText.body.copyWith(color: context.inkText),
-                  ),
-                  HugeIcon(
-                    icon: HugeIcons.strokeRoundedArrowRight01,
-                    color: context.mutedText,
-                    size: 20,
-                    strokeWidth: 2.2,
-                  ),
-                ],
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$b ${def.bestLabelIn(AppLocalizations.localeCode)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.end,
+                      style: AppText.body.copyWith(color: context.inkText),
+                    ),
+                    HugeIcon(
+                      icon: HugeIcons.strokeRoundedArrowRight01,
+                      color: context.mutedText,
+                      size: 20,
+                      strokeWidth: 2.2,
+                    ),
+                  ],
+                ),
               ),
           ],
         ),
@@ -1100,31 +1106,36 @@ Widget _bigButton(
 }) {
   final disabled = onTap == null;
   final top = disabled ? context.hairline : color;
-  return GestureDetector(
+  return Tappable(
     onTap: disabled
         ? null
         : () {
             AppFeedback.light();
             onTap.call();
           },
-    child: Container(
-      height: 56,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: top,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w800,
-          fontSize: 17,
-          letterSpacing: 0.5,
+    haptic: false,
+    semanticLabel: label,
+    child: ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 44),
+      child: Container(
+        height: 56,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: top,
+          borderRadius: BorderRadius.circular(999),
         ),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            fontSize: 17,
+            letterSpacing: 0.5,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       ),
     ),
   );
@@ -1664,28 +1675,33 @@ class _NumberGamePageState extends State<NumberGamePage> {
             for (final o in _options)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: GestureDetector(
+                child: Tappable(
                   onTap: () {
                     _pick(o);
                   },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 14,
-                    ),
-                    decoration: BoxDecoration(
-                      color: context.cardBg,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: context.hairline, width: 2),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      o.split('').join('  '),
-                      style: TextStyle(
-                        color: context.inkText,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 22,
-                        letterSpacing: 2,
+                  haptic: false,
+                  semanticLabel: o,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 44),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: context.cardBg,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: context.hairline, width: 2),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        o.split('').join('  '),
+                        style: TextStyle(
+                          color: context.inkText,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 22,
+                          letterSpacing: 2,
+                        ),
                       ),
                     ),
                   ),
@@ -2269,24 +2285,29 @@ class _VisualGamePageState extends State<VisualGamePage> {
   Widget _modeToggle(BuildContext context) {
     Widget chip(String mode, String label) {
       final selected = _mode == mode;
-      return GestureDetector(
+      return Tappable(
         onTap: () => _switchMode(mode),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: selected ? blue : Colors.transparent,
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: selected ? blue : context.hairline,
-              width: 2,
+        haptic: false,
+        semanticLabel: label,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: selected ? blue : Colors.transparent,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: selected ? blue : context.hairline,
+                width: 2,
+              ),
             ),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: selected ? Colors.white : context.mutedText,
-              fontWeight: FontWeight.w800,
-              fontSize: 12,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: selected ? Colors.white : context.mutedText,
+                fontWeight: FontWeight.w800,
+                fontSize: 12,
+              ),
             ),
           ),
         ),
@@ -2640,28 +2661,33 @@ class _VisualGamePageState extends State<VisualGamePage> {
                     for (final o in ai.options)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
-                        child: GestureDetector(
+                        child: Tappable(
                           onTap: () => _checkAi(o),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 14,
-                            ),
-                            decoration: BoxDecoration(
-                              color: context.cardBg,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: context.hairline,
-                                width: 2,
+                          haptic: false,
+                          semanticLabel: o,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(minHeight: 44),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 14,
                               ),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              o,
-                              style: TextStyle(
-                                color: context.inkText,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
+                              decoration: BoxDecoration(
+                                color: context.cardBg,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: context.hairline,
+                                  width: 2,
+                                ),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                o,
+                                style: TextStyle(
+                                  color: context.inkText,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
                               ),
                             ),
                           ),
@@ -2688,9 +2714,11 @@ class _VisualGamePageState extends State<VisualGamePage> {
                       final on = _show
                           ? _pattern.contains(i)
                           : _picked.contains(i);
-                      return GestureDetector(
+                      // Tappable dims a null tap, which would wash out the
+                      // revealed pattern, so a shown cell gets a no-op.
+                      return Tappable(
                         onTap: _show
-                            ? null
+                            ? () {}
                             : () {
                                 setState(() {
                                   if (_picked.contains(i)) {
@@ -2700,14 +2728,22 @@ class _VisualGamePageState extends State<VisualGamePage> {
                                   }
                                 });
                               },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
-                          decoration: BoxDecoration(
-                            color: on ? blue : context.cardBg,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: on ? blue : context.hairline,
-                              width: 2,
+                        haptic: false,
+                        semanticLabel: tr('bench_seq_tile', {
+                          'r': i ~/ _cols + 1,
+                          'c': i % _cols + 1,
+                        }),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(minHeight: 44),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            decoration: BoxDecoration(
+                              color: on ? blue : context.cardBg,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: on ? blue : context.hairline,
+                                width: 2,
+                              ),
                             ),
                           ),
                         ),
@@ -2882,44 +2918,52 @@ class _NumberOrderGamePageState extends State<NumberOrderGamePage> {
                 final value = _cells.indexOf(i) + 1;
                 final filled = value > 0;
                 final done = value > 0 && value < _next;
-                return GestureDetector(
+                return Tappable(
                   onTap: () {
                     _tapCell(i);
                   },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    decoration: BoxDecoration(
-                      color: !filled
-                          ? context.cardBg
-                          : done
-                          ? context.hairline
-                          : blue,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: filled ? blue : context.hairline,
-                        width: 2,
+                  haptic: false,
+                  semanticLabel: tr('bench_seq_tile', {
+                    'r': i ~/ 3 + 1,
+                    'c': i % 3 + 1,
+                  }),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 44),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      decoration: BoxDecoration(
+                        color: !filled
+                            ? context.cardBg
+                            : done
+                            ? context.hairline
+                            : blue,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: filled ? blue : context.hairline,
+                          width: 2,
+                        ),
                       ),
+                      alignment: Alignment.center,
+                      child: !filled || done
+                          ? const SizedBox.shrink()
+                          : _hidden
+                          ? Container(
+                              width: 18,
+                              height: 18,
+                              decoration: BoxDecoration(
+                                color: context.cardBg,
+                                shape: BoxShape.circle,
+                              ),
+                            )
+                          : Text(
+                              '$value',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 26,
+                              ),
+                            ),
                     ),
-                    alignment: Alignment.center,
-                    child: !filled || done
-                        ? const SizedBox.shrink()
-                        : _hidden
-                        ? Container(
-                            width: 18,
-                            height: 18,
-                            decoration: BoxDecoration(
-                              color: context.cardBg,
-                              shape: BoxShape.circle,
-                            ),
-                          )
-                        : Text(
-                            '$value',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 26,
-                            ),
-                          ),
                   ),
                 );
               },
@@ -3198,16 +3242,21 @@ class _SpatialGamePageState extends State<SpatialGamePage> {
       padding: const EdgeInsets.only(bottom: 12),
       child: Align(
         alignment: Alignment.centerLeft,
-        child: GestureDetector(
+        child: Tappable(
           onTap: _changePalace,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(
-              tr('bench_spatial_change'),
-              style: TextStyle(
-                color: context.mutedText,
-                fontSize: 12,
-                decoration: TextDecoration.underline,
+          haptic: false,
+          semanticLabel: tr('bench_spatial_change'),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 44),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                tr('bench_spatial_change'),
+                style: TextStyle(
+                  color: context.mutedText,
+                  fontSize: 12,
+                  decoration: TextDecoration.underline,
+                ),
               ),
             ),
           ),
@@ -3491,26 +3540,31 @@ class _PalaceWalkGameState extends State<_PalaceWalkGame> {
           for (final o in task.options)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: GestureDetector(
+              child: Tappable(
                 onTap: () => _pick(o),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    color: context.cardBg,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: context.hairline, width: 2),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    o,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: context.inkText,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
+                haptic: false,
+                semanticLabel: o,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 44),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: context.cardBg,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: context.hairline, width: 2),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      o,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: context.inkText,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
                     ),
                   ),
                 ),
@@ -3757,31 +3811,36 @@ class SamMaskGameBodyState extends State<SamMaskGameBody> {
   Widget _countStepper() {
     Widget stepBtn(String label, VoidCallback? onTap) {
       final enabled = onTap != null;
-      return GestureDetector(
+      return Tappable(
         onTap: enabled
             ? () {
                 AppFeedback.light();
                 onTap.call();
               }
             : null,
-        child: Container(
-          width: 40,
-          height: 40,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: enabled ? context.cardBg : Colors.transparent,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: enabled ? context.hairline : context.washBorder,
-              width: 2,
+        haptic: false,
+        semanticLabel: label,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
+          child: Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: enabled ? context.cardBg : Colors.transparent,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: enabled ? context.hairline : context.washBorder,
+                width: 2,
+              ),
             ),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: enabled ? context.inkText : context.mutedText,
-              fontWeight: FontWeight.w800,
-              fontSize: 20,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: enabled ? context.inkText : context.mutedText,
+                fontWeight: FontWeight.w800,
+                fontSize: 20,
+              ),
             ),
           ),
         ),
@@ -4001,23 +4060,28 @@ class SamMaskGameBodyState extends State<SamMaskGameBody> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  GestureDetector(
+                  Tappable(
                     onTap: _guess,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 15,
-                      ),
-                      decoration: BoxDecoration(
-                        color: blue,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Text(
-                        tr('bench_mask_guess_button'),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 15,
+                    haptic: false,
+                    semanticLabel: tr('bench_mask_guess_button'),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 44),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 15,
+                        ),
+                        decoration: BoxDecoration(
+                          color: blue,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Text(
+                          tr('bench_mask_guess_button'),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
                         ),
                       ),
                     ),
@@ -4039,20 +4103,25 @@ class SamMaskGameBodyState extends State<SamMaskGameBody> {
               // Escape hatch mid-round: a stuck or slow round never blocks
               // the demo — a fresh picture is one tap away.
               Center(
-                child: GestureDetector(
+                child: Tappable(
                   onTap: () => unawaited(_load()),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 10,
-                      horizontal: 16,
-                    ),
-                    child: Text(
-                      tr('bench_mask_new_picture'),
-                      style: TextStyle(
-                        color: context.mutedText,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13,
-                        decoration: TextDecoration.underline,
+                  haptic: false,
+                  semanticLabel: tr('bench_mask_new_picture'),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 44),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 10,
+                        horizontal: 16,
+                      ),
+                      child: Text(
+                        tr('bench_mask_new_picture'),
+                        style: TextStyle(
+                          color: context.mutedText,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                          decoration: TextDecoration.underline,
+                        ),
                       ),
                     ),
                   ),

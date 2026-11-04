@@ -165,8 +165,9 @@ class _RoomPalaceHomeCardState extends State<RoomPalaceHomeCard>
           ),
         );
       },
-      child: SizedBox(
-        height: 152,
+      // Grows past 152 pt at large text scales instead of clipping.
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 152),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(AppRadius.l),
           child: Stack(

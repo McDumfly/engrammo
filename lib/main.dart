@@ -195,7 +195,7 @@ class MyApp extends StatelessWidget {
                 data: mq.copyWith(
                   textScaler: mq.textScaler.clamp(
                     minScaleFactor: 0.9,
-                    maxScaleFactor: 1.2,
+                    maxScaleFactor: 1.4,
                   ),
                 ),
                 child: child ?? const SizedBox.shrink(),
