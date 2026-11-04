@@ -4,16 +4,60 @@
 
 A memory-training gym that teaches the techniques real memory champions use — methods backed by scientific research, not brain games. Champions aren't born with special brains; they trained these methods. In one study, novices more than doubled their recall in just six weeks (Dresler et al., 2017). Engrammo puts that same training in your pocket. My entry for the **Meta Global AI Developer Hackathon** (Indie Dev Track), problem statement: **Build for Your World**.
 
-## How judges test it in 60 seconds
+[![Engrammo demo video](https://img.youtube.com/vi/5vMNwMKVE20/hqdefault.jpg)](https://youtu.be/5vMNwMKVE20)
 
-1. `sh tool/bootstrap.sh && flutter run` (no key needed).
-2. Guest → Practice → Room Palace → Try the sample room (labelled replay of a real run).
-3. Use sample list → Build → dream scenes.
-4. "First, test me without the palace", then Prove it.
-5. Session Coach → See a real agent run.
-6. Settings → Meta AI → key → Run live instead. Your key is optional and stays on your device — [here is exactly what happens to it](#your-api-key-exactly-what-happens-to-it).
+▶ **Demo video:** https://youtu.be/5vMNwMKVE20
 
-**60-second tour:**
+## How to run
+
+```bash
+git clone https://github.com/McDumfly/engrammo && cd engrammo
+sh tool/bootstrap.sh
+flutter run
+```
+
+You don't need an API key or a Firebase project. Without them the
+app opens straight into local mode and keeps everything on the
+device.
+
+## See the Meta models at work (no key needed)
+
+Without a key the app plays back a recorded real run, and each
+screen is labelled as a replay.
+
+1. Tap **Skip** on the intro, then on Home: **Room Palace → Start →
+   Try the sample room**. Muse Spark finds the landmarks and
+   SAM 3.1 cuts their outlines.
+2. **Use sample list**, then **Build my palace**. Muse Spark writes
+   a vivid link for each item and Muse Image paints the scenes.
+   For a before/after comparison, tap **First, test me without the
+   palace** before building.
+3. **Start recall**. On the result screen, **What the AI did** shows
+   what each model produced (landmarks, outlines, scenes) and
+   whether it ran live or from the recording. **Prove it: photo
+   hidden** then retests you from memory alone.
+4. **Practice** tab → **Today's plan → See a real agent run**. This
+   shows the Session Coach's Muse Spark tool calls and the
+   validator's verdict.
+
+## Run it live with your own key
+
+1. **Profile → ⚙ Settings → Meta AI**: paste your key and tap
+   **Save key**.
+2. Open Room Palace and photograph your own room, or tap **Run
+   live instead** while the sample room replays.
+3. **Settings → Meta AI → Recent Meta calls** shows each call and
+   whether it ran live or locally.
+
+**Your key stays on your device.** It is stored in the iOS Keychain /
+Android Keystore and sent only to `https://api.meta.ai/v1`. It never
+goes to Firebase or the call log. Photos you send go to Meta's
+Contributor tier, where they may be used for training, so use a
+test photo if that matters to you. When you are done, tap **Delete
+key** in the same place and revoke the key on
+[dev.meta.ai](https://dev.meta.ai).
+
+## What's inside
 
 - **Room Palace** — photograph your own room; Muse Spark names the stations, SAM 3.1 cuts their exact silhouettes as retrieval cues, Muse Image paints each fact onto them.
 - **Session Coach** — a Muse Spark agent that reads your due reviews, weak spots and goals through tools and proposes a plan a deterministic validator accepts or rejects, with a visible trace.
@@ -23,89 +67,6 @@ A memory-training gym that teaches the techniques real memory champions use — 
 > It promises no photographic memory — that is a myth. Instead it
 > teaches real techniques: memory palace, association,
 > keyword method.
-
-## Your API key: exactly what happens to it
-
-The key is **optional**. Without one, every feature runs on
-local fallbacks, so you can judge the whole app first and add a
-key only for the live Meta calls. Everything below can be
-checked in the code. File references are given for each point.
-
-**Where it goes: only to Meta, only over HTTPS.**
-- The key is sent only as an `Authorization: Bearer` header to
-  `https://api.meta.ai/v1`. That header is built in exactly one
-  place: `_headers()` in `lib/services/meta_ai_service.dart`.
-- A non-HTTPS address is refused before any request starts
-  (`resolveBaseUrl`, covered by `test/meta_base_url_test.dart`).
-- The app has no analytics, crash reporting or ad SDKs
-  (see `pubspec.yaml`). Its only other network traffic is
-  Firebase (sign-in and progress sync, which never reads the
-  key) and a connectivity ping to `gstatic.com/generate_204`.
-
-**Where it is stored: on your device, encrypted.**
-- A key typed into Settings → Meta AI → Model API key is masked
-  while you type. It is saved in the iOS Keychain / Android
-  Keystore (`flutter_secure_storage`), never in plain text.
-- A key from `.env` is copied into that same secure storage on
-  launch (`persistLaunchKeyIfPresent`, `lib/main.dart`). Deleting
-  `.env` alone is therefore not enough: use **Delete key**.
-- `.env` and `.env.json` are gitignored, so the key never lands
-  in a commit. A debug build made with a `.env` key does contain
-  it in readable form, so don't share that build.
-
-**What is never stored with it.** The call log keeps only the
-model, call type, time, success, fallback flag and a short note
-(`MetaCallEntry`; for failures, a snippet of Meta's error reply).
-It never stores the key or the request body.
-The log is visible in Settings → Meta AI → Recent Meta calls,
-so you can see every call your key made.
-
-**What gets sent with your key.** Interview answers, scores,
-lesson prompts and **room photos** go to the Meta Model API on
-the Contributor tier, where sent content may be used for
-training. Use a test photo rather than a private room if that
-matters to you. The **Allow cloud AI analysis** switch
-(Settings → Meta AI) stops every live call immediately, and the
-app keeps working on-device.
-
-**Removing it afterwards.**
-1. Settings → Meta AI → **Delete key**. The app confirms it with
-   "Deleted, offline fallback runs again" (tested in
-   `test/meta_api_key_store_test.dart`).
-2. Delete `.env` / `.env.json` if you created one.
-3. Revoke the key on [dev.meta.ai](https://dev.meta.ai). This is
-   the only step that guarantees the key is dead everywhere.
-
-**Check it yourself in 30 seconds:**
-
-```bash
-grep -rn "Authorization" lib
-```
-
-```bash
-grep -rhoE "https://[a-zA-Z0-9./_-]+" lib | sort -u
-```
-
-```bash
-flutter test test/meta_base_url_test.dart test/meta_api_key_store_test.dart
-```
-
-The first command finds the single place the key is attached.
-The second lists every address the code contains (Meta API, its
-docs links and the connectivity ping). The third runs the
-HTTPS-only and store/delete tests.
-
-## Quickstart
-
-```bash
-git clone https://github.com/McDumfly/engrammo && cd engrammo
-sh tool/bootstrap.sh
-flutter run
-```
-
-Without a key everything runs on local fallbacks. With a
-key, either write it into `.env` (`MODEL_API_KEY=`) or
-paste it in-app under Settings → Meta AI.
 
 ## What does the app do?
 

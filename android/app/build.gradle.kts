@@ -3,11 +3,15 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
-    // START: FlutterFire Configuration
-    id("com.google.gms.google-services")
-    // END: FlutterFire Configuration
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// FlutterFire: google-services.json is gitignored. Apply the plugin only
+// when it exists, so a fresh clone (no Firebase project) still builds and
+// runs local-only instead of failing on the missing file.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
 }
 
 // Release signing: put your keystore details in android/key.properties
