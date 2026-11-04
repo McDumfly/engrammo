@@ -16,6 +16,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../l10n/app_localizations.dart';
 import '../models/fsrs_card.dart';
+import '../models/user_goals.dart' show UserGoal;
 import '../models/meta_image.dart';
 import '../models/room_palace.dart';
 import '../models/sam_mask.dart'
@@ -37,6 +38,7 @@ import '../widgets/app_buttons.dart'
 import '../widgets/app_kit.dart';
 import '../widgets/room_preview_art.dart';
 import 'assessment_interview.dart' show askCloudConsent;
+import 'my_goals.dart' show MyGoalsPage;
 import 'benchmark.dart'
     show BenchmarkStore, MaskedPicture, buildSamOutline, layoutRecallChips;
 
@@ -44,6 +46,24 @@ import 'benchmark.dart'
 Color _stationColor(int i) {
   const cycle = [teal, blue, orange, coral];
   return cycle[i % cycle.length];
+}
+
+/// Splits a goal's material into palace items: first by line, then by
+/// sentence, skipping empties and duplicates, capped at [n].
+@visibleForTesting
+List<String> goalMaterialItems(String material, int n) {
+  final cap = n.clamp(1, 10);
+  final out = <String>[];
+  final sentenceEnd = RegExp(r'(?<=[.!?…])\s+');
+  for (final line in material.split('\n')) {
+    for (final s in line.split(sentenceEnd)) {
+      final t = s.trim();
+      if (t.isEmpty || out.contains(t)) continue;
+      out.add(t);
+      if (out.length >= cap) return out;
+    }
+  }
+  return out;
 }
 
 /// Palace list row title: the first two memorised items plus how many
@@ -1988,6 +2008,94 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     ]);
   }
 
+  /// "From my goals": picks a goal and fills the item field from its
+  /// material (split by line, then by sentence, capped at the station
+  /// count). With no goals, offers a link to My goals instead.
+  Future<void> _fillFromGoals() async {
+    final goals = await MemoryStore.loadUserGoals();
+    if (!mounted) return;
+    if (goals.isEmpty) {
+      await showAppSheet<void>(
+        context,
+        builder: (sheetContext) => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                tr('room_goals_empty'),
+                style: AppText.body.copyWith(color: context.mutedText),
+              ),
+            ),
+            Center(
+              child: AppLinkButton(
+                label: tr('myg_title'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const MyGoalsPage()),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    final picked = await showAppSheet<UserGoal>(
+      context,
+      builder: (sheetContext) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final g in goals)
+            Tappable(
+              onTap: () => Navigator.of(sheetContext).pop(g),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            g.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.body.copyWith(
+                              color: context.inkText,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          if (g.material.trim().isNotEmpty)
+                            Text(
+                              g.material.trim().split('\n').first,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppText.caption.copyWith(
+                                color: context.mutedText,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+    if (picked == null || !mounted) return;
+    final items = goalMaterialItems(picked.material, _stations.length);
+    if (items.length < 2) {
+      showAppToast(context, tr('room_items_too_few'), kind: ToastKind.warning);
+      return;
+    }
+    setState(() => _itemsCtrl.text = items.join('\n'));
+  }
+
   /// "Scan my notes": Muse Spark reads a photo of study notes into the
   /// item field. Fills only an empty field; otherwise asks before
   /// replacing. The D3 photo consent covers this photo too. Never
@@ -2178,6 +2286,15 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
           label: tr('room_items_scan_notes'),
           icon: HugeIcons.strokeRoundedCamera01,
           onTap: _notesBusy ? null : () => _scanNotes(),
+        ),
+      ),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: AppLinkButton(
+          key: const ValueKey('room-items-from-goals'),
+          label: tr('room_items_from_goals'),
+          icon: HugeIcons.strokeRoundedTarget02,
+          onTap: () => _fillFromGoals(),
         ),
       ),
       const SizedBox(height: 8),

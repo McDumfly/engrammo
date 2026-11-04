@@ -1923,6 +1923,8 @@ const Map<String, String> enStrings = {
   'room_items_title': 'What do you want to remember?',
   'room_items_hint': 'One item per line (up to {count})',
   'room_items_sample': 'Use sample list',
+  'room_items_from_goals': 'From my goals',
+  'room_goals_empty': 'Add a goal first',
   'room_items_scan_notes': 'Scan my notes',
   'room_notes_read': 'Muse Spark read your notes. Edit before building.',
   'room_notes_empty': 'Couldn\'t read any notes from that photo.',
