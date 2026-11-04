@@ -2009,6 +2009,8 @@ const Map<String, String> huStrings = {
   'room_not_due': 'Következő: {date}',
   'room_review_btn': 'Ismétlés',
   'room_review_early': 'Ismétlés most (korábban)',
+  'room_review_now': 'Ismétlés most',
+  'room_review_due_now': 'Most esedékes',
   'room_day_n': '{n}. nap',
   'room_retention_caption': 'Ezen az eszközön mérve. Egy tanuló, nem kutatás.',
   'room_new_btn': 'Új palota',

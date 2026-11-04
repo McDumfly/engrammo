@@ -1786,11 +1786,13 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                _RetentionStrip(
-                  palace: p,
-                  onReviewEarly: () => _reviewPalace(p),
-                ),
+                if (p.runs.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  _RetentionStrip(
+                    palace: p,
+                    onReviewEarly: () => _reviewPalace(p),
+                  ),
+                ],
               ],
             ),
           ),
@@ -2920,8 +2922,10 @@ class _RetentionStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final runs = palace.runs;
-    final early =
-        onReviewEarly != null && palace.card.due.isAfter(DateTime.now());
+    final now = DateTime.now();
+    final future = palace.card.due.isAfter(now);
+    final dueNow = !future;
+    final showLink = onReviewEarly != null;
     Widget line() => Expanded(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -3010,7 +3014,9 @@ class _RetentionStrip extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    tr('room_day_n', {'n': '${_day(palace.card.due)}'}),
+                    dueNow
+                        ? tr('room_review_due_now')
+                        : tr('room_day_n', {'n': '${_day(palace.card.due)}'}),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppText.micro.copyWith(color: context.mutedText),
@@ -3028,10 +3034,10 @@ class _RetentionStrip extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: AppText.micro.copyWith(color: context.mutedText),
         ),
-        if (early)
+        if (showLink)
           Center(
             child: AppLinkButton(
-              label: tr('room_review_early'),
+              label: tr(future ? 'room_review_early' : 'room_review_now'),
               onTap: onReviewEarly,
             ),
           ),

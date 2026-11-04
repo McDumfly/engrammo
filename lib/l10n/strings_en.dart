@@ -1990,6 +1990,8 @@ const Map<String, String> enStrings = {
   'room_not_due': 'Next: {date}',
   'room_review_btn': 'Review',
   'room_review_early': 'Review now (early)',
+  'room_review_now': 'Review now',
+  'room_review_due_now': 'Due now',
   'room_day_n': 'Day {n}',
   'room_retention_caption': 'Tracked on this device. One learner, not a study.',
   'room_new_btn': 'New palace',
