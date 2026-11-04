@@ -21,8 +21,8 @@ in the learner's own material. Four hosted Meta models
 SAM 3.1 and Muse Wonder — are chained into one training
 loop. If the Meta API is unreachable or no key is set,
 every AI step falls back to deterministic local generators,
-so no screen ever breaks. The app itself needs an internet
-connection; bot duels also work offline.
+so no screen ever breaks. Offline banner; local features keep
+working; bot duels also work offline.
 
 ## 2. Meta models in the loop
 
@@ -48,9 +48,8 @@ Muse Glimmer and Muse Spark Open are open-weight and not
 used in this build.
 
 No key or no network → local generators take over and
-the log marks each call `fallback: true`. The app itself
-needs an internet connection (connectivity gate at
-startup); bot duels also work offline.
+the log marks each call `fallback: true`. Offline banner;
+local features keep working; bot duels also work offline.
 
 ## 3. Judging cross-reference
 
@@ -83,8 +82,8 @@ Stage Two (0–10 each, equally weighted):
   the final features (Room Palace, Session Coach).
 - **Technical Depth & Execution.** One state pattern,
   merge-based offline-safe Firestore sync, per-card
-  spaced state, `flutter analyze` clean, 114 test files
-  (954 tests) green, EN↔HU key/placeholder parity
+  spaced state, `flutter analyze` clean, 128 test files
+  (1165 tests) green, EN↔HU key/placeholder parity
   tests, consent gates, a live smoke test against the
   real Meta Model API
   (`test/live/meta_live_smoke_test.dart`, skipped without

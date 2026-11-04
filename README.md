@@ -1,6 +1,17 @@
 # Engrammo
 
+[![CI](https://github.com/McDumfly/engrammo/actions/workflows/ci.yml/badge.svg)](https://github.com/McDumfly/engrammo/actions/workflows/ci.yml)
+
 A research-based memory-training gym that teaches real mnemonic techniques instead of brain games — my entry for the **Meta Global AI Developer Hackathon** (Indie Dev Track), problem statement: **Build for Your World**.
+
+## How judges test it in 60 seconds
+
+1. `sh tool/bootstrap.sh && flutter run` (no key needed).
+2. Guest → Practice → Room Palace → Try the sample room (labelled replay of a real run).
+3. Use sample list → Build → dream scenes.
+4. "First, test me without the palace", then Prove it.
+5. Session Coach → See a real agent run.
+6. Settings → Meta AI → key → Run live instead.
 
 **60-second tour:**
 
@@ -83,9 +94,9 @@ If the Meta API is unreachable or no key is set, local
 generators provide the content, and every call is logged
 (model name, time, success/error, whether fallback). The
 call log is also viewable in the UI (Settings → Meta AI
-→ recent calls) with per-model live/local counters. The
-app itself needs an internet connection (connectivity gate
-at startup); bot duels also work offline.
+→ recent calls) with per-model live/local counters.
+Offline banner; local features keep working; bot duels
+also work offline.
 
 ```mermaid
 flowchart LR
@@ -244,7 +255,7 @@ counts toward the league then too. Code:
   Meta AI service, settings.
 - `lib/theme/`, `lib/widgets/`, `lib/utils/` — theme,
   shared buttons, navigation, streak helpers.
-- `test/` — 114 test files (954 tests): models,
+- `test/` — 128 test files (1165 tests): models,
   scheduler, Meta-service fallback, auth, sync,
   streak/engram economy, transfer tasks and missions,
   onboarding and screen flows, UI details
@@ -297,9 +308,9 @@ The release script builds with an empty `.env`, so no key
 is bundled: the user enters their own key in Settings.
 Revoke the demo key on the Meta dashboard afterwards.
 
-An internet connection is required: with no network the app
-shows a "Connect to the internet" message with a retry button
-at startup. It also starts without Firebase config (but with
+No connection required: with no network the app shows an
+offline banner; local features keep working.
+It also starts without Firebase config (but with
 live net): then the app opens directly instead of the sign-in,
 and all data stays on the device. For Firebase setup see:
 `FIREBASE_SETUP.md` (EU region recommended, `flutterfire
