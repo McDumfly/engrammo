@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/McDumfly/engrammo/actions/workflows/ci.yml/badge.svg)](https://github.com/McDumfly/engrammo/actions/workflows/ci.yml)
 
-A research-based memory-training gym that teaches real mnemonic techniques instead of brain games — my entry for the **Meta Global AI Developer Hackathon** (Indie Dev Track), problem statement: **Build for Your World**.
+A memory-training gym that teaches the techniques real memory champions use — methods backed by scientific research, not brain games. Champions aren't born with special brains; they trained these methods. In one study, novices more than doubled their recall in just six weeks (Dresler et al., 2017). Engrammo puts that same training in your pocket. My entry for the **Meta Global AI Developer Hackathon** (Indie Dev Track), problem statement: **Build for Your World**.
 
 ## How judges test it in 60 seconds
 
@@ -11,7 +11,7 @@ A research-based memory-training gym that teaches real mnemonic techniques inste
 3. Use sample list → Build → dream scenes.
 4. "First, test me without the palace", then Prove it.
 5. Session Coach → See a real agent run.
-6. Settings → Meta AI → key → Run live instead.
+6. Settings → Meta AI → key → Run live instead. Your key is optional and stays on your device — [here is exactly what happens to it](#your-api-key-exactly-what-happens-to-it).
 
 **60-second tour:**
 
@@ -23,6 +23,77 @@ A research-based memory-training gym that teaches real mnemonic techniques inste
 > It promises no photographic memory — that is a myth. Instead it
 > teaches real techniques: memory palace, association,
 > keyword method.
+
+## Your API key: exactly what happens to it
+
+The key is **optional**. Without one, every feature runs on
+local fallbacks, so you can judge the whole app first and add a
+key only for the live Meta calls. Everything below can be
+checked in the code. File references are given for each point.
+
+**Where it goes: only to Meta, only over HTTPS.**
+- The key is sent only as an `Authorization: Bearer` header to
+  `https://api.meta.ai/v1`. That header is built in exactly one
+  place: `_headers()` in `lib/services/meta_ai_service.dart`.
+- A non-HTTPS address is refused before any request starts
+  (`resolveBaseUrl`, covered by `test/meta_base_url_test.dart`).
+- The app has no analytics, crash reporting or ad SDKs
+  (see `pubspec.yaml`). Its only other network traffic is
+  Firebase (sign-in and progress sync, which never reads the
+  key) and a connectivity ping to `gstatic.com/generate_204`.
+
+**Where it is stored: on your device, encrypted.**
+- A key typed into Settings → Meta AI → Model API key is masked
+  while you type. It is saved in the iOS Keychain / Android
+  Keystore (`flutter_secure_storage`), never in plain text.
+- A key from `.env` is copied into that same secure storage on
+  launch (`persistLaunchKeyIfPresent`, `lib/main.dart`). Deleting
+  `.env` alone is therefore not enough: use **Delete key**.
+- `.env` and `.env.json` are gitignored, so the key never lands
+  in a commit. A debug build made with a `.env` key does contain
+  it in readable form, so don't share that build.
+
+**What is never stored with it.** The call log keeps only the
+model, call type, time, success, fallback flag and a short note
+(`MetaCallEntry`; for failures, a snippet of Meta's error reply).
+It never stores the key or the request body.
+The log is visible in Settings → Meta AI → Recent Meta calls,
+so you can see every call your key made.
+
+**What gets sent with your key.** Interview answers, scores,
+lesson prompts and **room photos** go to the Meta Model API on
+the Contributor tier, where sent content may be used for
+training. Use a test photo rather than a private room if that
+matters to you. The **Allow cloud AI analysis** switch
+(Settings → Meta AI) stops every live call immediately, and the
+app keeps working on-device.
+
+**Removing it afterwards.**
+1. Settings → Meta AI → **Delete key**. The app confirms it with
+   "Deleted, offline fallback runs again" (tested in
+   `test/meta_api_key_store_test.dart`).
+2. Delete `.env` / `.env.json` if you created one.
+3. Revoke the key on [dev.meta.ai](https://dev.meta.ai). This is
+   the only step that guarantees the key is dead everywhere.
+
+**Check it yourself in 30 seconds:**
+
+```bash
+grep -rn "Authorization" lib
+```
+
+```bash
+grep -rhoE "https://[a-zA-Z0-9./_-]+" lib | sort -u
+```
+
+```bash
+flutter test test/meta_base_url_test.dart test/meta_api_key_store_test.dart
+```
+
+The first command finds the single place the key is attached.
+The second lists every address the code contains (Meta API, its
+docs links and the connectivity ping). The third runs the
+HTTPS-only and store/delete tests.
 
 ## Quickstart
 
@@ -255,7 +326,7 @@ counts toward the league then too. Code:
   Meta AI service, settings.
 - `lib/theme/`, `lib/widgets/`, `lib/utils/` — theme,
   shared buttons, navigation, streak helpers.
-- `test/` — 128 test files (1165 tests): models,
+- `test/` — 131 test files (1242 tests): models,
   scheduler, Meta-service fallback, auth, sync,
   streak/engram economy, transfer tasks and missions,
   onboarding and screen flows, UI details

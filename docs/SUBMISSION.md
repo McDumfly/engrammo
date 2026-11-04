@@ -82,8 +82,8 @@ Stage Two (0–10 each, equally weighted):
   the final features (Room Palace, Session Coach).
 - **Technical Depth & Execution.** One state pattern,
   merge-based offline-safe Firestore sync, per-card
-  spaced state, `flutter analyze` clean, 128 test files
-  (1165 tests) green, EN↔HU key/placeholder parity
+  spaced state, `flutter analyze` clean, 131 test files
+  (1242 tests) green, EN↔HU key/placeholder parity
   tests, consent gates, a live smoke test against the
   real Meta Model API
   (`test/live/meta_live_smoke_test.dart`, skipped without
