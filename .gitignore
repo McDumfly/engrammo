@@ -83,7 +83,7 @@ MEMORY.md
 # Ideiglenes screenshot-körút: csak helyi felvételezésre készült,
 # a futtatás után törlendő, soha nem megy gitre.
 integration_test/tour_test.dart
-engrammo-for-claude.zip
+engrammo-for-*.zip
 MUSE_PLAN.md
 MUSE_PROMPT.md
 MUSE_SESSION_*.md
