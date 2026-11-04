@@ -7,9 +7,30 @@ import 'package:hugeicons/hugeicons.dart';
 
 import '../theme/app_colors.dart' show blueDark, blueShadow, coralDark;
 import '../theme/app_theme.dart';
+import '../theme/app_tokens.dart';
 import 'app_kit.dart';
 
 enum EngramButtonVariant { primary, secondary, danger }
+
+// GOMBRENDSZER — mikor melyiket:
+//
+// 1. Akció (valamit elindít / továbbvisz / ment): [EngramButton].
+//    Mindig pill alak, teljes szélesség, 3D perem (4 px).
+//    - primary: kék, képernyőnként az az egy fő lépés;
+//    - secondary: kártyaszín + hajszálkeret, a fő lépés mellett/alatt;
+//    - danger: korall, visszafordíthatatlan művelet.
+//    Letiltva lapos (nincs perem) — ez jelzi, hogy nem nyomható.
+// 2. Csempe / kártya (válaszopció, választó rács, listasor): lekerekített
+//    téglalap AppRadius.m (nagyobb kártyán AppRadius.l), soha nem pill.
+//    A választó rácsok (avatar, tanulási ösvény) [EngramPress3D]-vel
+//    nyomódnak; a kvíz-válaszopciók laposak + [Tappable], mert ott a
+//    színes helyes/hibás visszajelzés a lényeg.
+// 3. Harmadlagos (mégse, link, ikon, chip): lapos, perem nélkül —
+//    [EngramTextButton], [AppLinkButton], [AppIconButton]/[EngramIconButton]
+//    (kör), [EngramMiniButton] (kis pill).
+//
+// Kézzel épített CTA-konténert ne írj: ha valami 1-es szerepű, az
+// EngramButton.
 
 class EngramButton extends StatelessWidget {
   final String label;
@@ -38,6 +59,9 @@ class EngramButton extends StatelessWidget {
     this.height = 60,
     this.semanticsLabel,
   });
+
+  /// Minden akciógomb azonos 3D mélységgel nyomódik.
+  static const double _depth = 4;
 
   bool get _disabled => onPressed == null && !isLoading;
 
@@ -81,7 +105,7 @@ class EngramButton extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       decoration: BoxDecoration(
         color: top,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
         border: variant == EngramButtonVariant.secondary && !_disabled
             ? Border.all(color: context.hairline, width: 2)
             : null,
@@ -133,26 +157,26 @@ class EngramButton extends StatelessWidget {
         : null;
     Widget wrapped;
     if (tap == null) {
-      wrapped = variant == EngramButtonVariant.secondary
-          ? visual
-          : Padding(padding: const EdgeInsets.only(bottom: 4), child: visual);
-    } else if (variant == EngramButtonVariant.secondary) {
-      wrapped = Tappable(
-        scale: 0.97,
-        haptic: false,
-        semanticLabel: semanticsLabel ?? label,
-        onTap: tap,
+      // Letiltva lapos (nincs perem), de a 3D mélységnyi helyet megtartja,
+      // így engedélyezéskor nem ugrik a layout.
+      wrapped = Padding(
+        padding: const EdgeInsets.only(bottom: _depth),
         child: visual,
       );
     } else {
       wrapped = EngramPress3D(
         onTap: tap,
         top: visual,
-        shadowColor: variant == EngramButtonVariant.danger
-            ? const Color(0xFF8E1414)
-            : blueShadow,
-        depth: 4,
-        borderRadius: BorderRadius.circular(999),
+        shadowColor: switch (variant) {
+          EngramButtonVariant.primary => blueShadow,
+          // A hajszálkeret világosban túl halvány peremnek: egy fokkal
+          // sötétebb, hogy a gomb ugyanúgy „kiálljon", mint a primary.
+          EngramButtonVariant.secondary =>
+            context.isDark ? context.hairline : const Color(0xFFC9D7EA),
+          EngramButtonVariant.danger => const Color(0xFF8E1414),
+        },
+        depth: _depth,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
         haptic: false,
         semanticLabel: semanticsLabel ?? label,
       );
@@ -191,7 +215,7 @@ class EngramPress3D extends StatefulWidget {
     required this.top,
     required this.shadowColor,
     this.depth = 4,
-    this.borderRadius = const BorderRadius.all(Radius.circular(18)),
+    this.borderRadius = const BorderRadius.all(Radius.circular(AppRadius.m)),
     this.haptic = true,
     this.semanticLabel,
     this.shadowBorder,

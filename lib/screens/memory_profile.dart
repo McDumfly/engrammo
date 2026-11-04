@@ -1023,9 +1023,13 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                     ),
                   )
                 else
-                  Text(
-                    tr('mprof_earn'),
-                    style: TextStyle(color: context.mutedText, fontSize: 12),
+                  Flexible(
+                    child: Text(
+                      tr('mprof_earn'),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: context.mutedText, fontSize: 12),
+                    ),
                   ),
               ],
             ),
@@ -1066,30 +1070,11 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                 ),
               ],
               const SizedBox(height: 16),
-              EngramPress3D(
-                onTap: _reveal,
-                shadowColor: blueDark,
-                depth: 4,
-                borderRadius: BorderRadius.circular(AppRadius.m),
+              EngramButton(
+                label: tr('mprof_continue'),
+                onPressed: _reveal,
                 haptic: false,
-                semanticLabel: tr('mprof_continue'),
-                top: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  decoration: BoxDecoration(
-                    color: blue,
-                    borderRadius: BorderRadius.circular(AppRadius.m),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    tr('mprof_continue'),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                ),
+                height: 52,
               ),
               const SizedBox(height: 8),
               Text(
@@ -1257,34 +1242,15 @@ class _MemoryAssessmentPageState extends State<MemoryAssessmentPage>
                 ),
               if (_answered) ...[
                 const SizedBox(height: 12),
-                EngramPress3D(
+                EngramButton(
                   key: const ValueKey('assessment-continue'),
-                  onTap: () {
+                  label: tr('mprof_continue_btn'),
+                  haptic: false,
+                  height: 52,
+                  onPressed: () {
                     AppFeedback.medium();
                     unawaited(_nextStep());
                   },
-                  shadowColor: blueDark,
-                  depth: 4,
-                  borderRadius: BorderRadius.circular(AppRadius.m),
-                  haptic: false,
-                  semanticLabel: tr('mprof_continue_btn'),
-                  top: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    decoration: BoxDecoration(
-                      color: blue,
-                      borderRadius: BorderRadius.circular(AppRadius.m),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      tr('mprof_continue_btn'),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                  ),
                 ),
               ],
             ],
@@ -1522,34 +1488,13 @@ class MemoryResultPage extends StatelessWidget {
           ],
           if (onStartTrack != null) ...[
             const SizedBox(height: 12),
-            EngramPress3D(
-              onTap: () => onStartTrack!(rec.track),
-              shadowColor: tealDark,
-              depth: 4,
-              borderRadius: BorderRadius.circular(AppRadius.m),
-              haptic: false,
-              semanticLabel: tr('mprof_start_track', {
+            EngramButton(
+              label: tr('mprof_start_track', {
                 'name': memoryKinds[rec.track].displayName,
               }),
-              top: Container(
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                decoration: BoxDecoration(
-                  color: teal,
-                  borderRadius: BorderRadius.circular(AppRadius.m),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  tr('mprof_start_track', {
-                    'name': memoryKinds[rec.track].displayName,
-                  }),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                    letterSpacing: 1,
-                  ),
-                ),
-              ),
+              onPressed: () => onStartTrack!(rec.track),
+              haptic: false,
+              height: 52,
             ),
           ],
           const SizedBox(height: 12),
@@ -1615,73 +1560,28 @@ class MemoryResultPage extends StatelessWidget {
             const SizedBox(height: 10),
           ],
           const SizedBox(height: 8),
-          EngramPress3D(
-            onTap: () {
+          EngramButton(
+            label: tr('mprof_continue_btn'),
+            haptic: false,
+            height: 52,
+            onPressed: () {
               AppFeedback.medium();
               Navigator.of(context).pop();
             },
-            shadowColor: blueDark,
-            depth: 4,
-            borderRadius: BorderRadius.circular(AppRadius.m),
-            haptic: false,
-            semanticLabel: tr('mprof_continue_btn'),
-            top: Container(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              decoration: BoxDecoration(
-                color: blue,
-                borderRadius: BorderRadius.circular(AppRadius.m),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                tr('mprof_continue_btn'),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1,
-                ),
-              ),
-            ),
           ),
           const SizedBox(height: 8),
-          Tappable(
-            haptic: false,
-            onTap: () {
-              AppFeedback.light();
+          EngramButton(
+            label: tr('mprof_retake'),
+            icon: HugeIcons.strokeRoundedRefresh,
+            variant: EngramButtonVariant.secondary,
+            height: 52,
+            onPressed: () {
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(
                   builder: (_) => const MemoryAssessmentIntroPage(),
                 ),
               );
             },
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              decoration: BoxDecoration(
-                color: context.cardBg,
-                borderRadius: BorderRadius.circular(AppRadius.m),
-                border: Border.all(color: context.hairline, width: 2),
-              ),
-              alignment: Alignment.center,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const HugeIcon(
-                    icon: HugeIcons.strokeRoundedRefresh,
-                    color: blue,
-                    size: 20,
-                    strokeWidth: 2.2,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    tr('mprof_retake'),
-                    style: TextStyle(
-                      color: context.accentText(blue),
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ),
         ],
       ),

@@ -233,9 +233,10 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
           // A közösségi összehasonlítás még nincs implementálva: a „hamarosan"
           // kártyát elrejtjük, amíg nincs mögötte valódi funkció.
           const SizedBox(height: 14),
-          EngramPress3D(
-            onTap: () async {
-              AppFeedback.light();
+          EngramButton(
+            label: tr('bstat_play'),
+            height: 52,
+            onPressed: () async {
               await Navigator.of(context)
                   .push(MaterialPageRoute(builder: (_) => widget.buildGame()));
               if (mounted &&
@@ -248,28 +249,6 @@ class _BenchmarkDetailPageState extends State<BenchmarkDetailPage> {
                 });
               }
             },
-            shadowColor: blueDark.withValues(alpha: 0.5),
-            depth: 4,
-            borderRadius: BorderRadius.circular(14),
-            haptic: false,
-            semanticLabel: tr('bstat_play'),
-            top: Container(
-              padding: const EdgeInsets.symmetric(vertical: 15),
-              decoration: BoxDecoration(
-                color: blue,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                tr('bstat_play'),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
-                  letterSpacing: 1.5,
-                ),
-              ),
-            ),
           ),
         ],
       ),

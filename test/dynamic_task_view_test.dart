@@ -88,8 +88,10 @@ void main() {
         find.byKey(const ValueKey('dynamic-input-b2')),
         'milk keys letter',
       );
-      await tester.tap(find.byKey(const ValueKey('dynamic-submit-b2')));
-      await tester.pumpAndSettle();
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('dynamic-submit-b2')),
+      );
       expect(find.text('Correct — locked in.'), findsOneWidget);
     });
 

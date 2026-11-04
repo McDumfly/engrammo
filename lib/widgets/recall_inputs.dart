@@ -5,7 +5,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../l10n/app_localizations.dart';
-import '../theme/app_colors.dart' show blueDark, blueShadow, teal, tealDark;
+import '../theme/app_colors.dart' show teal, tealDark;
 import '../theme/app_theme.dart';
 import 'app_buttons.dart';
 import 'app_kit.dart';
@@ -69,34 +69,13 @@ class _RecallTextFieldState extends State<RecallTextField> {
         ),
         const SizedBox(height: 8),
         if (!widget.submitted)
-          EngramPress3D(
+          EngramButton(
             key: const ValueKey('recall-check'),
-            onTap: _submit,
-            shadowColor: blueShadow,
-            depth: 4,
-            borderRadius: BorderRadius.circular(14),
+            label: tr('recall_check'),
+            onPressed: _submit,
             haptic: false,
-            semanticLabel: tr('recall_check_answer'),
-            top: Container(
-              constraints: const BoxConstraints(minHeight: 48),
-              padding: const EdgeInsets.symmetric(vertical: 13),
-              decoration: const BoxDecoration(
-                color: blueDark,
-                borderRadius: BorderRadius.all(Radius.circular(14)),
-              ),
-              alignment: Alignment.center,
-              child: ExcludeSemantics(
-                child: Text(
-                  tr('recall_check'),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                    letterSpacing: 1,
-                  ),
-                ),
-              ),
-            ),
+            height: 52,
+            semanticsLabel: tr('recall_check_answer'),
           )
         else
           Container(
@@ -505,97 +484,30 @@ class _CorsiTapGridState extends State<CorsiTapGrid> {
           Row(
             children: [
               Expanded(
-                child: Semantics(
-                  button: true,
-                  enabled: _taps.isNotEmpty,
-                  label: tr('recall_undo'),
-                  child: GestureDetector(
-                    key: const ValueKey('corsi-undo'),
-                    onTap: _taps.isEmpty
-                        ? null
-                        : () => setState(() => _taps.removeLast()),
-                    child: Container(
-                      constraints: const BoxConstraints(minHeight: 48),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: context.cardBg,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: context.hairline, width: 2),
-                      ),
-                      alignment: Alignment.center,
-                      child: ExcludeSemantics(
-                        child: Text(
-                          tr('recall_undo_btn'),
-                          style: TextStyle(
-                            color: context.mutedText,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+                child: EngramButton(
+                  key: const ValueKey('corsi-undo'),
+                  label: tr('recall_undo_btn'),
+                  semanticsLabel: tr('recall_undo'),
+                  variant: EngramButtonVariant.secondary,
+                  height: 52,
+                  onPressed: _taps.isEmpty
+                      ? null
+                      : () => setState(() => _taps.removeLast()),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 flex: 2,
-                child: _taps.isEmpty
-                    ? Semantics(
-                        button: true,
-                        enabled: false,
-                        label: tr('recall_submit'),
-                        child: Container(
-                          key: const ValueKey('corsi-done'),
-                          constraints: const BoxConstraints(minHeight: 48),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: context.hairline,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          alignment: Alignment.center,
-                          child: ExcludeSemantics(
-                            child: Text(
-                              tr('recall_done'),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                letterSpacing: 1,
-                              ),
-                            ),
-                          ),
-                        ),
-                      )
-                    : EngramPress3D(
-                        key: const ValueKey('corsi-done'),
-                        onTap: () => widget.onDone(List.of(_taps)),
-                        shadowColor: blueShadow,
-                        depth: 4,
-                        borderRadius: BorderRadius.circular(14),
-                        haptic: false,
-                        semanticLabel: tr('recall_submit'),
-                        top: Container(
-                          constraints: const BoxConstraints(minHeight: 48),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: const BoxDecoration(
-                            color: blueDark,
-                            borderRadius: BorderRadius.all(Radius.circular(14)),
-                          ),
-                          alignment: Alignment.center,
-                          child: ExcludeSemantics(
-                            child: Text(
-                              tr('recall_done'),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                letterSpacing: 1,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
+                child: EngramButton(
+                  key: const ValueKey('corsi-done'),
+                  label: tr('recall_done'),
+                  semanticsLabel: tr('recall_submit'),
+                  height: 52,
+                  haptic: false,
+                  onPressed: _taps.isEmpty
+                      ? null
+                      : () => widget.onDone(List.of(_taps)),
+                ),
               ),
             ],
           ),

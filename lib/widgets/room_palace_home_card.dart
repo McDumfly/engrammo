@@ -13,6 +13,7 @@ import '../theme/app_colors.dart' show blue, coral, teal;
 import '../theme/app_tokens.dart';
 import '../utils/test_mode.dart';
 import 'ai_image.dart';
+import 'app_buttons.dart';
 import 'app_kit.dart';
 
 /// The one shared "SAM 3.1 · Muse Spark · Muse Image" caption: model names
@@ -291,10 +292,12 @@ class _RoomPalaceHomeCardState extends State<RoomPalaceHomeCard>
                           ),
                         ),
                         const SizedBox(width: 12),
-                        Tappable(
+                        EngramPress3D(
                           haptic: false,
                           onTap: _openReview,
-                          child: Container(
+                          shadowColor: const Color(0xFFB9C6DA),
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                          top: Container(
                             height: 40,
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             decoration: BoxDecoration(

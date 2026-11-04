@@ -71,7 +71,10 @@ void main() {
 
     final key = const ValueKey('recall-check');
     expect(find.byKey(key), findsOneWidget);
-    expect(tester.widget(find.byKey(key)).runtimeType, EngramPress3D);
+    expect(
+      find.descendant(of: find.byKey(key), matching: find.byType(EngramPress3D)),
+      findsOneWidget,
+    );
 
     AnimatedPadding pad() => tester.widget<AnimatedPadding>(
           find.descendant(

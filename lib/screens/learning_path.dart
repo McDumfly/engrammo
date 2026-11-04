@@ -1521,7 +1521,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: context.cardBg,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(AppRadius.m),
                 border: Border.all(
                   color: context.washBorder,
                   width: 2,
@@ -1696,7 +1696,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           decoration: BoxDecoration(
             color: complete ? blue : context.washBg,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(AppRadius.m),
             border: Border.all(
               color: complete ? blueDark : context.washBorder,
               width: 2,

@@ -782,7 +782,7 @@ class _GridTitle extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: context.inkText.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(AppRadius.l),
             ),
             child: Text(
               '$count',
@@ -959,12 +959,12 @@ class _OptionTile extends StatelessWidget {
     return EngramPress3D(
       onTap: onTap,
       shadowColor: sel ? blueShadow : context.hairline,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(AppRadius.l),
       semanticLabel: label,
       top: Container(
         decoration: BoxDecoration(
           color: context.cardBg,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppRadius.l),
           border: Border.all(
             color: sel ? blueDark : context.hairline,
             width: sel ? 3 : 2,
@@ -1070,7 +1070,7 @@ class _GraphicStrip extends StatelessWidget {
               return EngramPress3D(
                 onTap: () => onPick(o.value),
                 shadowColor: sel ? blueShadow : context.hairline,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppRadius.m),
                 semanticLabel: label,
                 top: Container(
                   padding: const EdgeInsets.symmetric(
@@ -1079,7 +1079,7 @@ class _GraphicStrip extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: sel ? ink : context.cardBg,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(AppRadius.m),
                     border: Border.all(
                       color: sel ? ink : context.hairline,
                       width: 2,
