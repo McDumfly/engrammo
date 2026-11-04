@@ -373,8 +373,20 @@ String palaceHumanDate(DateTime at, [String locale = 'en']) {
 /// palace` when there is exactly one own palace, plus a short human date
 /// when there are several. 'Sample room' for the sample. Palaces too
 /// small to walk keep the old station fallback.
-String roomPalaceName(RoomPalace p, [String locale = 'en', int ownCount = 1]) {
-  if (p.sample) return trFor(locale, 'palace_sample_title');
+String roomPalaceName(
+  RoomPalace p, [
+  String locale = 'en',
+  int ownCount = 1,
+  int sampleCount = 1,
+]) {
+  if (p.sample) {
+    // Several sample palaces read as duplicates unless dated, like own ones.
+    final base = trFor(locale, 'palace_sample_title');
+    if (sampleCount > 1) {
+      return '$base · ${palaceHumanDate(p.createdAt, locale)}';
+    }
+    return base;
+  }
   if (p.stations.length >= 3) {
     if (ownCount > 1) {
       return trFor(locale, 'palace_own_title_dated', {

@@ -180,12 +180,13 @@ class CoachSnapshot {
     final n = now ?? DateTime.now();
     final all = await MemoryStore.loadRoomPalaces();
     final ownCount = all.where((p) => !p.sample).length;
+    final sampleCount = all.where((p) => p.sample).length;
     final palaces = <({String id, String name, int dueInDays})>[];
     for (final p in all) {
       final raw = (p.card.due.difference(n).inHours / 24).ceil();
       palaces.add((
         id: p.id,
-        name: roomPalaceName(p, 'en', ownCount),
+        name: roomPalaceName(p, 'en', ownCount, sampleCount),
         dueInDays: raw < 0 ? 0 : raw,
       ));
     }

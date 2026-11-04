@@ -286,6 +286,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
 
   final Set<int> _builtTabs = {0};
   int _tab = 0;
+  bool _barScrolled = false;
   int _memory = 0;
   int? _chapterPos;
   int _goalsCount = 0;
@@ -560,25 +561,52 @@ class _LearningPathPageState extends State<LearningPathPage> {
             child: Column(
               children: [
                 if (_tab != 4)
-                  SafeArea(
-                    bottom: false,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                      child: StatsTopBar(
-                        icon: _tracks[_memory].icon,
-                        tint: _tracks[_memory].tint,
-                        streak: _streak,
-                        engrams: _engrams,
-                        streakBroken: _streakBroken,
-                        onIconTap: _openTrackPicker,
-                        onStreakTap: _onStreakTap,
-                        onGoalsTap: _openGoals,
-                        goalsCount: _goalsCount,
+                  // Fixed header: 12 pt breathing room below the pills and a
+                  // hairline once the tab underneath scrolls, so content
+                  // never runs straight into the stats row.
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      border: Border(
+                        bottom: BorderSide(
+                          color: _barScrolled
+                              ? context.hairline
+                              : Colors.transparent,
+                        ),
+                      ),
+                    ),
+                    child: SafeArea(
+                      bottom: false,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                        child: StatsTopBar(
+                          icon: _tracks[_memory].icon,
+                          tint: _tracks[_memory].tint,
+                          streak: _streak,
+                          engrams: _engrams,
+                          streakBroken: _streakBroken,
+                          onIconTap: _openTrackPicker,
+                          onStreakTap: _onStreakTap,
+                          onGoalsTap: _openGoals,
+                          goalsCount: _goalsCount,
+                        ),
                       ),
                     ),
                   ),
-                if (_tab == 2) const SizedBox(height: 12),
-                Expanded(child: _tabBody()),
+                Expanded(
+                  child: NotificationListener<ScrollNotification>(
+                    onNotification: (n) {
+                      if (n.metrics.axis != Axis.vertical) return false;
+                      final scrolled = n.metrics.extentBefore > 0.5;
+                      if (scrolled != _barScrolled) {
+                        setState(() => _barScrolled = scrolled);
+                      }
+                      return false;
+                    },
+                    child: _tabBody(),
+                  ),
+                ),
               ],
             ),
           ),
@@ -621,6 +649,7 @@ class _LearningPathPageState extends State<LearningPathPage> {
               onSelect: (i) => setState(() {
                 _builtTabs.add(i);
                 _tab = i;
+                _barScrolled = false;
               }),
               tabs: _navTabs,
             ),

@@ -1293,8 +1293,9 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     });
   }
 
-  bool get _needsLeaveConfirm =>
-      _step == _Step.items || _step == _Step.encode || _step == _Step.recall;
+  /// Only the items step holds unsaved work (the scan). From encode on
+  /// the palace is already stored, so leaving loses nothing.
+  bool get _needsLeaveConfirm => _step == _Step.items;
 
   Future<bool> _confirmLeave() async {
     final leave = await showAppDialog<bool>(
@@ -1861,7 +1862,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
             final date = palaceHumanDate(replay.recordedAt, locale);
             if (liveOk) {
               return Align(
-                alignment: Alignment.centerLeft,
+                alignment: Alignment.center,
                 child: AppLinkButton(
                   key: const ValueKey('room-replay-instant'),
                   label: tr('room_replay_instant'),

@@ -93,6 +93,7 @@ flutter:
     - assets/demo/sample_room.jpg
     - assets/demo/sample_run_en.json
     - assets/demo/sample_run_hu.json
+    - assets/demo/coach_run.json
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

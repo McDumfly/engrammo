@@ -58,7 +58,12 @@ class EngramButton extends StatelessWidget {
   Color _label(BuildContext context) {
     // Letiltva világos módban sötét felirat kell: a fehér a halvány
     // szürke háttéren olvashatatlan lenne.
-    if (_disabled) return context.isDark ? Colors.white : context.mutedText;
+    // Sötétben is halvány: a tiszta fehér felirat aktív gombnak tűnne.
+    if (_disabled) {
+      return context.isDark
+          ? Colors.white.withValues(alpha: 0.38)
+          : context.mutedText;
+    }
     return variant == EngramButtonVariant.secondary
         ? context.inkText
         : Colors.white;

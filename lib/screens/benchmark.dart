@@ -812,7 +812,9 @@ class _BenchmarkCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final b = BenchmarkStore.best[def.id];
+    // A 0 best (e.g. a first wrong tap) reads as no score yet.
+    final raw = BenchmarkStore.best[def.id];
+    final b = (raw == null || raw == 0) ? null : raw;
     return Tappable(
       onTap: onTap,
       child: Container(

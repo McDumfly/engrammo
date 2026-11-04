@@ -8,6 +8,7 @@ import 'package:hugeicons/hugeicons.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../l10n/app_localizations.dart';
+import '../models/room_palace.dart' show palaceHumanDate;
 import '../screens/benchmark.dart' show benchGameIcon, openPracticeGame;
 import '../screens/room_palace_page.dart' show RoomPalacePage;
 import '../services/app_feedback.dart';
@@ -392,8 +393,7 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
   /// an honest "Recorded {date}" header. Read-only: opening it never
   /// changes the learner's plan.
   Future<void> _openRecordedRun(CoachRun run) {
-    final date = MaterialLocalizations.of(context)
-        .formatShortDate(run.recordedAt);
+    final date = palaceHumanDate(run.recordedAt, AppLocalizations.localeCode);
     return showAppSheet<void>(
       context,
       builder: (_) => SingleChildScrollView(
