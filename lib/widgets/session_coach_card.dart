@@ -1,7 +1,11 @@
+import 'dart:convert';
+import 'dart:io' show File;
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../l10n/app_localizations.dart';
 import '../screens/benchmark.dart' show benchGameIcon, openPracticeGame;
@@ -45,6 +49,7 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
   List<CoachStep> _trace = const [];
   int _runId = 0;
   final GlobalKey _goKey = GlobalKey();
+  late final Future<CoachRun?> _replayFuture = CoachRun.load();
 
   static const _emptySnapshot = CoachSnapshot(
     palaces: [],
@@ -160,10 +165,12 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
   }
 
   /// A submit row is struck through when the checker rejected it later.
-  bool _isStruck(int i) {
-    final st = _trace[i];
+  bool _isStruck(int i) => _struckIn(_trace, i);
+
+  bool _struckIn(List<CoachStep> t, int i) {
+    final st = t[i];
     if (st.kind != 'tool' || st.label != 'submit_plan') return false;
-    return _trace.skip(i + 1).any((s) => s.kind == 'reject');
+    return t.skip(i + 1).any((s) => s.kind == 'reject');
   }
 
   Widget _nodeBox(Widget node) {
@@ -332,9 +339,13 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
 
   /// One collapsed detail row: human label, plus the raw validator
   /// reason for rejections.
-  Widget _detailRow(int i) {
-    final st = _trace[i];
-    final struck = _isStruck(i);
+  Widget _detailRow(int i) => _detailRowFor(_trace, i);
+
+  /// Same as [_detailRow] but for a recorded run: identical rows, and
+  /// the sheet never touches the learner's live plan.
+  Widget _detailRowFor(List<CoachStep> t, int i) {
+    final st = t[i];
+    final struck = _struckIn(t, i);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Column(
@@ -374,6 +385,87 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
         for (var i = 0; i < _trace.length; i++)
           Align(alignment: Alignment.centerLeft, child: _detailRow(i)),
       ],
+    );
+  }
+
+  /// Recorded-trace sheet: the same detail rows as the live trace under
+  /// an honest "Recorded {date}" header. Read-only: opening it never
+  /// changes the learner's plan.
+  Future<void> _openRecordedRun(CoachRun run) {
+    final date = MaterialLocalizations.of(context)
+        .formatShortDate(run.recordedAt);
+    return showAppSheet<void>(
+      context,
+      builder: (_) => SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              tr('coach_run_recorded', {'date': date}),
+              style: AppText.heading.copyWith(color: context.inkText),
+            ),
+            const SizedBox(height: 12),
+            for (var i = 0; i < run.trace.length; i++)
+              Align(
+                alignment: Alignment.centerLeft,
+                child: _detailRowFor(run.trace, i),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Debug-only capture tool: exports the finished LIVE run so the lead
+  /// can bundle it as `assets/demo/coach_run.json`. Refuses local runs.
+  Future<void> _exportRun() async {
+    final r = _result;
+    if (r == null || !r.live) {
+      if (!mounted) return;
+      showAppToast(
+        context,
+        'Only a live run exports — plan first with a key.',
+        kind: ToastKind.warning,
+      );
+      return;
+    }
+    try {
+      final run = CoachRun(
+        recordedAt: DateTime.now(),
+        trace: List<CoachStep>.of(r.trace),
+        items: List<CoachItem>.of(r.items),
+      );
+      final dir = await getApplicationDocumentsDirectory();
+      final file = File('${dir.path}/coach_run.json');
+      await file.writeAsString(jsonEncode(run.toJson()));
+      if (!mounted) return;
+      showAppToast(context, file.path, kind: ToastKind.success);
+    } catch (_) {
+      if (!mounted) return;
+      showAppToast(context, 'Export failed.', kind: ToastKind.error);
+    }
+  }
+
+  /// "See a real agent run": hidden until the recorded asset exists, so
+  /// the card behaves exactly as today without it.
+  Widget _replayLink() {
+    return FutureBuilder<CoachRun?>(
+      future: _replayFuture,
+      builder: (context, snap) {
+        final run = snap.data;
+        if (run == null) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Center(
+            child: AppLinkButton(
+              key: const ValueKey('coach-see-real-run'),
+              label: tr('coach_see_real_run'),
+              onTap: () => _openRecordedRun(run),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -582,8 +674,16 @@ class _SessionCoachCardState extends State<SessionCoachCard> {
             ),
             const SizedBox(height: 12),
             _traceDisclosure(),
+            if (kDebugMode)
+              Center(
+                child: AppLinkButton(
+                  label: 'Export as coach run',
+                  onTap: _exportRun,
+                ),
+              ),
             const SizedBox(height: 16),
           ],
+          _replayLink(),
         ],
       ),
     );

@@ -1,12 +1,14 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/curriculum.dart' show trackName;
 import '../models/marathon.dart' show daysUntilReviewDue, depthForReps;
 import '../models/room_palace.dart' show roomPalaceName;
 import '../screens/benchmark.dart' show BenchmarkStore;
+import '../utils/test_mode.dart';
 import 'memory_store.dart';
 import 'meta_ai_service.dart';
 
@@ -25,6 +27,33 @@ class CoachItem {
     required this.minutes,
     required this.why,
   });
+
+  Map<String, dynamic> toJson() => {
+    'type': type.name,
+    'ref': ref,
+    'minutes': minutes,
+    'why': why.name,
+  };
+
+  /// Never throws: unknown or missing fields fall back to safe defaults.
+  factory CoachItem.fromJson(Map<String, dynamic> json) {
+    final type = CoachItemType.values.firstWhere(
+      (e) => e.name == json['type'],
+      orElse: () => CoachItemType.pathLesson,
+    );
+    final why = CoachWhy.values.firstWhere(
+      (e) => e.name == json['why'],
+      orElse: () => CoachWhy.fresh,
+    );
+    return CoachItem(
+      type: type,
+      ref: (json['ref'] as String?)?.trim().isNotEmpty == true
+          ? (json['ref'] as String).trim()
+          : 'next',
+      minutes: ((json['minutes'] as num?)?.toInt() ?? 3).clamp(1, 6),
+      why: why,
+    );
+  }
 }
 
 class CoachStep {
@@ -32,6 +61,89 @@ class CoachStep {
   final String kind; // 'tool' | 'reject' | 'accept' | 'fallback'
   final String label; // tool name or reason
   const CoachStep(this.kind, this.label);
+
+  Map<String, dynamic> toJson() => {'kind': kind, 'label': label};
+
+  /// Never throws: missing fields become an empty generic step.
+  factory CoachStep.fromJson(Map<String, dynamic> json) => CoachStep(
+    (json['kind'] as String?) ?? 'tool',
+    (json['label'] as String?) ?? '',
+  );
+}
+
+/// A recording of a REAL Session Coach agent run, created ONLY by the
+/// debug export tool from a live run — never hand-written. While the
+/// asset is missing [CoachRun.load] returns null and the card hides
+/// the replay link, so the app behaves exactly as today.
+class CoachRun {
+  final DateTime recordedAt;
+  final List<CoachStep> trace;
+  final List<CoachItem> items;
+  const CoachRun({
+    required this.recordedAt,
+    required this.trace,
+    required this.items,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'v': 1,
+    'recordedAt': recordedAt.toIso8601String(),
+    'trace': [for (final s in trace) s.toJson()],
+    'items': [for (final i in items) i.toJson()],
+  };
+
+  /// Never throws: malformed parts become empty lists.
+  factory CoachRun.fromJson(Map<String, dynamic> json) {
+    DateTime at;
+    try {
+      at =
+          DateTime.tryParse(json['recordedAt'] as String? ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0);
+    } catch (_) {
+      at = DateTime.fromMillisecondsSinceEpoch(0);
+    }
+    List<CoachStep> stepsOf(Object? raw) {
+      if (raw is! List) return const [];
+      final out = <CoachStep>[];
+      for (final e in raw) {
+        try {
+          if (e is Map<String, dynamic>) out.add(CoachStep.fromJson(e));
+        } catch (_) {}
+      }
+      return out;
+    }
+
+    List<CoachItem> itemsOf(Object? raw) {
+      if (raw is! List) return const [];
+      final out = <CoachItem>[];
+      for (final e in raw) {
+        try {
+          if (e is Map<String, dynamic>) out.add(CoachItem.fromJson(e));
+        } catch (_) {}
+      }
+      return out;
+    }
+
+    return CoachRun(
+      recordedAt: at,
+      trace: stepsOf(json['trace']),
+      items: itemsOf(json['items']),
+    );
+  }
+
+  /// Loads the recorded run, or null when the asset is missing. Never
+  /// throws. Test-fast: no asset lookup under flutter test.
+  static Future<CoachRun?> load() async {
+    if (isFlutterTest) return null;
+    try {
+      final raw = await rootBundle.loadString('assets/demo/coach_run.json');
+      final parsed = jsonDecode(raw);
+      if (parsed is! Map<String, dynamic>) return null;
+      return CoachRun.fromJson(parsed);
+    } catch (_) {
+      return null;
+    }
+  }
 }
 
 class CoachResult {
