@@ -1943,6 +1943,14 @@ const Map<String, String> huStrings = {
   'room_items_title': 'Mit szeretnél megjegyezni?',
   'room_items_hint': 'Soronként egy elem (legfeljebb {count})',
   'room_items_sample': 'Mintalista',
+  'room_items_scan_notes': 'Jegyzet beolvasása',
+  'room_notes_read':
+      'A Muse Spark beolvasta a jegyzeted. Építés előtt szerkeszd.',
+  'room_notes_empty': 'Nem sikerült jegyzetet kiolvasni ebből a fotóból.',
+  'room_notes_replace_title': 'Lecseréled a listád?',
+  'room_notes_replace_body':
+      'A beírt listád kicserélődik arra, amit a Muse Spark kiolvasott.',
+  'room_notes_replace': 'Csere',
   'room_sample_items':
       'mitokondrium\nriboszóma\nsejtmag\nGolgi-készülék\nlizoszóma\nsejthártya',
   'room_items_too_few': 'Adj meg legalább 2 elemet.',

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
@@ -23,6 +24,41 @@ Future<String?> pickRoomPhoto(ImageSource source) async {
   if (x == null) return null;
   final bytes = await x.readAsBytes();
   return compute(squareJpegDataUrl, bytes);
+}
+
+/// Picks a notes photo and returns a JPEG data URL without cropping, or
+/// null if the user cancelled. Max side 1280 px, quality 80: text stays
+/// readable while the upload stays small.
+Future<String?> pickNotePhoto(ImageSource source) async {
+  final x = await ImagePicker().pickImage(
+    source: source,
+    maxWidth: 1280,
+    maxHeight: 1280,
+    imageQuality: 80,
+  );
+  if (x == null) return null;
+  final bytes = await x.readAsBytes();
+  return compute(noteJpegDataUrl, bytes);
+}
+
+/// Resizes to max side 1280 px WITHOUT cropping and encodes as a JPEG
+/// data URL. Top-level so `compute` can run it off the UI isolate.
+String noteJpegDataUrl(Uint8List bytes) {
+  final decoded = img.decodeImage(bytes);
+  if (decoded == null) throw StateError('unreadable image');
+  final upright = img.bakeOrientation(decoded);
+  final w = upright.width;
+  final h = upright.height;
+  final longest = max(w, h);
+  final out = longest > 1280
+      ? img.copyResize(
+          upright,
+          width: (w * 1280 / longest).round(),
+          height: (h * 1280 / longest).round(),
+        )
+      : upright;
+  final jpg = img.encodeJpg(out, quality: 80);
+  return 'data:image/jpeg;base64,${base64Encode(jpg)}';
 }
 
 /// Center-crops to a square, resizes to 768 px and encodes as a JPEG data

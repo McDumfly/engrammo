@@ -1904,6 +1904,142 @@ class MetaAIService {
     }
   }
 
+  static Map<String, dynamic> noteFactsRequestBody({
+    required String imageRef,
+    required int count,
+    String locale = 'en',
+  }) {
+    final n = count.clamp(1, 10);
+    final lang = locale == 'hu' ? 'Hungarian' : 'English';
+    return {
+      'model': taskModel,
+      'reasoning': {'effort': 'minimal'},
+      'input': [
+        {
+          'type': 'message',
+          'role': 'user',
+          'content': [
+            {
+              'type': 'input_text',
+              'text':
+                  'Read the study notes in this photo. Return a JSON array '
+                  'of at most $n short distinct facts or terms (<40 chars '
+                  'each) in $lang. Return the array only, no explanation. '
+                  'Transcribe what is there; never invent facts.',
+            },
+            {'type': 'input_image', 'image_url': imageRef.trim()},
+          ],
+        },
+      ],
+    };
+  }
+
+  /// Parses note facts: a JSON array of short strings → distinct,
+  /// non-empty entries that pass the claims guardrail. Drops anything
+  /// else, including duplicates and banned tokens. Never throws.
+  @visibleForTesting
+  static List<String> parseNoteFacts(String content, {int max = 8}) {
+    try {
+      var text = content.trim();
+      final start = text.indexOf('[');
+      final end = text.lastIndexOf(']');
+      if (start < 0 || end <= start) return const [];
+      text = text.substring(start, end + 1);
+      final data = jsonDecode(text);
+      if (data is! List) return const [];
+      final out = <String>[];
+      for (final e in data) {
+        if (e is! String) continue;
+        final s = e.trim();
+        if (s.isEmpty || out.contains(s)) continue;
+        if (bannedTokenIn(s) != null) continue;
+        if (out.length >= max.clamp(1, 10)) break;
+        out.add(s);
+      }
+      return out;
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  /// Lets Muse Spark (VLM) read a photo of study notes into at most
+  /// [count] short facts for the palace item list. Returns the facts
+  /// (empty when offline, keyless, imageless or unreadable — the
+  /// caller toasts). Never invents facts: without a live call the
+  /// result is always empty. Never throws.
+  static Future<List<String>> extractNoteFacts(
+    String imageRef, {
+    required int count,
+    String locale = 'en',
+    http.Client? client,
+    String? apiKeyOverride,
+    String? baseUrlOverride,
+  }) async {
+    final n = count.clamp(1, 10);
+    Future<List<String>> local({
+      required bool success,
+      String note = '',
+    }) async {
+      await _log(
+        MetaCallEntry(
+          model: taskModel,
+          kind: 'notes:facts',
+          at: DateTime.now(),
+          success: success,
+          fallback: true,
+          note: note,
+        ),
+      );
+      return const [];
+    }
+
+    final ref = imageRef.trim();
+    if (!isImageRef(ref)) {
+      return local(success: true, note: 'no real image');
+    }
+    final key = await _liveKey(apiKeyOverride);
+    final base = resolveBaseUrl(baseUrlOverride);
+    if (key.isEmpty) {
+      return local(
+        success: true,
+        note: await _gatedOfflineNote(apiKeyOverride, 'empty notes', locale),
+      );
+    }
+    final c = client ?? http.Client();
+    final owned = client == null;
+    try {
+      final res = await _postJson(
+        c,
+        url: '$base/responses',
+        key: key,
+        body: noteFactsRequestBody(imageRef: ref, count: n, locale: locale),
+        timeoutSec: httpTimeoutSec,
+      );
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        final data = jsonDecode(res.body);
+        if (data is Map<String, dynamic>) {
+          final found = parseNoteFacts(_responsesText(data), max: n);
+          await _log(
+            MetaCallEntry(
+              model: taskModel,
+              kind: 'notes:facts',
+              at: DateTime.now(),
+              success: true,
+              fallback: false,
+            ),
+          );
+          return found;
+        }
+      }
+      throw StateError('HTTP ${res.statusCode}: ${_snip(res.body)}');
+    } catch (e) {
+      debugPrint('MetaAIService.extractNoteFacts fallback: $e');
+      return local(success: false, note: e.toString());
+    } finally {
+      if (owned) c.close();
+    }
+  }
+
   static Future<MetaTask> enrichSpatialTask(
     MetaTask task, {
     required int difficulty,

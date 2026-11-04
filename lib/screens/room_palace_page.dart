@@ -130,6 +130,7 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
   // Items + encode state.
   final _itemsCtrl = TextEditingController();
   bool _building = false;
+  bool _notesBusy = false;
   RoomPalace? _palace;
   int _focus = 0;
   final Map<int, String> _dreams = {};
@@ -1987,6 +1988,112 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
     ]);
   }
 
+  /// "Scan my notes": Muse Spark reads a photo of study notes into the
+  /// item field. Fills only an empty field; otherwise asks before
+  /// replacing. The D3 photo consent covers this photo too. Never
+  /// invents facts: without a live call the field stays untouched.
+  Future<void> _scanNotes() async {
+    if (_notesBusy) return;
+    if (!await MetaAIService.cloudConsent()) {
+      if (!mounted) return;
+      _snack(tr('room_consent_off'));
+      return;
+    }
+    if (!await _askPhotoConsentOnce()) return;
+    if (!mounted) return;
+    final source = await showAppSheet<ImageSource>(
+      context,
+      builder: (sheetContext) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (roomCameraSupported)
+            Tappable(
+              onTap: () => Navigator.of(sheetContext).pop(ImageSource.camera),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Row(
+                  children: [
+                    HugeIcon(
+                      icon: HugeIcons.strokeRoundedCamera01,
+                      color: context.inkText,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      tr('room_take_photo'),
+                      style: AppText.body.copyWith(color: context.inkText),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          Tappable(
+            onTap: () => Navigator.of(sheetContext).pop(ImageSource.gallery),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Row(
+                children: [
+                  HugeIcon(
+                    icon: HugeIcons.strokeRoundedImage01,
+                    color: context.inkText,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    tr('room_pick_photo'),
+                    style: AppText.body.copyWith(color: context.inkText),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (source == null || !mounted) return;
+    setState(() => _notesBusy = true);
+    try {
+      final url = await pickNotePhoto(source);
+      if (!mounted) return;
+      if (url == null) return; // Cancelled.
+      final facts = await MetaAIService.extractNoteFacts(
+        url,
+        count: _stations.length,
+        locale: AppLocalizations.localeCode,
+      );
+      if (!mounted) return;
+      if (facts.isEmpty) {
+        showAppToast(context, tr('room_notes_empty'), kind: ToastKind.warning);
+        return;
+      }
+      if (_itemsCtrl.text.trim().isNotEmpty) {
+        final replace = await showAppDialog<bool>(
+          context,
+          title: tr('room_notes_replace_title'),
+          body: tr('room_notes_replace_body'),
+          primary: AppDialogAction(tr('room_notes_replace'), value: true),
+          secondary: AppDialogAction(tr('common_keep'), value: false),
+        );
+        if (replace != true || !mounted) return;
+      }
+      setState(() => _itemsCtrl.text = facts.join('\n'));
+      if (!mounted) return;
+      showAppToast(context, tr('room_notes_read'), kind: ToastKind.success);
+    } on PlatformException catch (e) {
+      if (!mounted) return;
+      if (e.code == 'camera_access_denied' || e.code == 'photo_access_denied') {
+        showAppToast(context, tr('room_perm_denied'), kind: ToastKind.warning);
+      } else {
+        showAppToast(context, tr('room_pick_failed'), kind: ToastKind.error);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      showAppToast(context, tr('room_pick_failed'), kind: ToastKind.error);
+    } finally {
+      if (mounted) setState(() => _notesBusy = false);
+    }
+  }
+
   Widget _itemsStep() {
     return _page([
       _header(tr('room_items_title')),
@@ -2064,6 +2171,15 @@ class _RoomPalacePageState extends State<RoomPalacePage> {
                 setState(() => _itemsCtrl.text = tr('room_sample_items')),
           ),
         ),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: AppLinkButton(
+          key: const ValueKey('room-items-scan-notes'),
+          label: tr('room_items_scan_notes'),
+          icon: HugeIcons.strokeRoundedCamera01,
+          onTap: _notesBusy ? null : () => _scanNotes(),
+        ),
+      ),
       const SizedBox(height: 8),
       EngramButton(
         label: tr('room_encode_btn'),

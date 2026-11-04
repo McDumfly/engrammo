@@ -1923,6 +1923,13 @@ const Map<String, String> enStrings = {
   'room_items_title': 'What do you want to remember?',
   'room_items_hint': 'One item per line (up to {count})',
   'room_items_sample': 'Use sample list',
+  'room_items_scan_notes': 'Scan my notes',
+  'room_notes_read': 'Muse Spark read your notes. Edit before building.',
+  'room_notes_empty': 'Couldn\'t read any notes from that photo.',
+  'room_notes_replace_title': 'Replace your list?',
+  'room_notes_replace_body':
+      'Your typed list will be replaced by what Muse Spark read.',
+  'room_notes_replace': 'Replace',
   'room_sample_items': 'mitochondria\nribosome\nnucleus\nGolgi apparatus\nlysosome\ncell membrane',
   'room_items_too_few': 'Add at least 2 items.',
   'room_encode_btn': 'Build my palace',
